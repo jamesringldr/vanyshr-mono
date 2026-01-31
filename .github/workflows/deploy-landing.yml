@@ -1,0 +1,11 @@
+# Deploy landing page
+name: Deploy Landing
+on:
+  push:
+    branches: [main]
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: echo "Add deploy steps for apps/landing"

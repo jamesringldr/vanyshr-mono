@@ -1,0 +1,46 @@
+{
+  "name": "@vanyshr/app",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "lint": "eslint . --ext .ts,.tsx",
+    "type-check": "tsc --noEmit",
+    "lint:colors": "rg -n \"(text|bg|border|outline|ring|from|to|via)-\\\\[#\" src --glob \"*.tsx\" && exit 1 || exit 0",
+    "normalize:colors": "node ./scripts/normalize-tailwind-arbitrary-colors.mjs"
+  },
+  "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@google/genai": "^1.4.0",
+    "@mui/icons-material": "^7.3.1",
+    "@mui/material": "^7.3.1",
+    "@supabase/supabase-js": "^2.54.0",
+    "@vanyshr/services": "workspace:*",
+    "@vanyshr/shared": "workspace:*",
+    "@vanyshr/ui": "workspace:*",
+    "dotenv": "^17.2.1",
+    "framer-motion": "^12.26.2",
+    "lottie-react": "^2.4.1",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-router-dom": "^6.30.1",
+    "recharts": "^2.15.4"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.0",
+    "@types/node": "^22.14.0",
+    "@types/react": "^19.1.9",
+    "@types/react-dom": "^19.1.7",
+    "@typescript-eslint/eslint-plugin": "^8.18.2",
+    "@typescript-eslint/parser": "^8.18.2",
+    "@vitejs/plugin-react": "^4.3.3",
+    "eslint": "^9.17.0",
+    "eslint-plugin-react-hooks": "^5.1.0",
+    "typescript": "~5.7.2",
+    "vite": "^6.2.0"
+  }
+}

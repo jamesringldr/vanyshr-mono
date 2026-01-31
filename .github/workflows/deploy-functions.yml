@@ -1,0 +1,11 @@
+# Deploy Supabase functions
+name: Deploy Functions
+on:
+  push:
+    branches: [main]
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: echo "Add deploy steps for packages/backend/functions"
