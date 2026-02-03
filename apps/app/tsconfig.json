@@ -1,0 +1,27 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "jsx": "react-jsx",
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "baseUrl": "./src",
+    "paths": {
+      "@/*": ["./*"],
+      "@vanyshr/ui": ["../../../packages/ui/src/index.ts"],
+      "@vanyshr/ui/components/*": ["../../../packages/ui/src/components/*"],
+      "@vanyshr/ui/assets/*": ["../../../packages/ui/src/assets/*"],
+      "@vanyshr/ui/providers/*": ["../../../packages/ui/src/providers/*"],
+      "@vanyshr/ui/utils/*": ["../../../packages/ui/src/utils/*"],
+      "@vanyshr/shared": ["../../../packages/shared/src/index.ts"],
+      "@vanyshr/shared/*": ["../../../packages/shared/src/*"]
+    }
+  },
+  "include": ["src"],
+  "references": [
+    { "path": "../../packages/shared" },
+    { "path": "../../packages/services" },
+    { "path": "../../packages/ui" }
+  ],
+  "exclude": ["dist", "node_modules"]
+}

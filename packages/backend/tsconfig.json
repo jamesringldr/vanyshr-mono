@@ -1,0 +1,18 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": "./functions",
+    "declaration": true,
+    "declarationMap": true,
+    "composite": true,
+    "lib": ["ES2020"]
+  },
+  "include": ["functions"],
+  "references": [
+    { "path": "../shared" },
+    { "path": "../services" }
+  ],
+  "exclude": ["dist", "node_modules"]
+}
+  

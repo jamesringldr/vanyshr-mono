@@ -1,0 +1,97 @@
+@import "tailwindcss";
+@import "./theme.css";
+@import "./typography.css";
+
+@plugin "@tailwindcss/typography";
+@plugin "tailwindcss-react-aria-components";
+@plugin "tailwindcss-animate";
+
+/* Dark: app toggle (.dark-mode), browser/extension (native-dark-active), or system preference */
+@custom-variant dark (
+  &:where(.dark-mode, .dark-mode *),
+  &:where([native-dark-active], [native-dark-active] *),
+  @media (prefers-color-scheme: dark)
+);
+@custom-variant label (& [data-label]);
+@custom-variant focus-input-within (&:has(input:focus));
+
+@utility scrollbar-hide {
+    /* For Webkit-based browsers (Chrome, Safari and Opera) */
+    &::-webkit-scrollbar {
+        display: none;
+        -webkit-appearance: none;
+    }
+
+    /* For IE, Edge and Firefox */
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
+}
+
+@utility transition-inherit-all {
+    transition-property: inherit;
+    transition-duration: inherit;
+    transition-timing-function: inherit;
+}
+
+/* Vanyshr semantic tokens (Design System source of truth) */
+:root {
+    --text-primary: #022136;
+    --text-secondary: #476B84;
+    --text-muted: #94A3B8;
+    --bg-surface: #FFFFFF;
+    --border-subtle: #D4DFE8;
+}
+
+/* Vanyshr dark tokens: app toggle, browser/extension attribute, or system preference */
+.dark-mode,
+.dark,
+[native-dark-active] {
+    --text-primary: #FFFFFF;
+    --text-secondary: #A8BFD4;
+    --text-muted: #56687F;
+    --bg-surface: #0F2D45;
+    --border-subtle: #2A4A68;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root:not(.light-forced) {
+        --text-primary: #FFFFFF;
+        --text-secondary: #A8BFD4;
+        --text-muted: #56687F;
+        --bg-surface: #0F2D45;
+        --border-subtle: #2A4A68;
+    }
+}
+
+html,
+body {
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    -webkit-font-variant-ligatures: contextual;
+    font-variant-ligatures: contextual;
+    -webkit-font-kerning: normal;
+    font-kerning: normal;
+}
+
+/* Hide the default expand arrow on Safari.  */
+details summary::-webkit-details-marker {
+    display: none;
+}
+
+/* Hide default arrows from number inputs. */
+/* Chrome, Safari, Edge, Opera */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+/* Firefox */
+input[type="number"] {
+    -moz-appearance: textfield;
+}
+
+/* Hide the default clear button (X) from search inputs. */
+input[type="search"]::-webkit-search-cancel-button {
+    -webkit-appearance: none;
+}

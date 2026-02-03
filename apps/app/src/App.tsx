@@ -1,4 +1,61 @@
-// Main React app
+import { Route, Routes } from "react-router";
+
+// Auth pages
+import { AuthMagicLink } from "./pages/auth/magic-link";
+import { CheckEmail } from "./pages/auth/check-email";
+
+// Onboarding pages
+import { Welcome } from "./pages/onboarding/welcome";
+import { VerifyPrimaryInfo } from "./pages/onboarding/primary-info";
+import { OnboardingPhoneNumbers } from "./pages/onboarding/phone-numbers";
+import { OnboardingAliases } from "./pages/onboarding/aliases";
+import { OnboardingAddresses } from "./pages/onboarding/addresses";
+import { OnboardingEmails } from "./pages/onboarding/emails";
+
+// Scan pages
+import { QuickScan } from "./pages/scan/quick-scan";
+import { QSScanning } from "./pages/scan/scanning";
+import { QSCompiling } from "./pages/scan/compiling";
+import { PreProfile } from "./pages/scan/pre-profile";
+
+// Dashboard pages
+import { HomeScreen } from "./pages/dashboard/home";
+import { FinancialDashboard } from "./pages/dashboard/financial";
+import { Transactions } from "./pages/dashboard/activity";
+
+// Other pages
+import { Pricing } from "./pages/pricing";
+import { NotFound } from "./pages/not-found";
+
 export default function App() {
-  return null;
+    return (
+        <Routes>
+            {/* Dashboard */}
+            <Route path="/" element={<HomeScreen />} />
+            <Route path="/dashboard" element={<FinancialDashboard />} />
+            <Route path="/activity" element={<Transactions />} />
+
+            {/* Auth */}
+            <Route path="/magic-link" element={<AuthMagicLink />} />
+            <Route path="/check-email" element={<CheckEmail />} />
+
+            {/* Onboarding */}
+            <Route path="/welcome" element={<Welcome />} />
+            <Route path="/onboarding/primary-info" element={<VerifyPrimaryInfo />} />
+            <Route path="/onboarding/phone-numbers" element={<OnboardingPhoneNumbers />} />
+            <Route path="/onboarding/aliases" element={<OnboardingAliases />} />
+            <Route path="/onboarding/addresses" element={<OnboardingAddresses />} />
+            <Route path="/onboarding/emails" element={<OnboardingEmails />} />
+
+            {/* Quick Scan */}
+            <Route path="/quick-scan" element={<QuickScan />} />
+            <Route path="/quick-scan/scanning" element={<QSScanning />} />
+            <Route path="/quick-scan/compiling" element={<QSCompiling />} />
+            <Route path="/quick-scan/pre-profile/:scanId?" element={<PreProfile />} />
+
+            {/* Other */}
+            <Route path="/pricing" element={<Pricing />} />
+            <Route path="*" element={<NotFound />} />
+        </Routes>
+    );
 }
