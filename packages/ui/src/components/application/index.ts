@@ -40,6 +40,9 @@ export * from "./qs-info-card/qs-info-card";
 // Quick Scan Progress Steps
 export * from "./qs-progress-steps/qs-progress-steps";
 
+// Quick Scan Form
+export * from "./quick-scan-form";
+
 // Quick Scan Result Modals
 export * from "./qs-result-modals";
 
@@ -56,3 +59,7 @@ export * from "./table/table";
 
 // Tabs
 export * from "./tabs/tabs";
+
+// Vulnerability Pill
+export * from "./vulnerability-pill";
+export * from "./vulnerability-carousel";

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import PrimaryLogo from "@vanyshr/ui/assets/PrimaryLogo.png";
 import PrimaryLogoDark from "@vanyshr/ui/assets/PrimaryLogo-DarkMode.png";
 import SpamCallsIcon from "@vanyshr/ui/assets/spam-calls.png";
@@ -7,7 +7,9 @@ import PhishingAttackIcon from "@vanyshr/ui/assets/phishing.png";
 import ScamAttemptsIcon from "@vanyshr/ui/assets/scam-attempts.png";
 import { useNavigate } from "react-router";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu } from "lucide-react";
+import { Menu, X } from "lucide-react";
+import { supabase } from "@/lib/supabase";
+import { QuickScanForm, type ProfileMatch } from "@vanyshr/ui/components/application";
 
 const EXPOSED_ITEMS = [
     "Phone Numbers",
@@ -46,6 +48,7 @@ export function ScanNow() {
     const navigate = useNavigate();
     const [index, setIndex] = useState(0);
     const [showFullFooter, setShowFullFooter] = useState(false);
+    const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
     useEffect(() => {
         const timer = setInterval(() => {
@@ -61,6 +64,12 @@ export function ScanNow() {
             clearTimeout(revealTimer);
         };
     }, []);
+
+    const handleSelectProfile = useCallback((profile: ProfileMatch, searchParams: { firstName: string; lastName: string; zipCode: string; city: string; state: string }) => {
+        sessionStorage.setItem("selectedProfile", JSON.stringify(profile));
+        sessionStorage.setItem("searchParams", JSON.stringify(searchParams));
+        navigate(`/quick-scan/pre-profile/${profile.id}`);
+    }, [navigate]);
 
     return (
         <div className="min-h-screen bg-page dark:bg-[#022136] flex flex-col items-center">
@@ -187,7 +196,7 @@ export function ScanNow() {
                                 No Credit Card or Sign Up Required
                             </p>
                             <button 
-                                onClick={() => navigate("/quick-scan")}
+                                onClick={() => setIsDrawerOpen(true)}
                                 className="w-full h-[72px] bg-[#14ABFE] hover:bg-[#1196E0] text-white text-2xl font-bold rounded-2xl shadow-lg transition-all active:scale-[0.98]"
                             >
                                 Run a QuickScan Now
@@ -196,6 +205,54 @@ export function ScanNow() {
                     )}
                 </AnimatePresence>
             </footer>
+
+            {/* Bottom Drawer */}
+            <AnimatePresence>
+                {isDrawerOpen && (
+                    <>
+                        {/* Backdrop */}
+                        <motion.div 
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setIsDrawerOpen(false)}
+                            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
+                        />
+                        {/* Drawer content wrapper */}
+                        <motion.div 
+                            initial={{ y: "100%" }}
+                            animate={{ y: 0 }}
+                            exit={{ y: "100%" }}
+                            transition={{ type: "spring", damping: 25, stiffness: 200 }}
+                            className="fixed bottom-0 left-0 right-0 z-50 flex justify-center"
+                        >
+                            <div className="w-full max-w-md bg-white dark:bg-[#0F2D45] rounded-t-[32px] overflow-hidden max-h-[90vh] flex flex-col shadow-2xl relative border-t border-[#D4DFE8] dark:border-[#2A4A68]">
+                                {/* Drawer Handle */}
+                                <div className="w-full h-6 flex items-center justify-center shrink-0">
+                                    <div className="w-12 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full" />
+                                </div>
+
+                                {/* Close Button */}
+                                <button 
+                                    onClick={() => setIsDrawerOpen(false)}
+                                    className="absolute top-4 right-6 p-2 rounded-full bg-gray-100 dark:bg-[#022136] text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-white transition-colors z-10"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
+
+                                {/* Form Content */}
+                                <div className="overflow-y-auto px-1 pb-10">
+                                    <QuickScanForm 
+                                        supabaseClient={supabase}
+                                        onProfileSelect={handleSelectProfile}
+                                        onClose={() => setIsDrawerOpen(false)}
+                                    />
+                                </div>
+                            </div>
+                        </motion.div>
+                    </>
+                )}
+            </AnimatePresence>
         </div>
     );
 }
