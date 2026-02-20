@@ -17,6 +17,7 @@ import { QuickScan } from "./pages/scan/quick-scan";
 import { QSScanning } from "./pages/scan/scanning";
 import { QSCompiling } from "./pages/scan/compiling";
 import { PreProfile } from "./pages/scan/pre-profile";
+import { ScanNow } from "./pages/scan/scan-now";
 
 // Dashboard pages
 import { HomeScreen } from "./pages/dashboard/home";
@@ -55,6 +56,7 @@ export default function App() {
 
             {/* Other */}
             <Route path="/pricing" element={<Pricing />} />
+            <Route path="/scan-now" element={<ScanNow />} />
             <Route path="*" element={<NotFound />} />
         </Routes>
     );

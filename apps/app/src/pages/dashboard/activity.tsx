@@ -69,7 +69,7 @@ export const Transactions = () => {
 
     if (status === 'pending') {
       return (
-        <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-[#F0F4F8] dark:bg-[#022136] text-[#476B84] dark:text-[#A8BFD4]">
+        <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-[#F0F4F8] dark:bg-[#022136] text-[#B8C4CC] dark:text-[#B8C4CC]">
           Pending
         </span>
       );
@@ -95,16 +95,16 @@ export const Transactions = () => {
           type="button"
           onClick={() => setShowAccountSheet(true)}
           aria-label={`Switch account, current: ${selectedAccount}`}
-          className="flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-[#14ABFE] focus:ring-offset-2 rounded-lg transition-colors"
+          className="flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-[#00BFFF] focus:ring-offset-2 rounded-lg transition-colors"
         >
-          <div className="w-10 h-10 rounded-lg bg-[#0F2D45] dark:bg-[#0F2D45] flex items-center justify-center">
+          <div className="w-10 h-10 rounded-lg bg-[#2A2A3F] dark:bg-[#2A2A3F] flex items-center justify-center">
             <span className="text-sm font-semibold text-white">R</span>
           </div>
           <div className="flex items-center gap-1">
             <span className="text-sm font-medium text-[#022136] dark:text-white">
               {selectedAccount}
             </span>
-            <ChevronDown className="w-4 h-4 text-[#476B84] dark:text-[#A8BFD4]" />
+            <ChevronDown className="w-4 h-4 text-[#B8C4CC] dark:text-[#B8C4CC]" />
           </div>
         </button>
 
@@ -113,7 +113,7 @@ export const Transactions = () => {
           <button
             type="button"
             aria-label="View options"
-            className="w-10 h-10 rounded-lg bg-[#FFFFFF] dark:bg-[#0F2D45] border border-[#D4DFE8] dark:border-[#2A4A68] flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-[#14ABFE] focus:ring-offset-2"
+            className="w-10 h-10 rounded-lg bg-[#FFFFFF] dark:bg-[#2A2A3F] border border-[#D4DFE8] dark:border-[#2A4A68] flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-[#00BFFF] focus:ring-offset-2"
           >
             <Filter className="w-5 h-5 text-[#022136] dark:text-white" />
           </button>
@@ -130,7 +130,7 @@ export const Transactions = () => {
           <button
             type="button"
             aria-label="View options"
-            className="w-10 h-10 rounded-lg bg-[#FFFFFF] dark:bg-[#0F2D45] border border-[#D4DFE8] dark:border-[#2A4A68] flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-[#14ABFE] focus:ring-offset-2"
+            className="w-10 h-10 rounded-lg bg-[#FFFFFF] dark:bg-[#2A2A3F] border border-[#D4DFE8] dark:border-[#2A4A68] flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-[#00BFFF] focus:ring-offset-2"
           >
             <Filter className="w-5 h-5 text-[#022136] dark:text-white" />
           </button>
@@ -143,7 +143,7 @@ export const Transactions = () => {
             placeholder="Search"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="h-[52px] w-full rounded-xl border border-[#D4DFE8] dark:border-[#2A4A68] px-12 py-3 text-sm bg-[#F0F4F8]/50 dark:bg-[#022136]/50 text-[#022136] dark:text-white placeholder:text-[#94A3B8] dark:placeholder:text-[#56687F] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14ABFE] focus-visible:ring-offset-2 transition-all"
+            className="h-[52px] w-full rounded-xl border border-[#D4DFE8] dark:border-[#2A4A68] px-12 py-3 text-sm bg-[#F0F4F8]/50 dark:bg-[#022136]/50 text-[#022136] dark:text-white placeholder:text-[#94A3B8] dark:placeholder:text-[#56687F] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2 transition-all"
           />
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#94A3B8] dark:text-[#56687F] pointer-events-none" />
         </div>
@@ -160,11 +160,11 @@ export const Transactions = () => {
                 onClick={() => setActiveFilter(isActive ? null : filter.id)}
                 className={`
                   flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap
-                  transition-colors focus:outline-none focus:ring-2 focus:ring-[#14ABFE] focus:ring-offset-2
+                  transition-colors focus:outline-none focus:ring-2 focus:ring-[#00BFFF] focus:ring-offset-2
                   ${
                     isActive
-                      ? 'bg-[#14ABFE] text-white'
-                      : 'bg-[#FFFFFF] dark:bg-[#0F2D45] border border-[#D4DFE8] dark:border-[#2A4A68] text-[#022136] dark:text-white'
+                      ? 'bg-[#00BFFF] text-white'
+                      : 'bg-[#FFFFFF] dark:bg-[#2A2A3F] border border-[#D4DFE8] dark:border-[#2A4A68] text-[#022136] dark:text-white'
                   }
                 `}
               >
@@ -187,7 +187,7 @@ export const Transactions = () => {
               {filteredTransactions.map((transaction) => (
                 <div
                   key={transaction.id}
-                  className="flex items-center justify-between bg-[#FFFFFF] dark:bg-[#0F2D45] rounded-xl border border-[#D4DFE8] dark:border-[#2A4A68] p-4"
+                  className="flex items-center justify-between bg-[#FFFFFF] dark:bg-[#2A2A3F] rounded-xl border border-[#D4DFE8] dark:border-[#2A4A68] p-4"
                 >
                   {/* Left: Icon + Details */}
                   <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -206,7 +206,7 @@ export const Transactions = () => {
                         {transaction.merchant}
                       </p>
                       <div className="flex items-center gap-2 mt-1">
-                        <p className="text-xs text-[#476B84] dark:text-[#A8BFD4]">
+                        <p className="text-xs text-[#B8C4CC] dark:text-[#B8C4CC]">
                           {transaction.description}
                         </p>
                         {getStatusBadge(transaction.status)}
@@ -239,39 +239,39 @@ export const Transactions = () => {
         aria-label="Main navigation"
       >
         <div className="max-w-lg mx-auto">
-          <div className="flex items-center justify-around bg-[#FFFFFF] dark:bg-[#0F2D45] rounded-full px-4 py-2 border border-[#D4DFE8] dark:border-[#2A4A68]">
+          <div className="flex items-center justify-around bg-[#FFFFFF] dark:bg-[#2A2A3F] rounded-full px-4 py-2 border border-[#D4DFE8] dark:border-[#2A4A68]">
             <button
               type="button"
               aria-label="Home"
-              className="relative flex items-center justify-center w-14 h-10 rounded-full transition-colors hover:bg-[#0F2D45]/50 dark:hover:bg-[#0F2D45]/50 focus:outline-none focus:ring-2 focus:ring-[#14ABFE] focus:ring-offset-2"
+              className="relative flex items-center justify-center w-14 h-10 rounded-full transition-colors hover:bg-[#2A2A3F]/50 dark:hover:bg-[#2A2A3F]/50 focus:outline-none focus:ring-2 focus:ring-[#00BFFF] focus:ring-offset-2"
             >
               <Home className="w-6 h-6 text-white" />
             </button>
             <button
               type="button"
               aria-label="Transactions"
-              className="relative flex items-center justify-center w-14 h-10 rounded-full bg-[#0F2D45] dark:bg-[#0F2D45] transition-colors focus:outline-none focus:ring-2 focus:ring-[#14ABFE] focus:ring-offset-2"
+              className="relative flex items-center justify-center w-14 h-10 rounded-full bg-[#2A2A3F] dark:bg-[#2A2A3F] transition-colors focus:outline-none focus:ring-2 focus:ring-[#00BFFF] focus:ring-offset-2"
             >
-              <List className="w-6 h-6 text-[#14ABFE]" />
+              <List className="w-6 h-6 text-[#00BFFF]" />
             </button>
             <button
               type="button"
               aria-label="Transfer"
-              className="relative flex items-center justify-center w-14 h-10 rounded-full transition-colors hover:bg-[#0F2D45]/50 dark:hover:bg-[#0F2D45]/50 focus:outline-none focus:ring-2 focus:ring-[#14ABFE] focus:ring-offset-2"
+              className="relative flex items-center justify-center w-14 h-10 rounded-full transition-colors hover:bg-[#2A2A3F]/50 dark:hover:bg-[#2A2A3F]/50 focus:outline-none focus:ring-2 focus:ring-[#00BFFF] focus:ring-offset-2"
             >
               <ArrowLeftRight className="w-6 h-6 text-white" />
             </button>
             <button
               type="button"
               aria-label="Account"
-              className="relative flex items-center justify-center w-14 h-10 rounded-full transition-colors hover:bg-[#0F2D45]/50 dark:hover:bg-[#0F2D45]/50 focus:outline-none focus:ring-2 focus:ring-[#14ABFE] focus:ring-offset-2"
+              className="relative flex items-center justify-center w-14 h-10 rounded-full transition-colors hover:bg-[#2A2A3F]/50 dark:hover:bg-[#2A2A3F]/50 focus:outline-none focus:ring-2 focus:ring-[#00BFFF] focus:ring-offset-2"
             >
               <Building2 className="w-6 h-6 text-white" />
             </button>
             <button
               type="button"
               aria-label="Card"
-              className="relative flex items-center justify-center w-14 h-10 rounded-full transition-colors hover:bg-[#0F2D45]/50 dark:hover:bg-[#0F2D45]/50 focus:outline-none focus:ring-2 focus:ring-[#14ABFE] focus:ring-offset-2"
+              className="relative flex items-center justify-center w-14 h-10 rounded-full transition-colors hover:bg-[#2A2A3F]/50 dark:hover:bg-[#2A2A3F]/50 focus:outline-none focus:ring-2 focus:ring-[#00BFFF] focus:ring-offset-2"
             >
               <CreditCard className="w-6 h-6 text-white" />
             </button>
@@ -291,10 +291,10 @@ export const Transactions = () => {
           />
 
           {/* Sheet */}
-          <div className="relative w-full bg-[#FFFFFF] dark:bg-[#0F2D45] border-t border-[#D4DFE8] dark:border-[#2A4A68] rounded-t-2xl p-4 shadow-lg max-w-lg mx-auto">
+          <div className="relative w-full bg-[#FFFFFF] dark:bg-[#2A2A3F] border-t border-[#D4DFE8] dark:border-[#2A4A68] rounded-t-2xl p-4 shadow-lg max-w-lg mx-auto">
             {/* Drag Handle */}
             <div className="flex justify-center pt-3 pb-2">
-              <div className="w-10 h-1 rounded-full bg-[#476B84] dark:bg-[#A8BFD4]" />
+              <div className="w-10 h-1 rounded-full bg-[#B8C4CC] dark:bg-[#B8C4CC]" />
             </div>
 
             {/* Account Name */}
@@ -308,7 +308,7 @@ export const Transactions = () => {
             <div className="px-2 pb-2 space-y-1">
               <button
                 type="button"
-                className="w-full flex items-center justify-between px-4 py-3 rounded-lg hover:bg-[#F0F4F8]/50 dark:hover:bg-[#022136]/50 transition-colors focus:outline-none focus:ring-2 focus:ring-[#14ABFE] focus:ring-offset-2"
+                className="w-full flex items-center justify-between px-4 py-3 rounded-lg hover:bg-[#F0F4F8]/50 dark:hover:bg-[#022136]/50 transition-colors focus:outline-none focus:ring-2 focus:ring-[#00BFFF] focus:ring-offset-2"
               >
                 <div className="flex items-center gap-3">
                   <Building2 className="w-5 h-5 text-[#94A3B8] dark:text-[#56687F]" />
@@ -320,7 +320,7 @@ export const Transactions = () => {
 
               <button
                 type="button"
-                className="w-full flex items-center justify-between px-4 py-3 rounded-lg hover:bg-[#F0F4F8]/50 dark:hover:bg-[#022136]/50 transition-colors focus:outline-none focus:ring-2 focus:ring-[#14ABFE] focus:ring-offset-2"
+                className="w-full flex items-center justify-between px-4 py-3 rounded-lg hover:bg-[#F0F4F8]/50 dark:hover:bg-[#022136]/50 transition-colors focus:outline-none focus:ring-2 focus:ring-[#00BFFF] focus:ring-offset-2"
               >
                 <div className="flex items-center gap-3">
                   <User className="w-5 h-5 text-[#94A3B8] dark:text-[#56687F]" />
@@ -332,7 +332,7 @@ export const Transactions = () => {
 
               <button
                 type="button"
-                className="w-full flex items-center justify-between px-4 py-3 rounded-lg hover:bg-[#F0F4F8]/50 dark:hover:bg-[#022136]/50 transition-colors focus:outline-none focus:ring-2 focus:ring-[#14ABFE] focus:ring-offset-2"
+                className="w-full flex items-center justify-between px-4 py-3 rounded-lg hover:bg-[#F0F4F8]/50 dark:hover:bg-[#022136]/50 transition-colors focus:outline-none focus:ring-2 focus:ring-[#00BFFF] focus:ring-offset-2"
               >
                 <div className="flex items-center gap-3">
                   <CreditCard className="w-5 h-5 text-[#94A3B8] dark:text-[#56687F]" />
@@ -344,7 +344,7 @@ export const Transactions = () => {
 
               <button
                 type="button"
-                className="w-full flex items-center justify-between px-4 py-3 rounded-lg hover:bg-[#F0F4F8]/50 dark:hover:bg-[#022136]/50 transition-colors focus:outline-none focus:ring-2 focus:ring-[#14ABFE] focus:ring-offset-2"
+                className="w-full flex items-center justify-between px-4 py-3 rounded-lg hover:bg-[#F0F4F8]/50 dark:hover:bg-[#022136]/50 transition-colors focus:outline-none focus:ring-2 focus:ring-[#00BFFF] focus:ring-offset-2"
               >
                 <div className="flex items-center gap-3">
                   <Bookmark className="w-5 h-5 text-[#94A3B8] dark:text-[#56687F]" />
@@ -352,7 +352,7 @@ export const Transactions = () => {
                     Plans
                   </span>
                 </div>
-                <span className="px-2 py-0.5 rounded-md bg-[#0F2D45] dark:bg-[#0F2D45] text-xs font-medium text-white">
+                <span className="px-2 py-0.5 rounded-md bg-[#2A2A3F] dark:bg-[#2A2A3F] text-xs font-medium text-white">
                   Mercury
                 </span>
               </button>
@@ -363,7 +363,7 @@ export const Transactions = () => {
 
             {/* Switch Accounts Section */}
             <div className="px-4 pt-2 pb-2">
-              <h3 className="text-sm font-semibold text-[#476B84] dark:text-[#A8BFD4]">
+              <h3 className="text-sm font-semibold text-[#B8C4CC] dark:text-[#B8C4CC]">
                 Switch accounts
               </h3>
             </div>
@@ -372,12 +372,12 @@ export const Transactions = () => {
             <div className="px-2 pb-6">
               <button
                 type="button"
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-[#F0F4F8]/50 dark:hover:bg-[#022136]/50 transition-colors focus:outline-none focus:ring-2 focus:ring-[#14ABFE] focus:ring-offset-2"
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-[#F0F4F8]/50 dark:hover:bg-[#022136]/50 transition-colors focus:outline-none focus:ring-2 focus:ring-[#00BFFF] focus:ring-offset-2"
               >
-                <div className="w-8 h-8 rounded-lg border-2 border-dashed border-[#14ABFE] flex items-center justify-center">
-                  <span className="text-[#14ABFE] text-lg">+</span>
+                <div className="w-8 h-8 rounded-lg border-2 border-dashed border-[#00BFFF] flex items-center justify-center">
+                  <span className="text-[#00BFFF] text-lg">+</span>
                 </div>
-                <span className="text-sm font-medium text-[#14ABFE]">
+                <span className="text-sm font-medium text-[#00BFFF]">
                   Link an existing account
                 </span>
               </button>

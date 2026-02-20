@@ -49,9 +49,9 @@ export function OnboardingDataCard({
             }}
             className={cx(
                 "rounded-xl border p-4 outline-none transition-colors cursor-pointer",
-                "bg-[var(--bg-surface)] dark:bg-[#0F2D45]",
+                "bg-[var(--bg-surface)] dark:bg-[#2A2A3F]",
                 "border-[var(--border-subtle)] dark:border-[#2A4A68]",
-                "focus-visible:ring-2 focus-visible:ring-[#14ABFE] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#022136]",
+                "focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#022136]",
             )}
             aria-expanded={isExpanded}
         >
@@ -84,9 +84,9 @@ export function OnboardingDataCard({
                             }}
                             className={cx(
                                 "relative h-6 w-11 shrink-0 rounded-full outline-none transition",
-                                "focus-visible:ring-2 focus-visible:ring-[#14ABFE] focus-visible:ring-offset-2",
+                                "focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2",
                                 toggleValue
-                                    ? "bg-[#14ABFE] dark:bg-[#14ABFE]"
+                                    ? "bg-[#00BFFF] dark:bg-[#00BFFF]"
                                     : "bg-[var(--border-subtle)] dark:bg-[#2A4A68]",
                             )}
                         >
@@ -132,8 +132,8 @@ export function OnboardingDataCard({
                             }}
                             className={cx(
                                 "flex flex-1 items-center justify-center rounded-xl py-3 text-sm font-semibold text-white outline-none transition",
-                                "bg-[#14ABFE] hover:bg-[#0E9AE8]",
-                                "focus-visible:ring-2 focus-visible:ring-[#14ABFE] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#022136]",
+                                "bg-[#00BFFF] hover:bg-[#0E9AE8]",
+                                "focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#022136]",
                             )}
                         >
                             Update

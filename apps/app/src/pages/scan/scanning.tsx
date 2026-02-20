@@ -30,7 +30,7 @@ export function QSScanning() {
         <h1 className="text-center text-xl font-bold text-[#022136] dark:text-white md:text-2xl mt-2 mb-2 max-w-lg">
           Prowling the deepest parts of the web to find who has your data...
         </h1>
-        <p className="text-center text-sm text-[#476B84] dark:text-[#A8BFD4] md:text-base max-w-lg mb-6 leading-relaxed">
+        <p className="text-center text-sm text-[#B8C4CC] dark:text-[#B8C4CC] md:text-base max-w-lg mb-6 leading-relaxed">
           We are targeting known data brokers and crawling their databases to identify if they have your data and exactly what data they have..
         </p>
 
@@ -52,12 +52,12 @@ export function QSScanning() {
         <button
           type="button"
           onClick={() => navigate("/quick-scan")}
-          className="w-full max-w-sm h-[52px] rounded-xl border-2 border-[#022136] dark:border-white bg-transparent text-[#022136] dark:text-white font-semibold text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14ABFE] focus-visible:ring-offset-2 hover:opacity-90 active:scale-[0.98]"
+          className="w-full max-w-sm h-[52px] rounded-xl border-2 border-[#022136] dark:border-white bg-transparent text-[#022136] dark:text-white font-semibold text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2 hover:opacity-90 active:scale-[0.98]"
           aria-label="Cancel search and return to quick scan"
         >
           Cancel Search
         </button>
-        <p className="text-center text-xs text-[#476B84] dark:text-[#A8BFD4] mt-3 max-w-sm">
+        <p className="text-center text-xs text-[#B8C4CC] dark:text-[#B8C4CC] mt-3 max-w-sm">
           {CANCEL_DISCLAIMER}
         </p>
       </div>

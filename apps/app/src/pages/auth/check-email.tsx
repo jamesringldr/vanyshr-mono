@@ -34,10 +34,10 @@ export function CheckEmail() {
                     <div
                         className={cx(
                             "flex h-14 w-14 items-center justify-center rounded-full",
-                            "bg-[#14ABFE]/10 dark:bg-[#14ABFE]/15",
+                            "bg-[#00BFFF]/10 dark:bg-[#00BFFF]/15",
                         )}
                     >
-                        <Mail className="h-6 w-6 text-[#14ABFE]" aria-hidden />
+                        <Mail className="h-6 w-6 text-[#00BFFF]" aria-hidden />
                     </div>
                 </div>
 
@@ -56,7 +56,7 @@ export function CheckEmail() {
                     <button
                         type="button"
                         onClick={() => navigate("/magic-link")}
-                        className="text-xs font-medium text-[#14ABFE] hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 outline-focus-ring rounded"
+                        className="text-xs font-medium text-[#00BFFF] hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 outline-focus-ring rounded"
                     >
                         Change email address
                     </button>
@@ -65,11 +65,11 @@ export function CheckEmail() {
                 <div
                     className={cx(
                         "mt-6 rounded-xl border p-4 text-center",
-                        "bg-[var(--bg-surface)] dark:bg-[#0F2D45]",
+                        "bg-[var(--bg-surface)] dark:bg-[#2A2A3F]",
                         "border-[var(--border-subtle)] dark:border-[#2A4A68]",
                     )}
                 >
-                    <p className="text-sm text-[var(--text-secondary)] dark:text-[#A8BFD4]">
+                    <p className="text-sm text-[var(--text-secondary)] dark:text-[#B8C4CC]">
                         Click the link in your email to sign in instantly. No password needed.
                     </p>
 
@@ -94,7 +94,7 @@ export function CheckEmail() {
                             "bg-[#F0F4F8]/50 dark:bg-[#022136]/50",
                             "text-[#022136] dark:text-white",
                             "hover:bg-[#F0F4F8]/70 dark:hover:bg-[#022136]/70",
-                            "focus-visible:ring-2 focus-visible:ring-[#14ABFE] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#022136]",
+                            "focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#022136]",
                             remaining <= 0 && "cursor-not-allowed opacity-50",
                         )}
                         disabled={remaining <= 0}
@@ -110,7 +110,7 @@ export function CheckEmail() {
                 <div className="mt-6 text-center">
                     <Link
                         to="/welcome"
-                        className="text-xs font-medium text-[#14ABFE] hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 outline-focus-ring rounded"
+                        className="text-xs font-medium text-[#00BFFF] hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 outline-focus-ring rounded"
                     >
                         Back to Welcome
                     </Link>

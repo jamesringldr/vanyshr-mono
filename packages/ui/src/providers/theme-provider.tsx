@@ -39,53 +39,15 @@ interface ThemeProviderProps {
     storageKey?: string;
 }
 
-export const ThemeProvider = ({ children, defaultTheme = "system", storageKey = "ui-theme", darkModeClass = "dark-mode" }: ThemeProviderProps) => {
-    const [theme, setTheme] = useState<Theme>(() => {
-        if (typeof window !== "undefined") {
-            const savedTheme = localStorage.getItem(storageKey) as Theme | null;
-            return savedTheme || defaultTheme;
-        }
-        return defaultTheme;
-    });
+export const ThemeProvider = ({ children, darkModeClass = "dark-mode" }: ThemeProviderProps) => {
+    const [theme] = useState<Theme>("dark");
 
     useEffect(() => {
-        const applyTheme = () => {
-            const root = window.document.documentElement;
+        const root = window.document.documentElement;
+        root.classList.remove("light-forced");
+        root.classList.add(darkModeClass);
+        root.style.colorScheme = "dark";
+    }, [darkModeClass]);
 
-            if (theme === "system") {
-                const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-
-                root.classList.remove("light-forced");
-                root.classList.toggle(darkModeClass, systemTheme === "dark");
-                root.style.colorScheme = "";
-                localStorage.removeItem(storageKey);
-            } else {
-                root.classList.remove("light-forced");
-                root.classList.toggle(darkModeClass, theme === "dark");
-                if (theme === "light") {
-                    root.classList.add("light-forced");
-                    root.style.colorScheme = "light";
-                } else {
-                    root.style.colorScheme = "dark";
-                }
-                localStorage.setItem(storageKey, theme);
-            }
-        };
-
-        applyTheme();
-
-        // Listen for system theme changes
-        const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-
-        const handleChange = () => {
-            if (theme === "system") {
-                applyTheme();
-            }
-        };
-
-        mediaQuery.addEventListener("change", handleChange);
-        return () => mediaQuery.removeEventListener("change", handleChange);
-    }, [theme, darkModeClass, storageKey]);
-
-    return <ThemeContext.Provider value={{ theme, setTheme }}>{children}</ThemeContext.Provider>;
+    return <ThemeContext.Provider value={{ theme, setTheme: () => {} }}>{children}</ThemeContext.Provider>;
 };

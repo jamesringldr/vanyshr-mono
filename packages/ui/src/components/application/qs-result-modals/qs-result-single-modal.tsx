@@ -68,7 +68,7 @@ export function QSResultSingleModal({
                         role="document"
                         className={cx(
                             "rounded-xl border shadow-lg transition-colors",
-                            "bg-[var(--bg-surface)] dark:bg-[#0F2D45]",
+                            "bg-[var(--bg-surface)] dark:bg-[#2A2A3F]",
                             "border-[var(--border-subtle)] dark:border-[#2A4A68]",
                             "flex flex-col overflow-hidden",
                         )}
@@ -81,7 +81,7 @@ export function QSResultSingleModal({
                             >
                                 We Found A Record For
                                 <br />
-                                <span className="font-bold text-[#14ABFE] dark:text-[#14ABFE]">
+                                <span className="font-bold text-[#00BFFF] dark:text-[#00BFFF]">
                                     {profile.fullName}
                                     {region ? ` in ${region}` : ""}
                                 </span>
@@ -110,7 +110,7 @@ export function QSResultSingleModal({
                                     "h-[52px] flex-1 rounded-xl font-semibold",
                                     "bg-[#F0F4F8] text-[var(--text-primary)] dark:bg-[#022136]/50 dark:text-white",
                                     "border border-[var(--border-subtle)] dark:border-[#2A4A68]",
-                                    "hover:bg-[#E4EAEF] dark:hover:bg-[#0F2D45]",
+                                    "hover:bg-[#E4EAEF] dark:hover:bg-[#2A2A3F]",
                                 )}
                                 onClick={handleThisIsNotMe}
                             >
@@ -120,7 +120,7 @@ export function QSResultSingleModal({
                                 type="button"
                                 size="lg"
                                 color="primary"
-                                className="h-[52px] flex-1 rounded-xl bg-[#14ABFE] font-semibold text-white hover:bg-[#0E9AE8] dark:bg-[#14ABFE] dark:hover:bg-[#0E9AE8]"
+                                className="h-[52px] flex-1 rounded-xl bg-[#00BFFF] font-semibold text-white hover:bg-[#0E9AE8] dark:bg-[#00BFFF] dark:hover:bg-[#0E9AE8]"
                                 onClick={handleThisIsMe}
                             >
                                 This is Me

@@ -170,15 +170,15 @@ export function QuickScanForm({ supabaseClient, onProfileSelect, onClose, classN
 
   if (view === "scanning") {
     return (
-      <div className={cx("w-full h-full min-h-[400px] flex flex-col items-center justify-center p-8 space-y-8 bg-white dark:bg-[#0F2D45]", className)}>
+      <div className={cx("w-full h-full min-h-[400px] flex flex-col items-center justify-center p-8 space-y-8 bg-white dark:bg-[#2A2A3F]", className)}>
         <div className="w-full max-w-sm space-y-6">
           <div className="flex flex-col items-center gap-4">
-            <Loader2 className="w-12 h-12 text-[#14ABFE] animate-spin" />
+            <Loader2 className="w-12 h-12 text-[#00BFFF] animate-spin" />
             <div className="text-center space-y-1">
               <h2 className="text-xl font-bold text-[#022136] dark:text-white uppercase tracking-wider">
                 SCANNING BROKERS
               </h2>
-              <p className="text-[#476B84] dark:text-[#A8BFD4] font-medium animate-pulse">
+              <p className="text-[#B8C4CC] dark:text-[#B8C4CC] font-medium animate-pulse">
                 {status === "looking_up_zip" ? "Identifying your local region..." : "Searching 500+ data sources..."}
               </p>
             </div>
@@ -202,13 +202,13 @@ export function QuickScanForm({ supabaseClient, onProfileSelect, onClose, classN
   }
 
   return (
-    <div className={cx("w-full bg-white dark:bg-[#0F2D45] rounded-xl overflow-hidden", className)}>
+    <div className={cx("w-full bg-white dark:bg-[#2A2A3F] rounded-xl overflow-hidden", className)}>
       {/* Header */}
       <div className="p-6 md:p-8 space-y-4 text-center">
         <h1 className="text-2xl md:text-3xl font-bold text-[#022136] dark:text-white tracking-tight">
           See what brokers know about you
         </h1>
-        <p className="text-[#476B84] dark:text-[#A8BFD4] text-sm md:text-base leading-relaxed">
+        <p className="text-[#B8C4CC] dark:text-[#B8C4CC] text-sm md:text-base leading-relaxed">
           Enter your details to instantly scan top data brokers for your personal information. It's free and takes seconds.
         </p>
       </div>
@@ -225,7 +225,7 @@ export function QuickScanForm({ supabaseClient, onProfileSelect, onClose, classN
                 value={firstName}
                 onChange={(e) => setFirstName(e.target.value)}
                 disabled={isLoading}
-                className="h-[52px] w-full rounded-xl border border-[#D4DFE8] dark:border-[#2A4A68] px-12 py-3 text-sm bg-[#F0F4F8]/50 dark:bg-[#022136]/50 text-[#022136] dark:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14ABFE] disabled:opacity-50"
+                className="h-[52px] w-full rounded-xl border border-[#D4DFE8] dark:border-[#2A4A68] px-12 py-3 text-sm bg-[#F0F4F8]/50 dark:bg-[#022136]/50 text-[#022136] dark:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00BFFF] disabled:opacity-50"
               />
               <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#94A3B8]" />
             </div>
@@ -240,7 +240,7 @@ export function QuickScanForm({ supabaseClient, onProfileSelect, onClose, classN
                 value={lastName}
                 onChange={(e) => setLastName(e.target.value)}
                 disabled={isLoading}
-                className="h-[52px] w-full rounded-xl border border-[#D4DFE8] dark:border-[#2A4A68] px-12 py-3 text-sm bg-[#F0F4F8]/50 dark:bg-[#022136]/50 text-[#022136] dark:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14ABFE] disabled:opacity-50"
+                className="h-[52px] w-full rounded-xl border border-[#D4DFE8] dark:border-[#2A4A68] px-12 py-3 text-sm bg-[#F0F4F8]/50 dark:bg-[#022136]/50 text-[#022136] dark:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00BFFF] disabled:opacity-50"
               />
               <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#94A3B8]" />
             </div>
@@ -256,7 +256,7 @@ export function QuickScanForm({ supabaseClient, onProfileSelect, onClose, classN
                 value={zipCode}
                 onChange={(e) => setZipCode(e.target.value.replace(/\D/g, "").slice(0, 5))}
                 disabled={isLoading}
-                className="h-[52px] w-full rounded-xl border border-[#D4DFE8] dark:border-[#2A4A68] px-12 py-3 text-sm bg-[#F0F4F8]/50 dark:bg-[#022136]/50 text-[#022136] dark:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14ABFE] disabled:opacity-50"
+                className="h-[52px] w-full rounded-xl border border-[#D4DFE8] dark:border-[#2A4A68] px-12 py-3 text-sm bg-[#F0F4F8]/50 dark:bg-[#022136]/50 text-[#022136] dark:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00BFFF] disabled:opacity-50"
               />
               <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#94A3B8]" />
             </div>
@@ -268,7 +268,7 @@ export function QuickScanForm({ supabaseClient, onProfileSelect, onClose, classN
             className={cx(
               "w-full h-[72px] font-bold text-2xl rounded-2xl transition-all shadow-lg active:scale-[0.98] mt-4",
               isFormValid && !isLoading
-                ? "bg-[#14ABFE] hover:bg-[#1196E0] text-white"
+                ? "bg-[#00BFFF] hover:bg-[#1196E0] text-white"
                 : "bg-[#D4DFE8] dark:bg-[#2A4A68] text-[#94A3B8] cursor-not-allowed text-xl"
             )}
           >

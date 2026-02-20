@@ -43,7 +43,7 @@ export function QSInfoCard({
       className={cx(
         "w-full max-w-sm rounded-xl border p-4 transition-colors",
         // Vanyshr: Container/Card (strict)
-        "bg-white dark:bg-[#0F2D45]",
+        "bg-white dark:bg-[#2A2A3F]",
         "border-[#D4DFE8] dark:border-[#2A4A68]",
         "shadow-sm",
         className,
@@ -65,7 +65,7 @@ export function QSInfoCard({
             }}
           />
           <ShieldAlert
-            className="h-12 w-12 hidden text-[#476B84] dark:text-[#A8BFD4]"
+            className="h-12 w-12 hidden text-[#B8C4CC] dark:text-[#B8C4CC]"
             aria-hidden
           />
         </div>
@@ -78,7 +78,7 @@ export function QSInfoCard({
           >
             {title}
           </h2>
-          <p className="text-sm text-[#476B84] dark:text-[#A8BFD4] leading-snug">
+          <p className="text-sm text-[#B8C4CC] dark:text-[#B8C4CC] leading-snug">
             {description}
           </p>
         </div>

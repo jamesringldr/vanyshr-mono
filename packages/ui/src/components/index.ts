@@ -15,3 +15,6 @@ export * from "./shared-assets";
 
 // Onboarding components
 export * from "./onboarding";
+
+// Animations
+export * from "./animations";

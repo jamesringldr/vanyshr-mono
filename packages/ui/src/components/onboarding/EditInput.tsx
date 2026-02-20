@@ -44,7 +44,7 @@ export function EditInput({
                         "bg-[#F0F4F8]/50 dark:bg-[#022136]/50",
                         "border-[var(--border-subtle)] dark:border-[#2A4A68]",
                         "text-[#022136] dark:text-white placeholder:text-[var(--text-muted)] dark:placeholder:text-[#7A92A8]",
-                        "focus-visible:ring-2 focus-visible:ring-[#14ABFE] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#022136]",
+                        "focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#022136]",
                         Icon ? "pl-12 pr-4" : "px-4",
                     )}
                 />

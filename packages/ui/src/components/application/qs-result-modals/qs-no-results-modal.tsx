@@ -33,7 +33,7 @@ const INPUT_STYLE = cx(
     "border-[var(--border-subtle)] dark:border-[#2A4A68]",
     "text-[var(--text-primary)] dark:text-white",
     "placeholder:text-[var(--text-muted)] dark:placeholder:text-[#7A92A8]",
-    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14ABFE] focus-visible:ring-offset-2",
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2",
 );
 
 /**
@@ -111,7 +111,7 @@ export function QSNoResultsModal({
                         role="document"
                         className={cx(
                             "flex max-h-[85dvh] flex-col overflow-hidden rounded-xl border shadow-lg transition-colors",
-                            "bg-[var(--bg-surface)] dark:bg-[#0F2D45]",
+                            "bg-[var(--bg-surface)] dark:bg-[#2A2A3F]",
                             "border-[var(--border-subtle)] dark:border-[#2A4A68]",
                         )}
                     >
@@ -128,11 +128,11 @@ export function QSNoResultsModal({
                                     <p className="text-base font-normal text-[var(--text-primary)] dark:text-white">
                                         Our QuickScan Didn&apos;t Find A
                                         <br />
-                                        <span className="font-bold text-[#14ABFE] dark:text-[#14ABFE]">{searchName}</span>
+                                        <span className="font-bold text-[#00BFFF] dark:text-[#00BFFF]">{searchName}</span>
                                     </p>
                                     <p
                                         id="qs-no-results-desc"
-                                        className="text-sm text-[var(--text-secondary)] dark:text-[#A8BFD4]"
+                                        className="text-sm text-[var(--text-secondary)] dark:text-[#B8C4CC]"
                                     >
                                         Do you have a maiden or alternate name you regularly go by?
                                     </p>
@@ -141,7 +141,7 @@ export function QSNoResultsModal({
                                             type="button"
                                             size="lg"
                                             color="primary"
-                                            className="h-[52px] flex-1 rounded-xl bg-[#14ABFE] font-semibold text-white"
+                                            className="h-[52px] flex-1 rounded-xl bg-[#00BFFF] font-semibold text-white"
                                             onClick={handleAlternateYes}
                                         >
                                             Yes
@@ -185,7 +185,7 @@ export function QSNoResultsModal({
                                             className={cx(
                                                 "flex h-[52px] w-full items-center justify-center gap-2 rounded-xl border border-dashed transition-colors",
                                                 "border-[var(--border-subtle)] dark:border-[#2A4A68]",
-                                                "text-[var(--text-secondary)] dark:text-[#A8BFD4]",
+                                                "text-[var(--text-secondary)] dark:text-[#B8C4CC]",
                                                 "hover:bg-[#F0F4F8]/50 dark:hover:bg-[#022136]/50",
                                             )}
                                         >
@@ -208,7 +208,7 @@ export function QSNoResultsModal({
                                         type="button"
                                         size="lg"
                                         color="primary"
-                                        className="h-[52px] w-full rounded-xl bg-[#14ABFE] font-semibold text-white"
+                                        className="h-[52px] w-full rounded-xl bg-[#00BFFF] font-semibold text-white"
                                         onClick={handleScanAgain}
                                     >
                                         Scan again
@@ -227,7 +227,7 @@ export function QSNoResultsModal({
                                             type="button"
                                             size="lg"
                                             color="primary"
-                                            className="h-[52px] flex-1 rounded-xl bg-[#14ABFE] font-semibold text-white"
+                                            className="h-[52px] flex-1 rounded-xl bg-[#00BFFF] font-semibold text-white"
                                             onClick={handleMobileYes}
                                         >
                                             Yes
@@ -270,7 +270,7 @@ export function QSNoResultsModal({
                                         type="button"
                                         size="lg"
                                         color="primary"
-                                        className="h-[52px] w-full rounded-xl bg-[#14ABFE] font-semibold text-white"
+                                        className="h-[52px] w-full rounded-xl bg-[#00BFFF] font-semibold text-white"
                                         onClick={handleScanNow}
                                     >
                                         Scan Now
@@ -284,7 +284,7 @@ export function QSNoResultsModal({
                                     <h2 className="text-lg font-bold text-[var(--text-primary)] dark:text-white">
                                         Sign up for a Forever Free account and Run a Full Scan
                                     </h2>
-                                    <p className="text-sm text-[var(--text-secondary)] dark:text-[#A8BFD4] leading-relaxed">
+                                    <p className="text-sm text-[var(--text-secondary)] dark:text-[#B8C4CC] leading-relaxed">
                                         Our QuickScan searches the most common brokers. However, that&apos;s &lt;5% of brokers and sources we monitor.
                                     </p>
                                     <p className="text-sm font-semibold text-[var(--text-primary)] dark:text-white">
@@ -292,15 +292,15 @@ export function QSNoResultsModal({
                                     </p>
                                     <ul className="space-y-2 text-left text-sm text-[var(--text-primary)] dark:text-white">
                                         <li className="flex gap-2">
-                                            <span className="text-[#14ABFE] dark:text-[#14ABFE]">•</span>
+                                            <span className="text-[#00BFFF] dark:text-[#00BFFF]">•</span>
                                             <span>Scan for 300+ additional brokers</span>
                                         </li>
                                         <li className="flex gap-2">
-                                            <span className="text-[#14ABFE] dark:text-[#14ABFE]">•</span>
+                                            <span className="text-[#00BFFF] dark:text-[#00BFFF]">•</span>
                                             <span>Dark Web Data Breach Scan</span>
                                         </li>
                                         <li className="flex gap-2">
-                                            <span className="text-[#14ABFE] dark:text-[#14ABFE]">•</span>
+                                            <span className="text-[#00BFFF] dark:text-[#00BFFF]">•</span>
                                             <span>Access to manually scan brokers once a month</span>
                                         </li>
                                     </ul>
@@ -308,15 +308,15 @@ export function QSNoResultsModal({
                                         type="button"
                                         size="lg"
                                         color="primary"
-                                        className="h-[52px] w-full rounded-xl bg-[#14ABFE] font-semibold text-white"
+                                        className="h-[52px] w-full rounded-xl bg-[#00BFFF] font-semibold text-white"
                                         onClick={handleRunFullScan}
                                     >
                                         Run Full Scan Now
                                     </Button>
-                                    <p className="text-xs text-[var(--text-secondary)] dark:text-[#A8BFD4]">
+                                    <p className="text-xs text-[var(--text-secondary)] dark:text-[#B8C4CC]">
                                         No credit card required
                                     </p>
-                                    <p className="text-xs text-[var(--text-secondary)] dark:text-[#A8BFD4] leading-snug">
+                                    <p className="text-xs text-[var(--text-secondary)] dark:text-[#B8C4CC] leading-snug">
                                         Cancel any time for any reason and we will make 100% of your data vanish from our databases.
                                     </p>
                                     <Button

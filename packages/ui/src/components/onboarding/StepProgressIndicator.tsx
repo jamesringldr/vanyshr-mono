@@ -69,7 +69,7 @@ export function StepProgressIndicator({
                                     state === "completed" &&
                                         "bg-[#00D4AA] dark:bg-[#00D4AA]",
                                     state === "current" &&
-                                        "bg-[#14ABFE] dark:bg-[#14ABFE]",
+                                        "bg-[#00BFFF] dark:bg-[#00BFFF]",
                                     state === "upcoming" &&
                                         "bg-transparent border-2 border-[var(--border-subtle)] dark:border-[#2A4A68]",
                                 )}

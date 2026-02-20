@@ -43,7 +43,7 @@ export function AuthMagicLink() {
                 <div
                     className={cx(
                         "mt-6 rounded-xl border p-4",
-                        "bg-[var(--bg-surface)] dark:bg-[#0F2D45]",
+                        "bg-[var(--bg-surface)] dark:bg-[#2A2A3F]",
                         "border-[var(--border-subtle)] dark:border-[#2A4A68]",
                     )}
                 >
@@ -65,7 +65,7 @@ export function AuthMagicLink() {
                                 "bg-[#F0F4F8]/50 dark:bg-[#022136]/50",
                                 "border-[var(--border-subtle)] dark:border-[#2A4A68]",
                                 "text-[#022136] dark:text-white placeholder:text-[var(--text-muted)] dark:placeholder:text-[#7A92A8]",
-                                "focus-visible:ring-2 focus-visible:ring-[#14ABFE] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#022136]",
+                                "focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#022136]",
                             )}
                             placeholder="you@example.com"
                             aria-label="Email address"
@@ -85,9 +85,9 @@ export function AuthMagicLink() {
                         disabled={!isValid}
                         className={cx(
                             "mt-4 flex h-[52px] w-full items-center justify-center rounded-xl text-sm font-semibold text-white outline-none transition",
-                            "bg-[#14ABFE] hover:bg-[#0E9AE8]",
-                            "focus-visible:ring-2 focus-visible:ring-[#14ABFE] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#022136]",
-                            !isValid && "cursor-not-allowed opacity-50 hover:bg-[#14ABFE]",
+                            "bg-[#00BFFF] hover:bg-[#0E9AE8]",
+                            "focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#022136]",
+                            !isValid && "cursor-not-allowed opacity-50 hover:bg-[#00BFFF]",
                         )}
                         aria-label="Send secure link"
                     >
@@ -114,7 +114,7 @@ export function AuthMagicLink() {
                 <div className="mt-4 text-center">
                     <Link
                         to="/welcome"
-                        className="text-xs font-medium text-[#14ABFE] hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 outline-focus-ring rounded"
+                        className="text-xs font-medium text-[#00BFFF] hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 outline-focus-ring rounded"
                     >
                         Continue without signing in
                     </Link>

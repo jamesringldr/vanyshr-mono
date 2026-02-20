@@ -23,8 +23,8 @@ const STATUS_CONFIG: Record<
     },
     new: {
         label: "NEW",
-        bgClass: "bg-[var(--text-secondary)]/20 dark:bg-[#A8BFD4]/20",
-        textClass: "text-[var(--text-secondary)] dark:text-[#A8BFD4]",
+        bgClass: "bg-[var(--text-secondary)]/20 dark:bg-[#B8C4CC]/20",
+        textClass: "text-[var(--text-secondary)] dark:text-[#B8C4CC]",
     },
     action_required: {
         label: "ACTION REQUIRED",

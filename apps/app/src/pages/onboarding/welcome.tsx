@@ -18,10 +18,10 @@ function FeatureItem({
             <div
                 className={cx(
                     "flex h-10 w-10 shrink-0 items-center justify-center rounded-full",
-                    "bg-[#14ABFE]/10 dark:bg-[#14ABFE]/15",
+                    "bg-[#00BFFF]/10 dark:bg-[#00BFFF]/15",
                 )}
             >
-                <Icon className="h-5 w-5 text-[#14ABFE]" aria-hidden />
+                <Icon className="h-5 w-5 text-[#00BFFF]" aria-hidden />
             </div>
             <div className="min-w-0">
                 <h3 className="text-sm font-semibold text-[#022136] dark:text-white">
@@ -68,7 +68,7 @@ export function Welcome() {
                         "flex h-10 w-10 items-center justify-center rounded-xl outline-none transition",
                         "text-[#022136] dark:text-white",
                         "hover:bg-[#F0F4F8]/80 dark:hover:bg-[#022136]/80",
-                        "focus-visible:ring-2 focus-visible:ring-[#14ABFE] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#022136]",
+                        "focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#022136]",
                     )}
                 >
                     <Menu className="h-6 w-6" aria-hidden />
@@ -92,7 +92,7 @@ export function Welcome() {
                 <section
                     className={cx(
                         "mt-6 rounded-xl border p-4",
-                        "bg-[var(--bg-surface)] dark:bg-[#0F2D45]",
+                        "bg-[var(--bg-surface)] dark:bg-[#2A2A3F]",
                         "border-[var(--border-subtle)] dark:border-[#2A4A68]",
                     )}
                     aria-label="What we'll need from you"
@@ -116,7 +116,7 @@ export function Welcome() {
                                     className="mt-0.5 h-4 w-4 shrink-0 text-[#00D4AA]"
                                     aria-hidden
                                 />
-                                <span className="text-[var(--text-secondary)] dark:text-[#A8BFD4]">
+                                <span className="text-[var(--text-secondary)] dark:text-[#B8C4CC]">
                                     {t}
                                 </span>
                             </li>
@@ -152,11 +152,11 @@ export function Welcome() {
                 <section
                     className={cx(
                         "mt-6 rounded-xl p-3",
-                        "bg-[#14ABFE]/10 dark:bg-[#14ABFE]/10",
+                        "bg-[#00BFFF]/10 dark:bg-[#00BFFF]/10",
                     )}
                     aria-label="Privacy notice"
                 >
-                    <p className="text-xs text-[#14ABFE]">
+                    <p className="text-xs text-[#00BFFF]">
                         <strong>Your privacy matters:</strong> We only use your information to
                         protect you. We never sell or share your data with third parties.
                     </p>
@@ -168,7 +168,7 @@ export function Welcome() {
                 className={cx(
                     "fixed bottom-0 left-0 right-0 border-t px-4 py-4",
                     "border-[var(--border-subtle)] dark:border-[#2A4A68]",
-                    "bg-[var(--bg-surface)] dark:bg-[#0F2D45]",
+                    "bg-[var(--bg-surface)] dark:bg-[#2A2A3F]",
                 )}
                 role="contentinfo"
             >
@@ -178,8 +178,8 @@ export function Welcome() {
                         onClick={() => navigate("/onboarding/primary-info")}
                         className={cx(
                             "flex h-[52px] w-full items-center justify-center rounded-xl text-sm font-semibold text-white outline-none transition",
-                            "bg-[#14ABFE] hover:bg-[#0E9AE8]",
-                            "focus-visible:ring-2 focus-visible:ring-[#14ABFE] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#022136]",
+                            "bg-[#00BFFF] hover:bg-[#0E9AE8]",
+                            "focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#022136]",
                         )}
                         aria-label="Get started"
                     >

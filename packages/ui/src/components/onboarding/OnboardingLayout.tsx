@@ -56,7 +56,7 @@ export function OnboardingLayout({
                         "flex h-10 w-10 items-center justify-center rounded-xl outline-none transition",
                         "text-[#022136] dark:text-white",
                         "hover:bg-[#F0F4F8]/80 dark:hover:bg-[#022136]/80",
-                        "focus-visible:ring-2 focus-visible:ring-[#14ABFE] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#022136]",
+                        "focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#022136]",
                     )}
                 >
                     <Menu className="h-6 w-6" aria-hidden />
@@ -91,7 +91,7 @@ export function OnboardingLayout({
                     className={cx(
                         "fixed bottom-0 left-0 right-0 border-t py-4 px-4",
                         "border-[var(--border-subtle)] dark:border-[#2A4A68]",
-                        "bg-[var(--bg-surface)] dark:bg-[#0F2D45]",
+                        "bg-[var(--bg-surface)] dark:bg-[#2A2A3F]",
                     )}
                 >
                     <div className="mx-auto max-w-lg">{footer}</div>

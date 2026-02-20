@@ -35,34 +35,44 @@
     transition-timing-function: inherit;
 }
 
-/* Vanyshr semantic tokens (Design System source of truth) */
 :root {
-    --text-primary: #022136;
-    --text-secondary: #476B84;
-    --text-muted: #94A3B8;
-    --bg-surface: #FFFFFF;
-    --border-subtle: #D4DFE8;
-}
+    /* Brand */
+    --brand-primary: #00BFFF;
+    --brand-dark: #022136;
+    --accent-hover: #00D4FF;
+    --accent-risk: #FF8A00;
 
-/* Vanyshr dark tokens: app toggle, browser/extension attribute, or system preference */
-.dark-mode,
-.dark,
-[native-dark-active] {
+    /* Semantic */
+    --success: #00D4AA;
+    --warning: #FFB81C;
+    --error: #FF5757;
+    --info: #00BFFF;
+    --disabled: #4A5568;
+
+    /* Backgrounds */
+    --bg-page: #022136;
+    --bg-surface: #2A2A3F;
+    --bg-surface-secondary: #252538;
+
+    /* Text */
     --text-primary: #FFFFFF;
-    --text-secondary: #A8BFD4;
-    --text-muted: #56687F;
-    --bg-surface: #0F2D45;
-    --border-subtle: #2A4A68;
-}
+    --text-secondary: #B8C4CC;
+    --text-tertiary: #7A92A8;
 
-@media (prefers-color-scheme: dark) {
-    :root:not(.light-forced) {
-        --text-primary: #FFFFFF;
-        --text-secondary: #A8BFD4;
-        --text-muted: #56687F;
-        --bg-surface: #0F2D45;
-        --border-subtle: #2A4A68;
-    }
+    /* Borders */
+    --border-subtle: #2A4A68;
+    --border-brand: #00BFFF;
+
+    /* Spacing */
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-5: 20px;
+    --space-6: 24px;
+    --space-8: 32px;
+    --space-10: 40px;
+    --space-12: 48px;
 }
 
 html,

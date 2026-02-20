@@ -91,8 +91,8 @@ export function OnboardingEmails() {
                     onClick={handleFinishSetup}
                     className={cx(
                         "flex h-[52px] w-full items-center justify-center rounded-xl text-sm font-semibold text-white outline-none transition",
-                        "bg-[#14ABFE] hover:bg-[#0E9AE8]",
-                        "focus-visible:ring-2 focus-visible:ring-[#14ABFE] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#022136]",
+                        "bg-[#00BFFF] hover:bg-[#0E9AE8]",
+                        "focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#022136]",
                     )}
                 >
                     Finish Setup
@@ -103,11 +103,11 @@ export function OnboardingEmails() {
                 <div
                     className={cx(
                         "rounded-xl border p-6 text-center",
-                        "bg-[var(--bg-surface)] dark:bg-[#0F2D45]",
+                        "bg-[var(--bg-surface)] dark:bg-[#2A2A3F]",
                         "border-[var(--border-subtle)] dark:border-[#2A4A68]",
                     )}
                 >
-                    <p className="text-sm text-[var(--text-secondary)] dark:text-[#A8BFD4] mb-4">
+                    <p className="text-sm text-[var(--text-secondary)] dark:text-[#B8C4CC] mb-4">
                         No email addresses added yet. Add your email addresses so we can find and remove them from data broker sites.
                     </p>
                 </div>
@@ -153,7 +153,7 @@ export function OnboardingEmails() {
                     "border-[var(--border-subtle)] dark:border-[#2A4A68]",
                     "text-[#022136] dark:text-white",
                     "hover:bg-[#F0F4F8]/50 dark:hover:bg-[#022136]/30",
-                    "focus-visible:ring-2 focus-visible:ring-[#14ABFE] focus-visible:ring-offset-2",
+                    "focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2",
                 )}
             >
                 Add Email

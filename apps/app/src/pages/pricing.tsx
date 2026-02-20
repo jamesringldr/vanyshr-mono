@@ -136,7 +136,7 @@ const SAVINGS_PERCENT = 25;
 /** Card surface: Vanyshr tokens, rounded-xl, border-subtle. */
 const cardClasses = cx(
     "rounded-xl border",
-    "bg-[var(--bg-surface)] dark:bg-[#0F2D45]",
+    "bg-[var(--bg-surface)] dark:bg-[#2A2A3F]",
     "border-[var(--border-subtle)] dark:border-[#2A4A68]",
 );
 
@@ -178,7 +178,7 @@ export function Pricing() {
                                 "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl outline-none transition",
                                 "text-[var(--text-primary)] dark:text-white",
                                 "hover:bg-[#F0F4F8]/80 dark:hover:bg-[#022136]/80",
-                                "focus-visible:ring-2 focus-visible:ring-[#14ABFE] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#022136]",
+                                "focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#022136]",
                             )}
                             aria-label="Close"
                         >
@@ -234,10 +234,10 @@ export function Pricing() {
                                         }
                                         className={cx(
                                             "rounded-lg px-4 py-2.5 text-sm font-medium outline-none transition",
-                                            "focus-visible:ring-2 focus-visible:ring-[#14ABFE] focus-visible:ring-offset-2 focus-visible:ring-offset-[#F0F4F8] dark:focus-visible:ring-offset-[#022136]",
+                                            "focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2 focus-visible:ring-offset-[#F0F4F8] dark:focus-visible:ring-offset-[#022136]",
                                             isSelected
-                                                ? "bg-[#14ABFE]/20 dark:bg-[#14ABFE]/25 text-[#022136] dark:text-white shadow-sm"
-                                                : "text-[var(--text-secondary)] dark:text-[#A8BFD4] hover:text-[#022136] dark:hover:text-white",
+                                                ? "bg-[#00BFFF]/20 dark:bg-[#00BFFF]/25 text-[#022136] dark:text-white shadow-sm"
+                                                : "text-[var(--text-secondary)] dark:text-[#B8C4CC] hover:text-[#022136] dark:hover:text-white",
                                         )}
                                     >
                                         {plan.id === "free" ? (
@@ -286,7 +286,7 @@ export function Pricing() {
                                         <h3 className="text-sm font-semibold text-[#022136] dark:text-white">
                                             {feature.title}
                                         </h3>
-                                        <p className="mt-0.5 text-sm leading-relaxed text-[var(--text-secondary)] dark:text-[#A8BFD4]">
+                                        <p className="mt-0.5 text-sm leading-relaxed text-[var(--text-secondary)] dark:text-[#B8C4CC]">
                                             {feature.description}
                                         </p>
                                     </div>
@@ -318,9 +318,9 @@ export function Pricing() {
                                     "relative rounded-xl border p-4 text-left outline-none transition",
                                     cardClasses,
                                     billingPeriod === "monthly"
-                                        ? "ring-2 ring-[#14ABFE] ring-offset-2 ring-offset-[#F0F4F8] dark:ring-offset-[#022136]"
-                                        : "hover:border-[#14ABFE]/50",
-                                    "focus-visible:ring-2 focus-visible:ring-[#14ABFE] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#022136]",
+                                        ? "ring-2 ring-[#00BFFF] ring-offset-2 ring-offset-[#F0F4F8] dark:ring-offset-[#022136]"
+                                        : "hover:border-[#00BFFF]/50",
+                                    "focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#022136]",
                                 )}
                             >
                                 <div className="text-sm font-semibold text-[#022136] dark:text-white">
@@ -344,9 +344,9 @@ export function Pricing() {
                                     "relative rounded-xl border p-4 text-left outline-none transition",
                                     cardClasses,
                                     billingPeriod === "annual"
-                                        ? "ring-2 ring-[#14ABFE] ring-offset-2 ring-offset-[#F0F4F8] dark:ring-offset-[#022136]"
-                                        : "hover:border-[#14ABFE]/50",
-                                    "focus-visible:ring-2 focus-visible:ring-[#14ABFE] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#022136]",
+                                        ? "ring-2 ring-[#00BFFF] ring-offset-2 ring-offset-[#F0F4F8] dark:ring-offset-[#022136]"
+                                        : "hover:border-[#00BFFF]/50",
+                                    "focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#022136]",
                                 )}
                             >
                                 <span
@@ -386,8 +386,8 @@ export function Pricing() {
                         onClick={handleSubscribe}
                         className={cx(
                             "flex h-[52px] w-full items-center justify-center rounded-xl font-semibold text-white outline-none transition",
-                            "bg-[#14ABFE] hover:bg-[#0E9AE8]",
-                            "focus-visible:ring-2 focus-visible:ring-[#14ABFE] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#022136]",
+                            "bg-[#00BFFF] hover:bg-[#0E9AE8]",
+                            "focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#022136]",
                         )}
                         aria-label={
                             currentPlan.monthlyPrice === 0
@@ -407,14 +407,14 @@ export function Pricing() {
                         By subscribing, you agree to our{" "}
                         <Link
                             to="/terms"
-                            className="font-medium text-[#14ABFE] underline underline-offset-2 outline-none hover:no-underline focus-visible:ring-2 focus-visible:ring-[#14ABFE] focus-visible:ring-offset-1 rounded"
+                            className="font-medium text-[#00BFFF] underline underline-offset-2 outline-none hover:no-underline focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-1 rounded"
                         >
                             Terms of Service
                         </Link>
                         , and that subscriptions auto-renew until you cancel.{" "}
                         <Link
                             to="/terms"
-                            className="font-medium text-[#14ABFE] underline underline-offset-2 outline-none hover:no-underline focus-visible:ring-2 focus-visible:ring-[#14ABFE] focus-visible:ring-offset-1 rounded"
+                            className="font-medium text-[#00BFFF] underline underline-offset-2 outline-none hover:no-underline focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-1 rounded"
                         >
                             Cancel anytime
                         </Link>
@@ -435,13 +435,13 @@ export function Pricing() {
                 >
                     <Link
                         to="/privacy"
-                        className="text-xs font-medium text-[#14ABFE] outline-none hover:underline focus-visible:ring-2 focus-visible:ring-[#14ABFE] focus-visible:ring-offset-2 rounded"
+                        className="text-xs font-medium text-[#00BFFF] outline-none hover:underline focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2 rounded"
                     >
                         Privacy Policy
                     </Link>
                     <Link
                         to="/terms"
-                        className="text-xs font-medium text-[#14ABFE] outline-none hover:underline focus-visible:ring-2 focus-visible:ring-[#14ABFE] focus-visible:ring-offset-2 rounded"
+                        className="text-xs font-medium text-[#00BFFF] outline-none hover:underline focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2 rounded"
                     >
                         Terms of Service
                     </Link>

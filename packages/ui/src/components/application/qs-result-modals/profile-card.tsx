@@ -31,7 +31,7 @@ export function ProfileCard({ profile, className, ...props }: ProfileCardProps) 
             </p>
             {age != null && (
                 <div className="mt-2">
-                    <p className="text-xs font-bold uppercase tracking-wide text-[var(--text-secondary)] dark:text-[#A8BFD4]">
+                    <p className="text-xs font-bold uppercase tracking-wide text-[var(--text-secondary)] dark:text-[#B8C4CC]">
                         Age
                     </p>
                     <p className="mt-0.5 font-mono text-xs tabular-nums text-[var(--text-primary)] dark:text-white">
@@ -42,7 +42,7 @@ export function ProfileCard({ profile, className, ...props }: ProfileCardProps) 
             <div className="mt-2 space-y-2">
                 {aliases?.length ? (
                     <div>
-                        <p className="text-xs font-bold uppercase tracking-wide text-[var(--text-secondary)] dark:text-[#A8BFD4]">
+                        <p className="text-xs font-bold uppercase tracking-wide text-[var(--text-secondary)] dark:text-[#B8C4CC]">
                             Aliases
                         </p>
                         <p className="mt-0.5 text-xs text-[var(--text-primary)] dark:text-white leading-snug">
@@ -52,7 +52,7 @@ export function ProfileCard({ profile, className, ...props }: ProfileCardProps) 
                 ) : null}
                 {phones?.length ? (
                     <div>
-                        <p className="text-xs font-bold uppercase tracking-wide text-[var(--text-secondary)] dark:text-[#A8BFD4]">
+                        <p className="text-xs font-bold uppercase tracking-wide text-[var(--text-secondary)] dark:text-[#B8C4CC]">
                             Phones
                         </p>
                         <p className="mt-0.5 font-mono text-xs tabular-nums text-[var(--text-primary)] dark:text-white leading-snug">
@@ -62,7 +62,7 @@ export function ProfileCard({ profile, className, ...props }: ProfileCardProps) 
                 ) : null}
                 {relatives?.length ? (
                     <div>
-                        <p className="text-xs font-bold uppercase tracking-wide text-[var(--text-secondary)] dark:text-[#A8BFD4]">
+                        <p className="text-xs font-bold uppercase tracking-wide text-[var(--text-secondary)] dark:text-[#B8C4CC]">
                             Relatives
                         </p>
                         <p className="mt-0.5 text-xs text-[var(--text-primary)] dark:text-white leading-snug">
@@ -72,7 +72,7 @@ export function ProfileCard({ profile, className, ...props }: ProfileCardProps) 
                 ) : null}
                 {addressLine ? (
                     <div>
-                        <p className="text-xs font-bold uppercase tracking-wide text-[var(--text-secondary)] dark:text-[#A8BFD4]">
+                        <p className="text-xs font-bold uppercase tracking-wide text-[var(--text-secondary)] dark:text-[#B8C4CC]">
                             Current address
                         </p>
                         <p className="mt-0.5 font-mono text-xs text-[var(--text-primary)] dark:text-white leading-snug">

@@ -1,4 +1,5 @@
-import { Link } from "react-router";
+import { useEffect, useState, useCallback } from "react";
+import { Link, useParams } from "react-router";
 import {
     Menu,
     CreditCard,
@@ -9,13 +10,77 @@ import {
     Landmark,
     Scale,
     ArrowRight,
+    Loader2,
 } from "lucide-react";
 import PrimaryLogo from "@vanyshr/ui/assets/PrimaryLogo.png";
 import PrimaryLogoDark from "@vanyshr/ui/assets/PrimaryLogo-DarkMode.png";
 import { cx } from "@/utils/cx";
+import { supabase } from "@/lib/supabase";
+
+// Types matching the backend structures
+interface ProfileMatch {
+    id: string;
+    name: string;
+    age?: string;
+    city_state?: string;
+    phone_snippet?: string;
+    detail_link?: string;
+    source: string;
+}
+
+interface QuickScanProfileData {
+    name: string;
+    first_name?: string;
+    last_name?: string;
+    age?: string;
+    phones: Array<{
+        number: string;
+        type?: string;
+        provider?: string;
+        is_primary?: boolean;
+    }>;
+    emails: Array<{
+        email: string;
+        type?: string;
+    }>;
+    addresses: Array<{
+        full_address?: string;
+        street?: string;
+        city?: string;
+        state?: string;
+        zip?: string;
+        is_current?: boolean;
+        years_lived?: string;
+    }>;
+    relatives: Array<{
+        name: string;
+        relationship?: string;
+        age?: string;
+    }>;
+    aliases: string[];
+    jobs: Array<{
+        company?: string;
+        title?: string;
+        location?: string;
+        is_current?: boolean;
+    }>;
+    assets: Array<{
+        type?: string;
+        description?: string;
+        count?: number;
+        estimated_value?: string;
+    }>;
+    legal_records: Array<{
+        record_type?: string;
+        description?: string;
+        location?: string;
+        count?: number;
+    }>;
+    sources: string[];
+}
 
 /** PreProfile page data — summary and per–data-type exposure. */
-export interface PreProfileData {
+interface PreProfileData {
     brokerCount: number;
     totalDataPoints: number;
     scamRisks: number;
@@ -28,7 +93,7 @@ export interface PreProfileData {
         primaryPhone: string;
     };
     alsoKnownAs: string[];
-    familyAndFriends: { name: string; age?: number }[];
+    familyAndFriends: { name: string; age?: number; relationship?: string }[];
     pastAddresses: string[];
     pastPhones: string[];
     employers: string[];
@@ -36,26 +101,7 @@ export interface PreProfileData {
     courtRecords: string[];
 }
 
-const MOCK_PRE_PROFILE: PreProfileData = {
-    brokerCount: 49,
-    totalDataPoints: 146,
-    scamRisks: 25,
-    spamRisks: 26,
-    contact: {
-        fullName: "James A Oehring",
-        age: 37,
-        location: "Cameron, MO",
-        currentAddress: "413 Lovers Ln\nCameron, MO",
-        primaryPhone: "(816) 225-8592",
-    },
-    alsoKnownAs: ["James Allen Oehring Jr."],
-    familyAndFriends: [{ name: "Rickilinda Oehring", age: 65 }],
-    pastAddresses: [],
-    pastPhones: [],
-    employers: [],
-    financialAssets: [],
-    courtRecords: [],
-};
+type LoadingState = "loading" | "loaded" | "error";
 
 /** Data-type card: icon + title + content. Vanyshr tokens, rounded-xl, border-subtle. */
 function DataTypeCard({
@@ -75,14 +121,14 @@ function DataTypeCard({
             aria-label={title}
             className={cx(
                 "rounded-xl border p-4 transition-colors",
-                "bg-[var(--bg-surface)] dark:bg-[#0F2D45]",
+                "bg-[var(--bg-surface)] dark:bg-[#2A2A3F]",
                 "border-[var(--border-subtle)] dark:border-[#2A4A68]",
                 className,
             )}
         >
             <div className="flex items-center gap-2">
                 <Icon
-                    className="h-5 w-5 shrink-0 text-[var(--text-secondary)] dark:text-[#A8BFD4]"
+                    className="h-5 w-5 shrink-0 text-[var(--text-secondary)] dark:text-[#B8C4CC]"
                     aria-hidden
                 />
                 <h3 className="text-sm font-semibold text-[var(--text-primary)] dark:text-white">
@@ -117,8 +163,231 @@ function Pill({
     );
 }
 
+// Convert QuickScanProfileData to PreProfileData for display
+function convertToPreProfileData(
+    profile: QuickScanProfileData,
+    selectedProfile?: ProfileMatch
+): PreProfileData {
+    // Calculate data points
+    const phoneCount = profile.phones?.length || 0;
+    const addressCount = profile.addresses?.length || 0;
+    const relativeCount = profile.relatives?.length || 0;
+    const aliasCount = profile.aliases?.length || 0;
+    const jobCount = profile.jobs?.length || 0;
+    const assetCount = profile.assets?.length || 0;
+    const recordCount = profile.legal_records?.length || 0;
+
+    const totalDataPoints = phoneCount + addressCount + relativeCount + aliasCount + jobCount + assetCount + recordCount;
+
+    // Estimate risks based on data exposure
+    const scamRisks = Math.min(Math.floor((phoneCount + addressCount) * 3), 30);
+    const spamRisks = Math.min(Math.floor(phoneCount * 5 + relativeCount), 35);
+
+    // Find current address
+    const currentAddr = profile.addresses?.find(a => a.is_current) || profile.addresses?.[0];
+    const currentAddressStr = currentAddr
+        ? [currentAddr.street, currentAddr.city && currentAddr.state ? `${currentAddr.city}, ${currentAddr.state}` : currentAddr.full_address]
+            .filter(Boolean)
+            .join("\n")
+        : "—";
+
+    // Find primary phone
+    const primaryPhone = profile.phones?.find(p => p.is_primary) || profile.phones?.[0];
+    const primaryPhoneStr = primaryPhone?.number || selectedProfile?.phone_snippet || "—";
+
+    // Extract location
+    const location = selectedProfile?.city_state ||
+        (currentAddr ? `${currentAddr.city || ""}, ${currentAddr.state || ""}`.replace(/^, |, $/g, "") : "");
+
+    // Past addresses (non-current)
+    const pastAddresses = profile.addresses
+        ?.filter(a => !a.is_current)
+        .map(a => a.full_address || `${a.street || ""} ${a.city || ""}, ${a.state || ""} ${a.zip || ""}`.trim())
+        .filter(Boolean) || [];
+
+    // Past phones (non-primary)
+    const pastPhones = profile.phones
+        ?.filter(p => !p.is_primary)
+        .map(p => p.number)
+        .filter(Boolean) || [];
+
+    // Employers
+    const employers = profile.jobs
+        ?.map(j => [j.company, j.title].filter(Boolean).join(" - "))
+        .filter(Boolean) || [];
+
+    // Financial assets
+    const financialAssets = profile.assets
+        ?.map(a => [a.description || a.type, a.estimated_value].filter(Boolean).join(" - "))
+        .filter(Boolean) || [];
+
+    // Court records
+    const courtRecords = profile.legal_records
+        ?.map(r => [r.record_type, r.description, r.location].filter(Boolean).join(" - "))
+        .filter(Boolean) || [];
+
+    // Parse age from string
+    const ageNum = profile.age ? parseInt(profile.age, 10) : (selectedProfile?.age ? parseInt(selectedProfile.age, 10) : null);
+
+    return {
+        brokerCount: Math.max(profile.sources?.length || 1, Math.floor(totalDataPoints / 3) + 1),
+        totalDataPoints,
+        scamRisks,
+        spamRisks,
+        contact: {
+            fullName: profile.name || selectedProfile?.name || "Unknown",
+            age: isNaN(ageNum as number) ? null : ageNum,
+            location,
+            currentAddress: currentAddressStr,
+            primaryPhone: primaryPhoneStr,
+        },
+        alsoKnownAs: profile.aliases || [],
+        familyAndFriends: profile.relatives?.map(r => ({
+            name: r.name,
+            age: r.age ? parseInt(r.age, 10) : undefined,
+            relationship: r.relationship,
+        })) || [],
+        pastAddresses,
+        pastPhones,
+        employers,
+        financialAssets,
+        courtRecords,
+    };
+}
+
 export function PreProfile() {
-    const data = MOCK_PRE_PROFILE;
+    // scanId is available from URL params for future database integration
+    const { scanId: _scanId } = useParams<{ scanId?: string }>();
+    const [loadingState, setLoadingState] = useState<LoadingState>("loading");
+    const [data, setData] = useState<PreProfileData | null>(null);
+    const [error, setError] = useState<string | null>(null);
+
+    const loadProfileData = useCallback(async () => {
+        setLoadingState("loading");
+        setError(null);
+
+        try {
+            // Try to get selected profile from session storage
+            const selectedProfileStr = sessionStorage.getItem("selectedProfile");
+            const selectedProfile: ProfileMatch | null = selectedProfileStr
+                ? JSON.parse(selectedProfileStr)
+                : null;
+
+            if (!selectedProfile) {
+                throw new Error("No profile selected. Please go back and select a profile.");
+            }
+
+            // If the profile has a detail_link, fetch full details
+            if (selectedProfile.detail_link) {
+                const { data: detailsData, error: detailsError } = await supabase.functions.invoke<{
+                    success: boolean;
+                    profile_data?: QuickScanProfileData;
+                    error?: string;
+                }>("universal-details", {
+                    body: {
+                        selected_profile: selectedProfile,
+                        detailLink: selectedProfile.detail_link,
+                        siteName: selectedProfile.source,
+                    },
+                });
+
+                if (detailsError) {
+                    console.error("Error fetching details:", detailsError);
+                    // Fall back to basic profile data
+                }
+
+                if (detailsData?.success && detailsData.profile_data) {
+                    const preProfileData = convertToPreProfileData(detailsData.profile_data, selectedProfile);
+                    setData(preProfileData);
+                    setLoadingState("loaded");
+                    return;
+                }
+            }
+
+            // If no detail link or fetch failed, create basic profile from selected match
+            const basicProfileData: QuickScanProfileData = {
+                name: selectedProfile.name,
+                age: selectedProfile.age,
+                phones: selectedProfile.phone_snippet
+                    ? [{ number: selectedProfile.phone_snippet, is_primary: true }]
+                    : [],
+                emails: [],
+                addresses: selectedProfile.city_state
+                    ? [{
+                        full_address: selectedProfile.city_state,
+                        is_current: true,
+                    }]
+                    : [],
+                relatives: [],
+                aliases: [],
+                jobs: [],
+                assets: [],
+                legal_records: [],
+                sources: [selectedProfile.source],
+            };
+
+            const preProfileData = convertToPreProfileData(basicProfileData, selectedProfile);
+            setData(preProfileData);
+            setLoadingState("loaded");
+
+        } catch (err) {
+            console.error("Error loading profile:", err);
+            setError(err instanceof Error ? err.message : "Failed to load profile data");
+            setLoadingState("error");
+        }
+    }, []);
+
+    useEffect(() => {
+        loadProfileData();
+    }, [loadProfileData]);
+
+    // Loading state
+    if (loadingState === "loading") {
+        return (
+            <div
+                className="min-h-screen w-full flex flex-col items-center justify-center bg-[#F0F4F8] dark:bg-[#022136] font-sans transition-colors duration-200"
+                role="main"
+                aria-label="Loading profile"
+            >
+                <Loader2 className="w-12 h-12 text-[#00BFFF] animate-spin mb-4" />
+                <p className="text-lg font-medium text-[#022136] dark:text-white">
+                    Compiling your exposure report...
+                </p>
+                <p className="text-sm text-[#B8C4CC] dark:text-[#B8C4CC] mt-2">
+                    Gathering data from multiple sources
+                </p>
+            </div>
+        );
+    }
+
+    // Error state
+    if (loadingState === "error" || !data) {
+        return (
+            <div
+                className="min-h-screen w-full flex flex-col items-center justify-center p-4 bg-[#F0F4F8] dark:bg-[#022136] font-sans transition-colors duration-200"
+                role="main"
+                aria-label="Error loading profile"
+            >
+                <div className="w-full max-w-md text-center">
+                    <div className="w-16 h-16 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mx-auto mb-4">
+                        <Scale className="w-8 h-8 text-red-600 dark:text-red-400" />
+                    </div>
+                    <h1 className="text-xl font-bold text-[#022136] dark:text-white mb-2">
+                        Unable to Load Profile
+                    </h1>
+                    <p className="text-sm text-[#B8C4CC] dark:text-[#B8C4CC] mb-6">
+                        {error || "Something went wrong while loading your profile data."}
+                    </p>
+                    <Link
+                        to="/quick-scan"
+                        className="inline-flex h-[44px] items-center justify-center px-6 rounded-xl bg-[#00BFFF] hover:bg-[#1196E0] text-white font-semibold transition-all"
+                    >
+                        Try Again
+                    </Link>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div
@@ -145,7 +414,7 @@ export function PreProfile() {
                     <button
                         type="button"
                         aria-label="Open menu"
-                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-[var(--text-primary)] dark:text-white outline-none transition hover:bg-black/5 focus-visible:ring-2 focus-visible:ring-[#14ABFE] focus-visible:ring-offset-2 dark:hover:bg-white/10 dark:focus-visible:ring-offset-[#022136]"
+                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-[var(--text-primary)] dark:text-white outline-none transition hover:bg-black/5 focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2 dark:hover:bg-white/10 dark:focus-visible:ring-offset-[#022136]"
                     >
                         <Menu className="h-6 w-6" />
                     </button>
@@ -156,7 +425,7 @@ export function PreProfile() {
                     className={cx(
                         "rounded-xl border-2 p-5 text-center sm:p-6",
                         "border-[#DC2626] dark:border-[#B91C1C]",
-                        "bg-[var(--bg-surface)] dark:bg-[#0F2D45]",
+                        "bg-[var(--bg-surface)] dark:bg-[#2A2A3F]",
                     )}
                     role="region"
                     aria-label="Exposure summary"
@@ -178,14 +447,14 @@ export function PreProfile() {
                     <div
                         className={cx(
                             "rounded-xl border p-4 text-center",
-                            "bg-[var(--bg-surface)] dark:bg-[#0F2D45]",
+                            "bg-[var(--bg-surface)] dark:bg-[#2A2A3F]",
                             "border-[var(--border-subtle)] dark:border-[#2A4A68]",
                         )}
                     >
                         <p className="text-2xl font-bold tabular-nums text-[var(--text-primary)] dark:text-white sm:text-3xl">
                             {data.totalDataPoints}
                         </p>
-                        <p className="mt-1 text-[0.9rem] font-bold leading-tight text-[var(--text-secondary)] dark:text-[#A8BFD4]">
+                        <p className="mt-1 text-[0.9rem] font-bold leading-tight text-[var(--text-secondary)] dark:text-[#B8C4CC]">
                             Data<br />Points
                         </p>
                     </div>
@@ -227,7 +496,7 @@ export function PreProfile() {
                         aria-label="Contact"
                         className={cx(
                             "rounded-xl border p-4 sm:p-5",
-                            "bg-[var(--bg-surface)] dark:bg-[#0F2D45]",
+                            "bg-[var(--bg-surface)] dark:bg-[#2A2A3F]",
                             "border-[var(--border-subtle)] dark:border-[#2A4A68]",
                         )}
                     >
@@ -288,6 +557,11 @@ export function PreProfile() {
                                     >
                                         <span className="text-sm text-[var(--text-primary)] dark:text-white">
                                             {item.name}
+                                            {item.relationship && (
+                                                <span className="text-[var(--text-muted)] dark:text-[#7A92A8] ml-1">
+                                                    ({item.relationship})
+                                                </span>
+                                            )}
                                         </span>
                                         {item.age != null && (
                                             <span className="text-sm text-[var(--text-muted)] dark:text-[#7A92A8] tabular-nums">
@@ -417,15 +691,15 @@ export function PreProfile() {
                 aria-label="Sign up footer"
             >
                 <div className="mx-auto w-full max-w-3xl px-4 flex flex-col items-center gap-4">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-[#14ABFE] dark:text-[#14ABFE]">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-[#00BFFF] dark:text-[#00BFFF]">
                         NO CREDIT CARD REQUIRED
                     </p>
                     <Link
                         to="/signup"
                         className={cx(
                             "flex h-[52px] w-full max-w-md items-center justify-center gap-2 rounded-xl px-4 font-semibold text-white outline-none transition",
-                            "bg-[#14ABFE] hover:bg-[#0E9AE8]",
-                            "focus-visible:ring-2 focus-visible:ring-[#14ABFE] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#022136]",
+                            "bg-[#00BFFF] hover:bg-[#0E9AE8]",
+                            "focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#022136]",
                         )}
                         aria-label="Start Vanyshing for free"
                     >

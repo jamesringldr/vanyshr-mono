@@ -71,7 +71,7 @@ export function QSResultMultipleModal({
                         role="document"
                         className={cx(
                             "flex max-h-[85dvh] flex-col overflow-hidden rounded-xl border shadow-lg transition-colors",
-                            "bg-[var(--bg-surface)] dark:bg-[#0F2D45]",
+                            "bg-[var(--bg-surface)] dark:bg-[#2A2A3F]",
                             "border-[var(--border-subtle)] dark:border-[#2A4A68]",
                         )}
                     >
@@ -83,7 +83,7 @@ export function QSResultMultipleModal({
                             >
                                 We found multiple records for
                                 <br />
-                                <span className="font-bold text-[#14ABFE] dark:text-[#14ABFE]">
+                                <span className="font-bold text-[#00BFFF] dark:text-[#00BFFF]">
                                     {searchName}
                                     {region ? ` in ${region}` : ""}
                                 </span>
@@ -91,7 +91,7 @@ export function QSResultMultipleModal({
                             </h2>
                             <p
                                 id="qs-multiple-modal-desc"
-                                className="mt-3 text-sm text-[var(--text-secondary)] dark:text-[#A8BFD4]"
+                                className="mt-3 text-sm text-[var(--text-secondary)] dark:text-[#B8C4CC]"
                             >
                                 Select the Record with Your Data
                             </p>
@@ -110,7 +110,7 @@ export function QSResultMultipleModal({
                                                 "bg-[#F0F4F8]/50 dark:bg-[#022136]/50",
                                                 "border-[var(--border-subtle)] dark:border-[#2A4A68]",
                                                 "hover:bg-[#E4EAEF]/70 dark:hover:bg-[#022136]/70",
-                                                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14ABFE] focus-visible:ring-offset-2",
+                                                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2",
                                             )}
                                             aria-label={`Select profile: ${profile.fullName}`}
                                         >
@@ -127,7 +127,7 @@ export function QSResultMultipleModal({
                                 type="button"
                                 size="lg"
                                 color="primary"
-                                className="h-[52px] w-full rounded-xl bg-[#14ABFE] font-semibold text-white hover:bg-[#0E9AE8] dark:bg-[#14ABFE] dark:hover:bg-[#0E9AE8]"
+                                className="h-[52px] w-full rounded-xl bg-[#00BFFF] font-semibold text-white hover:bg-[#0E9AE8] dark:bg-[#00BFFF] dark:hover:bg-[#0E9AE8]"
                                 onClick={handleNoneOfThese}
                             >
                                 None of These Are Me

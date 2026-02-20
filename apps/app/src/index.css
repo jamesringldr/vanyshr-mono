@@ -1,3 +1,26 @@
+@import url('https://fonts.googleapis.com/css2?family=Ubuntu:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400;1,500;1,700&display=swap');
 @import "@vanyshr/ui/styles/globals.css";
+
+@theme {
+  --font-sans: "Ubuntu", ui-sans-serif, system-ui, sans-serif;
+  --tracking-tighter: -0.05em;
+
+  --color-brand-primary: #00BFFF;
+  --color-brand-dark: #022136;
+  --color-accent-hover: #00D4FF;
+  --color-accent-risk: #FF8A00;
+  --color-bg-page: #022136;
+  --color-bg-surface: #2A2A3F;
+  --color-bg-surface-secondary: #252538;
+  --color-text-primary: #FFFFFF;
+  --color-text-secondary: #B8C4CC;
+  --color-text-tertiary: #7A92A8;
+  --color-border-subtle: #2A4A68;
+  --color-border-brand: #00BFFF;
+  --color-success: #00D4AA;
+  --color-warning: #FFB81C;
+  --color-error: #FF5757;
+  --color-disabled: #4A5568;
+}
 
 /* App-specific styles can be added here */
