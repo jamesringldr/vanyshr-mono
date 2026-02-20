@@ -196,13 +196,16 @@ serve(async (req) => {
     };
 
     // Get all scrapers that support name search
-    const nameScrapers = getScrapersForSearchType('name');
-    const scraperNames = nameScrapers.map(s => s.name.toLowerCase().replace(/\s+/g, ''));
+    // We want AnyWho first, then Zabasearch as requested
+    const scraperNames = ['anywho', 'zabasearch'];
 
-    console.log(`🔍 Searching across scrapers: ${scraperNames.join(', ')}`);
+    console.log(`🔍 Searching sequentially (stop on results): ${scraperNames.join(', ')}`);
 
-    // Search across all scrapers
-    const { matches, runs } = await searchProfilesMulti(scraperNames, searchInput);
+    // Search across scrapers sequentially, stopping if results are found
+    const { matches, runs } = await searchProfilesMulti(scraperNames, searchInput, {
+      sequential: true,
+      stopOnResults: true
+    });
 
     console.log(`🔍 Found ${matches.length} total matches across ${runs.length} scrapers`);
 

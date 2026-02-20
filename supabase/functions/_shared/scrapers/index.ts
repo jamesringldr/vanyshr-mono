@@ -35,7 +35,7 @@ export {
 } from "./BaseScraper.ts";
 
 // Debug helper
-export function getScraperDebugInfo(): any {
+export function getScraperDebugInfo(): Record<string, unknown> {
   return {
     availableScrapers: Object.keys(scrapers),
   };
@@ -171,42 +171,75 @@ export async function searchProfiles(
 }
 
 /**
- * Search across multiple scrapers in parallel
+ * Search across multiple scrapers
  * Returns combined ProfileMatch[] with source info
+ * Supports parallel or sequential execution with optional early exit
  */
 export async function searchProfilesMulti(
   siteNames: string[],
-  input: SearchInput
+  input: SearchInput,
+  options: { sequential?: boolean; stopOnResults?: boolean } = {}
 ): Promise<{ matches: ProfileMatch[]; runs: ScraperRunResult[] }> {
-  console.log(`🔍 ScraperRouter.searchProfilesMulti() - Sites: ${siteNames.join(", ")}`);
+  const { sequential = false, stopOnResults = false } = options;
+  console.log(`🔍 ScraperRouter.searchProfilesMulti() - Sites: ${siteNames.join(", ")}, Options:`, options);
 
   const runs: ScraperRunResult[] = [];
   const allMatches: ProfileMatch[] = [];
 
-  const promises = siteNames.map(async (siteName) => {
-    const startTime = Date.now();
-    try {
-      const matches = await searchProfiles(siteName, input);
-      runs.push({
-        scraper: siteName,
-        status: matches.length > 0 ? "success" : "no_results",
-        profiles_found: matches.length,
-        duration_ms: Date.now() - startTime,
-      });
-      return matches;
-    } catch (error) {
-      runs.push({
-        scraper: siteName,
-        status: "failed",
-        duration_ms: Date.now() - startTime,
-        error: (error as Error).message,
-      });
-      return [];
-    }
-  });
+  if (sequential) {
+    for (const siteName of siteNames) {
+      const startTime = Date.now();
+      try {
+        const matches = await searchProfiles(siteName, input);
+        runs.push({
+          scraper: siteName,
+          status: matches.length > 0 ? "success" : "no_results",
+          profiles_found: matches.length,
+          duration_ms: Date.now() - startTime,
+        });
+        allMatches.push(...matches);
 
-  const results = await Promise.all(promises);
-  results.forEach(matches => allMatches.push(...matches));
+        // Early exit if results found and stopOnResults is true
+        if (stopOnResults && matches.length > 0) {
+          console.log(`✅ Stopping early: Results found on ${siteName}`);
+          break;
+        }
+      } catch (error) {
+        runs.push({
+          scraper: siteName,
+          status: "failed",
+          duration_ms: Date.now() - startTime,
+          error: (error as Error).message,
+        });
+      }
+    }
+  } else {
+    // Parallel execution (Original behavior)
+    const promises = siteNames.map(async (siteName) => {
+      const startTime = Date.now();
+      try {
+        const matches = await searchProfiles(siteName, input);
+        runs.push({
+          scraper: siteName,
+          status: matches.length > 0 ? "success" : "no_results",
+          profiles_found: matches.length,
+          duration_ms: Date.now() - startTime,
+        });
+        return matches;
+      } catch (error) {
+        runs.push({
+          scraper: siteName,
+          status: "failed",
+          duration_ms: Date.now() - startTime,
+          error: (error as Error).message,
+        });
+        return [];
+      }
+    });
+
+    const results = await Promise.all(promises);
+    results.forEach(matches => allMatches.push(...matches));
+  }
 
   // Deduplicate by name + city_state
   const seen = new Set<string>();
@@ -217,7 +250,7 @@ export async function searchProfilesMulti(
     return true;
   });
 
-  console.log(`✅ Multi-search complete: ${uniqueMatches.length} unique matches from ${siteNames.length} scrapers`);
+  console.log(`✅ Search complete: ${uniqueMatches.length} unique matches from ${runs.length} scrapers run`);
   return { matches: uniqueMatches, runs };
 }
 
