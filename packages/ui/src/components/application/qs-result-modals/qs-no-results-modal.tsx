@@ -1,8 +1,6 @@
 import { useState, useEffect } from "react";
-import { Button } from "@/components/base/buttons/button";
-import { ModalOverlay, Modal, Dialog } from "@/components/application/modals/modal";
-import { RadioGroup, RadioButton } from "@/components/base/radio-buttons/radio-buttons";
 import { cx } from '@/utils/cx';
+import { RadioGroup, RadioButton } from "@/components/base/radio-buttons/radio-buttons";
 import { Plus, Phone } from "lucide-react";
 
 export type NoResultsStep =
@@ -28,18 +26,16 @@ export interface QSNoResultsModalProps {
 }
 
 const INPUT_STYLE = cx(
-    "h-[52px] w-full rounded-xl border px-4 py-3 text-sm transition-colors",
-    "bg-[#F0F4F8]/50 dark:bg-[#022136]/50",
-    "border-[var(--border-subtle)] dark:border-[#2A4A68]",
-    "text-[var(--text-primary)] dark:text-white",
-    "placeholder:text-[var(--text-muted)] dark:placeholder:text-[#7A92A8]",
-    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2",
+    "h-[52px] w-full rounded-lg border-2 px-4 py-3 text-sm transition-colors",
+    "bg-gray-50 border-gray-200",
+    "text-slate-800 placeholder:text-slate-400",
+    "focus:outline-none focus:border-[#00BFFF] focus:ring-2 focus:ring-[#00BFFF]/20",
 );
 
 /**
  * No-results Quick Scan modal flow: alternate name → mobile number → signup CTA.
- * Used when no results returned or user selects "Not Me" / "None of These Are Me".
- * Vanyshr Design System: rounded-xl, h-[52px] inputs, semantic tokens, dark variants.
+ * White card on dark-blurred backdrop — consistent with prototype modal design.
+ * Steps: initial → alternate-name → mobile-question → mobile-form → signup-cta.
  */
 export function QSNoResultsModal({
     isOpen,
@@ -50,6 +46,7 @@ export function QSNoResultsModal({
     onRunFullScan,
 }: QSNoResultsModalProps) {
     const [step, setStep] = useState<NoResultsStep>("initial");
+    const [showContent, setShowContent] = useState(false);
     const [showAlternateField, setShowAlternateField] = useState(false);
     const [alternateType, setAlternateType] = useState<"first" | "last">("first");
     const [alternateValue, setAlternateValue] = useState("");
@@ -57,13 +54,16 @@ export function QSNoResultsModal({
 
     const close = () => onOpenChange(false);
 
-    // Reset step when modal opens
     useEffect(() => {
         if (isOpen) {
             setStep("initial");
             setShowAlternateField(false);
             setAlternateValue("");
             setPhoneValue("");
+            const timer = setTimeout(() => setShowContent(true), 10);
+            return () => clearTimeout(timer);
+        } else {
+            setShowContent(false);
         }
     }, [isOpen]);
 
@@ -87,257 +87,253 @@ export function QSNoResultsModal({
         close();
     };
 
+    if (!isOpen) return null;
+
     return (
-        <ModalOverlay
-            isOpen={isOpen}
-            onOpenChange={onOpenChange}
-            className={(state) =>
-                cx(
-                    "fixed inset-0 z-50 flex min-h-dvh w-full items-end justify-center overflow-y-auto outline-hidden backdrop-blur-[6px] sm:items-center sm:justify-center",
-                    "bg-[#022136]/70 dark:bg-[#022136]/80",
-                    "px-4 pt-4 pb-[clamp(16px,8vh,64px)] sm:p-8",
-                    state.isEntering && "duration-300 ease-out animate-in fade-in",
-                    state.isExiting && "duration-200 ease-in animate-out fade-out",
-                )
-            }
-        >
-            <Modal className="max-h-full w-full max-sm:overflow-y-auto">
-                <Dialog
-                    className="w-full max-w-sm p-0"
-                    aria-labelledby="qs-no-results-title"
-                    aria-describedby="qs-no-results-desc"
-                >
-                    <div
-                        role="document"
-                        className={cx(
-                            "flex max-h-[85dvh] flex-col overflow-hidden rounded-xl border shadow-lg transition-colors",
-                            "bg-[var(--bg-surface)] dark:bg-[#2A2A3F]",
-                            "border-[var(--border-subtle)] dark:border-[#2A4A68]",
-                        )}
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+            <div
+                className={cx(
+                    "bg-white w-full max-w-md rounded-xl shadow-2xl flex flex-col max-h-[85vh] overflow-hidden",
+                    "transform transition-all duration-300 ease-out",
+                    showContent ? "scale-100 opacity-100" : "scale-95 opacity-0",
+                )}
+            >
+                {/* Header */}
+                <div className="p-6 border-b border-gray-100 flex-shrink-0 relative text-center">
+                    <button
+                        onClick={close}
+                        className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors"
+                        aria-label="Close"
                     >
-                        <div className="overflow-y-auto px-6 pt-6 pb-6">
-                            {/* Step: initial */}
-                            {step === "initial" && (
-                                <div className="space-y-6 text-center">
-                                    <h2
-                                        id="qs-no-results-title"
-                                        className="text-lg font-bold text-[var(--text-primary)] dark:text-white"
-                                    >
-                                        Good News! You&apos;re harder to find than most!
-                                    </h2>
-                                    <p className="text-base font-normal text-[var(--text-primary)] dark:text-white">
-                                        Our QuickScan Didn&apos;t Find A
-                                        <br />
-                                        <span className="font-bold text-[#00BFFF] dark:text-[#00BFFF]">{searchName}</span>
-                                    </p>
-                                    <p
-                                        id="qs-no-results-desc"
-                                        className="text-sm text-[var(--text-secondary)] dark:text-[#B8C4CC]"
-                                    >
-                                        Do you have a maiden or alternate name you regularly go by?
-                                    </p>
-                                    <div className="flex gap-3">
-                                        <Button
-                                            type="button"
-                                            size="lg"
-                                            color="primary"
-                                            className="h-[52px] flex-1 rounded-xl bg-[#00BFFF] font-semibold text-white"
-                                            onClick={handleAlternateYes}
-                                        >
-                                            Yes
-                                        </Button>
-                                        <Button
-                                            type="button"
-                                            size="lg"
-                                            color="secondary"
-                                            className={cx(
-                                                "h-[52px] flex-1 rounded-xl font-semibold",
-                                                "bg-[#F0F4F8] dark:bg-[#022136]/50 dark:text-white",
-                                                "border border-[var(--border-subtle)] dark:border-[#2A4A68]",
-                                            )}
-                                            onClick={handleAlternateNo}
-                                        >
-                                            No
-                                        </Button>
-                                    </div>
-                                </div>
-                            )}
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
 
-                            {/* Step: alternate name form */}
-                            {step === "alternate-name" && (
-                                <div className="space-y-4">
-                                    <h2 className="text-base font-bold text-[var(--text-primary)] dark:text-white">
-                                        Add alternate name
-                                    </h2>
-                                    <RadioGroup
-                                        name="alternateType"
-                                        value={alternateType}
-                                        onChange={(v) => setAlternateType(v as "first" | "last")}
-                                        className="gap-3"
-                                    >
-                                        <RadioButton value="first" label="Alternate First Name" />
-                                        <RadioButton value="last" label="Maiden/Alternate Last Name" />
-                                    </RadioGroup>
-                                    {!showAlternateField ? (
-                                        <button
-                                            type="button"
-                                            onClick={() => setShowAlternateField(true)}
-                                            className={cx(
-                                                "flex h-[52px] w-full items-center justify-center gap-2 rounded-xl border border-dashed transition-colors",
-                                                "border-[var(--border-subtle)] dark:border-[#2A4A68]",
-                                                "text-[var(--text-secondary)] dark:text-[#B8C4CC]",
-                                                "hover:bg-[#F0F4F8]/50 dark:hover:bg-[#022136]/50",
-                                            )}
-                                        >
-                                            <Plus className="size-5" aria-hidden />
-                                            <span className="text-sm font-medium">Add name</span>
-                                        </button>
-                                    ) : (
-                                        <div className="space-y-2">
-                                            <input
-                                                type="text"
-                                                value={alternateValue}
-                                                onChange={(e) => setAlternateValue(e.target.value)}
-                                                placeholder={alternateType === "first" ? "Alternate first name" : "Maiden / alternate last name"}
-                                                className={INPUT_STYLE}
-                                                autoFocus
-                                            />
-                                        </div>
-                                    )}
-                                    <Button
-                                        type="button"
-                                        size="lg"
-                                        color="primary"
-                                        className="h-[52px] w-full rounded-xl bg-[#00BFFF] font-semibold text-white"
-                                        onClick={handleScanAgain}
-                                    >
-                                        Scan again
-                                    </Button>
-                                </div>
-                            )}
+                    {step === "initial" && (
+                        <>
+                            <h2
+                                id="qs-no-results-title"
+                                className="text-xl font-extrabold text-slate-800 leading-tight mb-2"
+                            >
+                                Good News!
+                            </h2>
+                            <p className="text-sm text-slate-500 font-medium">
+                                You&apos;re harder to find than most
+                            </p>
+                        </>
+                    )}
+                    {step === "alternate-name" && (
+                        <h2 className="text-xl font-extrabold text-slate-800 leading-tight">
+                            Add Alternate Name
+                        </h2>
+                    )}
+                    {step === "mobile-question" && (
+                        <h2 className="text-xl font-extrabold text-slate-800 leading-tight">
+                            Scan Your Mobile Number?
+                        </h2>
+                    )}
+                    {step === "mobile-form" && (
+                        <h2 className="text-xl font-extrabold text-slate-800 leading-tight">
+                            Enter Your Mobile Number
+                        </h2>
+                    )}
+                    {step === "signup-cta" && (
+                        <h2 className="text-xl font-extrabold text-slate-800 leading-tight">
+                            Run a Full Scan
+                        </h2>
+                    )}
+                </div>
 
-                            {/* Step: mobile number question */}
-                            {step === "mobile-question" && (
-                                <div className="space-y-6 text-center">
-                                    <h2 className="text-base font-bold text-[var(--text-primary)] dark:text-white">
-                                        Scan for your mobile number?
-                                    </h2>
-                                    <div className="flex gap-3">
-                                        <Button
-                                            type="button"
-                                            size="lg"
-                                            color="primary"
-                                            className="h-[52px] flex-1 rounded-xl bg-[#00BFFF] font-semibold text-white"
-                                            onClick={handleMobileYes}
-                                        >
-                                            Yes
-                                        </Button>
-                                        <Button
-                                            type="button"
-                                            size="lg"
-                                            color="secondary"
-                                            className={cx(
-                                                "h-[52px] flex-1 rounded-xl font-semibold",
-                                                "bg-[#F0F4F8] dark:bg-[#022136]/50 dark:text-white",
-                                                "border border-[var(--border-subtle)] dark:border-[#2A4A68]",
-                                            )}
-                                            onClick={handleMobileNo}
-                                        >
-                                            No
-                                        </Button>
-                                    </div>
-                                </div>
-                            )}
+                {/* Body */}
+                <div className="flex-1 overflow-y-auto p-6 bg-white">
 
-                            {/* Step: mobile number form */}
-                            {step === "mobile-form" && (
-                                <div className="space-y-4">
-                                    <h2 className="text-base font-bold text-[var(--text-primary)] dark:text-white">
-                                        Enter your mobile number
-                                    </h2>
-                                    <div className="relative">
-                                        <input
-                                            type="tel"
-                                            value={phoneValue}
-                                            onChange={(e) => setPhoneValue(e.target.value)}
-                                            placeholder="(555) 123-4567"
-                                            className={cx(INPUT_STYLE, "pl-12")}
-                                            autoFocus
-                                        />
-                                        <Phone className="absolute left-4 top-1/2 size-5 -translate-y-1/2 text-[var(--text-muted)] dark:text-[#7A92A8]" aria-hidden />
-                                    </div>
-                                    <Button
-                                        type="button"
-                                        size="lg"
-                                        color="primary"
-                                        className="h-[52px] w-full rounded-xl bg-[#00BFFF] font-semibold text-white"
-                                        onClick={handleScanNow}
-                                    >
-                                        Scan Now
-                                    </Button>
-                                </div>
-                            )}
-
-                            {/* Step: signup CTA */}
-                            {step === "signup-cta" && (
-                                <div className="space-y-5 text-center">
-                                    <h2 className="text-lg font-bold text-[var(--text-primary)] dark:text-white">
-                                        Sign up for a Forever Free account and Run a Full Scan
-                                    </h2>
-                                    <p className="text-sm text-[var(--text-secondary)] dark:text-[#B8C4CC] leading-relaxed">
-                                        Our QuickScan searches the most common brokers. However, that&apos;s &lt;5% of brokers and sources we monitor.
-                                    </p>
-                                    <p className="text-sm font-semibold text-[var(--text-primary)] dark:text-white">
-                                        Sign up for a Forever Free account for:
-                                    </p>
-                                    <ul className="space-y-2 text-left text-sm text-[var(--text-primary)] dark:text-white">
-                                        <li className="flex gap-2">
-                                            <span className="text-[#00BFFF] dark:text-[#00BFFF]">•</span>
-                                            <span>Scan for 300+ additional brokers</span>
-                                        </li>
-                                        <li className="flex gap-2">
-                                            <span className="text-[#00BFFF] dark:text-[#00BFFF]">•</span>
-                                            <span>Dark Web Data Breach Scan</span>
-                                        </li>
-                                        <li className="flex gap-2">
-                                            <span className="text-[#00BFFF] dark:text-[#00BFFF]">•</span>
-                                            <span>Access to manually scan brokers once a month</span>
-                                        </li>
-                                    </ul>
-                                    <Button
-                                        type="button"
-                                        size="lg"
-                                        color="primary"
-                                        className="h-[52px] w-full rounded-xl bg-[#00BFFF] font-semibold text-white"
-                                        onClick={handleRunFullScan}
-                                    >
-                                        Run Full Scan Now
-                                    </Button>
-                                    <p className="text-xs text-[var(--text-secondary)] dark:text-[#B8C4CC]">
-                                        No credit card required
-                                    </p>
-                                    <p className="text-xs text-[var(--text-secondary)] dark:text-[#B8C4CC] leading-snug">
-                                        Cancel any time for any reason and we will make 100% of your data vanish from our databases.
-                                    </p>
-                                    <Button
-                                        type="button"
-                                        size="lg"
-                                        color="secondary"
-                                        className={cx(
-                                            "h-[52px] w-full rounded-xl font-semibold",
-                                            "bg-[#F0F4F8] dark:bg-[#022136]/50 dark:text-white",
-                                            "border border-[var(--border-subtle)] dark:border-[#2A4A68]",
-                                        )}
-                                        onClick={close}
-                                    >
-                                        Cancel
-                                    </Button>
-                                </div>
-                            )}
+                    {/* Step: initial */}
+                    {step === "initial" && (
+                        <div className="space-y-5 text-center">
+                            <div className="rounded-lg p-4 bg-gray-50 border-2 border-[#00BFFF]/20">
+                                <p className="text-base text-slate-700">
+                                    Our QuickScan Didn&apos;t Find A
+                                </p>
+                                <p className="text-lg font-bold text-[#00BFFF] mt-1">
+                                    {searchName}
+                                </p>
+                            </div>
+                            <p
+                                id="qs-no-results-desc"
+                                className="text-sm text-slate-500"
+                            >
+                                Do you have a maiden or alternate name you regularly go by?
+                            </p>
+                            <div className="flex gap-3">
+                                <button
+                                    type="button"
+                                    onClick={handleAlternateYes}
+                                    className="flex-1 py-3.5 rounded-lg font-bold text-lg text-white bg-[#00BFFF] hover:bg-[#00D4FF] active:scale-[0.98] shadow-lg transition-all duration-200"
+                                >
+                                    Yes
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleAlternateNo}
+                                    className="flex-1 py-3.5 rounded-lg font-bold text-lg text-slate-800 bg-gray-100 hover:bg-gray-200 active:scale-[0.98] shadow-lg transition-all duration-200"
+                                >
+                                    No
+                                </button>
+                            </div>
                         </div>
-                    </div>
-                </Dialog>
-            </Modal>
-        </ModalOverlay>
+                    )}
+
+                    {/* Step: alternate name form */}
+                    {step === "alternate-name" && (
+                        <div className="space-y-4">
+                            <p className="text-sm text-slate-500 text-center">
+                                Select the name type and enter your alternate name below.
+                            </p>
+                            <RadioGroup
+                                name="alternateType"
+                                value={alternateType}
+                                onChange={(v) => setAlternateType(v as "first" | "last")}
+                                className="gap-3"
+                            >
+                                <RadioButton value="first" label="Alternate First Name" />
+                                <RadioButton value="last" label="Maiden / Alternate Last Name" />
+                            </RadioGroup>
+
+                            {!showAlternateField ? (
+                                <button
+                                    type="button"
+                                    onClick={() => setShowAlternateField(true)}
+                                    className="flex h-[52px] w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-200 text-slate-500 transition-colors hover:border-[#00BFFF]/50 hover:text-[#00BFFF] focus:outline-none focus:border-[#00BFFF]"
+                                >
+                                    <Plus className="size-5" aria-hidden />
+                                    <span className="text-sm font-medium">Add name</span>
+                                </button>
+                            ) : (
+                                <input
+                                    type="text"
+                                    value={alternateValue}
+                                    onChange={(e) => setAlternateValue(e.target.value)}
+                                    placeholder={alternateType === "first" ? "Alternate first name" : "Maiden / alternate last name"}
+                                    className={INPUT_STYLE}
+                                    autoFocus
+                                />
+                            )}
+
+                            <button
+                                type="button"
+                                onClick={handleScanAgain}
+                                className="w-full py-3.5 rounded-lg font-bold text-lg text-white bg-[#00BFFF] hover:bg-[#00D4FF] active:scale-[0.98] shadow-lg transition-all duration-200"
+                            >
+                                Scan Again
+                            </button>
+                        </div>
+                    )}
+
+                    {/* Step: mobile number question */}
+                    {step === "mobile-question" && (
+                        <div className="space-y-5 text-center">
+                            <p className="text-sm text-slate-500">
+                                Some brokers list records by phone number. Would you like us to scan for your mobile number?
+                            </p>
+                            <div className="flex gap-3">
+                                <button
+                                    type="button"
+                                    onClick={handleMobileYes}
+                                    className="flex-1 py-3.5 rounded-lg font-bold text-lg text-white bg-[#00BFFF] hover:bg-[#00D4FF] active:scale-[0.98] shadow-lg transition-all duration-200"
+                                >
+                                    Yes
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleMobileNo}
+                                    className="flex-1 py-3.5 rounded-lg font-bold text-lg text-slate-800 bg-gray-100 hover:bg-gray-200 active:scale-[0.98] shadow-lg transition-all duration-200"
+                                >
+                                    No
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Step: mobile number form */}
+                    {step === "mobile-form" && (
+                        <div className="space-y-4">
+                            <p className="text-sm text-slate-500 text-center">
+                                Enter your mobile number to search broker records.
+                            </p>
+                            <div className="relative">
+                                <input
+                                    type="tel"
+                                    value={phoneValue}
+                                    onChange={(e) => setPhoneValue(e.target.value)}
+                                    placeholder="(555) 123-4567"
+                                    className={cx(INPUT_STYLE, "pl-12")}
+                                    autoFocus
+                                />
+                                <Phone className="absolute left-4 top-1/2 size-5 -translate-y-1/2 text-slate-400" aria-hidden />
+                            </div>
+                            <button
+                                type="button"
+                                onClick={handleScanNow}
+                                className="w-full py-3.5 rounded-lg font-bold text-lg text-white bg-[#00BFFF] hover:bg-[#00D4FF] active:scale-[0.98] shadow-lg transition-all duration-200"
+                            >
+                                Scan Now
+                            </button>
+                        </div>
+                    )}
+
+                    {/* Step: signup CTA */}
+                    {step === "signup-cta" && (
+                        <div className="space-y-5">
+                            <div className="rounded-lg p-4 bg-gray-50 border-2 border-[#00BFFF]/20 text-center">
+                                <p className="text-sm text-slate-600 leading-relaxed">
+                                    Our QuickScan searches the most common brokers — that&apos;s less than 5% of all the brokers and sources we monitor.
+                                </p>
+                            </div>
+
+                            <div>
+                                <p className="text-sm font-semibold text-slate-800 mb-3">
+                                    Sign up for a Forever Free account to:
+                                </p>
+                                <ul className="space-y-2 text-sm text-slate-700">
+                                    <li className="flex gap-2">
+                                        <span className="text-[#00BFFF] font-bold flex-shrink-0">•</span>
+                                        <span>Scan 300+ additional brokers</span>
+                                    </li>
+                                    <li className="flex gap-2">
+                                        <span className="text-[#00BFFF] font-bold flex-shrink-0">•</span>
+                                        <span>Dark Web Data Breach Scan</span>
+                                    </li>
+                                    <li className="flex gap-2">
+                                        <span className="text-[#00BFFF] font-bold flex-shrink-0">•</span>
+                                        <span>Access to manually scan brokers once a month</span>
+                                    </li>
+                                </ul>
+                            </div>
+
+                            <button
+                                type="button"
+                                onClick={handleRunFullScan}
+                                className="w-full py-3.5 rounded-lg font-bold text-lg text-white bg-[#00BFFF] hover:bg-[#00D4FF] active:scale-[0.98] shadow-lg transition-all duration-200"
+                            >
+                                Run Full Scan Now
+                            </button>
+
+                            <p className="text-xs text-center text-slate-400">
+                                No credit card required &middot; Cancel any time
+                            </p>
+
+                            <button
+                                type="button"
+                                onClick={close}
+                                className="w-full py-3 rounded-lg font-bold text-base text-slate-600 bg-gray-100 hover:bg-gray-200 active:scale-[0.98] transition-all duration-200"
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
     );
 }

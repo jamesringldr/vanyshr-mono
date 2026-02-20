@@ -91,7 +91,7 @@ export function OnboardingLayout({
                     className={cx(
                         "fixed bottom-0 left-0 right-0 border-t py-4 px-4",
                         "border-[var(--border-subtle)] dark:border-[#2A4A68]",
-                        "bg-[var(--bg-surface)] dark:bg-[#2A2A3F]",
+                        "bg-[var(--bg-surface)] dark:bg-[#2D3847]",
                     )}
                 >
                     <div className="mx-auto max-w-lg">{footer}</div>

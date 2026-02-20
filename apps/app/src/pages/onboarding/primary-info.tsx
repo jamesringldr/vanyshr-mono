@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router";
 import {
     OnboardingLayout,
     OnboardingDataCard,
@@ -114,6 +115,8 @@ export function VerifyPrimaryInfo() {
     const [editLastName, setEditLastName] = useState("");
     const [editValue, setEditValue] = useState("");
 
+    const navigate = useNavigate();
+
     const openEdit = (field: PrimaryInfoField) => {
         setActiveId(field.id);
         setEditingFieldId(field.id);
@@ -187,7 +190,7 @@ export function VerifyPrimaryInfo() {
         );
         setActiveId(null);
         setEditingFieldId(null);
-        // TODO: navigate to next step when routing is wired (e.g. onContinue?.())
+        navigate("/onboarding/phone-numbers");
     };
 
     return (

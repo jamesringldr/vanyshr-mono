@@ -21,8 +21,8 @@ files.forEach(file => {
   content = content.replace(/#14ABFE/gi, '#00BFFF');
   content = content.replace(/#CDD9E5/gi, '#4A5568');
   content = content.replace(/#D4DFE8/gi, '#2A4A68');
-  content = content.replace(/#0F2D45/gi, '#2A2A3F');
-  content = content.replace(/#1A3A52/gi, '#252538');
+  content = content.replace(/#0F2D45/gi, '#2D3847');
+  content = content.replace(/#1A3A52/gi, '#2D3847');
 
   // Contextual #022136
   // Looking at the instruction: "Keep as #022136 when it is the text color on a primary button ... Replace with #022136 when it is a layout background"
@@ -33,7 +33,7 @@ files.forEach(file => {
   content = content.replace(/#F0F4F8/gi, '#022136');
 
   // Remove `dark:` prefixes for classes that have both a light and dark version.
-  // Usually they appear like "bg-white dark:bg-[#2A2A3F]". We want just "bg-[#2A2A3F]"
+  // Usually they appear like "bg-white dark:bg-[#2D3847]". We want just "bg-[#2D3847]"
   // A naive approach: find a light class right before a dark class, e.g., `text-[#022136] dark:text-white`
   // We can just find `dark:` and remove it, but that leaves the light class. 
   // Let's find "some-class dark:some-other-class" and replace with "some-other-class".
@@ -51,10 +51,10 @@ files.forEach(file => {
   // What about bg-white without a dark side (now that we stripped `dark:`)?
   // We can leave `bg-white` and `bg-[#FFFFFF]` for now, but the prompt says:
   // "No card should have a white or light background"
-  // Let's replace `bg-white` inside cards/modals, or we can just replace all `bg-white` with `bg-[#2A2A3F]` because this app is dark mode only. Wait. `bg-white` might be used for small things.
+  // Let's replace `bg-white` inside cards/modals, or we can just replace all `bg-white` with `bg-[#2D3847]` because this app is dark mode only. Wait. `bg-white` might be used for small things.
   // "DO NOT replace #FFFFFF text color uses."
-  content = content.replace(/bg-white/g, 'bg-[#2A2A3F]');
-  content = content.replace(/bg-\[\s*#FFFFFF\s*\]/gi, 'bg-[#2A2A3F]');
+  content = content.replace(/bg-white/g, 'bg-[#2D3847]');
+  content = content.replace(/bg-\[\s*#FFFFFF\s*\]/gi, 'bg-[#2D3847]');
 
   if (content !== originalContent) {
     fs.writeFileSync(fullPath, content, 'utf8');

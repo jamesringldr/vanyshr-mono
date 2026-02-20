@@ -31,18 +31,18 @@ export interface QuickScanFormProps {
 
 const SCAN_STEPS = [
   {
-    title: "Prevent Spam Calls & Texts",
-    description: "Predatory companies buy your exposed data from data brokers to relentlessly attempt to sell you unsolicited products.",
+    title: "Searching Brokers",
+    description: "Finding your data across 500+ sources...",
     iconSrc: "/brand/icons/spammer.png"
   },
   {
-    title: "Secure Your Identity",
-    description: "Identity theft starts with a single exposed piece of data. We scan to see what's already out there.",
+    title: "Full Data Scan",
+    description: "Recovering hidden details and exposures...",
     iconSrc: "/brand/icons/identity.png"
   },
   {
-    title: "Stop Phishing Attacks",
-    description: "Scammers use your personal details to craft convincing phishing attempts. Vanyshr helps you vanish from their list.",
+    title: "Compiling Report",
+    description: "Almost ready... finalizing your privacy audit...",
     iconSrc: "/brand/icons/phishing.png"
   }
 ];
@@ -69,16 +69,7 @@ export function QuickScanForm({ supabaseClient, onProfileSelect, onClose, classN
   // Validation
   const isFormValid = firstName.trim().length >= 2 && lastName.trim().length >= 2 && zipCode.length === 5;
 
-  // Scanning animation effect
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (view === "scanning") {
-      interval = setInterval(() => {
-        setScanStepIndex((prev) => (prev + 1) % SCAN_STEPS.length);
-      }, 3000);
-    }
-    return () => clearInterval(interval);
-  }, [view]);
+  // No auto-looping for scan steps
 
   // Map ProfileMatch to QSProfileSummary
   const mapProfile = (p: ProfileMatch): QSProfileSummary => ({
@@ -128,6 +119,9 @@ export function QuickScanForm({ supabaseClient, onProfileSelect, onClose, classN
 
       if (searchError) throw new Error(searchError.message || "Failed to search");
 
+      // Stay on step 0 during initial search
+      setScanStepIndex(0);
+
       // Artificial delay to ensure user sees the "premium" scanning state
       await new Promise(resolve => setTimeout(resolve, 2000));
 
@@ -153,9 +147,22 @@ export function QuickScanForm({ supabaseClient, onProfileSelect, onClose, classN
     }
   }, [firstName, lastName, zipCode, isFormValid, supabaseClient]);
 
-  const handleSelectProfile = useCallback((profile: QSProfileSummary) => {
+  const handleSelectProfile = useCallback(async (profile: QSProfileSummary) => {
     const originalProfile = matches.find(m => m.id === profile.id);
     if (!originalProfile) return;
+
+    // Show step 2: Full Data Scan
+    setView("scanning");
+    setScanStepIndex(1);
+    
+    // Artificial delay for step 2
+    await new Promise(resolve => setTimeout(resolve, 2500));
+
+    // Show step 3: Compiling Report
+    setScanStepIndex(2);
+    
+    // Artificial delay for step 3
+    await new Promise(resolve => setTimeout(resolve, 1500));
 
     onProfileSelect(originalProfile, {
       firstName: firstName.trim(),
@@ -170,31 +177,31 @@ export function QuickScanForm({ supabaseClient, onProfileSelect, onClose, classN
 
   if (view === "scanning") {
     return (
-      <div className={cx("w-full h-full min-h-[400px] flex flex-col items-center justify-center p-8 space-y-8 bg-white dark:bg-[#2A2A3F]", className)}>
-        <div className="w-full max-w-sm space-y-6">
+      <div className={cx("w-full h-full min-h-[400px] flex flex-col items-center justify-center p-8 gap-8 bg-[#2D3847]", className)}>
+        <div className="w-full max-w-sm flex flex-col gap-6">
           <div className="flex flex-col items-center gap-4">
             <Loader2 className="w-12 h-12 text-[#00BFFF] animate-spin" />
-            <div className="text-center space-y-1">
-              <h2 className="text-xl font-bold text-[#022136] dark:text-white uppercase tracking-wider">
+            <div className="text-center flex flex-col gap-1">
+              <h2 className="text-xl font-bold text-white uppercase tracking-wider">
                 SCANNING BROKERS
               </h2>
-              <p className="text-[#B8C4CC] dark:text-[#B8C4CC] font-medium animate-pulse">
+              <p className="text-[#B8C4CC] font-medium animate-pulse">
                 {status === "looking_up_zip" ? "Identifying your local region..." : "Searching 500+ data sources..."}
               </p>
             </div>
           </div>
 
-          <QSProgressSteps 
-            totalSteps={3} 
-            activeStep={scanStepIndex + 1} 
+          <QSProgressSteps
+            totalSteps={3}
+            activeStep={scanStepIndex + 1}
             className="w-full"
           />
 
-          <QSInfoCard 
+          <QSInfoCard
             title={SCAN_STEPS[scanStepIndex].title}
             description={SCAN_STEPS[scanStepIndex].description}
             iconSrc={SCAN_STEPS[scanStepIndex].iconSrc}
-            className="shadow-xl border-[#D4DFE8] dark:border-[#2A4A68]"
+            className="shadow-xl border-[#2A4A68]"
           />
         </div>
       </div>
@@ -202,81 +209,96 @@ export function QuickScanForm({ supabaseClient, onProfileSelect, onClose, classN
   }
 
   return (
-    <div className={cx("w-full bg-white dark:bg-[#2A2A3F] rounded-xl overflow-hidden", className)}>
-      {/* Header */}
-      <div className="p-6 md:p-8 space-y-4 text-center">
-        <h1 className="text-2xl md:text-3xl font-bold text-[#022136] dark:text-white tracking-tight">
-          See what brokers know about you
-        </h1>
-        <p className="text-[#B8C4CC] dark:text-[#B8C4CC] text-sm md:text-base leading-relaxed">
-          Enter your details to instantly scan top data brokers for your personal information. It's free and takes seconds.
-        </p>
-      </div>
+    <div className={cx("w-full bg-[#2D3847] rounded-xl overflow-hidden", className)}>
 
-      {/* Form */}
-      <div className="p-6 md:p-8 pt-0">
-        <form className="space-y-4" onSubmit={handleScan}>
-          <div className="space-y-1.5">
-            <label className="block text-sm font-medium text-[#022136] dark:text-white">First Name</label>
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="First name"
-                value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
-                disabled={isLoading}
-                className="h-[52px] w-full rounded-xl border border-[#D4DFE8] dark:border-[#2A4A68] px-12 py-3 text-sm bg-[#F0F4F8]/50 dark:bg-[#022136]/50 text-[#022136] dark:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00BFFF] disabled:opacity-50"
-              />
-              <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#94A3B8]" />
-            </div>
+      <div className="p-6 pt-8 flex flex-col gap-6">
+        {/* Header Section */}
+        <div className="flex flex-col gap-2 text-center">
+          <h1 className="text-4xl font-bold text-white leading-[1.1] tracking-tighter">
+            Reveal Your Exposure Risk In Seconds.
+          </h1>
+          <p className="text-[#00BFFF] text-base font-bold leading-snug">
+            QuickScans search ~5% of data brokers and ONLY return publicly available data.
+          </p>
+        </div>
+
+        {/* Privacy Section */}
+        <div className="w-full flex flex-col gap-2">
+          <h3 className="text-white text-lg font-bold">
+            Your Privacy is Paramount
+          </h3>
+          <ul className="flex flex-col gap-1.5 list-none text-[#B8C4CC] text-base font-normal">
+            <li className="flex items-start gap-2">
+              <span className="text-[#00BFFF] font-bold leading-none mt-1">•</span>
+              <span>QuickScans <span className="text-white font-bold italic uppercase">do not</span> Create Profiles for You</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-[#00BFFF] font-bold leading-none mt-1">•</span>
+              <span>QuickScan Data is <span className="text-white font-bold italic">NEVER</span> Sold, <span className="text-white font-bold italic">NEVER</span> Shared, and <span className="text-white font-bold italic">NEVER</span> Used to Send You Marketing Spam</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-[#00BFFF] font-bold leading-none mt-1">•</span>
+              <span>We <span className="text-white font-bold italic uppercase">do not</span> Save Any Data From Your QuickScan</span>
+            </li>
+          </ul>
+        </div>
+
+        <form className="w-full flex flex-col gap-4" onSubmit={handleScan}>
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Legal First Name"
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              disabled={isLoading}
+              className="h-[52px] w-full rounded-xl border border-[#2A4A68] focus:border-[#00BFFF] focus:ring-1 focus:ring-[#00BFFF] px-4 py-3 text-base bg-[#022136]/50 text-white placeholder:text-[#7A92A8] font-ubuntu outline-none transition-colors duration-150 disabled:opacity-50"
+            />
           </div>
 
-          <div className="space-y-1.5">
-            <label className="block text-sm font-medium text-[#022136] dark:text-white">Last Name</label>
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Last name"
-                value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
-                disabled={isLoading}
-                className="h-[52px] w-full rounded-xl border border-[#D4DFE8] dark:border-[#2A4A68] px-12 py-3 text-sm bg-[#F0F4F8]/50 dark:bg-[#022136]/50 text-[#022136] dark:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00BFFF] disabled:opacity-50"
-              />
-              <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#94A3B8]" />
-            </div>
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Legal Last Name"
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+              disabled={isLoading}
+              className="h-[52px] w-full rounded-xl border border-[#2A4A68] focus:border-[#00BFFF] focus:ring-1 focus:ring-[#00BFFF] px-4 py-3 text-base bg-[#022136]/50 text-white placeholder:text-[#7A92A8] font-ubuntu outline-none transition-colors duration-150 disabled:opacity-50"
+            />
           </div>
 
-          <div className="space-y-1.5">
-            <label className="block text-sm font-medium text-[#022136] dark:text-white">Zip Code</label>
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="12345"
-                maxLength={5}
-                value={zipCode}
-                onChange={(e) => setZipCode(e.target.value.replace(/\D/g, "").slice(0, 5))}
-                disabled={isLoading}
-                className="h-[52px] w-full rounded-xl border border-[#D4DFE8] dark:border-[#2A4A68] px-12 py-3 text-sm bg-[#F0F4F8]/50 dark:bg-[#022136]/50 text-[#022136] dark:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00BFFF] disabled:opacity-50"
-              />
-              <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#94A3B8]" />
-            </div>
+          <div className="relative">
+            <input
+              type="text"
+              inputMode="numeric"
+              placeholder="Zip Code"
+              maxLength={5}
+              value={zipCode}
+              onChange={(e) => setZipCode(e.target.value.replace(/\D/g, "").slice(0, 5))}
+              disabled={isLoading}
+              className="h-[52px] w-full rounded-xl border border-[#2A4A68] focus:border-[#00BFFF] focus:ring-1 focus:ring-[#00BFFF] px-4 py-3 text-base bg-[#022136]/50 text-white placeholder:text-[#7A92A8] font-ubuntu outline-none transition-colors duration-150 disabled:opacity-50"
+            />
           </div>
 
-          <button
-            type="submit"
-            disabled={!isFormValid || isLoading}
-            className={cx(
-              "w-full h-[72px] font-bold text-2xl rounded-2xl transition-all shadow-lg active:scale-[0.98] mt-4",
-              isFormValid && !isLoading
-                ? "bg-[#00BFFF] hover:bg-[#1196E0] text-white"
-                : "bg-[#D4DFE8] dark:bg-[#2A4A68] text-[#94A3B8] cursor-not-allowed text-xl"
-            )}
-          >
-            Scan Now
-          </button>
+          <div className="flex flex-col gap-3 mt-2">
+            <p className="text-[#00BFFF] text-xs text-center font-bold">
+              No Credit Card or Sign Up Required to See Results
+            </p>
+            <button
+              type="submit"
+              disabled={!isFormValid || isLoading}
+              className={cx(
+                "w-full h-[52px] font-bold text-base rounded-xl transition-all duration-150 shadow-md active:scale-[0.98]",
+                isFormValid && !isLoading
+                  ? "bg-[#00BFFF] hover:bg-[#00D4FF] active:bg-[#0099CC] text-[#022136] active:text-white"
+                  : "bg-[#4A5568] text-[#7A92A8] cursor-not-allowed"
+              )}
+            >
+              Scan Now
+            </button>
+          </div>
 
-          <p className="text-xs text-center text-[#94A3B8] mt-4">
-             By clicking "Scan Now", you agree to our Terms of Service and Privacy Policy.
+          <p className="text-xs text-center text-[#7A92A8] leading-tight">
+            By selecting "Scan Now" you agree to<br />Vanyshr's Terms of Service and Privacy Policy
           </p>
         </form>
       </div>

@@ -121,7 +121,7 @@ function DataTypeCard({
             aria-label={title}
             className={cx(
                 "rounded-xl border p-4 transition-colors",
-                "bg-[var(--bg-surface)] dark:bg-[#2A2A3F]",
+                "bg-[var(--bg-surface)] dark:bg-[#2D3847]",
                 "border-[var(--border-subtle)] dark:border-[#2A4A68]",
                 className,
             )}
@@ -425,7 +425,7 @@ export function PreProfile() {
                     className={cx(
                         "rounded-xl border-2 p-5 text-center sm:p-6",
                         "border-[#DC2626] dark:border-[#B91C1C]",
-                        "bg-[var(--bg-surface)] dark:bg-[#2A2A3F]",
+                        "bg-[var(--bg-surface)] dark:bg-[#2D3847]",
                     )}
                     role="region"
                     aria-label="Exposure summary"
@@ -447,7 +447,7 @@ export function PreProfile() {
                     <div
                         className={cx(
                             "rounded-xl border p-4 text-center",
-                            "bg-[var(--bg-surface)] dark:bg-[#2A2A3F]",
+                            "bg-[var(--bg-surface)] dark:bg-[#2D3847]",
                             "border-[var(--border-subtle)] dark:border-[#2A4A68]",
                         )}
                     >
@@ -496,7 +496,7 @@ export function PreProfile() {
                         aria-label="Contact"
                         className={cx(
                             "rounded-xl border p-4 sm:p-5",
-                            "bg-[var(--bg-surface)] dark:bg-[#2A2A3F]",
+                            "bg-[var(--bg-surface)] dark:bg-[#2D3847]",
                             "border-[var(--border-subtle)] dark:border-[#2A4A68]",
                         )}
                     >

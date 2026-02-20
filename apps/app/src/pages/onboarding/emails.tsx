@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router";
 import {
     OnboardingLayout,
     OnboardingDataCard,
@@ -7,7 +8,7 @@ import {
     type BadgeStatus,
 } from "@vanyshr/ui/components/onboarding";
 import { cx } from "@/utils/cx";
-import { Mail } from "lucide-react";
+import { Mail, Plus } from "lucide-react";
 
 export interface EmailItem {
     id: string;
@@ -31,6 +32,8 @@ export function OnboardingEmails() {
     const [activeId, setActiveId] = useState<string | null>(null);
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editValue, setEditValue] = useState("");
+
+    const navigate = useNavigate();
 
     const openEdit = (item: EmailItem) => {
         setActiveId(item.id);
@@ -77,7 +80,7 @@ export function OnboardingEmails() {
     const handleFinishSetup = () => {
         setActiveId(null);
         setEditingId(null);
-        // TODO: complete onboarding, navigate to dashboard
+        navigate("/dashboard");
     };
 
     return (
@@ -103,7 +106,7 @@ export function OnboardingEmails() {
                 <div
                     className={cx(
                         "rounded-xl border p-6 text-center",
-                        "bg-[var(--bg-surface)] dark:bg-[#2A2A3F]",
+                        "bg-[var(--bg-surface)] dark:bg-[#2D3847]",
                         "border-[var(--border-subtle)] dark:border-[#2A4A68]",
                     )}
                 >
@@ -145,19 +148,21 @@ export function OnboardingEmails() {
                     />
                 ))}
             </div>
-            <button
-                type="button"
-                onClick={handleAdd}
-                className={cx(
-                    "mt-2 flex h-[52px] w-full items-center justify-center gap-2 rounded-xl border border-dashed text-sm font-semibold outline-none transition",
-                    "border-[var(--border-subtle)] dark:border-[#2A4A68]",
-                    "text-[#022136] dark:text-white",
-                    "hover:bg-[#F0F4F8]/50 dark:hover:bg-[#022136]/30",
-                    "focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2",
-                )}
-            >
-                Add Email
-            </button>
+            <div className="mt-8 flex justify-center pb-4">
+                <button
+                    type="button"
+                    onClick={handleAdd}
+                    className={cx(
+                        "flex h-14 w-14 items-center justify-center rounded-full outline-none transition shadow-lg",
+                        "bg-[#00D4AA] text-[#022136] hover:bg-[#00E5B8]",
+                        "focus-visible:ring-2 focus-visible:ring-[#00D4AA] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#022136]",
+                    )}
+                    aria-label="Add Email"
+                    title="Add Email"
+                >
+                    <Plus className="h-6 w-6" aria-hidden />
+                </button>
+            </div>
         </OnboardingLayout>
     );
 }

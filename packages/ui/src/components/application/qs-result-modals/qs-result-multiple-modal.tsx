@@ -1,5 +1,4 @@
-import { Button } from "@/components/base/buttons/button";
-import { ModalOverlay, Modal, Dialog } from "@/components/application/modals/modal";
+import { useState, useEffect } from "react";
 import { cx } from '@/utils/cx';
 import { ProfileCard } from "./profile-card";
 import type { QSProfileSummary } from "./types";
@@ -9,13 +8,13 @@ export interface QSResultMultipleModalProps {
     isOpen: boolean;
     /** Called when the modal should close. */
     onOpenChange: (open: boolean) => void;
-    /** Search name shown in header (e.g. "lucas Clark"). */
+    /** Search name shown in header (e.g. "Lucas Clark"). */
     searchName: string;
     /** Optional region/state, e.g. "MO". */
     region?: string;
     /** List of potential profiles for the user to select. */
     profiles: QSProfileSummary[];
-    /** Called when user selects a profile (e.g. to send full profile URL to edge). */
+    /** Called when user selects a profile. */
     onProfileSelect: (profile: QSProfileSummary) => void;
     /** Called when user selects "None of These Are Me". */
     onNoneOfThese: () => void;
@@ -23,8 +22,9 @@ export interface QSResultMultipleModalProps {
 
 /**
  * Multiple-users-found Quick Scan result modal.
- * "Select the Record with Your Data" — scrollable list of profile cards; user picks one or "None of These Are Me".
- * Untitled UI structure, Vanyshr Design System tokens (rounded-xl, bg-surface, border-subtle, dark variants).
+ * White card on dark-blurred backdrop — matches prototype Modal design.
+ * Profile cards highlight on hover/select with brand azure.
+ * "None of These Are Me" button delayed 2s to encourage users to review cards first.
  */
 export function QSResultMultipleModal({
     isOpen,
@@ -35,9 +35,29 @@ export function QSResultMultipleModal({
     onProfileSelect,
     onNoneOfThese,
 }: QSResultMultipleModalProps) {
+    const [showContent, setShowContent] = useState(false);
+    const [showNoneButton, setShowNoneButton] = useState(false);
+    const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (isOpen) {
+            const timer = setTimeout(() => setShowContent(true), 10);
+            const buttonTimer = setTimeout(() => setShowNoneButton(true), 2000);
+            return () => {
+                clearTimeout(timer);
+                clearTimeout(buttonTimer);
+            };
+        } else {
+            setShowContent(false);
+            setShowNoneButton(false);
+            setSelectedProfileId(null);
+        }
+    }, [isOpen]);
+
     const close = () => onOpenChange(false);
 
     const handleSelect = (profile: QSProfileSummary) => {
+        setSelectedProfileId(profile.id);
         onProfileSelect(profile);
         close();
     };
@@ -47,95 +67,95 @@ export function QSResultMultipleModal({
         close();
     };
 
+    if (!isOpen) return null;
+
     return (
-        <ModalOverlay
-            isOpen={isOpen}
-            onOpenChange={onOpenChange}
-            className={(state) =>
-                cx(
-                    "fixed inset-0 z-50 flex min-h-dvh w-full items-end justify-center overflow-y-auto outline-hidden backdrop-blur-[6px] sm:items-center sm:justify-center",
-                    "bg-[#022136]/70 dark:bg-[#022136]/80",
-                    "px-4 pt-4 pb-[clamp(16px,8vh,64px)] sm:p-8",
-                    state.isEntering && "duration-300 ease-out animate-in fade-in",
-                    state.isExiting && "duration-200 ease-in animate-out fade-out",
-                )
-            }
-        >
-            <Modal className="max-h-full w-full max-sm:overflow-y-auto">
-                <Dialog
-                    className="w-full max-w-sm p-0"
-                    aria-labelledby="qs-multiple-modal-title"
-                    aria-describedby="qs-multiple-modal-desc"
-                >
-                    <div
-                        role="document"
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+            <div
+                className={cx(
+                    "bg-white w-full max-w-md rounded-xl shadow-2xl flex flex-col max-h-[85vh] overflow-hidden",
+                    "transform transition-all duration-300 ease-out",
+                    showContent ? "scale-100 opacity-100" : "scale-95 opacity-0",
+                )}
+            >
+                {/* Header */}
+                <div className="p-6 text-center border-b border-gray-100 flex-shrink-0 relative">
+                    <button
+                        onClick={close}
+                        className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors"
+                        aria-label="Close"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+
+                    <h2
+                        id="qs-multiple-modal-title"
+                        className="text-xl font-extrabold text-slate-800 leading-tight mb-2"
+                    >
+                        We Found Multiple Records For
+                        <br />
+                        <span className="text-[#00BFFF]">
+                            {searchName}
+                            {region ? ` in ${region}` : ""}
+                        </span>
+                    </h2>
+                    <p
+                        id="qs-multiple-modal-desc"
+                        className="text-sm text-slate-500 font-medium"
+                    >
+                        Select the Record with Your Data
+                    </p>
+                </div>
+
+                {/* Scrollable profile list */}
+                <div className="flex-1 overflow-y-auto p-4 bg-white space-y-4">
+                    {profiles.map((profile) => (
+                        <div
+                            key={profile.id}
+                            onClick={() => handleSelect(profile)}
+                            role="button"
+                            tabIndex={0}
+                            onKeyDown={(e) => e.key === "Enter" && handleSelect(profile)}
+                            aria-label={`Select profile: ${profile.fullName}`}
+                            className={cx(
+                                "rounded-lg cursor-pointer transition-all duration-200 group relative",
+                                selectedProfileId === profile.id
+                                    ? "bg-[#00BFFF]/10 border-2 border-[#00BFFF] shadow-md"
+                                    : "bg-gray-50 border-2 border-transparent hover:border-[#00BFFF]/50 hover:shadow-lg hover:bg-white",
+                            )}
+                        >
+                            <ProfileCard
+                                profile={profile}
+                                className={cx(
+                                    "border-0",
+                                    selectedProfileId === profile.id
+                                        ? "bg-transparent"
+                                        : "bg-transparent",
+                                )}
+                            />
+                        </div>
+                    ))}
+                </div>
+
+                {/* Footer */}
+                <div className="p-4 bg-white border-t border-gray-100 flex-shrink-0">
+                    <button
+                        onClick={handleNoneOfThese}
                         className={cx(
-                            "flex max-h-[85dvh] flex-col overflow-hidden rounded-xl border shadow-lg transition-colors",
-                            "bg-[var(--bg-surface)] dark:bg-[#2A2A3F]",
-                            "border-[var(--border-subtle)] dark:border-[#2A4A68]",
+                            "w-full py-3.5 rounded-lg font-bold text-lg text-white shadow-lg",
+                            "bg-[#00BFFF] hover:bg-[#00D4FF] active:scale-[0.98]",
+                            "transition-all duration-700 ease-in-out transform",
+                            showNoneButton
+                                ? "opacity-100 translate-y-0"
+                                : "opacity-0 translate-y-8 pointer-events-none",
                         )}
                     >
-                        {/* Header */}
-                        <div className="shrink-0 px-6 pt-6 pb-3 text-center">
-                            <h2
-                                id="qs-multiple-modal-title"
-                                className="text-base font-bold text-[var(--text-primary)] dark:text-white"
-                            >
-                                We found multiple records for
-                                <br />
-                                <span className="font-bold text-[#00BFFF] dark:text-[#00BFFF]">
-                                    {searchName}
-                                    {region ? ` in ${region}` : ""}
-                                </span>
-                                .
-                            </h2>
-                            <p
-                                id="qs-multiple-modal-desc"
-                                className="mt-3 text-sm text-[var(--text-secondary)] dark:text-[#B8C4CC]"
-                            >
-                                Select the Record with Your Data
-                            </p>
-                        </div>
-
-                        {/* Scrollable profile list */}
-                        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-3">
-                            <ul className="flex flex-col gap-3" role="list">
-                                {profiles.map((profile) => (
-                                    <li key={profile.id}>
-                                        <button
-                                            type="button"
-                                            onClick={() => handleSelect(profile)}
-                                            className={cx(
-                                                "w-full cursor-pointer rounded-xl border p-0 text-left transition-colors",
-                                                "bg-[#F0F4F8]/50 dark:bg-[#022136]/50",
-                                                "border-[var(--border-subtle)] dark:border-[#2A4A68]",
-                                                "hover:bg-[#E4EAEF]/70 dark:hover:bg-[#022136]/70",
-                                                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2",
-                                            )}
-                                            aria-label={`Select profile: ${profile.fullName}`}
-                                        >
-                                            <ProfileCard profile={profile} className="border-0" />
-                                        </button>
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-
-                        {/* Footer */}
-                        <div className="shrink-0 px-6 pb-6 pt-4">
-                            <Button
-                                type="button"
-                                size="lg"
-                                color="primary"
-                                className="h-[52px] w-full rounded-xl bg-[#00BFFF] font-semibold text-white hover:bg-[#0E9AE8] dark:bg-[#00BFFF] dark:hover:bg-[#0E9AE8]"
-                                onClick={handleNoneOfThese}
-                            >
-                                None of These Are Me
-                            </Button>
-                        </div>
-                    </div>
-                </Dialog>
-            </Modal>
-        </ModalOverlay>
+                        None of These Are Me
+                    </button>
+                </div>
+            </div>
+        </div>
     );
 }

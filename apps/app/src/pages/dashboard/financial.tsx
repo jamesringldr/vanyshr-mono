@@ -52,7 +52,7 @@ export const FinancialDashboard = () => {
           aria-label={`Switch account, current: ${selectedAccount}`}
           className="flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-[#00BFFF] focus:ring-offset-2 rounded-lg transition-colors"
         >
-          <div className="w-10 h-10 rounded-lg bg-[#2A2A3F] dark:bg-[#2A2A3F] flex items-center justify-center">
+          <div className="w-10 h-10 rounded-lg bg-[#2D3847] dark:bg-[#2D3847] flex items-center justify-center">
             <span className="text-sm font-semibold text-white">R</span>
           </div>
           <div className="flex items-center gap-1">
@@ -76,7 +76,7 @@ export const FinancialDashboard = () => {
       {/* Main Content */}
       <main className="px-4 pb-24 space-y-6">
         {/* Balance Section */}
-        <div className="bg-[#FFFFFF] dark:bg-[#2A2A3F] rounded-xl border border-[#D4DFE8] dark:border-[#2A4A68] p-6 space-y-4">
+        <div className="bg-[#FFFFFF] dark:bg-[#2D3847] rounded-xl border border-[#D4DFE8] dark:border-[#2A4A68] p-6 space-y-4">
           {/* Balance Header */}
           <div className="flex items-center gap-1">
             <h2 className="text-sm font-medium text-[#B8C4CC] dark:text-[#B8C4CC]">
@@ -115,7 +115,7 @@ export const FinancialDashboard = () => {
               </button>
 
               {showPeriodDropdown && (
-                <div className="absolute top-full left-0 mt-1 bg-[#FFFFFF] dark:bg-[#2A2A3F] border border-[#D4DFE8] dark:border-[#2A4A68] rounded-lg shadow-lg z-10 min-w-[120px]">
+                <div className="absolute top-full left-0 mt-1 bg-[#FFFFFF] dark:bg-[#2D3847] border border-[#D4DFE8] dark:border-[#2A4A68] rounded-lg shadow-lg z-10 min-w-[120px]">
                   {(['7D', '30D', '90D', '1Y'] as const).map((period) => (
                     <button
                       key={period}
@@ -184,7 +184,7 @@ export const FinancialDashboard = () => {
         </div>
 
         {/* January 2026 Summary */}
-        <div className="bg-[#FFFFFF] dark:bg-[#2A2A3F] rounded-xl border border-[#D4DFE8] dark:border-[#2A4A68] p-4">
+        <div className="bg-[#FFFFFF] dark:bg-[#2D3847] rounded-xl border border-[#D4DFE8] dark:border-[#2A4A68] p-4">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-[#022136] dark:text-white">
               January 2026
@@ -218,7 +218,7 @@ export const FinancialDashboard = () => {
         </div>
 
         {/* Cards Section */}
-        <div className="bg-[#FFFFFF] dark:bg-[#2A2A3F] rounded-xl border border-[#D4DFE8] dark:border-[#2A4A68] p-4">
+        <div className="bg-[#FFFFFF] dark:bg-[#2D3847] rounded-xl border border-[#D4DFE8] dark:border-[#2A4A68] p-4">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-[#022136] dark:text-white">
               Cards
@@ -255,39 +255,39 @@ export const FinancialDashboard = () => {
         aria-label="Main navigation"
       >
         <div className="max-w-lg mx-auto">
-          <div className="flex items-center justify-around bg-[#FFFFFF] dark:bg-[#2A2A3F] rounded-full px-4 py-2 border border-[#D4DFE8] dark:border-[#2A4A68]">
+          <div className="flex items-center justify-around bg-[#FFFFFF] dark:bg-[#2D3847] rounded-full px-4 py-2 border border-[#D4DFE8] dark:border-[#2A4A68]">
             <button
               type="button"
               aria-label="Home"
-              className="relative flex items-center justify-center w-14 h-10 rounded-full bg-[#2A2A3F] dark:bg-[#2A2A3F] transition-colors focus:outline-none focus:ring-2 focus:ring-[#00BFFF] focus:ring-offset-2"
+              className="relative flex items-center justify-center w-14 h-10 rounded-full bg-[#2D3847] dark:bg-[#2D3847] transition-colors focus:outline-none focus:ring-2 focus:ring-[#00BFFF] focus:ring-offset-2"
             >
               <Home className="w-6 h-6 text-[#00BFFF]" />
             </button>
             <button
               type="button"
               aria-label="Transactions"
-              className="relative flex items-center justify-center w-14 h-10 rounded-full transition-colors hover:bg-[#2A2A3F]/50 dark:hover:bg-[#2A2A3F]/50 focus:outline-none focus:ring-2 focus:ring-[#00BFFF] focus:ring-offset-2"
+              className="relative flex items-center justify-center w-14 h-10 rounded-full transition-colors hover:bg-[#2D3847]/50 dark:hover:bg-[#2D3847]/50 focus:outline-none focus:ring-2 focus:ring-[#00BFFF] focus:ring-offset-2"
             >
               <List className="w-6 h-6 text-white" />
             </button>
             <button
               type="button"
               aria-label="Transfer"
-              className="relative flex items-center justify-center w-14 h-10 rounded-full transition-colors hover:bg-[#2A2A3F]/50 dark:hover:bg-[#2A2A3F]/50 focus:outline-none focus:ring-2 focus:ring-[#00BFFF] focus:ring-offset-2"
+              className="relative flex items-center justify-center w-14 h-10 rounded-full transition-colors hover:bg-[#2D3847]/50 dark:hover:bg-[#2D3847]/50 focus:outline-none focus:ring-2 focus:ring-[#00BFFF] focus:ring-offset-2"
             >
               <ArrowLeftRight className="w-6 h-6 text-white" />
             </button>
             <button
               type="button"
               aria-label="Account"
-              className="relative flex items-center justify-center w-14 h-10 rounded-full transition-colors hover:bg-[#2A2A3F]/50 dark:hover:bg-[#2A2A3F]/50 focus:outline-none focus:ring-2 focus:ring-[#00BFFF] focus:ring-offset-2"
+              className="relative flex items-center justify-center w-14 h-10 rounded-full transition-colors hover:bg-[#2D3847]/50 dark:hover:bg-[#2D3847]/50 focus:outline-none focus:ring-2 focus:ring-[#00BFFF] focus:ring-offset-2"
             >
               <Building2 className="w-6 h-6 text-white" />
             </button>
             <button
               type="button"
               aria-label="Card"
-              className="relative flex items-center justify-center w-14 h-10 rounded-full transition-colors hover:bg-[#2A2A3F]/50 dark:hover:bg-[#2A2A3F]/50 focus:outline-none focus:ring-2 focus:ring-[#00BFFF] focus:ring-offset-2"
+              className="relative flex items-center justify-center w-14 h-10 rounded-full transition-colors hover:bg-[#2D3847]/50 dark:hover:bg-[#2D3847]/50 focus:outline-none focus:ring-2 focus:ring-[#00BFFF] focus:ring-offset-2"
             >
               <CreditCard className="w-6 h-6 text-white" />
             </button>
@@ -307,7 +307,7 @@ export const FinancialDashboard = () => {
           />
 
           {/* Sheet */}
-          <div className="relative w-full bg-[#FFFFFF] dark:bg-[#2A2A3F] border-t border-[#D4DFE8] dark:border-[#2A4A68] rounded-t-2xl p-4 shadow-lg max-w-lg mx-auto">
+          <div className="relative w-full bg-[#FFFFFF] dark:bg-[#2D3847] border-t border-[#D4DFE8] dark:border-[#2A4A68] rounded-t-2xl p-4 shadow-lg max-w-lg mx-auto">
             {/* Drag Handle */}
             <div className="flex justify-center pt-3 pb-2">
               <div className="w-10 h-1 rounded-full bg-[#B8C4CC] dark:bg-[#B8C4CC]" />
@@ -368,7 +368,7 @@ export const FinancialDashboard = () => {
                     Plans
                   </span>
                 </div>
-                <span className="px-2 py-0.5 rounded-md bg-[#2A2A3F] dark:bg-[#2A2A3F] text-xs font-medium text-white">
+                <span className="px-2 py-0.5 rounded-md bg-[#2D3847] dark:bg-[#2D3847] text-xs font-medium text-white">
                   Mercury
                 </span>
               </button>

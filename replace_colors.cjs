@@ -8,8 +8,8 @@ const simpleReplacements = [
   { regex: /#14ABFE/gi, replacement: '#00BFFF' },
   { regex: /#476B84/gi, replacement: '#B8C4CC' },
   { regex: /#A8BFD4/gi, replacement: '#B8C4CC' },
-  { regex: /#0F2D45/gi, replacement: '#2A2A3F' },
-  { regex: /#1A3A52/gi, replacement: '#252538' },
+  { regex: /#0F2D45/gi, replacement: '#2D3847' },
+  { regex: /#1A3A52/gi, replacement: '#2D3847' },
   { regex: /#CDD9E5/gi, replacement: '#4A5568' },
   { regex: /bg-\[#022136\]/g, replacement: 'bg-[#022136]' },
 ];

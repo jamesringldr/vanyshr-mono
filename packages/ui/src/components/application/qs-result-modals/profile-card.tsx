@@ -8,79 +8,105 @@ export interface ProfileCardProps extends Omit<HTMLAttributes<HTMLDivElement>, "
 
 /**
  * Profile summary card — name, age, aliases, phones, relatives, address.
- * Vanyshr tokens; labels vs values hierarchy; Roboto Mono for data/numbers per Design System.
+ * Light card style (bg-gray-50) designed to sit inside the white modal containers.
+ * 2-column data grid matching the prototype ConfirmModal/Modal layout.
  */
 export function ProfileCard({ profile, className, ...props }: ProfileCardProps) {
     const { fullName, age, aliases, phones, relatives, currentAddress } = profile;
     const addressLine = currentAddress?.length ? currentAddress.join(", ") : undefined;
+
+    const hasLeft = !!(phones?.length || addressLine);
+    const hasRight = !!(relatives?.length);
 
     return (
         <div
             role="region"
             aria-label={`Profile: ${fullName}`}
             className={cx(
-                "rounded-xl border p-4 transition-colors",
-                "bg-[#F0F4F8]/50 dark:bg-[#022136]/50",
-                "border-[var(--border-subtle)] dark:border-[#2A4A68]",
+                "rounded-lg p-5 bg-gray-50 border-2 border-[#00BFFF]/20",
                 className,
             )}
             {...props}
         >
-            <p className="font-semibold text-[var(--text-primary)] dark:text-white text-base leading-tight">
+            {/* Name */}
+            <h3 className="text-lg font-bold text-slate-800 mb-1">
                 {fullName}
-            </p>
+            </h3>
+
+            {/* Age */}
             {age != null && (
-                <div className="mt-2">
-                    <p className="text-xs font-bold uppercase tracking-wide text-[var(--text-secondary)] dark:text-[#B8C4CC]">
-                        Age
-                    </p>
-                    <p className="mt-0.5 font-mono text-xs tabular-nums text-[var(--text-primary)] dark:text-white">
-                        {age}
-                    </p>
+                <p className="text-sm text-slate-500 mb-2">Age: {age}</p>
+            )}
+
+            {/* Aliases row */}
+            {aliases?.length ? (
+                <div className="py-[5px] mb-1">
+                    <div className="flex items-center gap-2">
+                        <span
+                            className="font-bold text-slate-700 uppercase tracking-wide flex-shrink-0"
+                            style={{ fontSize: "0.675rem" }}
+                        >
+                            Aliases
+                        </span>
+                        <div
+                            className="text-slate-600 font-medium flex-1 flex flex-wrap gap-x-2"
+                            style={{ fontSize: "0.675rem" }}
+                        >
+                            {aliases.slice(0, 2).map((alias, idx) => (
+                                <span key={idx} className="truncate">{alias}</span>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            ) : null}
+
+            {/* 2-column data grid */}
+            {(hasLeft || hasRight) && (
+                <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm mt-1">
+                    {/* Left column: phones, address */}
+                    <div className="space-y-3">
+                        {phones?.length ? (
+                            <div>
+                                <span className="block font-bold text-slate-700 text-xs uppercase tracking-wide">
+                                    Phones
+                                </span>
+                                {phones.slice(0, 2).map((phone, idx) => (
+                                    <span key={idx} className="block text-slate-600 font-medium">
+                                        {phone}
+                                    </span>
+                                ))}
+                            </div>
+                        ) : null}
+
+                        {addressLine ? (
+                            <div>
+                                <span className="block font-bold text-slate-700 text-xs uppercase tracking-wide">
+                                    Current Address
+                                </span>
+                                <div className="text-slate-600 font-medium leading-snug">
+                                    {addressLine}
+                                </div>
+                            </div>
+                        ) : null}
+                    </div>
+
+                    {/* Right column: relatives */}
+                    <div className="space-y-3">
+                        {relatives?.length ? (
+                            <div>
+                                <span className="block font-bold text-slate-700 text-xs uppercase tracking-wide">
+                                    Relatives
+                                </span>
+                                <div className="text-slate-600 font-medium leading-snug">
+                                    {relatives.slice(0, 3).map((rel, idx) => (
+                                        <span key={idx} className="block truncate">{rel}</span>
+                                    ))}
+                                </div>
+                            </div>
+                        ) : null}
+                    </div>
                 </div>
             )}
-            <div className="mt-2 space-y-2">
-                {aliases?.length ? (
-                    <div>
-                        <p className="text-xs font-bold uppercase tracking-wide text-[var(--text-secondary)] dark:text-[#B8C4CC]">
-                            Aliases
-                        </p>
-                        <p className="mt-0.5 text-xs text-[var(--text-primary)] dark:text-white leading-snug">
-                            {aliases.join(", ")}
-                        </p>
-                    </div>
-                ) : null}
-                {phones?.length ? (
-                    <div>
-                        <p className="text-xs font-bold uppercase tracking-wide text-[var(--text-secondary)] dark:text-[#B8C4CC]">
-                            Phones
-                        </p>
-                        <p className="mt-0.5 font-mono text-xs tabular-nums text-[var(--text-primary)] dark:text-white leading-snug">
-                            {phones.join(", ")}
-                        </p>
-                    </div>
-                ) : null}
-                {relatives?.length ? (
-                    <div>
-                        <p className="text-xs font-bold uppercase tracking-wide text-[var(--text-secondary)] dark:text-[#B8C4CC]">
-                            Relatives
-                        </p>
-                        <p className="mt-0.5 text-xs text-[var(--text-primary)] dark:text-white leading-snug">
-                            {relatives.join(", ")}
-                        </p>
-                    </div>
-                ) : null}
-                {addressLine ? (
-                    <div>
-                        <p className="text-xs font-bold uppercase tracking-wide text-[var(--text-secondary)] dark:text-[#B8C4CC]">
-                            Current address
-                        </p>
-                        <p className="mt-0.5 font-mono text-xs text-[var(--text-primary)] dark:text-white leading-snug">
-                            {addressLine}
-                        </p>
-                    </div>
-                ) : null}
-            </div>
         </div>
     );
 }

@@ -18,6 +18,9 @@ import { QSScanning } from "./pages/scan/scanning";
 import { QSCompiling } from "./pages/scan/compiling";
 import { PreProfile } from "./pages/scan/pre-profile";
 import { ScanNow } from "./pages/scan/scan-now";
+import { SearchingPage } from "./pages/scan/searching";
+import { CompilingBrandedPage } from "./pages/scan/compiling-branded";
+import { LoadingPreProfilePage } from "./pages/scan/loading-pre-profile";
 
 // Dashboard pages
 import { HomeScreen } from "./pages/dashboard/home";
@@ -57,6 +60,9 @@ export default function App() {
             {/* Other */}
             <Route path="/pricing" element={<Pricing />} />
             <Route path="/scan-now" element={<ScanNow />} />
+            <Route path="/searching" element={<SearchingPage />} />
+            <Route path="/compiling" element={<CompilingBrandedPage />} />
+            <Route path="/Loading-pre-profile" element={<LoadingPreProfilePage />} />
             <Route path="*" element={<NotFound />} />
         </Routes>
     );

@@ -29,8 +29,8 @@ All tokens are defined on `:root`. No `[data-theme]` switching for MVP.
 | Token | Value | WCAG on `#022136` | Usage |
 |:---|:---|:---|:---|
 | `--bg-page` | `#022136` | — | Main app background |
-| `--bg-surface` | `#2A2A3F` | depth via shadow/border | Cards, panels |
-| `--bg-surface-secondary` | `#252538` | depth via shadow/border | Nested cards, modals |
+| `--bg-surface` | `#2D3847` | depth via shadow/border | Cards, panels |
+| `--bg-surface-secondary` | `#2D3847` | depth via shadow/border | Nested cards, modals |
 | `--brand-primary` | `#00BFFF` | 7.72:1 ✅ AA | CTAs, links, interactive, sticky border |
 | `--accent-hover` | `#00D4FF` | 8.59:1 ✅ AA | Hover state for primary elements |
 | `--accent-risk` | `#FF8A00` | 6.93:1 ✅ AA | Risk words only — "Exposed", threat states |
@@ -146,7 +146,7 @@ Sticky CTA internal:       py-5 px-6 (20px / 24px)
       border border-[#2A4A68]
       focus:border-[#00BFFF] focus:ring-1 focus:ring-[#00BFFF]
       px-12 py-3 text-sm
-      bg-[#2A2A3F]
+      bg-[#2D3847]
       text-white placeholder:text-[#7A92A8]
       font-ubuntu
       outline-none transition-colors duration-150
@@ -174,7 +174,7 @@ Sticky CTA internal:       py-5 px-6 (20px / 24px)
 
 ```jsx
 <div className="
-  bg-[#2A2A3F]
+  bg-[#2D3847]
   border border-[#2A4A68]
   rounded-2xl p-6
   shadow-lg
@@ -219,8 +219,8 @@ Cloud graphic scale:        w-[85%] mx-auto ← scale up ~15% from current
 
   /* Backgrounds */
   --bg-page: #022136;
-  --bg-surface: #2A2A3F;
-  --bg-surface-secondary: #252538;
+  --bg-surface: #2D3847;
+  --bg-surface-secondary: #2D3847;
 
   /* Text */
   --text-primary: #FFFFFF;

@@ -136,7 +136,7 @@ const SAVINGS_PERCENT = 25;
 /** Card surface: Vanyshr tokens, rounded-xl, border-subtle. */
 const cardClasses = cx(
     "rounded-xl border",
-    "bg-[var(--bg-surface)] dark:bg-[#2A2A3F]",
+    "bg-[var(--bg-surface)] dark:bg-[#2D3847]",
     "border-[var(--border-subtle)] dark:border-[#2A4A68]",
 );
 

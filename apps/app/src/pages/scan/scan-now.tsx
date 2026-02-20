@@ -139,7 +139,7 @@ export function ScanNow() {
                             >
                                 <button 
                                     onClick={() => setIsDrawerOpen(true)}
-                                    className="w-full h-[52px] rounded-[14px] bg-[#00BFFF] text-white font-bold text-xl hover:bg-[#00D4FF] active:bg-[#0099CC] transition-colors duration-150 shadow-md"
+                                    className="w-full h-[52px] rounded-xl bg-[#00BFFF] text-[#022136] font-bold text-xl hover:bg-[#00D4FF] active:bg-[#0099CC] active:text-white transition-colors duration-150 shadow-md"
                                 >
                                     Scan Now
                                 </button>
@@ -170,28 +170,29 @@ export function ScanNow() {
                             animate={{ y: 0 }}
                             exit={{ y: "100%" }}
                             transition={{ type: "spring", damping: 25, stiffness: 200 }}
+                            drag="y"
+                            dragConstraints={{ top: 0 }}
+                            dragElastic={0.2}
+                            onDragEnd={(_, info) => {
+                                if (info.offset.y > 150) {
+                                    setIsDrawerOpen(false);
+                                }
+                            }}
                             className="fixed bottom-0 left-0 right-0 z-50 flex justify-center"
                         >
-                            <div className="w-full max-w-md bg-[#2A2A3F] rounded-t-[32px] overflow-hidden max-h-[90vh] flex flex-col shadow-2xl relative border-t border-[#2A4A68]">
+                            <div className="w-full max-w-md bg-[#2D3847] rounded-t-[32px] overflow-hidden max-h-[90vh] flex flex-col shadow-2xl relative border-t-2 border-[#00BFFF]">
                                 {/* Drawer Handle */}
-                                <div className="w-full h-6 flex items-center justify-center shrink-0">
-                                    <div className="w-12 h-1.5 bg-gray-700 rounded-full" />
+                                <div className="w-full h-8 flex items-center justify-center shrink-0">
+                                    <div className="w-12 h-1.5 bg-[#2A4A68] rounded-full" />
                                 </div>
                                 
-                                {/* Close Button */}
-                                <button 
-                                    onClick={() => setIsDrawerOpen(false)}
-                                    className="absolute top-4 right-6 p-2 rounded-full bg-[#022136] text-gray-400 hover:text-white transition-colors z-10"
-                                >
-                                    <X className="w-5 h-5" />
-                                </button>
-
                                 {/* Form Content */}
                                 <div className="overflow-y-auto px-1 pb-10">
                                     <QuickScanForm 
                                         supabaseClient={supabase}
                                         onProfileSelect={handleSelectProfile}
                                         onClose={() => setIsDrawerOpen(false)}
+                                        className="!bg-transparent"
                                     />
                                 </div>
                             </div>

@@ -51,8 +51,8 @@
 
     /* Backgrounds */
     --bg-page: #022136;
-    --bg-surface: #2A2A3F;
-    --bg-surface-secondary: #252538;
+    --bg-surface: #2D3847;
+    --bg-surface-secondary: #2D3847;
 
     /* Text */
     --text-primary: #FFFFFF;
@@ -106,4 +106,72 @@ input[type="number"] {
 /* Hide the default clear button (X) from search inputs. */
 input[type="search"]::-webkit-search-cancel-button {
     -webkit-appearance: none;
+}
+
+/* --- Branded CSS Loader (Logo Scanner) --- */
+
+/* Container for the whole loader */
+.logo-scanner-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    width: fit-content;
+    margin: 2rem auto;
+    font-family: var(--font-body), sans-serif;
+    font-weight: 700;
+    font-size: 40px;
+    letter-spacing: -1px;
+    background-color: transparent;
+}
+
+/* Base text (The "Off" state - White with transparency) */
+.scanner-text-base {
+    color: #FFFFFF;
+    opacity: 0.2;
+    white-space: nowrap;
+}
+
+/* The Moving Logo Scanner */
+.scanner-logo-object {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 65px;
+    height: 65px;
+    transform: translateY(-50%);
+    background-color: var(--brand-primary);
+    z-index: 2;
+
+    /* SVG Masking logic */
+    -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 375 375"><path d="M 213.3 21.8 C 185.5 11.6 154.3 12.1 126.4 21.5 C 97.6 31.2 72.8 50.1 56 75.5 C 39.3 101.1 30.6 131.8 30.7 162.3 C 30.7 193.4 40.3 224 56.1 250.6 C 72.4 278 95.1 301.1 121.7 318.6 C 151 337.8 184.3 350.3 218.6 356.7 C 226.8 358.3 236.4 361.1 243.8 358.4 C 225.9 320.3 238 276.4 253.5 237.9 C 273.6 187.8 300.6 133.6 277 79.1 C 265.3 52 240.6 31.9 213.3 21.8 Z"/></svg>');
+    mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 375 375"><path d="M 213.3 21.8 C 185.5 11.6 154.3 12.1 126.4 21.5 C 97.6 31.2 72.8 50.1 56 75.5 C 39.3 101.1 30.6 131.8 30.7 162.3 C 30.7 193.4 40.3 224 56.1 250.6 C 72.4 278 95.1 301.1 121.7 318.6 C 151 337.8 184.3 350.3 218.6 356.7 C 226.8 358.3 236.4 361.1 243.8 358.4 C 225.9 320.3 238 276.4 253.5 237.9 C 273.6 187.8 300.6 133.6 277 79.1 C 265.3 52 240.6 31.9 213.3 21.8 Z"/></svg>');
+
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-size: contain;
+    mask-size: contain;
+
+    animation: logo-scan 2.5s infinite alternate ease-in-out;
+}
+
+/* The Highlighted Text (Vanyshr Blue) */
+.scanner-text-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    color: var(--brand-primary);
+    white-space: nowrap;
+    clip-path: inset(0 100% 0 0);
+    animation: text-reveal 2.5s infinite alternate ease-in-out;
+}
+
+@keyframes logo-scan {
+    0% { left: -15%; }
+    100% { left: 105%; }
+}
+
+@keyframes text-reveal {
+    0% { clip-path: inset(0 100% 0 0); }
+    100% { clip-path: inset(0 0 0 0); }
 }

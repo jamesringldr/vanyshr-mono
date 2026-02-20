@@ -1,5 +1,6 @@
 import { StatusBadge, type BadgeStatus } from "./StatusBadge";
 import { cx } from '@/utils/cx';
+import { Trash2 } from "lucide-react";
 
 interface OnboardingDataCardProps {
     /** Optional - omit for list items (e.g. phone/alias/address/email cards) */
@@ -49,7 +50,7 @@ export function OnboardingDataCard({
             }}
             className={cx(
                 "rounded-xl border p-4 outline-none transition-colors cursor-pointer",
-                "bg-[var(--bg-surface)] dark:bg-[#2A2A3F]",
+                "bg-[var(--bg-surface)] dark:bg-[#2D3847]",
                 "border-[var(--border-subtle)] dark:border-[#2A4A68]",
                 "focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#022136]",
             )}
@@ -65,41 +66,61 @@ export function OnboardingDataCard({
                     )}
                     <StatusBadge status={status} />
                 </div>
-                {toggleLabel != null && (
-                    <div
-                        className="flex shrink-0 items-center gap-2"
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <span className="text-xs text-[var(--text-muted)] dark:text-[#7A92A8]">
-                            {toggleLabel}
-                        </span>
+                <div className="flex shrink-0 items-center gap-3">
+                    {toggleLabel != null && (
+                        <div
+                            className="flex shrink-0 items-center gap-2"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <span className="text-xs text-[var(--text-muted)] dark:text-[#7A92A8]">
+                                {toggleLabel}
+                            </span>
+                            <button
+                                type="button"
+                                role="switch"
+                                aria-checked={toggleValue}
+                                aria-label={`${toggleLabel} ${toggleValue ? "on" : "off"}`}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onToggleChange?.(!toggleValue);
+                                }}
+                                className={cx(
+                                    "relative h-6 w-11 shrink-0 rounded-full outline-none transition",
+                                    "focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2",
+                                    toggleValue
+                                        ? "bg-[#00BFFF] dark:bg-[#00BFFF]"
+                                        : "bg-[var(--border-subtle)] dark:bg-[#2A4A68]",
+                                )}
+                            >
+                                <span
+                                    className={cx(
+                                        "absolute top-1 rounded-full bg-white shadow transition-transform",
+                                        "h-5 w-5 left-0.5",
+                                        toggleValue && "translate-x-5",
+                                    )}
+                                />
+                            </button>
+                        </div>
+                    )}
+                    {showDelete && (
                         <button
                             type="button"
-                            role="switch"
-                            aria-checked={toggleValue}
-                            aria-label={`${toggleLabel} ${toggleValue ? "on" : "off"}`}
                             onClick={(e) => {
                                 e.stopPropagation();
-                                onToggleChange?.(!toggleValue);
+                                onDelete?.();
                             }}
                             className={cx(
-                                "relative h-6 w-11 shrink-0 rounded-full outline-none transition",
-                                "focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2",
-                                toggleValue
-                                    ? "bg-[#00BFFF] dark:bg-[#00BFFF]"
-                                    : "bg-[var(--border-subtle)] dark:bg-[#2A4A68]",
+                                "flex h-8 w-8 items-center justify-center rounded-full outline-none transition",
+                                "text-[#FF5757]/80 hover:bg-[#FF5757]/10 hover:text-[#FF5757]",
+                                "focus-visible:ring-2 focus-visible:ring-[#FF5757] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#022136]",
                             )}
+                            title="Delete"
+                            aria-label="Delete"
                         >
-                            <span
-                                className={cx(
-                                    "absolute top-1 rounded-full bg-white shadow transition-transform",
-                                    "h-5 w-5 left-0.5",
-                                    toggleValue && "translate-x-5",
-                                )}
-                            />
+                            <Trash2 className="h-4 w-4" aria-hidden />
                         </button>
-                    </div>
-                )}
+                    )}
+                </div>
             </div>
 
             {/* Row 2: Value (always visible so data is on the card) */}
@@ -123,7 +144,7 @@ export function OnboardingDataCard({
                             </p>
                         )
                     )}
-                    <div className={cx("mt-4 flex gap-3", showDelete ? "" : "")}>
+                    <div className="mt-4 flex gap-3">
                         <button
                             type="button"
                             onClick={(e) => {
@@ -138,23 +159,6 @@ export function OnboardingDataCard({
                         >
                             Update
                         </button>
-                        {showDelete && (
-                            <button
-                                type="button"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    onDelete?.();
-                                }}
-                                className={cx(
-                                    "flex flex-1 items-center justify-center rounded-xl py-3 text-sm font-semibold outline-none transition",
-                                    "border border-[#FF5757] text-[#FF5757] dark:border-[#FF5757] dark:text-[#FF5757]",
-                                    "hover:bg-[#FF5757]/10 dark:hover:bg-[#FF5757]/10",
-                                    "focus-visible:ring-2 focus-visible:ring-[#FF5757] focus-visible:ring-offset-2",
-                                )}
-                            >
-                                Delete
-                            </button>
-                        )}
                     </div>
                 </>
             )}

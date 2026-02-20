@@ -65,7 +65,7 @@ export function CheckEmail() {
                 <div
                     className={cx(
                         "mt-6 rounded-xl border p-4 text-center",
-                        "bg-[var(--bg-surface)] dark:bg-[#2A2A3F]",
+                        "bg-[var(--bg-surface)] dark:bg-[#2D3847]",
                         "border-[var(--border-subtle)] dark:border-[#2A4A68]",
                     )}
                 >

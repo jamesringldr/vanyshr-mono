@@ -43,8 +43,8 @@
 | Token | Value | Contrast on `#022136` | Usage |
 |---|---|---|---|
 | `--bg-page` | `#022136` | — | Main app background |
-| `--bg-surface` | `#2A2A3F` | 1.17:1 (depth via border/shadow) | Cards, panels, content containers |
-| `--bg-surface-secondary` | `#252538` | 1.09:1 (nested depth) | Nested cards, modals, secondary panels |
+| `--bg-surface` | `#2D3847` | 1.17:1 (depth via border/shadow) | Cards, panels, content containers |
+| `--bg-surface-secondary` | `#2D3847` | 1.09:1 (nested depth) | Nested cards, modals, secondary panels |
 | `--brand-primary` | `#00BFFF` | 7.72:1 ✅ | CTAs, links, active elements, sticky border |
 | `--accent-hover` | `#00D4FF` | 8.59:1 ✅ | Hover state for primary elements |
 | `--accent-risk` | `#FF8A00` | 6.93:1 ✅ | Risk/exposure semantic text only |
@@ -183,8 +183,8 @@ These changes will tighten the above-fold content into a more intentional layout
 
   /* Backgrounds */
   --bg-page: #022136;
-  --bg-surface: #2A2A3F;
-  --bg-surface-secondary: #252538;
+  --bg-surface: #2D3847;
+  --bg-surface-secondary: #2D3847;
 
   /* Text */
   --text-primary: #FFFFFF;
@@ -236,7 +236,7 @@ const theme = {
     },
     background: {
       default: '#022136',
-      paper: '#2A2A3F',
+      paper: '#2D3847',
     },
   },
 };

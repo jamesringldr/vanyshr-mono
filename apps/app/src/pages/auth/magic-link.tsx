@@ -43,7 +43,7 @@ export function AuthMagicLink() {
                 <div
                     className={cx(
                         "mt-6 rounded-xl border p-4",
-                        "bg-[var(--bg-surface)] dark:bg-[#2A2A3F]",
+                        "bg-[var(--bg-surface)] dark:bg-[#2D3847]",
                         "border-[var(--border-subtle)] dark:border-[#2A4A68]",
                     )}
                 >

@@ -97,7 +97,7 @@ export const Transactions = () => {
           aria-label={`Switch account, current: ${selectedAccount}`}
           className="flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-[#00BFFF] focus:ring-offset-2 rounded-lg transition-colors"
         >
-          <div className="w-10 h-10 rounded-lg bg-[#2A2A3F] dark:bg-[#2A2A3F] flex items-center justify-center">
+          <div className="w-10 h-10 rounded-lg bg-[#2D3847] dark:bg-[#2D3847] flex items-center justify-center">
             <span className="text-sm font-semibold text-white">R</span>
           </div>
           <div className="flex items-center gap-1">
@@ -113,7 +113,7 @@ export const Transactions = () => {
           <button
             type="button"
             aria-label="View options"
-            className="w-10 h-10 rounded-lg bg-[#FFFFFF] dark:bg-[#2A2A3F] border border-[#D4DFE8] dark:border-[#2A4A68] flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-[#00BFFF] focus:ring-offset-2"
+            className="w-10 h-10 rounded-lg bg-[#FFFFFF] dark:bg-[#2D3847] border border-[#D4DFE8] dark:border-[#2A4A68] flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-[#00BFFF] focus:ring-offset-2"
           >
             <Filter className="w-5 h-5 text-[#022136] dark:text-white" />
           </button>
@@ -130,7 +130,7 @@ export const Transactions = () => {
           <button
             type="button"
             aria-label="View options"
-            className="w-10 h-10 rounded-lg bg-[#FFFFFF] dark:bg-[#2A2A3F] border border-[#D4DFE8] dark:border-[#2A4A68] flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-[#00BFFF] focus:ring-offset-2"
+            className="w-10 h-10 rounded-lg bg-[#FFFFFF] dark:bg-[#2D3847] border border-[#D4DFE8] dark:border-[#2A4A68] flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-[#00BFFF] focus:ring-offset-2"
           >
             <Filter className="w-5 h-5 text-[#022136] dark:text-white" />
           </button>
@@ -164,7 +164,7 @@ export const Transactions = () => {
                   ${
                     isActive
                       ? 'bg-[#00BFFF] text-white'
-                      : 'bg-[#FFFFFF] dark:bg-[#2A2A3F] border border-[#D4DFE8] dark:border-[#2A4A68] text-[#022136] dark:text-white'
+                      : 'bg-[#FFFFFF] dark:bg-[#2D3847] border border-[#D4DFE8] dark:border-[#2A4A68] text-[#022136] dark:text-white'
                   }
                 `}
               >
@@ -187,7 +187,7 @@ export const Transactions = () => {
               {filteredTransactions.map((transaction) => (
                 <div
                   key={transaction.id}
-                  className="flex items-center justify-between bg-[#FFFFFF] dark:bg-[#2A2A3F] rounded-xl border border-[#D4DFE8] dark:border-[#2A4A68] p-4"
+                  className="flex items-center justify-between bg-[#FFFFFF] dark:bg-[#2D3847] rounded-xl border border-[#D4DFE8] dark:border-[#2A4A68] p-4"
                 >
                   {/* Left: Icon + Details */}
                   <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -239,39 +239,39 @@ export const Transactions = () => {
         aria-label="Main navigation"
       >
         <div className="max-w-lg mx-auto">
-          <div className="flex items-center justify-around bg-[#FFFFFF] dark:bg-[#2A2A3F] rounded-full px-4 py-2 border border-[#D4DFE8] dark:border-[#2A4A68]">
+          <div className="flex items-center justify-around bg-[#FFFFFF] dark:bg-[#2D3847] rounded-full px-4 py-2 border border-[#D4DFE8] dark:border-[#2A4A68]">
             <button
               type="button"
               aria-label="Home"
-              className="relative flex items-center justify-center w-14 h-10 rounded-full transition-colors hover:bg-[#2A2A3F]/50 dark:hover:bg-[#2A2A3F]/50 focus:outline-none focus:ring-2 focus:ring-[#00BFFF] focus:ring-offset-2"
+              className="relative flex items-center justify-center w-14 h-10 rounded-full transition-colors hover:bg-[#2D3847]/50 dark:hover:bg-[#2D3847]/50 focus:outline-none focus:ring-2 focus:ring-[#00BFFF] focus:ring-offset-2"
             >
               <Home className="w-6 h-6 text-white" />
             </button>
             <button
               type="button"
               aria-label="Transactions"
-              className="relative flex items-center justify-center w-14 h-10 rounded-full bg-[#2A2A3F] dark:bg-[#2A2A3F] transition-colors focus:outline-none focus:ring-2 focus:ring-[#00BFFF] focus:ring-offset-2"
+              className="relative flex items-center justify-center w-14 h-10 rounded-full bg-[#2D3847] dark:bg-[#2D3847] transition-colors focus:outline-none focus:ring-2 focus:ring-[#00BFFF] focus:ring-offset-2"
             >
               <List className="w-6 h-6 text-[#00BFFF]" />
             </button>
             <button
               type="button"
               aria-label="Transfer"
-              className="relative flex items-center justify-center w-14 h-10 rounded-full transition-colors hover:bg-[#2A2A3F]/50 dark:hover:bg-[#2A2A3F]/50 focus:outline-none focus:ring-2 focus:ring-[#00BFFF] focus:ring-offset-2"
+              className="relative flex items-center justify-center w-14 h-10 rounded-full transition-colors hover:bg-[#2D3847]/50 dark:hover:bg-[#2D3847]/50 focus:outline-none focus:ring-2 focus:ring-[#00BFFF] focus:ring-offset-2"
             >
               <ArrowLeftRight className="w-6 h-6 text-white" />
             </button>
             <button
               type="button"
               aria-label="Account"
-              className="relative flex items-center justify-center w-14 h-10 rounded-full transition-colors hover:bg-[#2A2A3F]/50 dark:hover:bg-[#2A2A3F]/50 focus:outline-none focus:ring-2 focus:ring-[#00BFFF] focus:ring-offset-2"
+              className="relative flex items-center justify-center w-14 h-10 rounded-full transition-colors hover:bg-[#2D3847]/50 dark:hover:bg-[#2D3847]/50 focus:outline-none focus:ring-2 focus:ring-[#00BFFF] focus:ring-offset-2"
             >
               <Building2 className="w-6 h-6 text-white" />
             </button>
             <button
               type="button"
               aria-label="Card"
-              className="relative flex items-center justify-center w-14 h-10 rounded-full transition-colors hover:bg-[#2A2A3F]/50 dark:hover:bg-[#2A2A3F]/50 focus:outline-none focus:ring-2 focus:ring-[#00BFFF] focus:ring-offset-2"
+              className="relative flex items-center justify-center w-14 h-10 rounded-full transition-colors hover:bg-[#2D3847]/50 dark:hover:bg-[#2D3847]/50 focus:outline-none focus:ring-2 focus:ring-[#00BFFF] focus:ring-offset-2"
             >
               <CreditCard className="w-6 h-6 text-white" />
             </button>
@@ -291,7 +291,7 @@ export const Transactions = () => {
           />
 
           {/* Sheet */}
-          <div className="relative w-full bg-[#FFFFFF] dark:bg-[#2A2A3F] border-t border-[#D4DFE8] dark:border-[#2A4A68] rounded-t-2xl p-4 shadow-lg max-w-lg mx-auto">
+          <div className="relative w-full bg-[#FFFFFF] dark:bg-[#2D3847] border-t border-[#D4DFE8] dark:border-[#2A4A68] rounded-t-2xl p-4 shadow-lg max-w-lg mx-auto">
             {/* Drag Handle */}
             <div className="flex justify-center pt-3 pb-2">
               <div className="w-10 h-1 rounded-full bg-[#B8C4CC] dark:bg-[#B8C4CC]" />
@@ -352,7 +352,7 @@ export const Transactions = () => {
                     Plans
                   </span>
                 </div>
-                <span className="px-2 py-0.5 rounded-md bg-[#2A2A3F] dark:bg-[#2A2A3F] text-xs font-medium text-white">
+                <span className="px-2 py-0.5 rounded-md bg-[#2D3847] dark:bg-[#2D3847] text-xs font-medium text-white">
                   Mercury
                 </span>
               </button>

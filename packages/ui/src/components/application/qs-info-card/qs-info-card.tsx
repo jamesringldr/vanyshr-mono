@@ -43,7 +43,7 @@ export function QSInfoCard({
       className={cx(
         "w-full max-w-sm rounded-xl border p-4 transition-colors",
         // Vanyshr: Container/Card (strict)
-        "bg-white dark:bg-[#2A2A3F]",
+        "bg-white dark:bg-[#2D3847]",
         "border-[#D4DFE8] dark:border-[#2A4A68]",
         "shadow-sm",
         className,
