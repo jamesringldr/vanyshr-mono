@@ -148,8 +148,7 @@ CREATE TABLE IF NOT EXISTS user_phones (
 
     -- The number itself
     number      TEXT NOT NULL,
-    phone_type  TEXT DEFAULT 'mobile'
-        CHECK (phone_type IN ('mobile', 'home', 'work', 'other')),
+    -- phone_type intentionally omitted (dropped in 00006)
     is_primary  BOOLEAN DEFAULT FALSE,
 
     -- Onboarding confirmation state
@@ -182,6 +181,8 @@ CREATE TRIGGER trigger_user_phones_updated_at
 
 ALTER TABLE user_phones ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can manage own phones"          ON user_phones;
+DROP POLICY IF EXISTS "Service role full access user_phones" ON user_phones;
 CREATE POLICY "Users can manage own phones" ON user_phones
     FOR ALL TO authenticated
     USING (user_id = get_current_user_profile_id());
@@ -236,6 +237,8 @@ CREATE TRIGGER trigger_user_emails_updated_at
 
 ALTER TABLE user_emails ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can manage own emails"          ON user_emails;
+DROP POLICY IF EXISTS "Service role full access user_emails" ON user_emails;
 CREATE POLICY "Users can manage own emails" ON user_emails
     FOR ALL TO authenticated
     USING (user_id = get_current_user_profile_id());
@@ -295,6 +298,8 @@ CREATE TRIGGER trigger_user_addresses_updated_at
 
 ALTER TABLE user_addresses ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can manage own addresses"          ON user_addresses;
+DROP POLICY IF EXISTS "Service role full access user_addresses" ON user_addresses;
 CREATE POLICY "Users can manage own addresses" ON user_addresses
     FOR ALL TO authenticated
     USING (user_id = get_current_user_profile_id());
@@ -341,6 +346,8 @@ CREATE TRIGGER trigger_user_aliases_updated_at
 
 ALTER TABLE user_aliases ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can manage own aliases"          ON user_aliases;
+DROP POLICY IF EXISTS "Service role full access user_aliases" ON user_aliases;
 CREATE POLICY "Users can manage own aliases" ON user_aliases
     FOR ALL TO authenticated
     USING (user_id = get_current_user_profile_id());
@@ -489,12 +496,11 @@ BEGIN
                        OR trim(v_phone->>'number') = '';
 
             INSERT INTO user_phones (
-                user_id, number, phone_type, is_primary,
+                user_id, number, is_primary,
                 source, user_confirmed_status
             ) VALUES (
                 v_profile_id,
                 trim(v_phone->>'number'),
-                COALESCE(NULLIF(v_phone->>'type', ''), 'mobile'),
                 COALESCE((v_phone->>'is_primary')::boolean, FALSE),
                 'quick_scan',
                 'unverified'
