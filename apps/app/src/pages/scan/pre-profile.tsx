@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { Link, useParams } from "react-router";
+import { Link, useParams, useNavigate } from "react-router";
 import {
     Menu,
     CreditCard,
@@ -256,11 +256,45 @@ function convertToPreProfileData(
 }
 
 export function PreProfile() {
-    // scanId is available from URL params for future database integration
-    const { scanId: _scanId } = useParams<{ scanId?: string }>();
+    const { scanId } = useParams<{ scanId?: string }>();
+    const navigate = useNavigate();
     const [loadingState, setLoadingState] = useState<LoadingState>("loading");
     const [data, setData] = useState<PreProfileData | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [isStarting, setIsStarting] = useState(false);
+    const [startError, setStartError] = useState<string | null>(null);
+
+    const handleStartVanyshing = useCallback(async () => {
+        if (!scanId) {
+            setStartError("Scan ID is missing. Please go back and try again.");
+            return;
+        }
+        setIsStarting(true);
+        setStartError(null);
+        try {
+            const { data: result, error: fnError } = await supabase.functions.invoke<{
+                success: boolean;
+                profile_id?: string;
+                error?: string;
+            }>("create-pending-profile", {
+                body: { scan_id: scanId },
+            });
+
+            if (fnError || !result?.success || !result?.profile_id) {
+                throw new Error(result?.error ?? fnError?.message ?? "Failed to create profile");
+            }
+
+            // Store profile_id so the auth callback can link it after magic link auth
+            sessionStorage.setItem("pendingProfileId", result.profile_id);
+            sessionStorage.setItem("pendingScanId", scanId);
+
+            navigate(`/magic-link`);
+        } catch (err) {
+            console.error("handleStartVanyshing error:", err);
+            setStartError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+            setIsStarting(false);
+        }
+    }, [scanId, navigate]);
 
     const loadProfileData = useCallback(async () => {
         setLoadingState("loading");
@@ -285,6 +319,7 @@ export function PreProfile() {
                     error?: string;
                 }>("universal-details", {
                     body: {
+                        scan_id: scanId ?? undefined,
                         selected_profile: selectedProfile,
                         detailLink: selectedProfile.detail_link,
                         siteName: selectedProfile.source,
@@ -335,7 +370,7 @@ export function PreProfile() {
             setError(err instanceof Error ? err.message : "Failed to load profile data");
             setLoadingState("error");
         }
-    }, []);
+    }, [scanId]);
 
     useEffect(() => {
         loadProfileData();
@@ -694,18 +729,25 @@ export function PreProfile() {
                     <p className="text-xs font-semibold uppercase tracking-wide text-[#00BFFF] dark:text-[#00BFFF]">
                         NO CREDIT CARD REQUIRED
                     </p>
-                    <Link
-                        to="/signup"
+                    {startError && (
+                        <p className="text-xs text-red-400 text-center">{startError}</p>
+                    )}
+                    <button
+                        type="button"
+                        onClick={handleStartVanyshing}
+                        disabled={isStarting}
                         className={cx(
                             "flex h-[52px] w-full max-w-md items-center justify-center gap-2 rounded-xl px-4 font-semibold text-white outline-none transition",
-                            "bg-[#00BFFF] hover:bg-[#0E9AE8]",
+                            isStarting
+                                ? "bg-[#00BFFF]/60 cursor-not-allowed"
+                                : "bg-[#00BFFF] hover:bg-[#0E9AE8]",
                             "focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#022136]",
                         )}
                         aria-label="Start Vanyshing for free"
                     >
-                        Start Vanyshing for FREE
-                        <ArrowRight className="h-5 w-5 shrink-0" aria-hidden />
-                    </Link>
+                        {isStarting ? "Setting up your profile..." : "Start Vanyshing for FREE"}
+                        {!isStarting && <ArrowRight className="h-5 w-5 shrink-0" aria-hidden />}
+                    </button>
                 </div>
             </footer>
         </div>

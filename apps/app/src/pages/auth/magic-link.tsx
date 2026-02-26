@@ -3,13 +3,47 @@ import { Link, useNavigate } from "react-router";
 import PrimaryIconOutline from "@vanyshr/ui/assets/PrimaryIcon-outline.png";
 import { Mail } from "lucide-react";
 import { cx } from "@/utils/cx";
+import { supabase } from "@/lib/supabase";
 
 export function AuthMagicLink() {
     const navigate = useNavigate();
-    const [email, setEmail] = useState("you@example.com");
-    const [sent, setSent] = useState(false);
+    const [email, setEmail] = useState("");
+    const [isSending, setIsSending] = useState(false);
+    const [authError, setAuthError] = useState<string | null>(null);
 
     const isValid = useMemo(() => /\S+@\S+\.\S+/.test(email.trim()), [email]);
+
+    const handleSend = async () => {
+        if (!isValid || isSending) return;
+        setIsSending(true);
+        setAuthError(null);
+
+        // Build the redirect URL with profile_id encoded as a query param
+        // so the auth callback can link the pending profile after auth completes.
+        const profileId = sessionStorage.getItem("pendingProfileId");
+        const redirectUrl = new URL(`${window.location.origin}/auth/callback`);
+        if (profileId) {
+            redirectUrl.searchParams.set("profile_id", profileId);
+        }
+
+        const { error } = await supabase.auth.signInWithOtp({
+            email: email.trim(),
+            options: {
+                emailRedirectTo: redirectUrl.toString(),
+                // Prevent Supabase from auto-creating a new user session
+                // before we have a chance to link it to the pending profile.
+                shouldCreateUser: true,
+            },
+        });
+
+        if (error) {
+            setAuthError(error.message);
+            setIsSending(false);
+            return;
+        }
+
+        navigate("/check-email");
+    };
 
     return (
         <div
@@ -60,12 +94,15 @@ export function AuthMagicLink() {
                             type="email"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
+                            onKeyDown={(e) => e.key === "Enter" && handleSend()}
+                            disabled={isSending}
                             className={cx(
                                 "h-[52px] w-full rounded-xl border py-3 pl-12 pr-4 text-sm outline-none transition",
                                 "bg-[#F0F4F8]/50 dark:bg-[#022136]/50",
                                 "border-[var(--border-subtle)] dark:border-[#2A4A68]",
                                 "text-[#022136] dark:text-white placeholder:text-[var(--text-muted)] dark:placeholder:text-[#7A92A8]",
                                 "focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#022136]",
+                                "disabled:opacity-50",
                             )}
                             placeholder="you@example.com"
                             aria-label="Email address"
@@ -76,29 +113,26 @@ export function AuthMagicLink() {
                         />
                     </div>
 
+                    {authError && (
+                        <p className="mt-2 text-xs text-red-500 dark:text-red-400">
+                            {authError}
+                        </p>
+                    )}
+
                     <button
                         type="button"
-                        onClick={() => {
-                            setSent(true);
-                            navigate("/check-email");
-                        }}
-                        disabled={!isValid}
+                        onClick={handleSend}
+                        disabled={!isValid || isSending}
                         className={cx(
                             "mt-4 flex h-[52px] w-full items-center justify-center rounded-xl text-sm font-semibold text-white outline-none transition",
                             "bg-[#00BFFF] hover:bg-[#0E9AE8]",
                             "focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#022136]",
-                            !isValid && "cursor-not-allowed opacity-50 hover:bg-[#00BFFF]",
+                            (!isValid || isSending) && "cursor-not-allowed opacity-50 hover:bg-[#00BFFF]",
                         )}
                         aria-label="Send secure link"
                     >
-                        Send Secure Link
+                        {isSending ? "Sending..." : "Send Secure Link"}
                     </button>
-
-                    {sent && (
-                        <p className="mt-3 text-center text-xs text-[var(--text-muted)] dark:text-[#7A92A8]">
-                            Check your email for the link.
-                        </p>
-                    )}
                 </div>
 
                 {/* Trust row */}
@@ -123,4 +157,3 @@ export function AuthMagicLink() {
         </div>
     );
 }
-

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import {
     OnboardingLayout,
@@ -7,53 +7,16 @@ import {
     type BadgeStatus,
 } from "@vanyshr/ui/components/onboarding";
 import { cx } from "@/utils/cx";
-import { User } from "lucide-react";
+import { User, Calendar } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 
 interface PrimaryInfoField {
     id: string;
     label: string;
     value: string;
     status: BadgeStatus;
-    firstName?: string;
-    lastName?: string;
 }
 
-function parseLegalName(value: string): { firstName: string; lastName: string } {
-    const parts = value.trim().split(/\s+/);
-    if (parts.length >= 2) {
-        return {
-            firstName: parts[0] ?? "",
-            lastName: parts.slice(1).join(" ") ?? "",
-        };
-    }
-    return { firstName: value.trim(), lastName: "" };
-}
-
-const INITIAL_FIELDS: PrimaryInfoField[] = [
-    {
-        id: "legalName",
-        label: "LEGAL NAME",
-        value: "James Oehring",
-        status: "pending",
-        ...parseLegalName("James Oehring"),
-    },
-    { id: "age", label: "AGE", value: "35", status: "pending" },
-    { id: "primaryMobile", label: "PRIMARY MOBILE", value: "(816) 225-8592", status: "pending" },
-    {
-        id: "primaryResidence",
-        label: "CURRENT RESIDENCE",
-        value: "123 Main St, KC, MO",
-        status: "pending",
-    },
-    {
-        id: "primaryEmail",
-        label: "PRIMARY EMAIL",
-        value: "james@example.com",
-        status: "pending",
-    },
-];
-
-/** Vanyshr input: h-[52px], rounded-xl, split opacity bg, optional icon left. */
 function EditInput({
     id,
     label,
@@ -107,91 +70,150 @@ function EditInput({
 }
 
 export function VerifyPrimaryInfo() {
-    const [fields, setFields] = useState<PrimaryInfoField[]>(INITIAL_FIELDS);
+    const [fields, setFields] = useState<PrimaryInfoField[]>([]);
     const [activeId, setActiveId] = useState<string | null>(null);
     const [editingFieldId, setEditingFieldId] = useState<string | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [isSaving, setIsSaving] = useState(false);
 
+    // Per-field edit buffers
     const [editFirstName, setEditFirstName] = useState("");
     const [editLastName, setEditLastName] = useState("");
-    const [editValue, setEditValue] = useState("");
+    const [editDob, setEditDob] = useState("");
 
     const navigate = useNavigate();
 
+    // -----------------------------------------------------------------------
+    // Load from DB
+    // -----------------------------------------------------------------------
+    useEffect(() => {
+        async function load() {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) { setIsLoading(false); return; }
+
+            const { data: profile } = await supabase
+                .from("user_profiles")
+                .select("first_name, last_name, date_of_birth")
+                .eq("auth_user_id", user.id)
+                .single();
+
+            if (profile) {
+                setFields([
+                    {
+                        id: "legalName",
+                        label: "LEGAL NAME",
+                        value: [profile.first_name, profile.last_name].filter(Boolean).join(" "),
+                        status: "pending",
+                    },
+                    {
+                        id: "dateOfBirth",
+                        label: "DATE OF BIRTH",
+                        value: profile.date_of_birth ?? "",
+                        status: profile.date_of_birth ? "pending" : "pending",
+                    },
+                ]);
+            }
+            setIsLoading(false);
+        }
+        load();
+    }, []);
+
+    // -----------------------------------------------------------------------
+    // Save to DB
+    // -----------------------------------------------------------------------
+    async function saveToDb(firstName: string, lastName: string, dob: string) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        await supabase
+            .from("user_profiles")
+            .update({
+                first_name:    firstName,
+                last_name:     lastName,
+                date_of_birth: dob || null,
+                onboarding_step: 1,
+            })
+            .eq("auth_user_id", user.id);
+    }
+
+    // -----------------------------------------------------------------------
+    // Field interaction helpers
+    // -----------------------------------------------------------------------
     const openEdit = (field: PrimaryInfoField) => {
         setActiveId(field.id);
         setEditingFieldId(field.id);
         if (field.id === "legalName") {
-            setEditFirstName(field.firstName ?? parseLegalName(field.value).firstName);
-            setEditLastName(field.lastName ?? parseLegalName(field.value).lastName);
-        } else {
-            setEditValue(field.value);
+            const parts = field.value.trim().split(/\s+/);
+            setEditFirstName(parts[0] ?? "");
+            setEditLastName(parts.slice(1).join(" ") ?? "");
+        } else if (field.id === "dateOfBirth") {
+            setEditDob(field.value);
         }
     };
 
-    const closeEdit = () => {
-        setEditingFieldId(null);
-    };
-
     const saveAndConfirm = (id: string) => {
-        const field = fields.find((f) => f.id === id);
-        if (!field) return;
-
-        const isCurrentlyEditing = editingFieldId === id;
         let updated: PrimaryInfoField[];
 
-        if (isCurrentlyEditing) {
-            if (id === "legalName") {
-                const fullName = [editFirstName.trim(), editLastName.trim()].filter(Boolean).join(" ");
-                updated = fields.map((f) =>
-                    f.id === "legalName"
-                        ? {
-                              ...f,
-                              value: fullName || f.value,
-                              firstName: editFirstName.trim(),
-                              lastName: editLastName.trim(),
-                              status: "confirmed" as BadgeStatus,
-                          }
-                        : f,
-                );
-            } else {
-                updated = fields.map((f) =>
-                    f.id === id
-                        ? { ...f, value: editValue.trim() || f.value, status: "confirmed" as BadgeStatus }
-                        : f,
-                );
-            }
-            closeEdit();
+        if (id === "legalName") {
+            const fullName = [editFirstName.trim(), editLastName.trim()]
+                .filter(Boolean)
+                .join(" ");
+            updated = fields.map((f) =>
+                f.id === "legalName"
+                    ? { ...f, value: fullName || f.value, status: "confirmed" as BadgeStatus }
+                    : f,
+            );
         } else {
             updated = fields.map((f) =>
-                f.id === id ? { ...f, status: "confirmed" as BadgeStatus } : f,
+                f.id === id
+                    ? { ...f, value: editDob.trim() || f.value, status: "confirmed" as BadgeStatus }
+                    : f,
             );
         }
 
         setFields(updated);
+        setEditingFieldId(null);
+
         const currentIndex = updated.findIndex((f) => f.id === id);
-        const nextPending = updated.find(
-            (f, i) => i > currentIndex && f.status !== "confirmed",
-        );
+        const nextPending = updated.find((f, i) => i > currentIndex && f.status !== "confirmed");
         setActiveId(nextPending?.id ?? null);
     };
 
-    const handleConfirmAndContinue = (id: string) => {
-        saveAndConfirm(id);
-    };
+    const handleConfirmAndContinuePage = async () => {
+        setIsSaving(true);
 
-    const handleEdit = (id: string) => {
-        const field = fields.find((f) => f.id === id);
-        if (field) openEdit(field);
-    };
+        const nameField = fields.find((f) => f.id === "legalName");
+        const dobField  = fields.find((f) => f.id === "dateOfBirth");
 
-    const handleConfirmAndContinuePage = () => {
-        setFields((prev) =>
-            prev.map((f) => ({ ...f, status: "confirmed" as BadgeStatus })),
-        );
+        const nameParts  = (nameField?.value ?? "").trim().split(/\s+/);
+        const firstName  = nameParts[0] ?? "";
+        const lastName   = nameParts.slice(1).join(" ") ?? "";
+        const dob        = dobField?.value ?? "";
+
+        // Mark all confirmed
+        setFields((prev) => prev.map((f) => ({ ...f, status: "confirmed" as BadgeStatus })));
         setActiveId(null);
         setEditingFieldId(null);
+
+        await saveToDb(firstName, lastName, dob);
+        setIsSaving(false);
         navigate("/onboarding/phone-numbers");
     };
+
+    if (isLoading) {
+        return (
+            <OnboardingLayout
+                currentStep={"basic" satisfies OnboardingStep}
+                completedSteps={[]}
+                title="Verify Primary Info"
+                footer={null}
+            >
+                <div className="flex items-center justify-center py-16">
+                    <div className="w-6 h-6 rounded-full border-2 border-[#00BFFF] border-t-transparent animate-spin" />
+                </div>
+            </OnboardingLayout>
+        );
+    }
 
     return (
         <OnboardingLayout
@@ -202,13 +224,15 @@ export function VerifyPrimaryInfo() {
                 <button
                     type="button"
                     onClick={handleConfirmAndContinuePage}
+                    disabled={isSaving}
                     className={cx(
                         "flex h-[52px] w-full items-center justify-center rounded-xl text-sm font-semibold text-white outline-none transition",
                         "bg-[#00BFFF] hover:bg-[#0E9AE8]",
                         "focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#022136]",
+                        isSaving && "opacity-60 cursor-not-allowed",
                     )}
                 >
-                    Confirm & Continue
+                    {isSaving ? "Saving..." : "Confirm & Continue"}
                 </button>
             }
         >
@@ -226,7 +250,7 @@ export function VerifyPrimaryInfo() {
                                 field.id === "legalName" ? (
                                     <>
                                         <EditInput
-                                            id={`${field.id}-first`}
+                                            id="edit-first-name"
                                             label="First Name"
                                             value={editFirstName}
                                             onChange={setEditFirstName}
@@ -234,7 +258,7 @@ export function VerifyPrimaryInfo() {
                                             icon={User}
                                         />
                                         <EditInput
-                                            id={`${field.id}-last`}
+                                            id="edit-last-name"
                                             label="Last Name"
                                             value={editLastName}
                                             onChange={setEditLastName}
@@ -244,22 +268,21 @@ export function VerifyPrimaryInfo() {
                                     </>
                                 ) : (
                                     <EditInput
-                                        id={`${field.id}-value`}
-                                        label={field.label.replace(/_/g, " ")}
-                                        value={editValue}
-                                        onChange={setEditValue}
-                                        placeholder={field.label.replace(/_/g, " ")}
-                                        type={field.id === "primaryEmail" ? "email" : "text"}
+                                        id="edit-dob"
+                                        label="Date of Birth"
+                                        value={editDob}
+                                        onChange={setEditDob}
+                                        placeholder="YYYY-MM-DD"
+                                        type="date"
+                                        icon={Calendar}
                                     />
                                 )
                             ) : undefined
                         }
                         onClick={() =>
-                            activeId === field.id
-                                ? setActiveId(null)
-                                : handleEdit(field.id)
+                            activeId === field.id ? setActiveId(null) : openEdit(field)
                         }
-                        onConfirmAndContinue={() => handleConfirmAndContinue(field.id)}
+                        onConfirmAndContinue={() => saveAndConfirm(field.id)}
                     />
                 ))}
             </div>

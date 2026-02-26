@@ -24,7 +24,7 @@ export interface ProfileMatch {
 
 export interface QuickScanFormProps {
   supabaseClient: any;
-  onProfileSelect: (profile: ProfileMatch, searchParams: { firstName: string; lastName: string; zipCode: string; city: string; state: string }) => void;
+  onProfileSelect: (profile: ProfileMatch, searchParams: { firstName: string; lastName: string; zipCode: string; city: string; state: string }, scanId: string | null) => void;
   onClose?: () => void;
   className?: string;
 }
@@ -61,6 +61,9 @@ export function QuickScanForm({ supabaseClient, onProfileSelect, onClose, classN
   const [locationInfo, setLocationInfo] = useState<{ city: string; state: string } | null>(null);
   const [scanStepIndex, setScanStepIndex] = useState(0);
 
+  // DB scan tracking
+  const [scanId, setScanId] = useState<string | null>(null);
+
   // Modal states
   const [showSingleModal, setShowSingleModal] = useState(false);
   const [showMultipleModal, setShowMultipleModal] = useState(false);
@@ -87,6 +90,7 @@ export function QuickScanForm({ supabaseClient, onProfileSelect, onClose, classN
 
     setError(null);
     setMatches([]);
+    setScanId(null);
     setView("scanning");
     setScanStepIndex(0);
 
@@ -103,13 +107,14 @@ export function QuickScanForm({ supabaseClient, onProfileSelect, onClose, classN
 
       setLocationInfo({ city: zipData.city, state: zipData.state_code });
       setStatus("searching");
-      
+
       const { data: searchData, error: searchError } = await supabaseClient.functions.invoke(
         "universal-search",
         {
           body: {
             firstName: firstName.trim(),
             lastName: lastName.trim(),
+            zipCode,
             state: zipData.state_code,
             city: zipData.city,
             search_all: true,
@@ -118,6 +123,11 @@ export function QuickScanForm({ supabaseClient, onProfileSelect, onClose, classN
       );
 
       if (searchError) throw new Error(searchError.message || "Failed to search");
+
+      // Capture the scan_id created by the edge function
+      if (searchData?.scan_id) {
+        setScanId(searchData.scan_id);
+      }
 
       // Stay on step 0 during initial search
       setScanStepIndex(0);
@@ -170,8 +180,8 @@ export function QuickScanForm({ supabaseClient, onProfileSelect, onClose, classN
       zipCode,
       city: locationInfo?.city || "",
       state: locationInfo?.state || "",
-    });
-  }, [firstName, lastName, zipCode, locationInfo, onProfileSelect, matches]);
+    }, scanId);
+  }, [firstName, lastName, zipCode, locationInfo, onProfileSelect, matches, scanId]);
 
   const isLoading = status === "looking_up_zip" || status === "searching";
 

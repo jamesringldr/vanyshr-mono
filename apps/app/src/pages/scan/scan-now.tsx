@@ -20,10 +20,10 @@ export function ScanNow() {
         return () => clearTimeout(revealTimer);
     }, []);
 
-    const handleSelectProfile = useCallback((profile: ProfileMatch, searchParams: { firstName: string; lastName: string; zipCode: string; city: string; state: string }) => {
+    const handleSelectProfile = useCallback((profile: ProfileMatch, searchParams: { firstName: string; lastName: string; zipCode: string; city: string; state: string }, scanId: string | null) => {
         sessionStorage.setItem("selectedProfile", JSON.stringify(profile));
         sessionStorage.setItem("searchParams", JSON.stringify(searchParams));
-        navigate(`/quick-scan/pre-profile/${profile.id}`);
+        navigate(`/quick-scan/pre-profile/${scanId ?? profile.id}`);
     }, [navigate]);
 
     return (
@@ -112,10 +112,9 @@ export function ScanNow() {
             ">
                 <div className="
                   bg-[#022136]
-                  border-[3px] border-b-0 border-[#00BFFF]
                   rounded-t-[28px]
                   backdrop-blur-md
-                  shadow-[0_-8px_24px_rgba(0,0,0,0.6)]
+                  shadow-[0_0_40px_rgba(0,191,255,0.4),0_0_80px_rgba(0,191,255,0.22),0_-8px_24px_rgba(0,0,0,0.6)]
                   pt-6 pb-6 px-6
                   flex flex-col gap-1 relative
                   max-w-lg mx-auto
@@ -180,7 +179,7 @@ export function ScanNow() {
                             }}
                             className="fixed bottom-0 left-0 right-0 z-50 flex justify-center"
                         >
-                            <div className="w-full max-w-md bg-[#2D3847] rounded-t-[32px] overflow-hidden max-h-[90vh] flex flex-col shadow-2xl relative border-t-2 border-[#00BFFF]">
+                            <div className="w-full max-w-md bg-[#2D3847] rounded-t-[32px] overflow-hidden max-h-[90vh] flex flex-col relative shadow-[0_0_40px_rgba(0,191,255,0.35),0_0_80px_rgba(0,191,255,0.18),0_25px_50px_-12px_rgba(0,0,0,0.25)]">
                                 {/* Drawer Handle */}
                                 <div className="w-full h-8 flex items-center justify-center shrink-0">
                                     <div className="w-12 h-1.5 bg-[#2A4A68] rounded-full" />

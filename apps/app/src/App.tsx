@@ -3,6 +3,7 @@ import { Route, Routes } from "react-router";
 // Auth pages
 import { AuthMagicLink } from "./pages/auth/magic-link";
 import { CheckEmail } from "./pages/auth/check-email";
+import { AuthCallback } from "./pages/auth/callback";
 
 // Onboarding pages
 import { Welcome } from "./pages/onboarding/welcome";
@@ -42,6 +43,7 @@ export default function App() {
             {/* Auth */}
             <Route path="/magic-link" element={<AuthMagicLink />} />
             <Route path="/check-email" element={<CheckEmail />} />
+            <Route path="/auth/callback" element={<AuthCallback />} />
 
             {/* Onboarding */}
             <Route path="/welcome" element={<Welcome />} />

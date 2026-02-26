@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router";
 import {
     OnboardingLayout,
@@ -9,67 +9,161 @@ import {
 } from "@vanyshr/ui/components/onboarding";
 import { cx } from "@/utils/cx";
 import { User, Plus } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 
 export interface AliasItem {
     id: string;
     name: string;
     status: BadgeStatus;
-}
-
-const INITIAL: AliasItem[] = [
-    { id: "1", name: "Dev Tester", status: "confirmed" },
-    { id: "2", name: "D. Tester", status: "confirmed" },
-];
-
-function nextId(items: { id: string }[]) {
-    const n = items.reduce((acc, i) => Math.max(acc, parseInt(i.id, 10) || 0), 0);
-    return String(n + 1);
+    isNew?: boolean;
 }
 
 export function OnboardingAliases() {
-    const [items, setItems] = useState<AliasItem[]>(INITIAL);
+    const [items, setItems] = useState<AliasItem[]>([]);
+    const [profileId, setProfileId] = useState<string | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
     const [activeId, setActiveId] = useState<string | null>(null);
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editValue, setEditValue] = useState("");
 
     const navigate = useNavigate();
 
+    // -----------------------------------------------------------------------
+    // Load from DB
+    // -----------------------------------------------------------------------
+    useEffect(() => {
+        async function load() {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) { setIsLoading(false); return; }
+
+            const { data: profile } = await supabase
+                .from("user_profiles")
+                .select("id")
+                .eq("auth_user_id", user.id)
+                .single();
+
+            if (!profile) { setIsLoading(false); return; }
+            setProfileId(profile.id);
+
+            const { data: aliases } = await supabase
+                .from("user_aliases")
+                .select("id, name, user_confirmed_status")
+                .eq("user_id", profile.id)
+                .eq("is_active", true)
+                .order("created_at");
+
+            if (aliases) {
+                setItems(aliases.map((a) => ({
+                    id:     a.id,
+                    name:   a.name,
+                    status: a.user_confirmed_status === "confirmed" ? "confirmed" : "pending" as BadgeStatus,
+                })));
+            }
+            setIsLoading(false);
+        }
+        load();
+    }, []);
+
+    // -----------------------------------------------------------------------
+    // DB helpers
+    // -----------------------------------------------------------------------
+    const upsertAlias = useCallback(async (item: AliasItem) => {
+        if (!profileId) return;
+        if (item.isNew) {
+            const { data } = await supabase
+                .from("user_aliases")
+                .insert({
+                    user_id:               profileId,
+                    name:                  item.name,
+                    user_confirmed_status: "confirmed",
+                    source:                "user_input",
+                })
+                .select("id")
+                .single();
+            if (data) {
+                setItems((prev) =>
+                    prev.map((a) => a.id === item.id ? { ...a, id: data.id, isNew: false } : a)
+                );
+            }
+        } else {
+            await supabase
+                .from("user_aliases")
+                .update({ name: item.name, user_confirmed_status: "confirmed" })
+                .eq("id", item.id);
+        }
+    }, [profileId]);
+
+    const deleteAlias = useCallback(async (id: string, isNew?: boolean) => {
+        if (isNew) return;
+        await supabase.from("user_aliases").update({ is_active: false }).eq("id", id);
+    }, []);
+
+    // -----------------------------------------------------------------------
+    // Interaction handlers
+    // -----------------------------------------------------------------------
     const openEdit = (item: AliasItem) => {
         setActiveId(item.id);
         setEditingId(item.id);
         setEditValue(item.name);
     };
 
-    const handleUpdate = (id: string) => {
-        setItems((prev) =>
-            prev.map((a) =>
-                a.id === id ? { ...a, name: editValue.trim() || a.name, status: "confirmed" as BadgeStatus } : a,
-            ),
+    const handleUpdate = async (id: string) => {
+        const updated = items.map((a) =>
+            a.id === id
+                ? { ...a, name: editValue.trim() || a.name, status: "confirmed" as BadgeStatus }
+                : a,
         );
+        setItems(updated);
         setEditingId(null);
         setActiveId(null);
+
+        const item = updated.find((a) => a.id === id);
+        if (item) await upsertAlias(item);
     };
 
-    const handleDelete = (id: string) => {
+    const handleDelete = async (id: string) => {
+        const item = items.find((a) => a.id === id);
         setItems((prev) => prev.filter((a) => a.id !== id));
         if (activeId === id) setActiveId(null);
         setEditingId(null);
+        if (item) await deleteAlias(id, item.isNew);
     };
 
     const handleAdd = () => {
-        const id = nextId(items);
-        const newItem: AliasItem = { id, name: "", status: "pending" };
-        setItems((prev) => [...prev, newItem]);
-        setActiveId(id);
-        setEditingId(id);
+        const tempId = `new-${Date.now()}`;
+        setItems((prev) => [...prev, { id: tempId, name: "", status: "pending", isNew: true }]);
+        setActiveId(tempId);
+        setEditingId(tempId);
         setEditValue("");
     };
 
-    const handleConfirmAndContinue = () => {
+    const handleConfirmAndContinue = async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+            await supabase
+                .from("user_profiles")
+                .update({ onboarding_step: 3 })
+                .eq("auth_user_id", user.id);
+        }
         setActiveId(null);
         setEditingId(null);
         navigate("/onboarding/addresses");
     };
+
+    if (isLoading) {
+        return (
+            <OnboardingLayout
+                currentStep={"aliases" satisfies OnboardingStep}
+                completedSteps={["basic", "phone"]}
+                title="Aliases"
+                footer={null}
+            >
+                <div className="flex items-center justify-center py-16">
+                    <div className="w-6 h-6 rounded-full border-2 border-[#00BFFF] border-t-transparent animate-spin" />
+                </div>
+            </OnboardingLayout>
+        );
+    }
 
     return (
         <OnboardingLayout
@@ -91,18 +185,17 @@ export function OnboardingAliases() {
             }
         >
             {items.length === 0 && (
-                <div
-                    className={cx(
-                        "rounded-xl border p-6 text-center",
-                        "bg-[var(--bg-surface)] dark:bg-[#2D3847]",
-                        "border-[var(--border-subtle)] dark:border-[#2A4A68]",
-                    )}
-                >
+                <div className={cx(
+                    "rounded-xl border p-6 text-center",
+                    "bg-[var(--bg-surface)] dark:bg-[#2D3847]",
+                    "border-[var(--border-subtle)] dark:border-[#2A4A68]",
+                )}>
                     <p className="text-sm text-[var(--text-secondary)] dark:text-[#B8C4CC] mb-4">
-                        No aliases added yet. Add any nicknames, maiden names, or alternate spellings of your name.
+                        No aliases found from your scan. Add any nicknames, maiden names, or alternate spellings of your name.
                     </p>
                 </div>
             )}
+
             <div className="flex flex-col gap-4">
                 {items.map((item) => (
                     <OnboardingDataCard
@@ -123,15 +216,14 @@ export function OnboardingAliases() {
                                 />
                             ) : undefined
                         }
-                        onClick={() =>
-                            activeId === item.id ? setActiveId(null) : openEdit(item)
-                        }
+                        onClick={() => activeId === item.id ? setActiveId(null) : openEdit(item)}
                         onConfirmAndContinue={() => handleUpdate(item.id)}
                         showDelete
                         onDelete={() => handleDelete(item.id)}
                     />
                 ))}
             </div>
+
             <div className="mt-8 flex justify-center pb-4">
                 <button
                     type="button"
@@ -142,7 +234,6 @@ export function OnboardingAliases() {
                         "focus-visible:ring-2 focus-visible:ring-[#00D4AA] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#022136]",
                     )}
                     aria-label="Add Alias"
-                    title="Add Alias"
                 >
                     <Plus className="h-6 w-6" aria-hidden />
                 </button>

@@ -15,9 +15,10 @@ const corsHeaders = {
 }
 
 interface SearchRequest {
-  scan_id?: string; // quick_scans ID for updating results
+  scan_id?: string; // quick_scans ID — if omitted, one will be created
   firstName: string;
   lastName: string;
+  zipCode?: string;
   city?: string;
   state?: string;
   siteName?: string; // Optional: specific site to search, defaults to 'AnyWho'
@@ -46,6 +47,7 @@ serve(async (req) => {
       scan_id,
       firstName,
       lastName,
+      zipCode,
       city,
       state,
       siteName = 'AnyWho',
@@ -96,8 +98,37 @@ serve(async (req) => {
 
     console.log(`🔍 Found ${matches.length} total matches`);
 
-    // Optionally update quick_scans if scan_id provided
-    if (scan_id) {
+    // Create or update the quick_scans row
+    let activeScanId: string | null = scan_id ?? null;
+
+    if (!activeScanId) {
+      // No scan_id provided — create the initial row now (service role, no RLS issues)
+      const { data: insertData, error: insertError } = await supabaseClient
+        .from('quick_scans')
+        .insert({
+          session_id: crypto.randomUUID(),
+          status: 'scanning',
+          search_input: {
+            first_name: firstName,
+            last_name: lastName,
+            zip_code: zipCode ?? null,
+            city: city ?? null,
+            state: state ?? null,
+          },
+          expires_at: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+        })
+        .select('id')
+        .single();
+
+      if (insertError) {
+        console.error('Error creating quick_scans row:', insertError);
+      } else if (insertData?.id) {
+        activeScanId = insertData.id;
+        console.log(`✅ Created quick_scans row: ${activeScanId}`);
+      }
+    }
+
+    if (activeScanId) {
       const { error: updateError } = await supabaseClient
         .from('quick_scans')
         .update({
@@ -105,7 +136,7 @@ serve(async (req) => {
           candidate_matches: matches,
           scraper_runs: scraperRuns,
         })
-        .eq('id', scan_id);
+        .eq('id', activeScanId);
 
       if (updateError) {
         console.error('Error updating quick_scans:', updateError);
@@ -115,6 +146,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
+        scan_id: activeScanId,
         profiles: matches,
         count: matches.length,
         scraper_runs: scraperRuns,

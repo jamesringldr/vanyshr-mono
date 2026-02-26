@@ -9,13 +9,10 @@ export function QuickScan() {
   const navigate = useNavigate();
 
   // Handle profile selection
-  const handleSelectProfile = useCallback((profile: ProfileMatch, searchParams: { firstName: string; lastName: string; zipCode: string; city: string; state: string }) => {
-    // Store the selected profile in session storage for the pre-profile page
+  const handleSelectProfile = useCallback((profile: ProfileMatch, searchParams: { firstName: string; lastName: string; zipCode: string; city: string; state: string }, scanId: string | null) => {
     sessionStorage.setItem("selectedProfile", JSON.stringify(profile));
     sessionStorage.setItem("searchParams", JSON.stringify(searchParams));
-    
-    // Navigate to pre-profile page
-    navigate(`/quick-scan/pre-profile/${profile.id}`);
+    navigate(`/quick-scan/pre-profile/${scanId ?? profile.id}`);
   }, [navigate]);
 
   return (

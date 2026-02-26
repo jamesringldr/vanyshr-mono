@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router";
 import {
     OnboardingLayout,
@@ -9,79 +9,193 @@ import {
 } from "@vanyshr/ui/components/onboarding";
 import { cx } from "@/utils/cx";
 import { MapPin, Plus } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 
 export interface AddressItem {
     id: string;
-    address: string;
+    address: string;   // display string (full_address or composed)
     status: BadgeStatus;
     isCurrent: boolean;
+    isNew?: boolean;
 }
 
-const INITIAL: AddressItem[] = [
-    { id: "1", address: "123 Main St, San Francisco, CA", status: "confirmed", isCurrent: true },
-    { id: "2", address: "456 Maple Ave, Portland, OR", status: "confirmed", isCurrent: false },
-];
-
-function nextId(items: { id: string }[]) {
-    const n = items.reduce((acc, i) => Math.max(acc, parseInt(i.id, 10) || 0), 0);
-    return String(n + 1);
+function composeAddress(row: {
+    full_address?: string | null;
+    street?: string | null;
+    city?: string | null;
+    state?: string | null;
+    zip?: string | null;
+}): string {
+    if (row.full_address) return row.full_address;
+    return [row.street, row.city, row.state, row.zip].filter(Boolean).join(", ");
 }
 
 export function OnboardingAddresses() {
-    const [items, setItems] = useState<AddressItem[]>(INITIAL);
+    const [items, setItems] = useState<AddressItem[]>([]);
+    const [profileId, setProfileId] = useState<string | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
     const [activeId, setActiveId] = useState<string | null>(null);
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editValue, setEditValue] = useState("");
 
     const navigate = useNavigate();
 
+    // -----------------------------------------------------------------------
+    // Load from DB
+    // -----------------------------------------------------------------------
+    useEffect(() => {
+        async function load() {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) { setIsLoading(false); return; }
+
+            const { data: profile } = await supabase
+                .from("user_profiles")
+                .select("id")
+                .eq("auth_user_id", user.id)
+                .single();
+
+            if (!profile) { setIsLoading(false); return; }
+            setProfileId(profile.id);
+
+            const { data: addresses } = await supabase
+                .from("user_addresses")
+                .select("id, full_address, street, city, state, zip, is_current, user_confirmed_status")
+                .eq("user_id", profile.id)
+                .eq("is_active", true)
+                .order("is_current", { ascending: false });
+
+            if (addresses) {
+                setItems(addresses.map((a) => ({
+                    id:        a.id,
+                    address:   composeAddress(a),
+                    isCurrent: a.is_current,
+                    status:    a.user_confirmed_status === "confirmed" ? "confirmed" : "pending" as BadgeStatus,
+                })));
+            }
+            setIsLoading(false);
+        }
+        load();
+    }, []);
+
+    // -----------------------------------------------------------------------
+    // DB helpers
+    // -----------------------------------------------------------------------
+    const upsertAddress = useCallback(async (item: AddressItem) => {
+        if (!profileId) return;
+        const payload = {
+            user_id:               profileId,
+            full_address:          item.address,
+            is_current:            item.isCurrent,
+            user_confirmed_status: "confirmed" as const,
+            source:                "user_input" as const,
+        };
+        if (item.isNew) {
+            const { data } = await supabase
+                .from("user_addresses")
+                .insert(payload)
+                .select("id")
+                .single();
+            if (data) {
+                setItems((prev) =>
+                    prev.map((a) => a.id === item.id ? { ...a, id: data.id, isNew: false } : a)
+                );
+            }
+        } else {
+            await supabase
+                .from("user_addresses")
+                .update({ full_address: item.address, is_current: item.isCurrent, user_confirmed_status: "confirmed" })
+                .eq("id", item.id);
+        }
+    }, [profileId]);
+
+    const deleteAddress = useCallback(async (id: string, isNew?: boolean) => {
+        if (isNew) return;
+        await supabase.from("user_addresses").update({ is_active: false }).eq("id", id);
+    }, []);
+
+    const updateAllCurrent = useCallback(async (currentId: string) => {
+        if (!profileId) return;
+        await supabase
+            .from("user_addresses")
+            .update({ is_current: false })
+            .eq("user_id", profileId);
+        await supabase
+            .from("user_addresses")
+            .update({ is_current: true })
+            .eq("id", currentId);
+    }, [profileId]);
+
+    // -----------------------------------------------------------------------
+    // Interaction handlers
+    // -----------------------------------------------------------------------
     const openEdit = (item: AddressItem) => {
         setActiveId(item.id);
         setEditingId(item.id);
         setEditValue(item.address);
     };
 
-    const handleUpdate = (id: string) => {
-        setItems((prev) =>
-            prev.map((a) =>
-                a.id === id ? { ...a, address: editValue.trim() || a.address, status: "confirmed" as BadgeStatus } : a,
-            ),
+    const handleUpdate = async (id: string) => {
+        const updated = items.map((a) =>
+            a.id === id
+                ? { ...a, address: editValue.trim() || a.address, status: "confirmed" as BadgeStatus }
+                : a,
         );
+        setItems(updated);
         setEditingId(null);
         setActiveId(null);
+
+        const item = updated.find((a) => a.id === id);
+        if (item) await upsertAddress(item);
     };
 
-    const handleToggleCurrent = (id: string, isCurrent: boolean) => {
-        setItems((prev) =>
-            prev.map((a) => ({ ...a, isCurrent: a.id === id ? isCurrent : false })),
-        );
+    const handleToggleCurrent = async (id: string, isCurrent: boolean) => {
+        setItems((prev) => prev.map((a) => ({ ...a, isCurrent: a.id === id ? isCurrent : false })));
+        if (isCurrent) await updateAllCurrent(id);
     };
 
-    const handleDelete = (id: string) => {
+    const handleDelete = async (id: string) => {
+        const item = items.find((a) => a.id === id);
         setItems((prev) => prev.filter((a) => a.id !== id));
         if (activeId === id) setActiveId(null);
         setEditingId(null);
+        if (item) await deleteAddress(id, item.isNew);
     };
 
     const handleAdd = () => {
-        const id = nextId(items);
-        const newItem: AddressItem = {
-            id,
-            address: "",
-            status: "pending",
-            isCurrent: items.length === 0,
-        };
-        setItems((prev) => [...prev, newItem]);
-        setActiveId(id);
-        setEditingId(id);
+        const tempId = `new-${Date.now()}`;
+        setItems((prev) => [...prev, { id: tempId, address: "", isCurrent: items.length === 0, status: "pending", isNew: true }]);
+        setActiveId(tempId);
+        setEditingId(tempId);
         setEditValue("");
     };
 
-    const handleConfirmAndContinue = () => {
+    const handleConfirmAndContinue = async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+            await supabase
+                .from("user_profiles")
+                .update({ onboarding_step: 4 })
+                .eq("auth_user_id", user.id);
+        }
         setActiveId(null);
         setEditingId(null);
         navigate("/onboarding/emails");
     };
+
+    if (isLoading) {
+        return (
+            <OnboardingLayout
+                currentStep={"addresses" satisfies OnboardingStep}
+                completedSteps={["basic", "phone", "aliases"]}
+                title="Addresses"
+                footer={null}
+            >
+                <div className="flex items-center justify-center py-16">
+                    <div className="w-6 h-6 rounded-full border-2 border-[#00BFFF] border-t-transparent animate-spin" />
+                </div>
+            </OnboardingLayout>
+        );
+    }
 
     return (
         <OnboardingLayout
@@ -103,18 +217,17 @@ export function OnboardingAddresses() {
             }
         >
             {items.length === 0 && (
-                <div
-                    className={cx(
-                        "rounded-xl border p-6 text-center",
-                        "bg-[var(--bg-surface)] dark:bg-[#2D3847]",
-                        "border-[var(--border-subtle)] dark:border-[#2A4A68]",
-                    )}
-                >
+                <div className={cx(
+                    "rounded-xl border p-6 text-center",
+                    "bg-[var(--bg-surface)] dark:bg-[#2D3847]",
+                    "border-[var(--border-subtle)] dark:border-[#2A4A68]",
+                )}>
                     <p className="text-sm text-[var(--text-secondary)] dark:text-[#B8C4CC] mb-4">
-                        No addresses added yet. Add your current and past addresses so we can find and remove them from data broker sites.
+                        No addresses found from your scan. Add your current and past addresses so we can find and remove them from data broker sites.
                     </p>
                 </div>
             )}
+
             <div className="flex flex-col gap-4">
                 {items.map((item) => (
                     <OnboardingDataCard
@@ -135,9 +248,7 @@ export function OnboardingAddresses() {
                                 />
                             ) : undefined
                         }
-                        onClick={() =>
-                            activeId === item.id ? setActiveId(null) : openEdit(item)
-                        }
+                        onClick={() => activeId === item.id ? setActiveId(null) : openEdit(item)}
                         onConfirmAndContinue={() => handleUpdate(item.id)}
                         toggleLabel="Current Address"
                         toggleValue={item.isCurrent}
@@ -147,6 +258,7 @@ export function OnboardingAddresses() {
                     />
                 ))}
             </div>
+
             <div className="mt-8 flex justify-center pb-4">
                 <button
                     type="button"
@@ -157,7 +269,6 @@ export function OnboardingAddresses() {
                         "focus-visible:ring-2 focus-visible:ring-[#00D4AA] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#022136]",
                     )}
                     aria-label="Add Address"
-                    title="Add Address"
                 >
                     <Plus className="h-6 w-6" aria-hidden />
                 </button>
