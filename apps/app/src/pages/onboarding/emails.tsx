@@ -74,6 +74,7 @@ export function OnboardingEmails() {
     // -----------------------------------------------------------------------
     const upsertEmail = useCallback(async (item: EmailItem) => {
         if (!profileId) return;
+        const now = new Date().toISOString();
         if (item.isNew) {
             const { data } = await supabase
                 .from("user_emails")
@@ -82,6 +83,7 @@ export function OnboardingEmails() {
                     email:                 item.email,
                     is_primary:            item.isPrimary,
                     user_confirmed_status: "confirmed",
+                    confirmed_at:          now,
                     source:                "user_input",
                 })
                 .select("id")
@@ -94,14 +96,23 @@ export function OnboardingEmails() {
         } else {
             await supabase
                 .from("user_emails")
-                .update({ email: item.email, is_primary: item.isPrimary, user_confirmed_status: "confirmed" })
+                .update({
+                    email:                 item.email,
+                    is_primary:            item.isPrimary,
+                    user_confirmed_status: "confirmed",
+                    confirmed_at:          now,
+                })
                 .eq("id", item.id);
         }
     }, [profileId]);
 
     const deleteEmail = useCallback(async (id: string, isNew?: boolean) => {
         if (isNew) return;
-        await supabase.from("user_emails").update({ is_active: false }).eq("id", id);
+        const { error } = await supabase
+            .from("user_emails")
+            .update({ is_active: false })
+            .eq("id", id);
+        if (error) console.error("[Onboarding] Email delete failed:", error.message);
     }, []);
 
     const updateAllPrimary = useCallback(async (primaryId: string) => {
@@ -171,6 +182,17 @@ export function OnboardingEmails() {
     // Final step — mark onboarding complete and go to dashboard
     const handleFinishSetup = async () => {
         setIsSaving(true);
+        // Bulk-confirm all active items so none are left as 'unverified'
+        if (profileId) {
+            await supabase
+                .from("user_emails")
+                .update({
+                    user_confirmed_status: "confirmed",
+                    confirmed_at:          new Date().toISOString(),
+                })
+                .eq("user_id", profileId)
+                .eq("is_active", true);
+        }
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
             await supabase

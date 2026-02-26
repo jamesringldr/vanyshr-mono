@@ -69,6 +69,7 @@ export function OnboardingAliases() {
     // -----------------------------------------------------------------------
     const upsertAlias = useCallback(async (item: AliasItem) => {
         if (!profileId) return;
+        const now = new Date().toISOString();
         if (item.isNew) {
             const { data } = await supabase
                 .from("user_aliases")
@@ -76,6 +77,7 @@ export function OnboardingAliases() {
                     user_id:               profileId,
                     name:                  item.name,
                     user_confirmed_status: "confirmed",
+                    confirmed_at:          now,
                     source:                "user_input",
                 })
                 .select("id")
@@ -88,14 +90,18 @@ export function OnboardingAliases() {
         } else {
             await supabase
                 .from("user_aliases")
-                .update({ name: item.name, user_confirmed_status: "confirmed" })
+                .update({ name: item.name, user_confirmed_status: "confirmed", confirmed_at: now })
                 .eq("id", item.id);
         }
     }, [profileId]);
 
     const deleteAlias = useCallback(async (id: string, isNew?: boolean) => {
         if (isNew) return;
-        await supabase.from("user_aliases").update({ is_active: false }).eq("id", id);
+        const { error } = await supabase
+            .from("user_aliases")
+            .update({ is_active: false })
+            .eq("id", id);
+        if (error) console.error("[Onboarding] Alias delete failed:", error.message);
     }, []);
 
     // -----------------------------------------------------------------------
@@ -138,6 +144,17 @@ export function OnboardingAliases() {
     };
 
     const handleConfirmAndContinue = async () => {
+        // Bulk-confirm all active items so none are left as 'unverified'
+        if (profileId) {
+            await supabase
+                .from("user_aliases")
+                .update({
+                    user_confirmed_status: "confirmed",
+                    confirmed_at:          new Date().toISOString(),
+                })
+                .eq("user_id", profileId)
+                .eq("is_active", true);
+        }
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
             await supabase

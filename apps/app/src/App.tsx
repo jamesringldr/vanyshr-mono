@@ -27,6 +27,7 @@ import { LoadingPreProfilePage } from "./pages/scan/loading-pre-profile";
 import { HomeScreen } from "./pages/dashboard/home";
 import { FinancialDashboard } from "./pages/dashboard/financial";
 import { Transactions } from "./pages/dashboard/activity";
+import { DashboardHome } from "./views/Dashboard/DashboardHome";
 
 // Other pages
 import { Pricing } from "./pages/pricing";
@@ -38,6 +39,7 @@ export default function App() {
             {/* Dashboard */}
             <Route path="/" element={<HomeScreen />} />
             <Route path="/dashboard" element={<FinancialDashboard />} />
+            <Route path="/dashboard-home" element={<DashboardHome />} />
             <Route path="/activity" element={<Transactions />} />
 
             {/* Auth */}

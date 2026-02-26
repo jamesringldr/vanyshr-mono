@@ -525,11 +525,22 @@ export class AnyWhoScraper extends BaseScraper {
         let city = "", state = "", zip = "", yearsLived = "", propertyType = "";
         let isLastKnown = index === 0;
 
-        const locationMatch = containerText.match(/([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*),\s*([A-Z]{2})(?:,?\s*(\d{5}))?/);
+        const locationMatch = containerText.match(/([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*),\s*([A-Z]{2})(?:,?\s*(\d{5}(?:-\d{4})?))?/);
         if (locationMatch) {
           city = locationMatch[1].trim();
           state = locationMatch[2].trim();
-          zip = locationMatch[3] || "";
+          zip = locationMatch[3] ? locationMatch[3].substring(0, 5) : "";
+        }
+
+        // Fallback zip extraction: look for a 5-digit number appearing after the state
+        // abbreviation anywhere in the container text (handles varied HTML layouts).
+        if (state && !zip) {
+          const stateIdx = containerText.indexOf(state);
+          if (stateIdx !== -1) {
+            const afterState = containerText.slice(stateIdx + 2);
+            const zipFallback = afterState.match(/^\s*[,\s]*(\d{5})(?!\d)/);
+            if (zipFallback) zip = zipFallback[1];
+          }
         }
 
         const dateRangeMatch = containerText.match(/(\d{4})\s*[-–]\s*(\d{4}|\bPresent\b)/i);

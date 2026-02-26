@@ -82,17 +82,18 @@ export function OnboardingAddresses() {
     // -----------------------------------------------------------------------
     const upsertAddress = useCallback(async (item: AddressItem) => {
         if (!profileId) return;
-        const payload = {
-            user_id:               profileId,
-            full_address:          item.address,
-            is_current:            item.isCurrent,
-            user_confirmed_status: "confirmed" as const,
-            source:                "user_input" as const,
-        };
+        const now = new Date().toISOString();
         if (item.isNew) {
             const { data } = await supabase
                 .from("user_addresses")
-                .insert(payload)
+                .insert({
+                    user_id:               profileId,
+                    full_address:          item.address,
+                    is_current:            item.isCurrent,
+                    user_confirmed_status: "confirmed" as const,
+                    confirmed_at:          now,
+                    source:                "user_input" as const,
+                })
                 .select("id")
                 .single();
             if (data) {
@@ -101,16 +102,31 @@ export function OnboardingAddresses() {
                 );
             }
         } else {
+            // When manually editing, clear structured fields so stale street/city/state/zip
+            // from the original quick-scan don't persist alongside the new full_address.
             await supabase
                 .from("user_addresses")
-                .update({ full_address: item.address, is_current: item.isCurrent, user_confirmed_status: "confirmed" })
+                .update({
+                    full_address:          item.address,
+                    street:                null,
+                    city:                  null,
+                    state:                 null,
+                    zip:                   null,
+                    is_current:            item.isCurrent,
+                    user_confirmed_status: "confirmed",
+                    confirmed_at:          now,
+                })
                 .eq("id", item.id);
         }
     }, [profileId]);
 
     const deleteAddress = useCallback(async (id: string, isNew?: boolean) => {
         if (isNew) return;
-        await supabase.from("user_addresses").update({ is_active: false }).eq("id", id);
+        const { error } = await supabase
+            .from("user_addresses")
+            .update({ is_active: false })
+            .eq("id", id);
+        if (error) console.error("[Onboarding] Address delete failed:", error.message);
     }, []);
 
     const updateAllCurrent = useCallback(async (currentId: string) => {
@@ -170,6 +186,17 @@ export function OnboardingAddresses() {
     };
 
     const handleConfirmAndContinue = async () => {
+        // Bulk-confirm all active items so none are left as 'unverified'
+        if (profileId) {
+            await supabase
+                .from("user_addresses")
+                .update({
+                    user_confirmed_status: "confirmed",
+                    confirmed_at:          new Date().toISOString(),
+                })
+                .eq("user_id", profileId)
+                .eq("is_active", true);
+        }
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
             await supabase

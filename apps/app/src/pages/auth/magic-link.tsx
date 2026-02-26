@@ -42,7 +42,7 @@ export function AuthMagicLink() {
             return;
         }
 
-        navigate("/check-email");
+        navigate(`/check-email?email=${encodeURIComponent(email.trim())}`);
     };
 
     return (

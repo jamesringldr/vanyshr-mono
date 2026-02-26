@@ -71,6 +71,7 @@ export function OnboardingPhoneNumbers() {
     // -----------------------------------------------------------------------
     const upsertPhone = useCallback(async (item: PhoneNumberItem) => {
         if (!profileId) return;
+        const now = new Date().toISOString();
         if (item.isNew) {
             const { data } = await supabase
                 .from("user_phones")
@@ -79,6 +80,7 @@ export function OnboardingPhoneNumbers() {
                     number:                item.number,
                     is_primary:            item.isPrimary,
                     user_confirmed_status: "confirmed",
+                    confirmed_at:          now,
                     source:                "user_input",
                 })
                 .select("id")
@@ -96,6 +98,7 @@ export function OnboardingPhoneNumbers() {
                     number:                item.number,
                     is_primary:            item.isPrimary,
                     user_confirmed_status: "confirmed",
+                    confirmed_at:          now,
                 })
                 .eq("id", item.id);
         }
@@ -103,7 +106,11 @@ export function OnboardingPhoneNumbers() {
 
     const deletePhone = useCallback(async (id: string, isNew?: boolean) => {
         if (isNew) return; // never saved — nothing to delete
-        await supabase.from("user_phones").update({ is_active: false }).eq("id", id);
+        const { error } = await supabase
+            .from("user_phones")
+            .update({ is_active: false })
+            .eq("id", id);
+        if (error) console.error("[Onboarding] Phone delete failed:", error.message);
     }, []);
 
     const updateAllPrimary = useCallback(async (primaryId: string) => {
@@ -171,7 +178,18 @@ export function OnboardingPhoneNumbers() {
     };
 
     const handleConfirmAndContinue = async () => {
-        // Update onboarding step
+        // Bulk-confirm all active items so none are left as 'unverified'
+        if (profileId) {
+            await supabase
+                .from("user_phones")
+                .update({
+                    user_confirmed_status: "confirmed",
+                    confirmed_at:          new Date().toISOString(),
+                })
+                .eq("user_id", profileId)
+                .eq("is_active", true);
+        }
+        // Advance onboarding step
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
             await supabase

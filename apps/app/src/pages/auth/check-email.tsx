@@ -1,16 +1,19 @@
-import { useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { useState, useEffect } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router";
 import { Mail } from "lucide-react";
 import { cx } from "@/utils/cx";
+import { supabase } from "@/lib/supabase";
 
 export function CheckEmail() {
     const navigate = useNavigate();
-    const [email] = useState("james@ringldr.com");
+    const [searchParams] = useSearchParams();
+    const email = searchParams.get("email") ?? "";
+
     const [seconds, setSeconds] = useState(173); // 2:53
     const [remaining, setRemaining] = useState(2);
+    const [isResending, setIsResending] = useState(false);
 
-    // lightweight countdown (client-only). Good enough for mock flow.
-    useMemo(() => {
+    useEffect(() => {
         const t = window.setInterval(() => {
             setSeconds((s) => (s > 0 ? s - 1 : 0));
         }, 1000);
@@ -19,6 +22,24 @@ export function CheckEmail() {
 
     const mm = String(Math.floor(seconds / 60)).padStart(1, "0");
     const ss = String(seconds % 60).padStart(2, "0");
+
+    const handleResend = async () => {
+        if (remaining <= 0 || isResending || !email) return;
+        setIsResending(true);
+
+        const profileId = sessionStorage.getItem("pendingProfileId");
+        const redirectUrl = new URL(`${window.location.origin}/auth/callback`);
+        if (profileId) redirectUrl.searchParams.set("profile_id", profileId);
+
+        await supabase.auth.signInWithOtp({
+            email,
+            options: { emailRedirectTo: redirectUrl.toString(), shouldCreateUser: true },
+        });
+
+        setRemaining((r) => Math.max(0, r - 1));
+        setSeconds(173);
+        setIsResending(false);
+    };
 
     return (
         <div
@@ -48,14 +69,14 @@ export function CheckEmail() {
                     We sent a magic link to
                     <br />
                     <span className="font-semibold text-[#022136] dark:text-white">
-                        {email}
+                        {email || "your email address"}
                     </span>
                 </p>
 
                 <div className="mt-2 text-center">
                     <button
                         type="button"
-                        onClick={() => navigate("/magic-link")}
+                        onClick={() => navigate(`/magic-link`)}
                         className="text-xs font-medium text-[#00BFFF] hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 outline-focus-ring rounded"
                     >
                         Change email address
@@ -75,19 +96,16 @@ export function CheckEmail() {
 
                     <p className="mt-4 text-xs text-[var(--text-muted)] dark:text-[#7A92A8]">
                         <span className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-amber-400 align-middle" />
-                        Send new link in:{" "}
-                        <span className="font-mono tabular-nums">
-                            {mm}:{ss}
-                        </span>
+                        {seconds > 0
+                            ? <>Send new link in: <span className="font-mono tabular-nums">{mm}:{ss}</span></>
+                            : "Ready to resend"
+                        }
                     </p>
 
                     <button
                         type="button"
-                        onClick={() => {
-                            if (remaining <= 0) return;
-                            setRemaining((r) => Math.max(0, r - 1));
-                            setSeconds(173);
-                        }}
+                        onClick={handleResend}
+                        disabled={remaining <= 0 || isResending || seconds > 0}
                         className={cx(
                             "mt-4 flex h-[52px] w-full items-center justify-center rounded-xl text-sm font-semibold outline-none transition",
                             "border border-[var(--border-subtle)] dark:border-[#2A4A68]",
@@ -95,11 +113,10 @@ export function CheckEmail() {
                             "text-[#022136] dark:text-white",
                             "hover:bg-[#F0F4F8]/70 dark:hover:bg-[#022136]/70",
                             "focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#022136]",
-                            remaining <= 0 && "cursor-not-allowed opacity-50",
+                            (remaining <= 0 || isResending || seconds > 0) && "cursor-not-allowed opacity-50",
                         )}
-                        disabled={remaining <= 0}
                     >
-                        Send New Link ({remaining} remaining)
+                        {isResending ? "Sending..." : `Send New Link (${remaining} remaining)`}
                     </button>
 
                     <p className="mt-3 text-xs text-[var(--text-muted)] dark:text-[#7A92A8]">
@@ -119,4 +136,3 @@ export function CheckEmail() {
         </div>
     );
 }
-

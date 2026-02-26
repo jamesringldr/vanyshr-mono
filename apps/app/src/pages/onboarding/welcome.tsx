@@ -1,8 +1,10 @@
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { Menu, Search, Shield, Bell, CircleCheck } from "lucide-react";
 import PrimaryLogo from "@vanyshr/ui/assets/PrimaryLogo.png";
 import PrimaryLogoDark from "@vanyshr/ui/assets/PrimaryLogo-DarkMode.png";
 import { cx } from "@/utils/cx";
+import { supabase } from "@/lib/supabase";
 
 function FeatureItem({
     icon: Icon,
@@ -37,6 +39,21 @@ function FeatureItem({
 
 export function Welcome() {
     const navigate = useNavigate();
+    const [firstName, setFirstName] = useState<string | null>(null);
+
+    useEffect(() => {
+        async function load() {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+            const { data: profile } = await supabase
+                .from("user_profiles")
+                .select("first_name")
+                .eq("auth_user_id", user.id)
+                .single();
+            if (profile?.first_name) setFirstName(profile.first_name);
+        }
+        load();
+    }, []);
 
     return (
         <div
@@ -80,7 +97,7 @@ export function Welcome() {
                 {/* Welcome */}
                 <div className="mt-2 text-center">
                     <h1 className="text-2xl font-bold tracking-tight text-[#022136] dark:text-white">
-                        Welcome, Dev Tester!
+                        Welcome{firstName ? `, ${firstName}` : ""}!
                     </h1>
                     <p className="mt-2 text-sm text-[var(--text-muted)] dark:text-[#7A92A8]">
                         Let&apos;s set up your privacy profile to start removing your personal
