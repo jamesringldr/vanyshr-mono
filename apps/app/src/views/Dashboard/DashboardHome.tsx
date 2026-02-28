@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router';
 import { UserDrawer } from './UserDrawer';
 import {
   Bell,
@@ -13,6 +14,7 @@ import {
   CheckCircle,
   AlertTriangle,
 } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -20,22 +22,29 @@ import {
 
 type Timeframe = '30D' | '90D' | 'All';
 type ActivityType = 'Broker Scan' | 'Dark Web Scan' | 'Removal' | 'New Exposure';
+type ActivityStatus = 'Complete' | 'In Progress';
 type BrokerStatus = 'Exposed' | 'Removal Requested' | 'Removed' | 'New';
 
+interface DataBreach {
+  id: string;
+  breach_name: string;
+  breach_title: string | null;
+  breach_domain: string | null;
+  breach_date: string | null;
+  exposed_data_types: string[] | null;
+  matched_email: string;
+  status: 'new' | 'unresolved' | 'resolved';
+  created_at: string;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
-// Mock Data
+// Mock Data (non-breach sections remain mocked)
 // ─────────────────────────────────────────────────────────────────────────────
 
 const EXPOSURES_DATA: Record<Timeframe, { count: number; delta: string; points: [number, number][] }> = {
   '30D': { count: 14, delta: '+3',  points: [[0,18],[10,14],[20,10],[30,8],[40,6],[50,6],[60,6]] },
   '90D': { count: 31, delta: '+8',  points: [[0,20],[10,17],[20,13],[30,10],[40,8],[50,5],[60,3]] },
   'All': { count: 47, delta: '+12', points: [[0,22],[10,18],[20,14],[30,10],[40,6],[50,4],[60,2]] },
-};
-
-const BREACHES_DATA = {
-  count: 4,
-  delta: '+1',
-  points: [[0,18],[10,18],[20,18],[30,5],[40,18],[50,18],[60,18]] as [number, number][],
 };
 
 const NEEDS_ATTENTION_DATA = {
@@ -50,7 +59,6 @@ const IN_PROGRESS_DATA: Record<Timeframe, { count: number; delta: string; points
   'All': { count: 31, delta: '-8', points: [[0,3],[10,6],[20,9],[30,13],[40,17],[50,20],[60,22]] },
 };
 
-// Card info tooltip text
 const CARD_INFO: Record<string, string> = {
   'exposures':       'Broker & people-search listings',
   'breaches':        'Credentials found in dark web leaks',
@@ -58,30 +66,59 @@ const CARD_INFO: Record<string, string> = {
   'in-progress':     'Removal requests submitted & pending',
 };
 
-const BREACH_ITEMS = [
-  { company: 'LinkedIn', initials: 'LI', date: 'Breached Jan 12, 2025', isNew: true  },
-  { company: 'Adobe',    initials: 'AD', date: 'Breached Mar 3, 2024',  isNew: false },
-  { company: 'Dropbox',  initials: 'DB', date: 'Breached Nov 19, 2023', isNew: false },
-];
-
-const ACTIVITY_ITEMS: { type: ActivityType; title: string; descriptor: string; time: string }[] = [
+const ACTIVITY_ITEMS: {
+  id: string;
+  type: ActivityType;
+  status: ActivityStatus;
+  title: string;
+  descriptor: string;
+  time: string;
+  minutesAgo: number;
+}[] = [
+  {
+    id: 'dark-web-in-progress',
+    type: 'Dark Web Scan',
+    status: 'In Progress',
+    title: 'Dark Web Scan In Progress',
+    descriptor: 'Searching new breach dumps for compromised credentials',
+    time: '10m ago',
+    minutesAgo: 10,
+  },
   {
     type: 'Dark Web Scan',
+    id: 'dark-web-complete',
+    status: 'Complete',
     title: 'Dark Web Scan Complete',
     descriptor: '2 new breaches identified',
     time: '2h ago',
+    minutesAgo: 120,
+  },
+  {
+    id: 'broker-scan-in-progress',
+    type: 'Broker Scan',
+    status: 'In Progress',
+    title: 'Broker Scan In Progress',
+    descriptor: '248 of 253 data sources processed',
+    time: '45m ago',
+    minutesAgo: 45,
   },
   {
     type: 'Removal',
+    id: 'removal-complete',
+    status: 'Complete',
     title: 'Removal Confirmed',
     descriptor: 'Spokeo — record successfully removed',
     time: '1d ago',
+    minutesAgo: 1440,
   },
   {
     type: 'Broker Scan',
+    id: 'broker-scan-complete',
+    status: 'Complete',
     title: 'Broker Scan Complete',
     descriptor: '253 data sources scanned · 3 new exposures',
     time: '2d ago',
+    minutesAgo: 2880,
   },
 ];
 
@@ -105,34 +142,35 @@ const BROKER_STATUS_STYLES: Record<BrokerStatus, { dot: string; text: string; la
   'New':               { dot: 'bg-[#00BFFF]', text: 'text-[#00BFFF]', label: 'New · Just Found'     },
 };
 
+// Flat sparkline used for the Breaches card
+const BREACH_SPARKLINE_POINTS: [number, number][] = [[0,12],[10,12],[20,12],[30,12],[40,12],[50,12],[60,12]];
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Sparkline (inline SVG, no library)
 // ─────────────────────────────────────────────────────────────────────────────
 
-function Sparkline({
-  points,
-  stroke,
-  fill,
-}: {
-  points: [number, number][];
-  stroke: string;
-  fill: string;
-}) {
+function Sparkline({ points, stroke, fill }: { points: [number, number][]; stroke: string; fill: string }) {
   const linePoints = points.map(([x, y]) => `${x},${y}`).join(' ');
   const areaPoints = `${linePoints} 60,24 0,24`;
   return (
     <svg viewBox="0 0 60 24" width={60} height={24} aria-hidden="true">
       <polygon points={areaPoints} fill={fill} fillOpacity={0.2} />
-      <polyline
-        points={linePoints}
-        stroke={stroke}
-        strokeWidth={1.5}
-        fill="none"
-        strokeLinejoin="round"
-        strokeLinecap="round"
-      />
+      <polyline points={linePoints} stroke={stroke} strokeWidth={1.5} fill="none" strokeLinejoin="round" strokeLinecap="round" />
     </svg>
   );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Helpers
+// ─────────────────────────────────────────────────────────────────────────────
+
+function formatBreachDate(dateStr: string | null): string {
+  if (!dateStr) return 'Unknown date';
+  try {
+    return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  } catch {
+    return dateStr;
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -140,16 +178,90 @@ function Sparkline({
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function DashboardHome() {
-  const [timeframe, setTimeframe]             = useState<Timeframe>('30D');
-  const [userDrawerOpen, setUserDrawerOpen]   = useState(false);
-  const [openInfoCard, setOpenInfoCard]       = useState<string | null>(null);
+  const navigate = useNavigate();
+
+  const [timeframe, setTimeframe]           = useState<Timeframe>('30D');
+  const [userDrawerOpen, setUserDrawerOpen] = useState(false);
+  const [openInfoCard, setOpenInfoCard]     = useState<string | null>(null);
+  const [showAllCaughtUp, setShowAllCaughtUp] = useState(false);
+
+  // Breach state (real DB data)
+  const [profileId, setProfileId]           = useState<string | null>(null);
+  const [newBreaches, setNewBreaches]       = useState<DataBreach[]>([]);
+  const [breachesLoaded, setBreachesLoaded] = useState(false);
 
   const exposures  = EXPOSURES_DATA[timeframe];
   const inProgress = IN_PROGRESS_DATA[timeframe];
+  const sortedActivityItems = [...ACTIVITY_ITEMS].sort((a, b) => a.minutesAgo - b.minutesAgo);
+
+  // ── Fetch new breaches on mount ──────────────────────────────────────────
+  useEffect(() => {
+    async function loadBreaches() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { setBreachesLoaded(true); return; }
+
+      const { data: profile } = await supabase
+        .from('user_profiles')
+        .select('id')
+        .eq('auth_user_id', user.id)
+        .single();
+
+      if (!profile) { setBreachesLoaded(true); return; }
+      setProfileId(profile.id);
+
+      const { data } = await supabase
+        .from('data_breaches')
+        .select('*')
+        .eq('user_id', profile.id)
+        .eq('status', 'new')
+        .order('created_at', { ascending: false });
+
+      setNewBreaches((data as DataBreach[]) ?? []);
+      setBreachesLoaded(true);
+    }
+    loadBreaches();
+  }, []);
+
+  // ── Show "all caught up" briefly after last breach is dismissed ──────────
+  useEffect(() => {
+    if (breachesLoaded && newBreaches.length === 0 && profileId !== null) {
+      setShowAllCaughtUp(true);
+      const timer = window.setTimeout(() => setShowAllCaughtUp(false), 1800);
+      return () => window.clearTimeout(timer);
+    }
+  }, [breachesLoaded, newBreaches.length, profileId]);
+
+  // ── Dismiss: set status → 'unresolved' (optimistic) ─────────────────────
+  async function dismissBreach(breachId: string) {
+    setNewBreaches(prev => prev.filter(b => b.id !== breachId));
+
+    const { error } = await supabase
+      .from('data_breaches')
+      .update({ status: 'unresolved', status_updated_at: new Date().toISOString() })
+      .eq('id', breachId);
+
+    if (error) {
+      console.error('[DashboardHome] dismiss failed:', error.message);
+      // Revert: reload from DB
+      if (profileId) {
+        const { data } = await supabase
+          .from('data_breaches')
+          .select('*')
+          .eq('user_id', profileId)
+          .eq('status', 'new')
+          .order('created_at', { ascending: false });
+        setNewBreaches((data as DataBreach[]) ?? []);
+      }
+    }
+  }
 
   function toggleInfo(cardId: string) {
     setOpenInfoCard(prev => (prev === cardId ? null : cardId));
   }
+
+  const activeBreachCard = newBreaches[0] ?? null;
+  const hasNewBreaches = newBreaches.length > 0;
+  const shouldShowBreachSection = hasNewBreaches || showAllCaughtUp;
 
   return (
     <div className="min-h-screen bg-[#022136] font-ubuntu">
@@ -160,7 +272,6 @@ export function DashboardHome() {
 
           {/* ── PROFILE + NOTIFICATION ROW ───────────────────────────────── */}
           <div className="flex items-center justify-between">
-            {/* Profile trigger — opens bottom drawer */}
             <button
               className="flex items-center gap-2"
               onClick={() => setUserDrawerOpen(true)}
@@ -173,16 +284,17 @@ export function DashboardHome() {
               <ChevronDown className="w-4 h-4 text-[#7A92A8]" />
             </button>
 
-            {/* Notification bell */}
             <button
               className="relative"
               onClick={() => console.log('open notifications')}
               aria-label="Open notifications"
             >
               <Bell className="w-5 h-5 text-white" />
-              <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#FF8A00] rounded-full text-[#022136] text-[10px] font-bold flex items-center justify-center leading-none">
-                3
-              </span>
+              {newBreaches.length > 0 && (
+                <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#FF8A00] rounded-full text-[#022136] text-[10px] font-bold flex items-center justify-center leading-none">
+                  {newBreaches.length}
+                </span>
+              )}
             </button>
           </div>
 
@@ -190,8 +302,6 @@ export function DashboardHome() {
           <section>
             <div className="flex items-center justify-between">
               <h1 className="text-2xl font-bold text-white">Exposure Summary</h1>
-
-              {/* Timeframe dropdown */}
               <div className="relative flex-shrink-0">
                 <select
                   value={timeframe}
@@ -215,11 +325,7 @@ export function DashboardHome() {
             <div className="bg-[#2D3847] border border-[#2A4A68] rounded-2xl p-4 flex flex-col gap-2">
               <div className="flex items-center">
                 <span className="text-xs font-medium text-[#B8C4CC] uppercase tracking-wide">Exposures</span>
-                <button
-                  className="ml-auto p-0.5"
-                  onClick={() => toggleInfo('exposures')}
-                  aria-label="More info about Exposures"
-                >
+                <button className="ml-auto p-0.5" onClick={() => toggleInfo('exposures')} aria-label="More info about Exposures">
                   <Info className={`w-3.5 h-3.5 transition-colors duration-150 ${openInfoCard === 'exposures' ? 'text-[#00BFFF]' : 'text-[#7A92A8]'}`} />
                 </button>
               </div>
@@ -231,19 +337,20 @@ export function DashboardHome() {
               <p className="text-3xl font-bold text-white">{exposures.count}</p>
               <div className="flex items-center gap-2">
                 <Sparkline points={exposures.points} stroke="#FF8A00" fill="#FF8A00" />
-                <span className="text-xs font-medium px-1.5 py-0.5 rounded-full bg-[#FF8A00]/20 text-[#FF8A00]">
-                  {exposures.delta}
-                </span>
+                <span className="text-xs font-medium px-1.5 py-0.5 rounded-full bg-[#FF8A00]/20 text-[#FF8A00]">{exposures.delta}</span>
               </div>
             </div>
 
-            {/* Card 2 — Breaches (static) */}
-            <div className="bg-[#2D3847] border border-[#2A4A68] rounded-2xl p-4 flex flex-col gap-2">
+            {/* Card 2 — Breaches (real data, tappable) */}
+            <button
+              className="bg-[#2D3847] border border-[#2A4A68] rounded-2xl p-4 flex flex-col gap-2 text-left"
+              onClick={() => navigate('/dashboard/dark-web')}
+            >
               <div className="flex items-center">
                 <span className="text-xs font-medium text-[#B8C4CC] uppercase tracking-wide">Breaches</span>
                 <button
                   className="ml-auto p-0.5"
-                  onClick={() => toggleInfo('breaches')}
+                  onClick={(e) => { e.stopPropagation(); toggleInfo('breaches'); }}
                   aria-label="More info about Breaches"
                 >
                   <Info className={`w-3.5 h-3.5 transition-colors duration-150 ${openInfoCard === 'breaches' ? 'text-[#00BFFF]' : 'text-[#7A92A8]'}`} />
@@ -254,24 +361,22 @@ export function DashboardHome() {
                   <p className="text-[11px] text-[#B8C4CC] leading-snug">{CARD_INFO['breaches']}</p>
                 </div>
               )}
-              <p className="text-3xl font-bold text-white">{BREACHES_DATA.count}</p>
+              <p className="text-3xl font-bold text-white">
+                {breachesLoaded ? newBreaches.length : '—'}
+              </p>
               <div className="flex items-center gap-2">
-                <Sparkline points={BREACHES_DATA.points} stroke="#FF8A00" fill="#FF8A00" />
-                <span className="text-xs font-medium px-1.5 py-0.5 rounded-full bg-[#FF8A00]/20 text-[#FF8A00]">
-                  {BREACHES_DATA.delta}
-                </span>
+                <Sparkline points={BREACH_SPARKLINE_POINTS} stroke="#FF8A00" fill="#FF8A00" />
+                {newBreaches.length > 0 && (
+                  <span className="text-xs font-medium px-1.5 py-0.5 rounded-full bg-[#FF8A00]/20 text-[#FF8A00]">New</span>
+                )}
               </div>
-            </div>
+            </button>
 
-            {/* Card 3 — Needs Attention (static, now uniform format) */}
+            {/* Card 3 — Needs Attention */}
             <div className="bg-[#2D3847] border border-[#2A4A68] rounded-2xl p-4 flex flex-col gap-2">
               <div className="flex items-center">
                 <span className="text-xs font-medium text-[#B8C4CC] uppercase tracking-wide">Needs Attention</span>
-                <button
-                  className="ml-auto p-0.5"
-                  onClick={() => toggleInfo('needs-attention')}
-                  aria-label="More info about Needs Attention"
-                >
+                <button className="ml-auto p-0.5" onClick={() => toggleInfo('needs-attention')} aria-label="More info about Needs Attention">
                   <Info className={`w-3.5 h-3.5 transition-colors duration-150 ${openInfoCard === 'needs-attention' ? 'text-[#00BFFF]' : 'text-[#7A92A8]'}`} />
                 </button>
               </div>
@@ -283,9 +388,7 @@ export function DashboardHome() {
               <p className="text-3xl font-bold text-white">{NEEDS_ATTENTION_DATA.count}</p>
               <div className="flex items-center gap-2">
                 <Sparkline points={NEEDS_ATTENTION_DATA.points} stroke="#FF8A00" fill="#FF8A00" />
-                <span className="text-xs font-medium px-1.5 py-0.5 rounded-full bg-[#FF8A00]/20 text-[#FF8A00]">
-                  {NEEDS_ATTENTION_DATA.delta}
-                </span>
+                <span className="text-xs font-medium px-1.5 py-0.5 rounded-full bg-[#FF8A00]/20 text-[#FF8A00]">{NEEDS_ATTENTION_DATA.delta}</span>
               </div>
             </div>
 
@@ -293,11 +396,7 @@ export function DashboardHome() {
             <div className="bg-[#2D3847] border border-[#2A4A68] rounded-2xl p-4 flex flex-col gap-2">
               <div className="flex items-center">
                 <span className="text-xs font-medium text-[#B8C4CC] uppercase tracking-wide">In Progress</span>
-                <button
-                  className="ml-auto p-0.5"
-                  onClick={() => toggleInfo('in-progress')}
-                  aria-label="More info about In Progress"
-                >
+                <button className="ml-auto p-0.5" onClick={() => toggleInfo('in-progress')} aria-label="More info about In Progress">
                   <Info className={`w-3.5 h-3.5 transition-colors duration-150 ${openInfoCard === 'in-progress' ? 'text-[#00BFFF]' : 'text-[#7A92A8]'}`} />
                 </button>
               </div>
@@ -309,72 +408,97 @@ export function DashboardHome() {
               <p className="text-3xl font-bold text-white">{inProgress.count}</p>
               <div className="flex items-center gap-2">
                 <Sparkline points={inProgress.points} stroke="#00D4AA" fill="#00D4AA" />
-                <span className="text-xs font-medium px-1.5 py-0.5 rounded-full bg-[#00D4AA]/20 text-[#00D4AA]">
-                  {inProgress.delta}
-                </span>
+                <span className="text-xs font-medium px-1.5 py-0.5 rounded-full bg-[#00D4AA]/20 text-[#00D4AA]">{inProgress.delta}</span>
               </div>
             </div>
 
           </section>
 
-          {/* ── NEEDS ATTENTION STRIP ────────────────────────────────────── */}
-          <section>
-            <div className="flex justify-between items-center mb-3">
-              <h2 className="text-base font-bold text-white">Needs Attention</h2>
-              <button
-                className="text-xs text-[#00BFFF]"
-                onClick={() => console.log('view all needs attention')}
-              >
-                View All
-              </button>
-            </div>
+          {/* ── DARK WEB ALERTS ───────────────────────────────────────────── */}
+          {shouldShowBreachSection && (
+            <section>
+              <div className="flex justify-between items-center mb-3">
+                <h2 className="text-base font-bold text-white">Dark Web Alerts</h2>
+                <span className="text-xs text-[#B8C4CC]">{newBreaches.length} new</span>
+              </div>
 
-            <div className="flex flex-col gap-2">
-              {BREACH_ITEMS.map((item) => (
-                <button
-                  key={item.company}
-                  className="bg-[#2D3847] border border-[#2A4A68] rounded-xl px-4 py-3 flex items-center gap-3 w-full text-left"
-                  onClick={() => console.log(`open breach modal: ${item.company}`)}
-                >
-                  <div className="w-9 h-9 rounded-lg bg-[#022136] border border-[#2A4A68] flex items-center justify-center flex-shrink-0">
-                    <span className="text-[#00BFFF] text-xs font-bold">{item.initials}</span>
+              {activeBreachCard ? (
+                <div className="bg-[#2D3847] border border-[#2A4A68] rounded-xl px-4 py-3 flex flex-col gap-2">
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="text-sm font-bold text-white">New Dark Web Breach Found</p>
+                    <button
+                      className="text-[10px] text-[#B8C4CC] border border-[#2A4A68] rounded-md px-2 py-1 hover:text-white hover:border-[#00BFFF] transition-colors duration-150 flex-shrink-0"
+                      onClick={() => dismissBreach(activeBreachCard.id)}
+                      aria-label={`Dismiss breach ${activeBreachCard.breach_title || activeBreachCard.breach_name}`}
+                    >
+                      Dismiss
+                    </button>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-white">{item.company}</p>
-                    <p className="text-xs text-[#7A92A8]">{item.date}</p>
-                  </div>
-                  <div className="flex items-center gap-1.5 flex-shrink-0">
-                    {item.isNew && (
-                      <span className="text-[10px] font-bold bg-[#FF8A00]/20 text-[#FF8A00] px-1.5 py-0.5 rounded-full">
-                        NEW
-                      </span>
+
+                  <div className="flex flex-col gap-1">
+                    <p className="text-xs text-[#B8C4CC]">
+                      <span className="text-[#7A92A8]">Company:</span>{' '}
+                      <span className="text-white">{activeBreachCard.breach_title || activeBreachCard.breach_name}</span>
+                    </p>
+                    <p className="text-xs text-[#B8C4CC]">
+                      <span className="text-[#7A92A8]">Email:</span>{' '}
+                      <span className="text-white">{activeBreachCard.matched_email}</span>
+                    </p>
+                    {activeBreachCard.breach_date && (
+                      <p className="text-xs text-[#B8C4CC]">
+                        <span className="text-[#7A92A8]">Breach Date:</span>{' '}
+                        <span className="text-white">{formatBreachDate(activeBreachCard.breach_date)}</span>
+                      </p>
                     )}
-                    <ChevronRight className="w-4 h-4 text-[#7A92A8]" />
+                    {activeBreachCard.exposed_data_types && activeBreachCard.exposed_data_types.length > 0 && (
+                      <p className="text-xs text-[#B8C4CC]">
+                        <span className="text-[#7A92A8]">Exposed:</span>{' '}
+                        <span className="text-white">
+                          {activeBreachCard.exposed_data_types.slice(0, 3).join(', ')}
+                          {activeBreachCard.exposed_data_types.length > 3 && ` +${activeBreachCard.exposed_data_types.length - 3} more`}
+                        </span>
+                      </p>
+                    )}
                   </div>
-                </button>
-              ))}
-            </div>
-          </section>
 
-          {/* ── RECENT ACTIVITY FEED ─────────────────────────────────────── */}
+                  {newBreaches.length > 1 && (
+                    <p className="text-xs text-[#7A92A8]">
+                      + {newBreaches.length - 1} more breach{newBreaches.length - 1 > 1 ? 'es' : ''}
+                    </p>
+                  )}
+
+                  <div className="flex items-center justify-end">
+                    <button
+                      className="text-xs text-[#00BFFF] hover:text-[#00D4FF] transition-colors duration-150"
+                      onClick={() => navigate('/dashboard/dark-web')}
+                    >
+                      View Details &gt;
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-[#2D3847] border border-[#00D4AA] rounded-xl px-4 py-4 motion-safe:animate-pulse">
+                  <p className="text-sm font-bold text-white">All Caught Up for Now!</p>
+                  <p className="text-xs text-[#B8C4CC] mt-1">No new dark web breach updates need action.</p>
+                </div>
+              )}
+            </section>
+          )}
+
+          {/* ── ACTIVITY FEED ─────────────────────────────────────────────── */}
           <section>
             <div className="flex justify-between items-center mb-3">
-              <h2 className="text-base font-bold text-white">Recent Activity</h2>
-              <button
-                className="text-xs text-[#00BFFF]"
-                onClick={() => console.log('view all activity')}
-              >
-                View All
-              </button>
+              <h2 className="text-base font-bold text-white">Activity</h2>
+              <button className="text-xs text-[#00BFFF]" onClick={() => console.log('view all activity')}>View All</button>
             </div>
 
             <div className="flex flex-col gap-2">
-              {ACTIVITY_ITEMS.map((item) => {
+              {sortedActivityItems.map((item) => {
                 const style = ACTIVITY_STYLES[item.type];
                 const Icon  = style.Icon;
                 return (
                   <button
-                    key={item.title}
+                    key={item.id}
                     className="bg-[#2D3847] border border-[#2A4A68] rounded-xl px-4 py-3 flex items-center gap-3 w-full text-left"
                     onClick={() => console.log(`open activity: ${item.type}`)}
                   >
@@ -386,6 +510,9 @@ export function DashboardHome() {
                       <p className="text-xs text-[#B8C4CC]">{item.descriptor}</p>
                     </div>
                     <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                      {item.status === 'In Progress' && (
+                        <span className="text-[10px] font-bold bg-[#00BFFF]/20 text-[#00BFFF] px-1.5 py-0.5 rounded-full">IN PROGRESS</span>
+                      )}
                       <span className="text-xs text-[#7A92A8]">{item.time}</span>
                       <ChevronRight className="w-4 h-4 text-[#7A92A8]" />
                     </div>
@@ -399,12 +526,7 @@ export function DashboardHome() {
           <section>
             <div className="flex justify-between items-center mb-3">
               <h2 className="text-base font-bold text-white">Exposures</h2>
-              <button
-                className="text-xs text-[#00BFFF]"
-                onClick={() => console.log('view all exposures')}
-              >
-                View All →
-              </button>
+              <button className="text-xs text-[#00BFFF]" onClick={() => console.log('view all exposures')}>View All →</button>
             </div>
 
             <div className="flex flex-col gap-2">
@@ -436,23 +558,21 @@ export function DashboardHome() {
         </div>
       </div>
 
-      {/* ── 3. FIXED BOTTOM NAV ──────────────────────────────────────────── */}
+      {/* ── FIXED BOTTOM NAV ──────────────────────────────────────────────── */}
       <nav className="fixed bottom-0 left-0 right-0 bg-[#022136] border-t border-[#2A4A68] h-16 px-2 flex items-center justify-around z-50">
-        {([
-          { label: 'Home',      Icon: Home,         active: true  },
-          { label: 'Exposures', Icon: Shield,        active: false },
-          { label: 'To Do',     Icon: ClipboardList, active: false },
-          { label: 'Activity',  Icon: Activity,      active: false },
-        ] as const).map(({ label, Icon, active }) => (
+        {[
+          { label: 'Home',      Icon: Home,          path: '/dashboard/home',      active: true  },
+          { label: 'Exposures', Icon: Shield,         path: '/dashboard/exposures', active: false },
+          { label: 'Tasks',     Icon: ClipboardList,  path: '/dashboard/tasks',    active: false },
+          { label: 'Activity',  Icon: Activity,       path: '/activity',            active: false },
+        ].map(({ label, Icon, path, active }) => (
           <button
             key={label}
-            className="flex flex-col items-center gap-1 flex-1 py-2"
-            onClick={() => console.log(`navigate to: ${label}`)}
+            className="flex flex-col items-center gap-1 flex-1 py-2 cursor-pointer"
+            onClick={() => navigate(path)}
           >
             <Icon className={`w-5 h-5 ${active ? 'text-[#00BFFF]' : 'text-[#7A92A8]'}`} />
-            <span className={`text-[10px] font-medium ${active ? 'text-[#00BFFF]' : 'text-[#7A92A8]'}`}>
-              {label}
-            </span>
+            <span className={`text-[10px] font-medium ${active ? 'text-[#00BFFF]' : 'text-[#7A92A8]'}`}>{label}</span>
           </button>
         ))}
       </nav>

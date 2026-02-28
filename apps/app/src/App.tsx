@@ -28,6 +28,9 @@ import { HomeScreen } from "./pages/dashboard/home";
 import { FinancialDashboard } from "./pages/dashboard/financial";
 import { Transactions } from "./pages/dashboard/activity";
 import { DashboardHome } from "./views/Dashboard/DashboardHome";
+import { DarkWebPage } from "./pages/dashboard/dark-web";
+import { ExposuresPage } from "./pages/dashboard/exposures";
+import { TodoPage } from "./pages/dashboard/todo";
 
 // Other pages
 import { Pricing } from "./pages/pricing";
@@ -39,8 +42,12 @@ export default function App() {
             {/* Dashboard */}
             <Route path="/" element={<HomeScreen />} />
             <Route path="/dashboard" element={<FinancialDashboard />} />
-            <Route path="/dashboard-home" element={<DashboardHome />} />
-            <Route path="/activity" element={<Transactions />} />
+            <Route path="/dashboard/home" element={<DashboardHome />} />
+            <Route path="/dashboard/dark-web" element={<DarkWebPage />} />
+            <Route path="/dashboard/exposures" element={<ExposuresPage />} />
+            <Route path="/dashboard/tasks" element={<TodoPage />} />
+            <Route path="/dashboard/activity" element={<Transactions />} />
+            <Route path="/transactions" element={<Transactions />} />
 
             {/* Auth */}
             <Route path="/magic-link" element={<AuthMagicLink />} />
