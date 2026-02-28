@@ -7,6 +7,7 @@ import { AuthCallback } from "./pages/auth/callback";
 
 // Onboarding pages
 import { Welcome } from "./pages/onboarding/welcome";
+import { OnboardingProgress } from "./pages/onboarding/progress";
 import { VerifyPrimaryInfo } from "./pages/onboarding/primary-info";
 import { OnboardingPhoneNumbers } from "./pages/onboarding/phone-numbers";
 import { OnboardingAliases } from "./pages/onboarding/aliases";
@@ -60,6 +61,7 @@ export default function App() {
 
             {/* Onboarding */}
             <Route path="/welcome" element={<Welcome />} />
+            <Route path="/onboarding/progress" element={<OnboardingProgress />} />
             <Route path="/onboarding/primary-info" element={<VerifyPrimaryInfo />} />
             <Route path="/onboarding/phone-numbers" element={<OnboardingPhoneNumbers />} />
             <Route path="/onboarding/aliases" element={<OnboardingAliases />} />

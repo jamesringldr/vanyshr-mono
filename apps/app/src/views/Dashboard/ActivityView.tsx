@@ -371,7 +371,7 @@ export function ActivityView() {
         {[
           { label: 'Home',      Icon: Home,          path: '/dashboard/home',     active: false },
           { label: 'Exposures', Icon: Shield,         path: '/dashboard/exposures', active: false },
-          { label: 'To Do',     Icon: ClipboardList,  path: '/dashboard/todo',      active: false },
+          { label: 'Tasks',     Icon: ClipboardList,  path: '/dashboard/tasks',    active: false },
           { label: 'Activity',  Icon: Activity,       path: '/dashboard/activity',  active: true  },
         ].map(({ label, Icon, path, active }) => (
           <button

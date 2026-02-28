@@ -802,7 +802,7 @@ export function ExposuresView() {
         {[
           { label: 'Home',      Icon: Home,          path: '/dashboard/home',      active: false },
           { label: 'Exposures', Icon: Shield,         path: '/dashboard/exposures', active: true  },
-          { label: 'To Do',     Icon: ClipboardList,  path: '/dashboard/todos',     active: false },
+          { label: 'Tasks',     Icon: ClipboardList,  path: '/dashboard/tasks',    active: false },
           { label: 'Activity',  Icon: Activity,       path: '/activity',            active: false },
         ].map(({ label, Icon, path, active }) => (
           <button
