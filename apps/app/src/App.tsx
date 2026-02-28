@@ -35,6 +35,10 @@ import { TodoPage } from "./pages/dashboard/todo";
 // Other pages
 import { Pricing } from "./pages/pricing";
 import { NotFound } from "./pages/not-found";
+import { ReferralSlider } from "./pages/referral";
+
+// Sandbox Mockups
+import { VanyshrAppMockup, ScamMockup, RemovalsMockup, DataExplosionMockup } from "@vanyshr/ui";
 
 export default function App() {
     return (
@@ -68,12 +72,22 @@ export default function App() {
             <Route path="/quick-scan/compiling" element={<QSCompiling />} />
             <Route path="/quick-scan/pre-profile/:scanId?" element={<PreProfile />} />
 
+            {/* Referral */}
+            <Route path="/referral" element={<ReferralSlider />} />
+
             {/* Other */}
             <Route path="/pricing" element={<Pricing />} />
             <Route path="/scan-now" element={<ScanNow />} />
             <Route path="/searching" element={<SearchingPage />} />
             <Route path="/compiling" element={<CompilingBrandedPage />} />
             <Route path="/Loading-pre-profile" element={<LoadingPreProfilePage />} />
+            
+            {/* Sandbox Mockups */}
+            <Route path="/sandbox/notifications" element={<VanyshrAppMockup />} />
+            <Route path="/sandbox/scams" element={<ScamMockup />} />
+          <Route path="/sandbox/removals" element={<RemovalsMockup />} />
+            <Route path="/sandbox/explosion" element={<DataExplosionMockup />} />
+
             <Route path="*" element={<NotFound />} />
         </Routes>
     );
