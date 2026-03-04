@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { ChevronLeft, CheckCircle2, XCircle, Target } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 
 const STORAGE_KEY = 'vanyshr_removal_strategy';
 type RemovalStrategy = 'aggressive' | 'targeted';
@@ -48,9 +49,22 @@ const STRATEGIES: StrategyConfig[] = [
 export function OnboardingRemovalStrategy() {
   const navigate = useNavigate();
   const [selected, setSelected] = useState<RemovalStrategy>('aggressive');
+  const [isSaving, setIsSaving] = useState(false);
 
-  function handleConfirm() {
+  async function handleConfirm() {
+    if (isSaving) return;
+    setIsSaving(true);
     localStorage.setItem(STORAGE_KEY, selected);
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      await supabase
+        .from('user_profiles')
+        .update({ removal_aggression: selected })
+        .eq('auth_user_id', user.id);
+    }
+
+    setIsSaving(false);
     navigate('/onboarding/progress');
   }
 
@@ -172,9 +186,10 @@ export function OnboardingRemovalStrategy() {
       <div className="fixed bottom-0 left-0 right-0 bg-[#022136] border-t border-[#2A4A68] px-6 py-5">
         <button
           onClick={handleConfirm}
-          className="w-full h-[52px] rounded-xl bg-[#00BFFF] text-[#022136] font-bold text-base hover:bg-[#00D4FF] active:bg-[#0099CC] active:text-white transition-colors duration-150 cursor-pointer"
+          disabled={isSaving}
+          className="w-full h-[52px] rounded-xl bg-[#00BFFF] text-[#022136] font-bold text-base hover:bg-[#00D4FF] active:bg-[#0099CC] active:text-white transition-colors duration-150 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
         >
-          Confirm &amp; Continue
+          {isSaving ? 'Saving...' : 'Confirm & Continue'}
         </button>
       </div>
     </div>

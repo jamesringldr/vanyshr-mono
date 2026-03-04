@@ -30,16 +30,32 @@ export function AuthCallback() {
 
                 handled.current = true;
 
+                // Check if this auth user already has a linked Vanyshr profile.
+                // This distinguishes returning users (→ dashboard) from new users
+                // going through the QuickScan onboarding flow (→ welcome).
+                const { data: existingProfile } = await supabase
+                    .from("user_profiles")
+                    .select("id")
+                    .eq("auth_user_id", session.user.id)
+                    .maybeSingle();
+
+                if (existingProfile) {
+                    // Returning user — skip onboarding, go straight to dashboard.
+                    navigate("/dashboard", { replace: true });
+                    return;
+                }
+
                 // profile_id was encoded in the emailRedirectTo URL by magic-link.tsx
                 const params = new URLSearchParams(window.location.search);
                 const profileId = params.get("profile_id")
                     ?? sessionStorage.getItem("pendingProfileId");
 
                 if (!profileId) {
-                    // No pending profile — user may have navigated here directly.
-                    // Send them to onboarding anyway; they'll complete setup there.
-                    console.warn("AuthCallback: no profile_id found, proceeding to /welcome");
-                    navigate("/welcome", { replace: true });
+                    // No pending profile and no existing linked profile.
+                    // This means someone authenticated with an email that has no
+                    // Vanyshr account yet — likely a wrong email on /signup.
+                    const encodedEmail = encodeURIComponent(session.user.email ?? "");
+                    navigate(`/auth/wrong-email?email=${encodedEmail}`, { replace: true });
                     return;
                 }
 

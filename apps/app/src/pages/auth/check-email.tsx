@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
-import { Mail } from "lucide-react";
 import { cx } from "@/utils/cx";
 import { supabase } from "@/lib/supabase";
+import { MagicEnvelope } from "@/components/MagicEnvelope";
 
 export function CheckEmail() {
     const navigate = useNavigate();
@@ -51,18 +51,9 @@ export function CheckEmail() {
             aria-label="Check your email"
         >
             <div className="mx-auto flex w-full max-w-sm flex-col px-4 pb-10 pt-10">
-                <div className="flex justify-center">
-                    <div
-                        className={cx(
-                            "flex h-14 w-14 items-center justify-center rounded-full",
-                            "bg-[#00BFFF]/10 dark:bg-[#00BFFF]/15",
-                        )}
-                    >
-                        <Mail className="h-6 w-6 text-[#00BFFF]" aria-hidden />
-                    </div>
-                </div>
+                <MagicEnvelope />
 
-                <h1 className="mt-5 text-center text-2xl font-bold tracking-tight text-[#022136] dark:text-white">
+                <h1 className="mt-3 text-center text-2xl font-bold tracking-tight text-[#022136] dark:text-white">
                     Check your email
                 </h1>
                 <p className="mt-2 text-center text-sm text-[var(--text-muted)] dark:text-[#7A92A8]">
@@ -76,7 +67,7 @@ export function CheckEmail() {
                 <div className="mt-2 text-center">
                     <button
                         type="button"
-                        onClick={() => navigate(`/magic-link`)}
+                        onClick={() => navigate(`/signup`)}
                         className="text-xs font-medium text-[#00BFFF] hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 outline-focus-ring rounded"
                     >
                         Change email address

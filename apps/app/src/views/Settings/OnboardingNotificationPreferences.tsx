@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 const STORAGE_KEY = 'vanyshr_notif_tier';
 type NotificationTier = 'all' | 'general' | 'primary' | 'critical' | 'manual';
 
@@ -15,6 +16,43 @@ interface TierConfig {
   description: string;
   isNavigator?: boolean;
 }
+
+// Client-side mirror of the notification_settings_for_tier() SQL function.
+// Keep in sync with supabase/migrations/20260304_user_tables_setup.sql Section 1d.
+const TIER_SETTINGS: Record<Exclude<NotificationTier, 'manual'>, object> = {
+  all: {
+    alerts:          { darkWebBreach: true,  brokerExposure: true,  tasks: 'new' },
+    scanActivity:    { brokerScanComplete: true,  darkWebScanComplete: true },
+    removalActivity: { submitted: true,  confirmed: true },
+    recapReports:    { securitySnapshot: 'weekly', removalRecap: true },
+    productUpdates:  { featureAnnouncements: true,  dealsDiscounts: true },
+    newsInfo:        { newsletter: true,  securityTips: true,  cyberSecurityAlerts: true },
+  },
+  general: {
+    alerts:          { darkWebBreach: true,  brokerExposure: true,  tasks: 'new' },
+    scanActivity:    { brokerScanComplete: true,  darkWebScanComplete: true },
+    removalActivity: { submitted: true,  confirmed: true },
+    recapReports:    { securitySnapshot: 'weekly', removalRecap: true },
+    productUpdates:  { featureAnnouncements: false, dealsDiscounts: false },
+    newsInfo:        { newsletter: false, securityTips: false, cyberSecurityAlerts: true },
+  },
+  primary: {
+    alerts:          { darkWebBreach: true,  brokerExposure: true,  tasks: 'new' },
+    scanActivity:    { brokerScanComplete: true,  darkWebScanComplete: true },
+    removalActivity: { submitted: false, confirmed: false },
+    recapReports:    { securitySnapshot: 'weekly', removalRecap: false },
+    productUpdates:  { featureAnnouncements: false, dealsDiscounts: false },
+    newsInfo:        { newsletter: false, securityTips: false, cyberSecurityAlerts: false },
+  },
+  critical: {
+    alerts:          { darkWebBreach: true,  brokerExposure: true,  tasks: 'reminders' },
+    scanActivity:    { brokerScanComplete: false, darkWebScanComplete: false },
+    removalActivity: { submitted: false, confirmed: false },
+    recapReports:    { securitySnapshot: 'monthly', removalRecap: true },
+    productUpdates:  { featureAnnouncements: false, dealsDiscounts: false },
+    newsInfo:        { newsletter: false, securityTips: false, cyberSecurityAlerts: false },
+  },
+};
 
 const TIERS: TierConfig[] = [
   {
@@ -59,17 +97,33 @@ const TIERS: TierConfig[] = [
 export function OnboardingNotificationPreferences() {
   const navigate = useNavigate();
   const [selectedTier, setSelectedTier] = useState<NotificationTier>('general');
+  const [isSaving, setIsSaving] = useState(false);
 
   function handleTierSelect(id: NotificationTier) {
     if (id === 'manual') {
-      navigate('/settings/notifications/manual');
+      navigate('/settings/notifications');
       return;
     }
     setSelectedTier(id);
   }
 
-  function handleConfirm() {
+  async function handleConfirm() {
+    if (isSaving) return;
+    setIsSaving(true);
     localStorage.setItem(STORAGE_KEY, selectedTier);
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      await supabase
+        .from('user_profiles')
+        .update({
+          notification_tier:     selectedTier,
+          notification_settings: TIER_SETTINGS[selectedTier as Exclude<NotificationTier, 'manual'>],
+        })
+        .eq('auth_user_id', user.id);
+    }
+
+    setIsSaving(false);
     navigate('/onboarding/progress');
   }
 
@@ -155,9 +209,10 @@ export function OnboardingNotificationPreferences() {
       <div className="fixed bottom-0 left-0 right-0 bg-[#022136] border-t border-[#2A4A68] px-6 py-5">
         <button
           onClick={handleConfirm}
-          className="w-full h-[52px] rounded-xl bg-[#00BFFF] text-[#022136] font-bold text-base hover:bg-[#00D4FF] active:bg-[#0099CC] active:text-white transition-colors duration-150 cursor-pointer"
+          disabled={isSaving}
+          className="w-full h-[52px] rounded-xl bg-[#00BFFF] text-[#022136] font-bold text-base hover:bg-[#00D4FF] active:bg-[#0099CC] active:text-white transition-colors duration-150 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
         >
-          Confirm
+          {isSaving ? 'Saving...' : 'Confirm'}
         </button>
       </div>
     </div>

@@ -288,7 +288,7 @@ export function PreProfile() {
             sessionStorage.setItem("pendingProfileId", result.profile_id);
             sessionStorage.setItem("pendingScanId", scanId);
 
-            navigate(`/magic-link`);
+            navigate(`/signup`);
         } catch (err) {
             console.error("handleStartVanyshing error:", err);
             setStartError(err instanceof Error ? err.message : "Something went wrong. Please try again.");

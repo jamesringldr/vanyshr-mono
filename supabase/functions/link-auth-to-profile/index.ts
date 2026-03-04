@@ -75,6 +75,20 @@ serve(async (req) => {
     }
 
     if (!data?.success) {
+      // "already linked to this auth user" means the DB trigger ran first.
+      // Treat it as a success so the auth callback can proceed normally.
+      const alreadyLinked =
+        typeof data?.error === "string" &&
+        data.error.toLowerCase().includes("already linked");
+
+      if (alreadyLinked) {
+        console.log(`ℹ️ Profile already linked (trigger ran first): profile_id=${profile_id}`);
+        return new Response(
+          JSON.stringify({ success: true, profile_id, auth_user_id: user.id }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
       return new Response(
         JSON.stringify({ success: false, error: data?.error ?? "Unknown error" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

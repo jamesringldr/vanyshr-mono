@@ -4,6 +4,8 @@ import { Route, Routes } from "react-router";
 import { AuthMagicLink } from "./pages/auth/magic-link";
 import { CheckEmail } from "./pages/auth/check-email";
 import { AuthCallback } from "./pages/auth/callback";
+import { DashboardLogin } from "./pages/auth/dashboard-login";
+import { WrongEmail } from "./pages/auth/wrong-email";
 
 // Onboarding pages
 import { Welcome } from "./pages/onboarding/welcome";
@@ -62,9 +64,11 @@ export default function App() {
             <Route path="/transactions" element={<Transactions />} />
 
             {/* Auth */}
-            <Route path="/magic-link" element={<AuthMagicLink />} />
+            <Route path="/signup" element={<AuthMagicLink />} />
             <Route path="/check-email" element={<CheckEmail />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
+            <Route path="/dashboard/login" element={<DashboardLogin />} />
+            <Route path="/auth/wrong-email" element={<WrongEmail />} />
 
             {/* Onboarding */}
             <Route path="/welcome" element={<Welcome />} />

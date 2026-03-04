@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import PrimaryIconOutline from "@vanyshr/ui/assets/PrimaryIcon-outline.png";
-import { Mail } from "lucide-react";
+import { Mail, Check, Zap, Key } from "lucide-react";
 import { cx } from "@/utils/cx";
 import { supabase } from "@/lib/supabase";
 
@@ -10,6 +10,7 @@ export function AuthMagicLink() {
     const [email, setEmail] = useState("");
     const [isSending, setIsSending] = useState(false);
     const [authError, setAuthError] = useState<string | null>(null);
+    const [showExistingModal, setShowExistingModal] = useState(false);
 
     const isValid = useMemo(() => /\S+@\S+\.\S+/.test(email.trim()), [email]);
 
@@ -18,6 +19,26 @@ export function AuthMagicLink() {
         setIsSending(true);
         setAuthError(null);
 
+        // Pre-flight: check if this email already has a Supabase auth account.
+        // signInWithOtp with shouldCreateUser: false succeeds silently if the user
+        // exists (and sends them a clean sign-in link), or returns an error if not.
+        const { error: existsError } = await supabase.auth.signInWithOtp({
+            email: email.trim(),
+            options: {
+                shouldCreateUser: false,
+                emailRedirectTo: `${window.location.origin}/auth/callback`,
+            },
+        });
+
+        if (!existsError) {
+            // Email exists — magic link was already sent by the pre-flight call.
+            // Show the "Wrong Email?" modal instead of continuing the new-user flow.
+            setShowExistingModal(true);
+            setIsSending(false);
+            return;
+        }
+
+        // Email is new — proceed with new account creation.
         // Build the redirect URL with profile_id encoded as a query param
         // so the auth callback can link the pending profile after auth completes.
         const profileId = sessionStorage.getItem("pendingProfileId");
@@ -26,13 +47,24 @@ export function AuthMagicLink() {
             redirectUrl.searchParams.set("profile_id", profileId);
         }
 
+        // Pass profile_id (and scan_id if present) in options.data so they land
+        // in raw_user_meta_data on the auth.users row. The DB trigger reads this
+        // to link the pending profile at the moment auth is confirmed, before
+        // the edge function call in the callback even fires.
+        const scanId = sessionStorage.getItem("pendingScanId");
+        const metaData = profileId
+            ? {
+                  profile_id: profileId,
+                  ...(scanId ? { source_quick_scan_id: scanId } : {}),
+              }
+            : undefined;
+
         const { error } = await supabase.auth.signInWithOtp({
             email: email.trim(),
             options: {
                 emailRedirectTo: redirectUrl.toString(),
-                // Prevent Supabase from auto-creating a new user session
-                // before we have a chance to link it to the pending profile.
                 shouldCreateUser: true,
+                data: metaData,
             },
         });
 
@@ -55,28 +87,73 @@ export function AuthMagicLink() {
             aria-label="Send secure magic link"
         >
             <div className="mx-auto flex w-full max-w-sm flex-col px-4 pb-10 pt-10">
+
                 {/* Icon */}
                 <div className="flex justify-center">
                     <img
                         src={PrimaryIconOutline}
                         alt=""
-                        className="h-14 w-14"
+                        className="h-20 w-20"
                         aria-hidden
                     />
                 </div>
 
-                {/* Title */}
-                <h1 className="mt-5 text-center text-2xl font-bold tracking-tight text-[#022136] dark:text-white">
-                    Secure your privacy
+                {/* Hero copy */}
+                <h1 className="mt-6 text-center text-4xl font-bold tracking-tighter text-[#022136] dark:text-white font-ubuntu">
+                    Time to <span className="text-[#00BFFF] italic">Vanysh.</span>
                 </h1>
-                <p className="mt-2 text-center text-sm text-[var(--text-muted)] dark:text-[#7A92A8]">
-                    Sign in with a secure magic link
+                <p className="mt-3 text-center text-base text-[#B8C4CC] font-ubuntu">
+                    Add your email to create your account.
                 </p>
+
+                {/* Setup time chip */}
+                <div className="mt-6 flex justify-center">
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-[#00BFFF]/10 border border-[#00BFFF]/30 px-3 py-1.5 text-xs font-medium text-[#00BFFF] font-ubuntu">
+                        <Zap className="w-3.5 h-3.5" aria-hidden />
+                        2 mins to complete setup
+                    </span>
+                </div>
+
+                {/* Feature bullets */}
+                <ul className="mt-5 flex flex-col gap-4 text-left" role="list">
+                    <li className="flex items-start gap-4">
+                        <div className="mt-0.5 flex shrink-0 items-center justify-center w-6 h-6 rounded-full bg-[#00D4AA]/10 border border-[#00D4AA]/30">
+                            <Check className="w-4 h-4 text-[#00D4AA]" strokeWidth={3} aria-hidden />
+                        </div>
+                        <p className="text-white text-sm leading-snug font-ubuntu">
+                            Scan <span className="font-bold text-[#00BFFF]">500+ data brokers</span> and people search sites — continuously, not just once
+                        </p>
+                    </li>
+                    <li className="flex items-start gap-4">
+                        <div className="mt-0.5 flex shrink-0 items-center justify-center w-6 h-6 rounded-full bg-[#00D4AA]/10 border border-[#00D4AA]/30">
+                            <Check className="w-4 h-4 text-[#00D4AA]" strokeWidth={3} aria-hidden />
+                        </div>
+                        <p className="text-sm leading-snug font-ubuntu text-white">
+                            <span className="font-bold text-[#00BFFF]">Automated removal requests</span> sent on your behalf — no tedious opt-out forms
+                        </p>
+                    </li>
+                    <li className="flex items-start gap-4">
+                        <div className="mt-0.5 flex shrink-0 items-center justify-center w-6 h-6 rounded-full bg-[#00D4AA]/10 border border-[#00D4AA]/30">
+                            <Check className="w-4 h-4 text-[#00D4AA]" strokeWidth={3} aria-hidden />
+                        </div>
+                        <p className="text-white text-sm leading-snug font-ubuntu">
+                            <span className="font-bold text-[#00BFFF]">Dark web monitoring</span> with instant breach alerts
+                        </p>
+                    </li>
+                    <li className="flex items-start gap-4">
+                        <div className="mt-0.5 flex shrink-0 items-center justify-center w-6 h-6 rounded-full bg-[#00D4AA]/10 border border-[#00D4AA]/30">
+                            <Check className="w-4 h-4 text-[#00D4AA]" strokeWidth={3} aria-hidden />
+                        </div>
+                        <p className="text-white text-sm leading-snug font-ubuntu">
+                            Track your progress in real time — and protect family members too
+                        </p>
+                    </li>
+                </ul>
 
                 {/* Form */}
                 <div
                     className={cx(
-                        "mt-6 rounded-xl border p-4",
+                        "mt-8 rounded-xl border p-4",
                         "bg-[var(--bg-surface)] dark:bg-[#2D3847]",
                         "border-[var(--border-subtle)] dark:border-[#2A4A68]",
                     )}
@@ -136,24 +213,64 @@ export function AuthMagicLink() {
                 </div>
 
                 {/* Trust row */}
-                <div className="mt-4 px-2 text-center">
-                    <p className="text-xs text-[var(--text-muted)] dark:text-[#7A92A8]">
-                        <span className="font-medium text-[#00D4AA]">Encrypted &amp; Secure</span>{" "}
-                        | No Password to Remember
-                        <br />
-                        We never spam, sell, or share your email. Full control over notifications.
+                <div className="mt-4 flex flex-col items-center gap-2">
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-[#00D4AA]/10 border border-[#00D4AA]/30 px-3 py-1.5 text-xs font-medium text-[#00D4AA] font-ubuntu">
+                        <Key className="w-3.5 h-3.5" aria-hidden />
+                        Encrypted &amp; Secure
+                    </span>
+                    <p className="text-xs text-[#7A92A8] font-ubuntu">
+                        Magic Link Auth = No Passwords to Remember
+                    </p>
+                    <p className="text-xs font-bold text-white font-ubuntu">
+                        We never spam, sell, or share your email.
                     </p>
                 </div>
 
                 <div className="mt-4 text-center">
                     <Link
-                        to="/welcome"
+                        to="/dashboard/login"
                         className="text-xs font-medium text-[#00BFFF] hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 outline-focus-ring rounded"
                     >
-                        Continue without signing in
+                        Already have an account? Sign in here
                     </Link>
                 </div>
             </div>
+
+            {/* Wrong Email modal */}
+            {showExistingModal && (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="wrong-email-title"
+                >
+                    <div className="w-full max-w-sm rounded-2xl bg-[#2D3847] border border-[#2A4A68] p-6 flex flex-col gap-4 shadow-xl">
+                        <div className="flex flex-col gap-2">
+                            <h2
+                                id="wrong-email-title"
+                                className="text-lg font-bold text-white"
+                            >
+                                Wrong Email?
+                            </h2>
+                            <p className="text-sm text-[#B8C4CC]">
+                                We found an existing Vanyshr account for{" "}
+                                <span className="font-semibold text-white">{email.trim()}</span>.
+                            </p>
+                            <p className="text-sm text-[#7A92A8]">
+                                If you meant to use a different email, go back and try again.
+                                If this is correct, check your inbox — we sent you a sign-in link.
+                            </p>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => navigate("/signup")}
+                            className="w-full h-[52px] rounded-xl bg-[#00BFFF] text-[#022136] font-bold text-base hover:bg-[#00D4FF] active:bg-[#0099CC] transition-colors duration-150 cursor-pointer"
+                        >
+                            Change Email
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
