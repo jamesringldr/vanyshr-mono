@@ -10,8 +10,8 @@ import {
     User,
     Home,
     Mail,
-    Bell,
     Target,
+    Bell,
     ArrowRight,
 } from "lucide-react";
 import PrimaryLogoDark from "@vanyshr/ui/assets/PrimaryLogo-DarkMode.png";
@@ -243,12 +243,67 @@ function StepCard({
 }
 
 // ---------------------------------------------------------------------------
+// Completion Modal
+// ---------------------------------------------------------------------------
+function CompletionModal({ onDashboard }: { onDashboard: () => void }) {
+    return (
+        <div
+            className="fixed inset-0 z-50 flex items-end justify-center px-4 pb-0"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Setup complete"
+        >
+            {/* Backdrop */}
+            <div className="absolute inset-0 bg-[#022136]/80 backdrop-blur-sm" />
+
+            {/* Sheet */}
+            <div className="relative w-full max-w-lg rounded-t-3xl bg-[#2D3847] border border-[#2A4A68] border-b-0 px-6 pt-8 pb-10 flex flex-col items-center gap-5">
+                {/* Glow ring */}
+                <div className="flex h-20 w-20 items-center justify-center rounded-full bg-[#00D4AA]/15 border-2 border-[#00D4AA]/40">
+                    <Check className="h-9 w-9 text-[#00D4AA]" aria-hidden />
+                </div>
+
+                <div className="text-center">
+                    <h2 className="text-xl font-bold text-white font-ubuntu">
+                        Setup is Complete!
+                    </h2>
+                    <p className="mt-2 text-sm text-[#B8C4CC] font-ubuntu leading-relaxed">
+                        You have officially started{" "}
+                        <span className="text-[#00BFFF] font-semibold">Vanyshing!</span>
+                        <br />
+                        We have started your first scans and removals.
+                        <br />
+                        See your progress.
+                    </p>
+                </div>
+
+                <button
+                    type="button"
+                    onClick={onDashboard}
+                    className={cx(
+                        "mt-1 flex h-[52px] w-full items-center justify-center rounded-xl font-ubuntu",
+                        "text-sm font-semibold text-[#022136] bg-[#00BFFF] hover:bg-[#00D4FF]",
+                        "transition-colors duration-150 outline-none",
+                        "focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2 focus-visible:ring-offset-[#2D3847]",
+                    )}
+                >
+                    Dashboard
+                </button>
+            </div>
+        </div>
+    );
+}
+
+// ---------------------------------------------------------------------------
 // Main page
 // ---------------------------------------------------------------------------
+const COMPLETE_MODAL_KEY = "vanyshr_onboarding_complete_seen";
+
 export function OnboardingProgress() {
     const [onboardingStep, setOnboardingStep] = useState(0);
     const [isLoading, setIsLoading] = useState(true);
     const [expandedStep, setExpandedStep] = useState<number>(1);
+    const [showModal, setShowModal] = useState(false);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -267,6 +322,17 @@ export function OnboardingProgress() {
         }
         load();
     }, []);
+
+    // Show completion modal once all 3 main steps are done
+    useEffect(() => {
+        if (isLoading) return;
+        const step1Done = onboardingStep >= 5;
+        const step2Done = !!localStorage.getItem("vanyshr_removal_strategy");
+        const step3Done = !!localStorage.getItem("vanyshr_notif_tier");
+        if (step1Done && step2Done && step3Done && !localStorage.getItem(COMPLETE_MODAL_KEY)) {
+            setShowModal(true);
+        }
+    }, [isLoading, onboardingStep]);
 
     // Sub-tasks for step 1 (Search Profile Setup)
     const subTasks = [
@@ -303,8 +369,9 @@ export function OnboardingProgress() {
     ];
 
     const step1Complete = onboardingStep >= 5;
-    const step2Complete = onboardingStep >= 6;
-    const step3Complete = onboardingStep >= 7;
+    // Steps 2 & 3 are saved to localStorage by their respective views
+    const step2Complete = !!localStorage.getItem("vanyshr_removal_strategy");
+    const step3Complete = !!localStorage.getItem("vanyshr_notif_tier");
 
     // Overall progress: 5 profile sub-tasks + 2 preference steps = 7 units
     const completedSubTasks = subTasks.filter((t) => t.isComplete).length;
@@ -320,8 +387,15 @@ export function OnboardingProgress() {
         );
     }
 
+    function handleDashboard() {
+        localStorage.setItem(COMPLETE_MODAL_KEY, "1");
+        navigate("/dashboard/home");
+    }
+
     return (
         <div className="flex min-h-screen flex-col bg-[#022136]">
+            {showModal && <CompletionModal onDashboard={handleDashboard} />}
+
             {/* ----------------------------------------------------------------
                 Header
             ---------------------------------------------------------------- */}
@@ -419,30 +493,30 @@ export function OnboardingProgress() {
                             </StepCard>
                         </div>
 
-                        {/* Step 2 — Notification Preferences */}
+                        {/* Step 2 — Removal Strategy */}
                         <div role="listitem">
                             <StepCard
                                 stepNumber={2}
-                                title="Notification Preferences"
-                                description="Choose how and when we alert you"
+                                title="Removal Strategy"
+                                description="Set how aggressively we remove your data"
                                 isComplete={step2Complete}
                                 isExpanded={false}
                                 onToggle={() => {}}
-                                onNavigate={() => navigate("/onboarding/notifications")}
+                                onNavigate={() => navigate("/onboarding/removal-strategy")}
                                 hasSubTasks={false}
                             />
                         </div>
 
-                        {/* Step 3 — Removal Aggression Preferences */}
+                        {/* Step 3 — Notification Preferences */}
                         <div role="listitem">
                             <StepCard
                                 stepNumber={3}
-                                title="Removal Aggression"
-                                description="Set how aggressively we remove your data"
+                                title="Notification Preferences"
+                                description="Choose how and when we alert you"
                                 isComplete={step3Complete}
                                 isExpanded={false}
                                 onToggle={() => {}}
-                                onNavigate={() => navigate("/onboarding/removal-aggression")}
+                                onNavigate={() => navigate("/onboarding/notifications")}
                                 hasSubTasks={false}
                             />
                         </div>

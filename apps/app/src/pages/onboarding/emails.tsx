@@ -214,7 +214,7 @@ export function OnboardingEmails() {
             }
         }
         setIsSaving(false);
-        navigate("/");
+        navigate("/onboarding/progress");
     };
 
     if (isLoading) {
@@ -249,7 +249,7 @@ export function OnboardingEmails() {
                         isSaving && "opacity-60 cursor-not-allowed",
                     )}
                 >
-                    {isSaving ? "Finishing..." : "Finish Setup"}
+                    {isSaving ? "Saving..." : "Finish Profile"}
                 </button>
             }
         >

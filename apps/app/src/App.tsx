@@ -33,6 +33,13 @@ import { DarkWebPage } from "./pages/dashboard/dark-web";
 import { ExposuresPage } from "./pages/dashboard/exposures";
 import { TodoPage } from "./pages/dashboard/todo";
 
+// Settings pages
+import { NotificationsPage } from "./pages/settings/notifications";
+
+// Onboarding — notifications
+import { OnboardingNotifications } from "./pages/onboarding/notifications";
+import { OnboardingRemovalStrategyPage } from "./pages/onboarding/removal-strategy";
+
 // Other pages
 import { Pricing } from "./pages/pricing";
 import { NotFound } from "./pages/not-found";
@@ -67,12 +74,17 @@ export default function App() {
             <Route path="/onboarding/aliases" element={<OnboardingAliases />} />
             <Route path="/onboarding/addresses" element={<OnboardingAddresses />} />
             <Route path="/onboarding/emails" element={<OnboardingEmails />} />
+            <Route path="/onboarding/removal-strategy" element={<OnboardingRemovalStrategyPage />} />
+            <Route path="/onboarding/notifications" element={<OnboardingNotifications />} />
 
             {/* Quick Scan */}
             <Route path="/quick-scan" element={<QuickScan />} />
             <Route path="/quick-scan/scanning" element={<QSScanning />} />
             <Route path="/quick-scan/compiling" element={<QSCompiling />} />
             <Route path="/quick-scan/pre-profile/:scanId?" element={<PreProfile />} />
+
+            {/* Settings */}
+            <Route path="/settings/notifications" element={<NotificationsPage />} />
 
             {/* Referral */}
             <Route path="/referral" element={<ReferralSlider />} />

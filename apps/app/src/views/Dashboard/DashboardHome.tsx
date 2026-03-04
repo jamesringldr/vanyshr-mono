@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { UserDrawer } from './UserDrawer';
 import {
@@ -41,29 +41,28 @@ interface DataBreach {
 // Mock Data (non-breach sections remain mocked)
 // ─────────────────────────────────────────────────────────────────────────────
 
-const EXPOSURES_DATA: Record<Timeframe, { count: number; delta: string; points: [number, number][] }> = {
-  '30D': { count: 14, delta: '+3',  points: [[0,18],[10,14],[20,10],[30,8],[40,6],[50,6],[60,6]] },
-  '90D': { count: 31, delta: '+8',  points: [[0,20],[10,17],[20,13],[30,10],[40,8],[50,5],[60,3]] },
-  'All': { count: 47, delta: '+12', points: [[0,22],[10,18],[20,14],[30,10],[40,6],[50,4],[60,2]] },
+const EXPOSURES_DATA: Record<Timeframe, { count: number; delta: string }> = {
+  '30D': { count: 14, delta: '+3' },
+  '90D': { count: 31, delta: '+8' },
+  'All': { count: 47, delta: '+12' },
 };
 
-const NEEDS_ATTENTION_DATA = {
+const REMOVALS_SUBMITTED_DATA = {
   count: 12,
   delta: '+3',
-  points: [[0,18],[10,17],[20,16],[30,14],[40,12],[50,10],[60,8]] as [number, number][],
 };
 
-const IN_PROGRESS_DATA: Record<Timeframe, { count: number; delta: string; points: [number, number][] }> = {
-  '30D': { count: 9,  delta: '-2', points: [[0,5],[10,7],[20,10],[30,13],[40,15],[50,16],[60,18]] },
-  '90D': { count: 22, delta: '-5', points: [[0,4],[10,6],[20,10],[30,14],[40,17],[50,20],[60,22]] },
-  'All': { count: 31, delta: '-8', points: [[0,3],[10,6],[20,9],[30,13],[40,17],[50,20],[60,22]] },
+const REMOVALS_CONFIRMED_DATA: Record<Timeframe, { count: number; delta: string }> = {
+  '30D': { count: 9,  delta: '-2' },
+  '90D': { count: 22, delta: '-5' },
+  'All': { count: 31, delta: '-8' },
 };
 
 const CARD_INFO: Record<string, string> = {
-  'exposures':       'Broker & people-search listings',
-  'breaches':        'Credentials found in dark web leaks',
-  'needs-attention': 'Credential leaks requiring your action',
-  'in-progress':     'Removal requests submitted & pending',
+  'exposures':       'Brokers where your data is currently exposed',
+  'breaches':        'Unresolved Breaches found on the dark web',
+  'needs-attention': 'Number of removal requests submitted',
+  'in-progress':     'Number of brokers Vanyshr has successfully removed',
 };
 
 const ACTIVITY_ITEMS: {
@@ -122,6 +121,40 @@ const ACTIVITY_ITEMS: {
   },
 ];
 
+const REMOVAL_ACTIVITY_ITEMS: {
+  id: string;
+  status: ActivityStatus;
+  title: string;
+  descriptor: string;
+  time: string;
+  minutesAgo: number;
+}[] = [
+  {
+    id: 'removal-spokeo',
+    status: 'Complete',
+    title: 'Spokeo',
+    descriptor: 'Record successfully removed',
+    time: '1d ago',
+    minutesAgo: 1440,
+  },
+  {
+    id: 'removal-whitepages',
+    status: 'In Progress',
+    title: 'Whitepages',
+    descriptor: 'Opt-out submitted, awaiting confirmation',
+    time: '7h ago',
+    minutesAgo: 420,
+  },
+  {
+    id: 'removal-acxiom',
+    status: 'In Progress',
+    title: 'Acxiom',
+    descriptor: 'Removal request is currently processing',
+    time: '3h ago',
+    minutesAgo: 180,
+  },
+];
+
 const ACTIVITY_STYLES: Record<ActivityType, { bg: string; iconColor: string; Icon: React.ElementType }> = {
   'Broker Scan':   { bg: 'bg-[#00BFFF]/10', iconColor: 'text-[#00BFFF]', Icon: Search        },
   'Dark Web Scan': { bg: 'bg-[#7A92A8]/10', iconColor: 'text-[#7A92A8]', Icon: Shield        },
@@ -129,10 +162,15 @@ const ACTIVITY_STYLES: Record<ActivityType, { bg: string; iconColor: string; Ico
   'New Exposure':  { bg: 'bg-[#FF8A00]/10', iconColor: 'text-[#FF8A00]', Icon: AlertTriangle },
 };
 
-const BROKER_ITEMS: { broker: string; initials: string; status: BrokerStatus }[] = [
-  { broker: 'Acxiom',     initials: 'AC', status: 'Exposed'           },
-  { broker: 'Whitepages', initials: 'WP', status: 'Removal Requested' },
-  { broker: 'Spokeo',     initials: 'SP', status: 'Removed'           },
+const STATUS_CHIP_STYLES: Record<ActivityStatus, { bg: string; text: string; label: string }> = {
+  'In Progress': { bg: 'bg-[#00BFFF]/20', text: 'text-[#00BFFF]', label: 'IN PROGRESS' },
+  'Complete': { bg: 'bg-[#00D4AA]/20', text: 'text-[#00D4AA]', label: 'COMPLETE' },
+};
+
+const BROKER_ITEMS: { broker: string; initials: string; status: BrokerStatus; minutesAgo: number }[] = [
+  { broker: 'Acxiom',     initials: 'AC', status: 'Exposed',           minutesAgo: 35 },
+  { broker: 'Whitepages', initials: 'WP', status: 'Removal Requested', minutesAgo: 110 },
+  { broker: 'Spokeo',     initials: 'SP', status: 'Removed',           minutesAgo: 260 },
 ];
 
 const BROKER_STATUS_STYLES: Record<BrokerStatus, { dot: string; text: string; label: string }> = {
@@ -141,24 +179,6 @@ const BROKER_STATUS_STYLES: Record<BrokerStatus, { dot: string; text: string; la
   'Removed':           { dot: 'bg-[#00D4AA]', text: 'text-[#00D4AA]', label: 'Opt-out Confirmed'    },
   'New':               { dot: 'bg-[#00BFFF]', text: 'text-[#00BFFF]', label: 'New · Just Found'     },
 };
-
-// Flat sparkline used for the Breaches card
-const BREACH_SPARKLINE_POINTS: [number, number][] = [[0,12],[10,12],[20,12],[30,12],[40,12],[50,12],[60,12]];
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Sparkline (inline SVG, no library)
-// ─────────────────────────────────────────────────────────────────────────────
-
-function Sparkline({ points, stroke, fill }: { points: [number, number][]; stroke: string; fill: string }) {
-  const linePoints = points.map(([x, y]) => `${x},${y}`).join(' ');
-  const areaPoints = `${linePoints} 60,24 0,24`;
-  return (
-    <svg viewBox="0 0 60 24" width={60} height={24} aria-hidden="true">
-      <polygon points={areaPoints} fill={fill} fillOpacity={0.2} />
-      <polyline points={linePoints} stroke={stroke} strokeWidth={1.5} fill="none" strokeLinejoin="round" strokeLinecap="round" />
-    </svg>
-  );
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -173,6 +193,25 @@ function formatBreachDate(dateStr: string | null): string {
   }
 }
 
+function getDeltaColor(delta: string, cardTrend: 'risk' | 'progress'): string {
+  const isNegative = delta.startsWith('-');
+  const isPositive = delta.startsWith('+');
+
+  if (!isNegative && !isPositive) return 'text-[#B8C4CC]';
+
+  if (cardTrend === 'risk') {
+    return isPositive ? 'text-[#EF4444]' : 'text-[#00D4AA]';
+  }
+  return isPositive ? 'text-[#00D4AA]' : 'text-[#EF4444]';
+}
+
+function toMinutesAgo(dateStr: string | null): number {
+  if (!dateStr) return Number.MAX_SAFE_INTEGER;
+  const timestamp = new Date(dateStr).getTime();
+  if (Number.isNaN(timestamp)) return Number.MAX_SAFE_INTEGER;
+  return Math.max(0, Math.floor((Date.now() - timestamp) / 60000));
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // DashboardHome
 // ─────────────────────────────────────────────────────────────────────────────
@@ -184,6 +223,7 @@ export function DashboardHome() {
   const [userDrawerOpen, setUserDrawerOpen] = useState(false);
   const [openInfoCard, setOpenInfoCard]     = useState<string | null>(null);
   const [showAllCaughtUp, setShowAllCaughtUp] = useState(false);
+  const prevBreachCountRef = useRef(0);
 
   // Breach state (real DB data)
   const [profileId, setProfileId]           = useState<string | null>(null);
@@ -191,8 +231,44 @@ export function DashboardHome() {
   const [breachesLoaded, setBreachesLoaded] = useState(false);
 
   const exposures  = EXPOSURES_DATA[timeframe];
-  const inProgress = IN_PROGRESS_DATA[timeframe];
-  const sortedActivityItems = [...ACTIVITY_ITEMS].sort((a, b) => a.minutesAgo - b.minutesAgo);
+  const removalsConfirmed = REMOVALS_CONFIRMED_DATA[timeframe];
+  const breachesDelta = breachesLoaded ? (newBreaches.length > 0 ? `+${newBreaches.length}` : '0') : '—';
+  const latestScanByType = ACTIVITY_ITEMS
+    .filter(item => item.type === 'Dark Web Scan' || item.type === 'Broker Scan')
+    .reduce<Record<'Dark Web Scan' | 'Broker Scan', (typeof ACTIVITY_ITEMS)[number] | null>>(
+      (acc, item) => {
+        if (!acc[item.type] || item.minutesAgo < acc[item.type]!.minutesAgo) {
+          acc[item.type] = item;
+        }
+        return acc;
+      },
+      { 'Dark Web Scan': null, 'Broker Scan': null },
+    );
+  const scanStatusItems = (Object.values(latestScanByType).filter(Boolean) as (typeof ACTIVITY_ITEMS)[number][])
+    .map(item => ({ ...item, title: item.type }))
+    .sort((a, b) => a.minutesAgo - b.minutesAgo);
+  const sortedRemovalItems = [...REMOVAL_ACTIVITY_ITEMS].sort((a, b) => a.minutesAgo - b.minutesAgo);
+  const recentBrokerAndBreachItems = [
+    ...BROKER_ITEMS.map(item => ({
+      kind: 'broker' as const,
+      id: `broker-${item.broker.toLowerCase()}`,
+      title: item.broker,
+      subtitle: BROKER_STATUS_STYLES[item.status].label,
+      minutesAgo: item.minutesAgo,
+      initials: item.initials,
+      brokerStatus: item.status,
+    })),
+    ...newBreaches.map(item => ({
+      kind: 'breach' as const,
+      id: `breach-${item.id}`,
+      title: item.breach_title || item.breach_name,
+      subtitle: item.matched_email,
+      minutesAgo: toMinutesAgo(item.created_at),
+      status: item.status,
+    })),
+  ]
+    .sort((a, b) => a.minutesAgo - b.minutesAgo)
+    .slice(0, 5);
 
   // ── Fetch new breaches on mount ──────────────────────────────────────────
   useEffect(() => {
@@ -222,14 +298,23 @@ export function DashboardHome() {
     loadBreaches();
   }, []);
 
-  // ── Show "all caught up" briefly after last breach is dismissed ──────────
+  // Show "all caught up" only when updates actually transition to zero.
   useEffect(() => {
-    if (breachesLoaded && newBreaches.length === 0 && profileId !== null) {
+    if (!breachesLoaded) return;
+
+    const currentCount = newBreaches.length;
+    const previousCount = prevBreachCountRef.current;
+
+    if (previousCount > 0 && currentCount === 0) {
       setShowAllCaughtUp(true);
       const timer = window.setTimeout(() => setShowAllCaughtUp(false), 1800);
+      prevBreachCountRef.current = currentCount;
       return () => window.clearTimeout(timer);
     }
-  }, [breachesLoaded, newBreaches.length, profileId]);
+
+    prevBreachCountRef.current = currentCount;
+    return undefined;
+  }, [breachesLoaded, newBreaches.length]);
 
   // ── Dismiss: set status → 'unresolved' (optimistic) ─────────────────────
   async function dismissBreach(breachId: string) {
@@ -321,11 +406,11 @@ export function DashboardHome() {
           {/* ── METRIC CARDS — 2×2 GRID ──────────────────────────────────── */}
           <section className="grid grid-cols-2 gap-3">
 
-            {/* Card 1 — Exposures */}
+            {/* Card 1 — Brokers */}
             <div className="bg-[#2D3847] border border-[#2A4A68] rounded-2xl p-4 flex flex-col gap-2">
               <div className="flex items-center">
-                <span className="text-xs font-medium text-[#B8C4CC] uppercase tracking-wide">Exposures</span>
-                <button className="ml-auto p-0.5" onClick={() => toggleInfo('exposures')} aria-label="More info about Exposures">
+                <span className="text-xs font-medium text-[#B8C4CC] uppercase tracking-wide">Brokers</span>
+                <button className="ml-auto p-0.5" onClick={() => toggleInfo('exposures')} aria-label="More info about Brokers">
                   <Info className={`w-3.5 h-3.5 transition-colors duration-150 ${openInfoCard === 'exposures' ? 'text-[#00BFFF]' : 'text-[#7A92A8]'}`} />
                 </button>
               </div>
@@ -334,10 +419,9 @@ export function DashboardHome() {
                   <p className="text-[11px] text-[#B8C4CC] leading-snug">{CARD_INFO['exposures']}</p>
                 </div>
               )}
-              <p className="text-3xl font-bold text-white">{exposures.count}</p>
-              <div className="flex items-center gap-2">
-                <Sparkline points={exposures.points} stroke="#FF8A00" fill="#FF8A00" />
-                <span className="text-xs font-medium px-1.5 py-0.5 rounded-full bg-[#FF8A00]/20 text-[#FF8A00]">{exposures.delta}</span>
+              <div className="flex items-baseline gap-2">
+                <p className="text-3xl font-bold text-white">{exposures.count}</p>
+                <span className={`text-lg font-semibold ${getDeltaColor(exposures.delta, 'risk')}`}>{exposures.delta}</span>
               </div>
             </div>
 
@@ -361,22 +445,19 @@ export function DashboardHome() {
                   <p className="text-[11px] text-[#B8C4CC] leading-snug">{CARD_INFO['breaches']}</p>
                 </div>
               )}
-              <p className="text-3xl font-bold text-white">
-                {breachesLoaded ? newBreaches.length : '—'}
-              </p>
-              <div className="flex items-center gap-2">
-                <Sparkline points={BREACH_SPARKLINE_POINTS} stroke="#FF8A00" fill="#FF8A00" />
-                {newBreaches.length > 0 && (
-                  <span className="text-xs font-medium px-1.5 py-0.5 rounded-full bg-[#FF8A00]/20 text-[#FF8A00]">New</span>
-                )}
+              <div className="flex items-baseline gap-2">
+                <p className="text-3xl font-bold text-white">
+                  {breachesLoaded ? newBreaches.length : '—'}
+                </p>
+                <span className={`text-lg font-semibold ${getDeltaColor(breachesDelta, 'risk')}`}>{breachesDelta}</span>
               </div>
             </button>
 
-            {/* Card 3 — Needs Attention */}
+            {/* Card 3 — Removals Submitted */}
             <div className="bg-[#2D3847] border border-[#2A4A68] rounded-2xl p-4 flex flex-col gap-2">
               <div className="flex items-center">
-                <span className="text-xs font-medium text-[#B8C4CC] uppercase tracking-wide">Needs Attention</span>
-                <button className="ml-auto p-0.5" onClick={() => toggleInfo('needs-attention')} aria-label="More info about Needs Attention">
+                <span className="text-xs font-medium text-[#B8C4CC] uppercase tracking-wide">Removals Submitted</span>
+                <button className="ml-auto p-0.5" onClick={() => toggleInfo('needs-attention')} aria-label="More info about Removals Submitted">
                   <Info className={`w-3.5 h-3.5 transition-colors duration-150 ${openInfoCard === 'needs-attention' ? 'text-[#00BFFF]' : 'text-[#7A92A8]'}`} />
                 </button>
               </div>
@@ -385,18 +466,17 @@ export function DashboardHome() {
                   <p className="text-[11px] text-[#B8C4CC] leading-snug">{CARD_INFO['needs-attention']}</p>
                 </div>
               )}
-              <p className="text-3xl font-bold text-white">{NEEDS_ATTENTION_DATA.count}</p>
-              <div className="flex items-center gap-2">
-                <Sparkline points={NEEDS_ATTENTION_DATA.points} stroke="#FF8A00" fill="#FF8A00" />
-                <span className="text-xs font-medium px-1.5 py-0.5 rounded-full bg-[#FF8A00]/20 text-[#FF8A00]">{NEEDS_ATTENTION_DATA.delta}</span>
+              <div className="flex items-baseline gap-2">
+                <p className="text-3xl font-bold text-white">{REMOVALS_SUBMITTED_DATA.count}</p>
+                <span className={`text-lg font-semibold ${getDeltaColor(REMOVALS_SUBMITTED_DATA.delta, 'progress')}`}>{REMOVALS_SUBMITTED_DATA.delta}</span>
               </div>
             </div>
 
-            {/* Card 4 — In Progress */}
+            {/* Card 4 — Removals Confirmed */}
             <div className="bg-[#2D3847] border border-[#2A4A68] rounded-2xl p-4 flex flex-col gap-2">
               <div className="flex items-center">
-                <span className="text-xs font-medium text-[#B8C4CC] uppercase tracking-wide">In Progress</span>
-                <button className="ml-auto p-0.5" onClick={() => toggleInfo('in-progress')} aria-label="More info about In Progress">
+                <span className="text-xs font-medium text-[#B8C4CC] uppercase tracking-wide">Removals Confirmed</span>
+                <button className="ml-auto p-0.5" onClick={() => toggleInfo('in-progress')} aria-label="More info about Removals Confirmed">
                   <Info className={`w-3.5 h-3.5 transition-colors duration-150 ${openInfoCard === 'in-progress' ? 'text-[#00BFFF]' : 'text-[#7A92A8]'}`} />
                 </button>
               </div>
@@ -405,20 +485,19 @@ export function DashboardHome() {
                   <p className="text-[11px] text-[#B8C4CC] leading-snug">{CARD_INFO['in-progress']}</p>
                 </div>
               )}
-              <p className="text-3xl font-bold text-white">{inProgress.count}</p>
-              <div className="flex items-center gap-2">
-                <Sparkline points={inProgress.points} stroke="#00D4AA" fill="#00D4AA" />
-                <span className="text-xs font-medium px-1.5 py-0.5 rounded-full bg-[#00D4AA]/20 text-[#00D4AA]">{inProgress.delta}</span>
+              <div className="flex items-baseline gap-2">
+                <p className="text-3xl font-bold text-white">{removalsConfirmed.count}</p>
+                <span className={`text-lg font-semibold ${getDeltaColor(removalsConfirmed.delta, 'progress')}`}>{removalsConfirmed.delta}</span>
               </div>
             </div>
 
           </section>
 
-          {/* ── DARK WEB ALERTS ───────────────────────────────────────────── */}
+          {/* ── UPDATES ───────────────────────────────────────────────────── */}
           {shouldShowBreachSection && (
             <section>
               <div className="flex justify-between items-center mb-3">
-                <h2 className="text-base font-bold text-white">Dark Web Alerts</h2>
+                <h2 className="text-base font-bold text-white">Updates</h2>
                 <span className="text-xs text-[#B8C4CC]">{newBreaches.length} new</span>
               </div>
 
@@ -476,26 +555,22 @@ export function DashboardHome() {
                     </button>
                   </div>
                 </div>
-              ) : (
-                <div className="bg-[#2D3847] border border-[#00D4AA] rounded-xl px-4 py-4 motion-safe:animate-pulse">
-                  <p className="text-sm font-bold text-white">All Caught Up for Now!</p>
-                  <p className="text-xs text-[#B8C4CC] mt-1">No new dark web breach updates need action.</p>
-                </div>
-              )}
+              ) : null}
             </section>
           )}
 
-          {/* ── ACTIVITY FEED ─────────────────────────────────────────────── */}
+          {/* ── SCAN STATUS ───────────────────────────────────────────────── */}
           <section>
             <div className="flex justify-between items-center mb-3">
-              <h2 className="text-base font-bold text-white">Activity</h2>
-              <button className="text-xs text-[#00BFFF]" onClick={() => console.log('view all activity')}>View All</button>
+              <h2 className="text-base font-bold text-white">Scan Status</h2>
+              <button className="text-xs text-[#00BFFF]" onClick={() => console.log('view scan history')}>View Scan History</button>
             </div>
 
             <div className="flex flex-col gap-2">
-              {sortedActivityItems.map((item) => {
+              {scanStatusItems.map((item) => {
                 const style = ACTIVITY_STYLES[item.type];
                 const Icon  = style.Icon;
+                const chip = STATUS_CHIP_STYLES[item.status];
                 return (
                   <button
                     key={item.id}
@@ -510,9 +585,7 @@ export function DashboardHome() {
                       <p className="text-xs text-[#B8C4CC]">{item.descriptor}</p>
                     </div>
                     <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                      {item.status === 'In Progress' && (
-                        <span className="text-[10px] font-bold bg-[#00BFFF]/20 text-[#00BFFF] px-1.5 py-0.5 rounded-full">IN PROGRESS</span>
-                      )}
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${chip.bg} ${chip.text}`}>{chip.label}</span>
                       <span className="text-xs text-[#7A92A8]">{item.time}</span>
                       <ChevronRight className="w-4 h-4 text-[#7A92A8]" />
                     </div>
@@ -522,36 +595,94 @@ export function DashboardHome() {
             </div>
           </section>
 
-          {/* ── BROKER EXPOSURE LIST ─────────────────────────────────────── */}
+          {/* ── RECENT ACTIVITY (REMOVALS) ───────────────────────────────── */}
           <section>
             <div className="flex justify-between items-center mb-3">
-              <h2 className="text-base font-bold text-white">Exposures</h2>
-              <button className="text-xs text-[#00BFFF]" onClick={() => console.log('view all exposures')}>View All →</button>
+              <h2 className="text-base font-bold text-white">Recent Activity</h2>
+              <button className="text-xs text-[#00BFFF]" onClick={() => console.log('view all recent removals')}>View All</button>
             </div>
 
             <div className="flex flex-col gap-2">
-              {BROKER_ITEMS.map((item) => {
-                const style = BROKER_STATUS_STYLES[item.status];
+              {sortedRemovalItems.map((item) => {
+                const style = ACTIVITY_STYLES['Removal'];
+                const Icon = style.Icon;
+                const chip = STATUS_CHIP_STYLES[item.status];
                 return (
                   <button
-                    key={item.broker}
+                    key={item.id}
                     className="bg-[#2D3847] border border-[#2A4A68] rounded-xl px-4 py-3 flex items-center gap-3 w-full text-left"
-                    onClick={() => console.log(`open broker: ${item.broker}`)}
+                    onClick={() => console.log(`open removal: ${item.id}`)}
                   >
-                    <div className="w-9 h-9 rounded-lg bg-[#022136] border border-[#2A4A68] flex items-center justify-center flex-shrink-0">
-                      <span className="text-[#00BFFF] text-xs font-bold">{item.initials}</span>
+                    <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${style.bg}`}>
+                      <Icon className={`w-4 h-4 ${style.iconColor}`} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-white">{item.broker}</p>
-                      <p className={`text-xs flex items-center ${style.text}`}>
-                        <span className={`w-1.5 h-1.5 rounded-full inline-block mr-1.5 flex-shrink-0 ${style.dot}`} />
-                        {style.label}
-                      </p>
+                      <p className="text-sm font-medium text-white">{item.title}</p>
+                      <p className="text-xs text-[#B8C4CC]">{item.descriptor}</p>
+                    </div>
+                    <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${chip.bg} ${chip.text}`}>{chip.label}</span>
+                      <span className="text-xs text-[#7A92A8]">{item.time}</span>
+                      <ChevronRight className="w-4 h-4 text-[#7A92A8]" />
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+
+          {/* ── BROKERS & BREACHES ───────────────────────────────────────── */}
+          <section>
+            <div className="flex justify-between items-center mb-3">
+              <h2 className="text-base font-bold text-white">Brokers & Breaches</h2>
+              <button className="text-xs text-[#00BFFF]" onClick={() => console.log('view all brokers and breaches')}>View All</button>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              {recentBrokerAndBreachItems.map((item) => {
+                if (item.kind === 'broker') {
+                  const brokerStyle = BROKER_STATUS_STYLES[item.brokerStatus];
+                  return (
+                    <button
+                      key={item.id}
+                      className="bg-[#2D3847] border border-[#2A4A68] rounded-xl px-4 py-3 flex items-center gap-3 w-full text-left"
+                      onClick={() => console.log(`open broker: ${item.title}`)}
+                    >
+                      <div className="w-9 h-9 rounded-lg bg-[#022136] border border-[#2A4A68] flex items-center justify-center flex-shrink-0">
+                        <span className="text-[#00BFFF] text-xs font-bold">{item.initials}</span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-white">{item.title}</p>
+                        <p className={`text-xs flex items-center ${brokerStyle.text}`}>
+                          <span className={`w-1.5 h-1.5 rounded-full inline-block mr-1.5 flex-shrink-0 ${brokerStyle.dot}`} />
+                          {item.subtitle}
+                        </p>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-[#7A92A8] flex-shrink-0" />
+                    </button>
+                  );
+                }
+
+                return (
+                  <button
+                    key={item.id}
+                    className="bg-[#2D3847] border border-[#2A4A68] rounded-xl px-4 py-3 flex items-center gap-3 w-full text-left"
+                    onClick={() => navigate('/dashboard/dark-web')}
+                  >
+                    <div className="w-9 h-9 rounded-full bg-[#FF8A00]/10 flex items-center justify-center flex-shrink-0">
+                      <AlertTriangle className="w-4 h-4 text-[#FF8A00]" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-white">{item.title}</p>
+                      <p className="text-xs text-[#B8C4CC]">{item.subtitle}</p>
                     </div>
                     <ChevronRight className="w-4 h-4 text-[#7A92A8] flex-shrink-0" />
                   </button>
                 );
               })}
+              {recentBrokerAndBreachItems.length === 0 && (
+                <p className="text-xs text-[#7A92A8]">No broker or breach updates yet.</p>
+              )}
             </div>
           </section>
 
