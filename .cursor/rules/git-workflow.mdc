@@ -1,0 +1,41 @@
+---
+description: Git workflow and CI/CD rules for Vanyshr monorepo
+alwaysApply: true
+---
+
+# Git Workflow Rules
+
+## Branch Structure
+- `main` — production only → deploys to app.vanyshr.com
+- `sandbox` — active development, push here freely
+- `dev/<issue-name>` — isolated work, always branch from `sandbox`
+
+## Critical Rules
+- NEVER commit directly to `main`
+- NEVER force push to `main`
+- `dev/*` branches always branch from `sandbox`, never from `main`
+- Merge order: `dev/*` → `sandbox` → `main`
+- Only merge `sandbox` → `main` when explicitly instructed
+
+## Before Any Commit
+1. Confirm current branch (`git branch`)
+2. If on `main`, switch to `sandbox` first
+3. Never stage: `.env.local`, `pnpm-lock.yaml`, `dist/`, `.turbo/`
+
+## Commit Message Format
+```
+<type>: <short description>
+```
+- `feat` — new feature
+- `fix` — bug fix
+- `chore` — deps, config, cleanup
+- `refactor` — restructure, no behavior change
+- `style` — UI/CSS only
+- `docs` — documentation only
+
+## Vercel Previews
+Every push to `sandbox` or `dev/*` creates a Vercel preview deployment automatically.
+Test on the preview URL before merging to `main`.
+
+## Full Reference
+See `docs/CICD.md` for the complete protocol.
