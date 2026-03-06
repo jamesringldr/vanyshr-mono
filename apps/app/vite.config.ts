@@ -49,8 +49,6 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ],
-  // Load .env files from monorepo root
-  envDir: path.resolve(__dirname, '../..'),
   resolve: {
     alias: [
       // UI package imports (subpaths first, then root)
