@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { cx } from "@/utils/cx";
 import { supabase } from "@/lib/supabase";
-import { MagicEnvelope } from "@/components/MagicEnvelope";
+import PrimaryIconOutline from "@vanyshr/ui/assets/PrimaryIcon-outline.png";
 
 export function CheckEmail() {
     const navigate = useNavigate();
@@ -51,7 +51,14 @@ export function CheckEmail() {
             aria-label="Check your email"
         >
             <div className="mx-auto flex w-full max-w-sm flex-col px-4 pb-10 pt-10">
-                <MagicEnvelope />
+                <div className="flex justify-center">
+                    <img
+                        src={PrimaryIconOutline}
+                        alt=""
+                        className="h-28 w-28"
+                        aria-hidden
+                    />
+                </div>
 
                 <h1 className="mt-3 text-center text-2xl font-bold tracking-tight text-[#022136] dark:text-white">
                     Check your email

@@ -74,7 +74,7 @@ export function AuthMagicLink() {
             return;
         }
 
-        navigate(`/check-email?email=${encodeURIComponent(email.trim())}`);
+        navigate(`/confirm-email?email=${encodeURIComponent(email.trim())}`);
     };
 
     return (
@@ -228,7 +228,7 @@ export function AuthMagicLink() {
 
                 <div className="mt-4 text-center">
                     <Link
-                        to="/dashboard/login"
+                        to="/login"
                         className="text-xs font-medium text-[#00BFFF] hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 outline-focus-ring rounded"
                     >
                         Already have an account? Sign in here

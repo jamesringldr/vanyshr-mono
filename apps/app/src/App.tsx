@@ -87,7 +87,7 @@ function RequireAuth({ children }: { children: ReactNode }) {
     }, []);
 
     if (!isReady) return null;
-    if (!isAuthed) return <Navigate to="/dashboard/login" replace />;
+    if (!isAuthed) return <Navigate to="/login" replace />;
     return <>{children}</>;
 }
 
@@ -106,9 +106,11 @@ export default function App() {
 
             {/* Auth */}
             <Route path="/signup" element={<AuthMagicLink />} />
+            <Route path="/confirm-email" element={<CheckEmail />} />
             <Route path="/check-email" element={<CheckEmail />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
-            <Route path="/dashboard/login" element={<DashboardLogin />} />
+            <Route path="/login" element={<DashboardLogin />} />
+            <Route path="/dashboard/login" element={<Navigate to="/login" replace />} />
             <Route path="/auth/wrong-email" element={<WrongEmail />} />
 
             {/* Onboarding */}
@@ -147,7 +149,7 @@ export default function App() {
           <Route path="/sandbox/removals" element={<RemovalsMockup />} />
             <Route path="/sandbox/explosion" element={<DataExplosionMockup />} />
 
-            <Route path="*" element={<RequireAuth><NotFound /></RequireAuth>} />
+            <Route path="*" element={<NotFound />} />
         </Routes>
     );
 }

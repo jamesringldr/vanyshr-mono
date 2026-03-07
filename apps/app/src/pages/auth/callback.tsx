@@ -40,8 +40,8 @@ export function AuthCallback() {
                     .maybeSingle();
 
                 if (existingProfile) {
-                    // Returning user — skip onboarding, go straight to dashboard.
-                    navigate("/dashboard", { replace: true });
+                    // Returning user — go to dashboard.
+                    navigate("/dashboard/home", { replace: true });
                     return;
                 }
 
