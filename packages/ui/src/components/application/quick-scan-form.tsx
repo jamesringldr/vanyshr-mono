@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
-import { User, MapPin, X, Loader2 } from "lucide-react";
+import { User, MapPin, X } from "lucide-react";
 import { cx } from "@/utils/cx";
 import { 
   QSProgressSteps, 
@@ -31,21 +31,62 @@ export interface QuickScanFormProps {
 
 const SCAN_STEPS = [
   {
-    title: "Searching Brokers",
-    description: "Finding your data across 500+ sources...",
-    iconSrc: "/brand/icons/spammer.png"
+    title: "Risks of Exposure",
+    description: "The more AI improves the harder it is to identify threats...",
   },
   {
-    title: "Full Data Scan",
-    description: "Recovering hidden details and exposures...",
-    iconSrc: "/brand/icons/identity.png"
+    title: "Removal on Autopilot",
+    description: "Vanyshr uses a swarm of AI agents to continuously monitor where your data is being shared and automatically begins removing it.",
   },
-  {
-    title: "Compiling Report",
-    description: "Almost ready... finalizing your privacy audit...",
-    iconSrc: "/brand/icons/phishing.png"
-  }
 ];
+
+const STEP_TOP_COPY = [
+  {
+    heading: "SCANNING BROKERS",
+    getSubtext: (status: string) =>
+      status === "looking_up_zip" ? "Identifying your local region..." : "Finding who has your data...",
+  },
+  {
+    heading: "SCANNING DARK WEB",
+    getSubtext: () => "Hunting dark web forums...",
+  },
+];
+
+function SquareLoader() {
+  const sq = (
+    left: number,
+    top: number,
+    delay: string,
+    dir: "normal" | "alternate" = "normal"
+  ): React.CSSProperties => ({
+    background: "#00BFFF",
+    width: 4,
+    height: 4,
+    position: "absolute",
+    top,
+    left,
+    animationName: "qs_loader",
+    animationDuration: "675ms",
+    animationTimingFunction: "ease-in-out",
+    animationIterationCount: "infinite",
+    animationDelay: delay,
+    animationDirection: dir,
+  });
+  return (
+    <div style={{ position: "relative", width: 20, height: 20, flexShrink: 0 }}>
+      <style>{`@keyframes qs_loader { from { opacity: 0; } to { opacity: 1; } }`}</style>
+      <div style={sq(0,  0,  "0ms",   "alternate")} />
+      <div style={sq(8,  0,  "75ms",  "alternate")} />
+      <div style={sq(16, 0,  "150ms")} />
+      <div style={sq(0,  8,  "225ms")} />
+      <div style={sq(8,  8,  "300ms")} />
+      <div style={sq(16, 8,  "375ms")} />
+      <div style={sq(0,  16, "450ms")} />
+      <div style={sq(8,  16, "525ms")} />
+      <div style={sq(16, 16, "600ms")} />
+    </div>
+  );
+}
 
 export function QuickScanForm({ supabaseClient, onProfileSelect, onClose, className }: QuickScanFormProps) {
   // Form state
@@ -117,7 +158,7 @@ export function QuickScanForm({ supabaseClient, onProfileSelect, onClose, classN
             zipCode,
             state: zipData.state_code,
             city: zipData.city,
-            search_all: true,
+            siteName: "AnyWho",
           },
         }
       );
@@ -129,11 +170,8 @@ export function QuickScanForm({ supabaseClient, onProfileSelect, onClose, classN
         setScanId(searchData.scan_id);
       }
 
-      // Stay on step 0 during initial search
-      setScanStepIndex(0);
-
-      // Artificial delay to ensure user sees the "premium" scanning state
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Let step 1 animation breathe before showing modal
+      await new Promise(resolve => setTimeout(resolve, 3000));
 
       setStatus("complete");
       setView("form");
@@ -161,18 +199,32 @@ export function QuickScanForm({ supabaseClient, onProfileSelect, onClose, classN
     const originalProfile = matches.find(m => m.id === profile.id);
     if (!originalProfile) return;
 
-    // Show step 2: Full Data Scan
+    // Show step 2: Full Data Scan — run Zabasearch while the animation is visible
     setView("scanning");
     setScanStepIndex(1);
-    
-    // Artificial delay for step 2
-    await new Promise(resolve => setTimeout(resolve, 2500));
 
-    // Show step 3: Compiling Report
-    setScanStepIndex(2);
-    
-    // Artificial delay for step 3
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    try {
+      const { data: zabaData } = await supabaseClient.functions.invoke(
+        "universal-search",
+        {
+          body: {
+            firstName: firstName.trim(),
+            lastName: lastName.trim(),
+            state: locationInfo?.state,
+            city: locationInfo?.city,
+            siteName: "Zabasearch",
+            scan_id: scanId,
+          },
+        }
+      );
+
+      if (zabaData?.profiles?.length) {
+        sessionStorage.setItem("zabaMatches", JSON.stringify(zabaData.profiles));
+      }
+    } catch (err) {
+      console.error("Zabasearch scan error:", err);
+      // Non-fatal — proceed regardless
+    }
 
     onProfileSelect(originalProfile, {
       firstName: firstName.trim(),
@@ -181,36 +233,39 @@ export function QuickScanForm({ supabaseClient, onProfileSelect, onClose, classN
       city: locationInfo?.city || "",
       state: locationInfo?.state || "",
     }, scanId);
-  }, [firstName, lastName, zipCode, locationInfo, onProfileSelect, matches, scanId]);
+  }, [firstName, lastName, zipCode, locationInfo, onProfileSelect, matches, scanId, supabaseClient]);
 
   const isLoading = status === "looking_up_zip" || status === "searching";
 
   if (view === "scanning") {
+    const topCopy = STEP_TOP_COPY[scanStepIndex] ?? STEP_TOP_COPY[0];
+    const step = SCAN_STEPS[scanStepIndex] ?? SCAN_STEPS[0];
     return (
       <div className={cx("w-full h-full min-h-[400px] flex flex-col items-center justify-center p-8 gap-8 bg-[#2D3847]", className)}>
         <div className="w-full max-w-sm flex flex-col gap-6">
-          <div className="flex flex-col items-center gap-4">
-            <Loader2 className="w-12 h-12 text-[#00BFFF] animate-spin" />
-            <div className="text-center flex flex-col gap-1">
-              <h2 className="text-xl font-bold text-white uppercase tracking-wider">
-                SCANNING BROKERS
-              </h2>
+
+          {/* Heading + loader/subtext row */}
+          <div className="flex flex-col gap-1">
+            <h2 className="text-xl font-bold text-white uppercase tracking-wider">
+              {topCopy.heading}
+            </h2>
+            <div className="flex items-center gap-2">
+              <SquareLoader />
               <p className="text-[#B8C4CC] font-medium animate-pulse">
-                {status === "looking_up_zip" ? "Identifying your local region..." : "Searching 500+ data sources..."}
+                {topCopy.getSubtext(status)}
               </p>
             </div>
           </div>
 
           <QSProgressSteps
-            totalSteps={3}
+            totalSteps={2}
             activeStep={scanStepIndex + 1}
             className="w-full"
           />
 
           <QSInfoCard
-            title={SCAN_STEPS[scanStepIndex].title}
-            description={SCAN_STEPS[scanStepIndex].description}
-            iconSrc={SCAN_STEPS[scanStepIndex].iconSrc}
+            title={step.title}
+            description={step.description}
             className="shadow-xl border-[#2A4A68]"
           />
         </div>

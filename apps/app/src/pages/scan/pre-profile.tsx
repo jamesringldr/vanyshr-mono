@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { Link, useParams, useNavigate } from "react-router";
+import { motion, useReducedMotion } from "framer-motion";
 import {
     Menu,
     CreditCard,
@@ -10,10 +11,11 @@ import {
     Landmark,
     Scale,
     ArrowRight,
-    Loader2,
+    Zap,
 } from "lucide-react";
 import PrimaryLogo from "@vanyshr/ui/assets/PrimaryLogo.png";
 import PrimaryLogoDark from "@vanyshr/ui/assets/PrimaryLogo-DarkMode.png";
+import PrimaryIconOutline from "@vanyshr/ui/assets/PrimaryIcon-outline.png";
 import { cx } from "@/utils/cx";
 import { supabase } from "@/lib/supabase";
 
@@ -102,6 +104,154 @@ interface PreProfileData {
 }
 
 type LoadingState = "loading" | "loaded" | "error";
+
+// Shape of a Zabasearch PersonProfile stored in fullProfile on each zabaMatch
+interface ZabaPersonProfile {
+    phones?: Array<{ number: string; type?: string; primary?: boolean }>;
+    addresses?: Array<{ full_address?: string; street?: string; city?: string; state?: string; zip?: string; is_last_known?: boolean }>;
+    relatives?: Array<{ name: string; relationship?: string; age?: string }>;
+    aliases?: Array<{ alias: string }>;
+    emails?: Array<{ email: string; type?: string }>;
+    jobs?: Array<{ company?: string; title?: string; is_current?: boolean }>;
+}
+
+interface ZabaMatch {
+    id: string;
+    name: string;
+    age?: string;
+    city_state?: string;
+    fullProfile?: ZabaPersonProfile;
+}
+
+function normalizeName(name: string): string {
+    return name.toLowerCase().trim().replace(/[^a-z\s]/g, "");
+}
+
+function phoneKey(n: string): string {
+    return n.replace(/\D/g, "").slice(-10);
+}
+
+function addressKey(a: { city?: string; state?: string; zip?: string; full_address?: string }): string {
+    const parts = `${a.city || ""}-${a.state || ""}-${a.zip || ""}`.toLowerCase();
+    return parts !== "--" ? parts : (a.full_address || "").toLowerCase().slice(0, 40);
+}
+
+/** Deduplicate an existing profile's arrays, then merge matching Zabasearch data. */
+function mergeZabaData(profile: QuickScanProfileData, selectedProfile: ProfileMatch): QuickScanProfileData {
+    // Always deduplicate the existing AnyWho data first
+    const seenPhones = new Set<string>();
+    const seenAddrs = new Set<string>();
+    const seenRelatives = new Set<string>();
+    const seenAliases = new Set<string>();
+    const seenEmails = new Set<string>();
+    const seenJobs = new Set<string>();
+
+    const deduped: QuickScanProfileData = {
+        ...profile,
+        phones: profile.phones.filter(p => {
+            const k = phoneKey(p.number);
+            if (!k || seenPhones.has(k)) return false;
+            seenPhones.add(k);
+            return true;
+        }),
+        addresses: profile.addresses.filter(a => {
+            const k = addressKey(a);
+            if (!k || seenAddrs.has(k)) return false;
+            seenAddrs.add(k);
+            return true;
+        }),
+        relatives: profile.relatives.filter(r => {
+            const k = normalizeName(r.name);
+            if (!k || seenRelatives.has(k)) return false;
+            seenRelatives.add(k);
+            return true;
+        }),
+        aliases: profile.aliases.filter(a => {
+            const k = a.toLowerCase();
+            if (!k || seenAliases.has(k)) return false;
+            seenAliases.add(k);
+            return true;
+        }),
+        emails: profile.emails.filter(e => {
+            const k = e.email.toLowerCase();
+            if (!k || seenEmails.has(k)) return false;
+            seenEmails.add(k);
+            return true;
+        }),
+        jobs: profile.jobs.filter(j => {
+            const k = (j.company || "").toLowerCase();
+            if (!k || seenJobs.has(k)) return false;
+            seenJobs.add(k);
+            return true;
+        }),
+    };
+
+    // Now pull in Zabasearch data
+    const zabaRaw = sessionStorage.getItem("zabaMatches");
+    if (!zabaRaw) return deduped;
+
+    let zabaMatches: ZabaMatch[];
+    try { zabaMatches = JSON.parse(zabaRaw); } catch { return deduped; }
+    if (!zabaMatches?.length) return deduped;
+
+    // Find the best matching Zabasearch entry by name
+    const targetName = normalizeName(selectedProfile.name || profile.name);
+    const parts = targetName.split(/\s+/);
+    const targetFirst = parts[0] || "";
+    const targetLast = parts[parts.length - 1] || "";
+
+    const bestMatch = zabaMatches.find(zm => {
+        const n = normalizeName(zm.name);
+        return n.includes(targetFirst) && n.includes(targetLast);
+    }) ?? zabaMatches[0];
+
+    const zaba = bestMatch?.fullProfile;
+    if (!zaba) return deduped;
+
+    // Merge phones
+    const newPhones = (zaba.phones || [])
+        .filter(p => p.number && !seenPhones.has(phoneKey(p.number)))
+        .map(p => ({ number: p.number, type: p.type, is_primary: p.primary }));
+
+    // Merge addresses
+    const newAddresses = (zaba.addresses || [])
+        .filter(a => {
+            const k = addressKey({ city: a.city, state: a.state, zip: a.zip, full_address: a.full_address });
+            return k && !seenAddrs.has(k);
+        })
+        .map(a => ({ full_address: a.full_address, street: a.street, city: a.city, state: a.state, zip: a.zip, is_current: a.is_last_known }));
+
+    // Merge relatives
+    const newRelatives = (zaba.relatives || [])
+        .filter(r => r.name && !seenRelatives.has(normalizeName(r.name)))
+        .map(r => ({ name: r.name, relationship: r.relationship, age: r.age }));
+
+    // Merge aliases
+    const newAliases = (zaba.aliases || [])
+        .map(a => a.alias)
+        .filter(a => a && !seenAliases.has(a.toLowerCase()));
+
+    // Merge emails
+    const newEmails = (zaba.emails || [])
+        .filter(e => e.email && !seenEmails.has(e.email.toLowerCase()))
+        .map(e => ({ email: e.email, type: e.type }));
+
+    // Merge jobs
+    const newJobs = (zaba.jobs || [])
+        .filter(j => j.company && !seenJobs.has(j.company.toLowerCase()))
+        .map(j => ({ company: j.company, title: j.title, is_current: j.is_current }));
+
+    return {
+        ...deduped,
+        phones: [...deduped.phones, ...newPhones],
+        addresses: [...deduped.addresses, ...newAddresses],
+        relatives: [...deduped.relatives, ...newRelatives],
+        aliases: [...deduped.aliases, ...newAliases],
+        emails: [...deduped.emails, ...newEmails],
+        jobs: [...deduped.jobs, ...newJobs],
+        sources: deduped.sources.includes("Zabasearch") ? deduped.sources : [...deduped.sources, "Zabasearch"],
+    };
+}
 
 /** Data-type card: icon + title + content. Vanyshr tokens, rounded-xl, border-subtle. */
 function DataTypeCard({
@@ -258,11 +408,14 @@ function convertToPreProfileData(
 export function PreProfile() {
     const { scanId } = useParams<{ scanId?: string }>();
     const navigate = useNavigate();
+    const prefersReducedMotion = useReducedMotion();
     const [loadingState, setLoadingState] = useState<LoadingState>("loading");
     const [data, setData] = useState<PreProfileData | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [isStarting, setIsStarting] = useState(false);
     const [startError, setStartError] = useState<string | null>(null);
+    const [isFooterVisible, setIsFooterVisible] = useState(false);
+    const [loadingEllipsis, setLoadingEllipsis] = useState(".");
 
     const handleStartVanyshing = useCallback(async () => {
         if (!scanId) {
@@ -332,7 +485,8 @@ export function PreProfile() {
                 }
 
                 if (detailsData?.success && detailsData.profile_data) {
-                    const preProfileData = convertToPreProfileData(detailsData.profile_data, selectedProfile);
+                    const merged = mergeZabaData(detailsData.profile_data, selectedProfile);
+                    const preProfileData = convertToPreProfileData(merged, selectedProfile);
                     setData(preProfileData);
                     setLoadingState("loaded");
                     return;
@@ -361,7 +515,8 @@ export function PreProfile() {
                 sources: [selectedProfile.source],
             };
 
-            const preProfileData = convertToPreProfileData(basicProfileData, selectedProfile);
+            const mergedBasic = mergeZabaData(basicProfileData, selectedProfile);
+            const preProfileData = convertToPreProfileData(mergedBasic, selectedProfile);
             setData(preProfileData);
             setLoadingState("loaded");
 
@@ -376,6 +531,32 @@ export function PreProfile() {
         loadProfileData();
     }, [loadProfileData]);
 
+    useEffect(() => {
+        if (loadingState !== "loaded") {
+            setIsFooterVisible(false);
+            return;
+        }
+
+        const timer = window.setTimeout(() => {
+            setIsFooterVisible(true);
+        }, 3000);
+
+        return () => window.clearTimeout(timer);
+    }, [loadingState]);
+
+    useEffect(() => {
+        const frames = [".", "..", "..."];
+        const intervalId = window.setInterval(() => {
+            setLoadingEllipsis((prev) => {
+                const currentIndex = frames.indexOf(prev);
+                const nextIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % frames.length;
+                return frames[nextIndex];
+            });
+        }, 420);
+
+        return () => window.clearInterval(intervalId);
+    }, []);
+
     // Loading state
     if (loadingState === "loading") {
         return (
@@ -384,13 +565,32 @@ export function PreProfile() {
                 role="main"
                 aria-label="Loading profile"
             >
-                <Loader2 className="w-12 h-12 text-[#00BFFF] animate-spin mb-4" />
-                <p className="text-lg font-medium text-[#022136] dark:text-white">
-                    Compiling your exposure report...
-                </p>
-                <p className="text-sm text-[#B8C4CC] dark:text-[#B8C4CC] mt-2">
-                    Gathering data from multiple sources
-                </p>
+                <div className="flex flex-col items-center gap-4 px-6 text-center">
+                    <motion.img
+                        src={PrimaryIconOutline}
+                        alt=""
+                        className="h-24 w-24 object-contain opacity-95"
+                        aria-hidden
+                        animate={prefersReducedMotion ? undefined : { y: [0, -8, 0] }}
+                        transition={
+                            prefersReducedMotion
+                                ? undefined
+                                : { duration: 2.6, repeat: Infinity, ease: "easeInOut" }
+                        }
+                    />
+                    <p className="text-lg font-medium text-[#022136] dark:text-white font-ubuntu">
+                        Compiling your exposure report now
+                        <span
+                            aria-hidden
+                            className="inline-block w-[3ch] text-left"
+                        >
+                            {loadingEllipsis}
+                        </span>
+                    </p>
+                    <p className="text-sm text-[#B8C4CC] dark:text-[#B8C4CC]">
+                        Gathering data from multiple sources
+                    </p>
+                </div>
             </div>
         );
     }
@@ -430,7 +630,7 @@ export function PreProfile() {
             role="main"
             aria-label="Pre-profile exposure summary"
         >
-            <div className="mx-auto max-w-3xl px-4 pb-28 pt-4 sm:pt-6">
+            <div className="mx-auto max-w-3xl px-4 pb-44 pt-4 sm:pt-6">
                 {/* Header */}
                 <header className="mb-6 flex h-14 items-center justify-between gap-4 sm:mb-8">
                     <div className="w-10 shrink-0" aria-hidden />
@@ -715,20 +915,30 @@ export function PreProfile() {
                 </div>
             </div>
 
-            {/* Sticky footer: CTA + disclaimer */}
+            {/* Delayed slide-in footer CTA */}
             <footer
                 className={cx(
-                    "sticky bottom-0 left-0 right-0 z-10 flex flex-col items-center gap-4 border-t py-4 text-center",
+                    "fixed bottom-0 left-0 right-0 z-20 border-t px-8 py-5 text-center sm:px-10",
+                    "rounded-t-2xl",
                     "border-[var(--border-subtle)] dark:border-[#2A4A68]",
-                    "bg-[#F0F4F8] dark:bg-[#022136]",
+                    "bg-[#F0F4F8]/80 dark:bg-[#022136]/70",
+                    "backdrop-blur-md shadow-[0_-8px_24px_rgba(0,0,0,0.45)]",
+                    "transition-all duration-700 ease-out",
+                    isFooterVisible
+                        ? "translate-y-0 opacity-100"
+                        : "translate-y-full opacity-0 pointer-events-none",
                 )}
                 role="contentinfo"
                 aria-label="Sign up footer"
             >
-                <div className="mx-auto w-full max-w-3xl px-4 flex flex-col items-center gap-4">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-[#00BFFF] dark:text-[#00BFFF]">
-                        NO CREDIT CARD REQUIRED
+                <div className="mx-auto w-full max-w-3xl flex flex-col items-center gap-3">
+                    <p className="text-base font-bold font-ubuntu text-white">
+                        Remove Your Data - For FREE...
                     </p>
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-[#00BFFF]/40 bg-[#00BFFF]/10 px-3 py-1.5 text-xs font-medium font-ubuntu text-[#00BFFF]">
+                        <Zap className="h-3.5 w-3.5" aria-hidden />
+                        3 mins To Start Removing...
+                    </span>
                     {startError && (
                         <p className="text-xs text-red-400 text-center">{startError}</p>
                     )}
@@ -748,6 +958,9 @@ export function PreProfile() {
                         {isStarting ? "Setting up your profile..." : "Start Vanyshing for FREE"}
                         {!isStarting && <ArrowRight className="h-5 w-5 shrink-0" aria-hidden />}
                     </button>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-[#B8C4CC]">
+                        NO CREDIT CARD REQUIRED
+                    </p>
                 </div>
             </footer>
         </div>
