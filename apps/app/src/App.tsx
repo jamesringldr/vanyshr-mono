@@ -1,4 +1,6 @@
-import { Route, Routes } from "react-router";
+import { useEffect, useState, type ReactNode } from "react";
+import { Navigate, Route, Routes } from "react-router";
+import { supabase } from "./lib/supabase";
 
 // Auth pages
 import { AuthMagicLink } from "./pages/auth/magic-link";
@@ -50,18 +52,57 @@ import { ReferralSlider } from "./pages/referral";
 // Sandbox Mockups
 import { VanyshrAppMockup, ScamMockup, RemovalsMockup, DataExplosionMockup } from "@vanyshr/ui";
 
+function RequireAuth({ children }: { children: ReactNode }) {
+    const [isReady, setIsReady] = useState(false);
+    const [isAuthed, setIsAuthed] = useState(false);
+
+    useEffect(() => {
+        let isMounted = true;
+
+        const initializeSession = async () => {
+            try {
+                const { data, error } = await supabase.auth.getSession();
+                if (!isMounted) return;
+                if (error) console.error("Failed to get session:", error);
+                setIsAuthed(Boolean(data?.session));
+            } finally {
+                if (isMounted) setIsReady(true);
+            }
+        };
+
+        initializeSession();
+
+        const {
+            data: { subscription },
+        } = supabase.auth.onAuthStateChange((_event, session) => {
+            if (!isMounted) return;
+            setIsAuthed(Boolean(session));
+            setIsReady(true);
+        });
+
+        return () => {
+            isMounted = false;
+            subscription.unsubscribe();
+        };
+    }, []);
+
+    if (!isReady) return null;
+    if (!isAuthed) return <Navigate to="/dashboard/login" replace />;
+    return <>{children}</>;
+}
+
 export default function App() {
     return (
         <Routes>
             {/* Dashboard */}
             <Route path="/" element={<HomeScreen />} />
-            <Route path="/dashboard" element={<FinancialDashboard />} />
-            <Route path="/dashboard/home" element={<DashboardHome />} />
-            <Route path="/dashboard/dark-web" element={<DarkWebPage />} />
-            <Route path="/dashboard/exposures" element={<ExposuresPage />} />
-            <Route path="/dashboard/tasks" element={<TodoPage />} />
-            <Route path="/dashboard/activity" element={<Transactions />} />
-            <Route path="/transactions" element={<Transactions />} />
+            <Route path="/dashboard" element={<RequireAuth><FinancialDashboard /></RequireAuth>} />
+            <Route path="/dashboard/home" element={<RequireAuth><DashboardHome /></RequireAuth>} />
+            <Route path="/dashboard/dark-web" element={<RequireAuth><DarkWebPage /></RequireAuth>} />
+            <Route path="/dashboard/exposures" element={<RequireAuth><ExposuresPage /></RequireAuth>} />
+            <Route path="/dashboard/tasks" element={<RequireAuth><TodoPage /></RequireAuth>} />
+            <Route path="/dashboard/activity" element={<RequireAuth><Transactions /></RequireAuth>} />
+            <Route path="/transactions" element={<RequireAuth><Transactions /></RequireAuth>} />
 
             {/* Auth */}
             <Route path="/signup" element={<AuthMagicLink />} />
@@ -71,15 +112,15 @@ export default function App() {
             <Route path="/auth/wrong-email" element={<WrongEmail />} />
 
             {/* Onboarding */}
-            <Route path="/welcome" element={<Welcome />} />
-            <Route path="/onboarding/progress" element={<OnboardingProgress />} />
-            <Route path="/onboarding/primary-info" element={<VerifyPrimaryInfo />} />
-            <Route path="/onboarding/phone-numbers" element={<OnboardingPhoneNumbers />} />
-            <Route path="/onboarding/aliases" element={<OnboardingAliases />} />
-            <Route path="/onboarding/addresses" element={<OnboardingAddresses />} />
-            <Route path="/onboarding/emails" element={<OnboardingEmails />} />
-            <Route path="/onboarding/removal-strategy" element={<OnboardingRemovalStrategyPage />} />
-            <Route path="/onboarding/notifications" element={<OnboardingNotifications />} />
+            <Route path="/welcome" element={<RequireAuth><Welcome /></RequireAuth>} />
+            <Route path="/onboarding/progress" element={<RequireAuth><OnboardingProgress /></RequireAuth>} />
+            <Route path="/onboarding/primary-info" element={<RequireAuth><VerifyPrimaryInfo /></RequireAuth>} />
+            <Route path="/onboarding/phone-numbers" element={<RequireAuth><OnboardingPhoneNumbers /></RequireAuth>} />
+            <Route path="/onboarding/aliases" element={<RequireAuth><OnboardingAliases /></RequireAuth>} />
+            <Route path="/onboarding/addresses" element={<RequireAuth><OnboardingAddresses /></RequireAuth>} />
+            <Route path="/onboarding/emails" element={<RequireAuth><OnboardingEmails /></RequireAuth>} />
+            <Route path="/onboarding/removal-strategy" element={<RequireAuth><OnboardingRemovalStrategyPage /></RequireAuth>} />
+            <Route path="/onboarding/notifications" element={<RequireAuth><OnboardingNotifications /></RequireAuth>} />
 
             {/* Quick Scan */}
             <Route path="/quick-scan" element={<QuickScan />} />
@@ -88,7 +129,7 @@ export default function App() {
             <Route path="/quick-scan/pre-profile/:scanId?" element={<PreProfile />} />
 
             {/* Settings */}
-            <Route path="/settings/notifications" element={<NotificationsPage />} />
+            <Route path="/settings/notifications" element={<RequireAuth><NotificationsPage /></RequireAuth>} />
 
             {/* Referral */}
             <Route path="/referral" element={<ReferralSlider />} />
@@ -106,7 +147,7 @@ export default function App() {
           <Route path="/sandbox/removals" element={<RemovalsMockup />} />
             <Route path="/sandbox/explosion" element={<DataExplosionMockup />} />
 
-            <Route path="*" element={<NotFound />} />
+            <Route path="*" element={<RequireAuth><NotFound /></RequireAuth>} />
         </Routes>
     );
 }

@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "packageManager": "pnpm@8.15.4",
   "type": "module",
-  "description": "Vanyshr monorepo - web app, landing page, and shared services",
+  "description": "Vanyshr monorepo - web app and shared services",
   "engines": {
     "node": ">=18.0.0",
     "pnpm": ">=8.0.0"
