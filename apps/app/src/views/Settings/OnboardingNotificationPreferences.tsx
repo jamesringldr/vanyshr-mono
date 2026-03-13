@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-const STORAGE_KEY = 'vanyshr_notif_tier';
+
 type NotificationTier = 'all' | 'general' | 'primary' | 'critical' | 'manual';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -97,7 +97,36 @@ const TIERS: TierConfig[] = [
 export function OnboardingNotificationPreferences() {
   const navigate = useNavigate();
   const [selectedTier, setSelectedTier] = useState<NotificationTier>('general');
+  const [profileId, setProfileId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+
+  // Load existing choice from DB so returning users see their previous selection.
+  useEffect(() => {
+    async function load() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: profile } = await supabase
+        .from('user_profiles')
+        .select('id')
+        .eq('auth_user_id', user.id)
+        .single();
+
+      if (!profile) return;
+      setProfileId(profile.id);
+
+      const { data: prefs } = await supabase
+        .from('user_preferences')
+        .select('notification_tier')
+        .eq('user_id', profile.id)
+        .maybeSingle();
+
+      if (prefs?.notification_tier) {
+        setSelectedTier(prefs.notification_tier as NotificationTier);
+      }
+    }
+    load();
+  }, []);
 
   function handleTierSelect(id: NotificationTier) {
     if (id === 'manual') {
@@ -110,17 +139,18 @@ export function OnboardingNotificationPreferences() {
   async function handleConfirm() {
     if (isSaving) return;
     setIsSaving(true);
-    localStorage.setItem(STORAGE_KEY, selectedTier);
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
+    if (profileId) {
       await supabase
-        .from('user_profiles')
-        .update({
-          notification_tier:     selectedTier,
-          notification_settings: TIER_SETTINGS[selectedTier as Exclude<NotificationTier, 'manual'>],
-        })
-        .eq('auth_user_id', user.id);
+        .from('user_preferences')
+        .upsert(
+          {
+            user_id:               profileId,
+            notification_tier:     selectedTier,
+            notification_settings: TIER_SETTINGS[selectedTier as Exclude<NotificationTier, 'manual'>] ?? {},
+          },
+          { onConflict: 'user_id' }
+        );
     }
 
     setIsSaving(false);

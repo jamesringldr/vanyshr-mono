@@ -301,6 +301,8 @@ const COMPLETE_MODAL_KEY = "vanyshr_onboarding_complete_seen";
 
 export function OnboardingProgress() {
     const [onboardingStep, setOnboardingStep] = useState(0);
+    const [removalStrategy, setRemovalStrategy] = useState<string | null>(null);
+    const [notificationTier, setNotificationTier] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [expandedStep, setExpandedStep] = useState<number>(1);
     const [showModal, setShowModal] = useState(false);
@@ -313,11 +315,21 @@ export function OnboardingProgress() {
 
             const { data: profile } = await supabase
                 .from("user_profiles")
-                .select("onboarding_step")
+                .select("id, onboarding_step")
                 .eq("auth_user_id", user.id)
                 .single();
 
-            if (profile) setOnboardingStep(profile.onboarding_step ?? 0);
+            if (!profile) { setIsLoading(false); return; }
+            setOnboardingStep(profile.onboarding_step ?? 0);
+
+            const { data: prefs } = await supabase
+                .from("user_preferences")
+                .select("removal_strategy, notification_tier")
+                .eq("user_id", profile.id)
+                .maybeSingle();
+
+            setRemovalStrategy(prefs?.removal_strategy ?? null);
+            setNotificationTier(prefs?.notification_tier ?? null);
             setIsLoading(false);
         }
         load();
@@ -327,12 +339,12 @@ export function OnboardingProgress() {
     useEffect(() => {
         if (isLoading) return;
         const step1Done = onboardingStep >= 5;
-        const step2Done = !!localStorage.getItem("vanyshr_removal_strategy");
-        const step3Done = !!localStorage.getItem("vanyshr_notif_tier");
+        const step2Done = !!removalStrategy;
+        const step3Done = !!notificationTier;
         if (step1Done && step2Done && step3Done && !localStorage.getItem(COMPLETE_MODAL_KEY)) {
             setShowModal(true);
         }
-    }, [isLoading, onboardingStep]);
+    }, [isLoading, onboardingStep, removalStrategy, notificationTier]);
 
     // Sub-tasks for step 1 (Search Profile Setup)
     const subTasks = [
@@ -369,9 +381,8 @@ export function OnboardingProgress() {
     ];
 
     const step1Complete = onboardingStep >= 5;
-    // Steps 2 & 3 are saved to localStorage by their respective views
-    const step2Complete = !!localStorage.getItem("vanyshr_removal_strategy");
-    const step3Complete = !!localStorage.getItem("vanyshr_notif_tier");
+    const step2Complete = !!removalStrategy;
+    const step3Complete = !!notificationTier;
 
     // Overall progress: 5 profile sub-tasks + 2 preference steps = 7 units
     const completedSubTasks = subTasks.filter((t) => t.isComplete).length;

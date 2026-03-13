@@ -61,8 +61,11 @@ export function AuthCallback() {
 
                 // ── RETURNING LOGIN FLOW ─────────────────────────────────────
                 // No profile_id means this is a sign-in link (not sign-up).
-                // Check if the user has a linked profile and whether they have
-                // finished onboarding. Incomplete onboarding → progress page.
+                // Check if the user has finished all onboarding steps:
+                //   • profile data steps 1–5 (onboarding_step >= 5)
+                //   • removal strategy chosen
+                //   • notification tier chosen
+                // Any incomplete → progress page.
                 const { data: existingProfile } = await supabase
                     .from("user_profiles")
                     .select("id, onboarding_step")
@@ -70,9 +73,17 @@ export function AuthCallback() {
                     .maybeSingle();
 
                 if (existingProfile) {
-                    const step = existingProfile.onboarding_step ?? 0;
+                    const { data: prefs } = await supabase
+                        .from("user_preferences")
+                        .select("removal_strategy, notification_tier")
+                        .eq("user_id", existingProfile.id)
+                        .maybeSingle();
+
+                    const profileDone = (existingProfile.onboarding_step ?? 0) >= 5;
+                    const prefsDone   = !!(prefs?.removal_strategy && prefs?.notification_tier);
+
                     navigate(
-                        step >= 5 ? "/dashboard/home" : "/onboarding/progress",
+                        profileDone && prefsDone ? "/dashboard/home" : "/onboarding/progress",
                         { replace: true }
                     );
                     return;

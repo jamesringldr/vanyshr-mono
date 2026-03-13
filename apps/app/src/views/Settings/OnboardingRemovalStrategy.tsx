@@ -1,9 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { ChevronLeft, CheckCircle2, XCircle, Target } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
-const STORAGE_KEY = 'vanyshr_removal_strategy';
 type RemovalStrategy = 'aggressive' | 'targeted';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -49,19 +48,45 @@ const STRATEGIES: StrategyConfig[] = [
 export function OnboardingRemovalStrategy() {
   const navigate = useNavigate();
   const [selected, setSelected] = useState<RemovalStrategy>('aggressive');
+  const [profileId, setProfileId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+
+  // Load existing choice from DB so returning users see their previous selection.
+  useEffect(() => {
+    async function load() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: profile } = await supabase
+        .from('user_profiles')
+        .select('id')
+        .eq('auth_user_id', user.id)
+        .single();
+
+      if (!profile) return;
+      setProfileId(profile.id);
+
+      const { data: prefs } = await supabase
+        .from('user_preferences')
+        .select('removal_strategy')
+        .eq('user_id', profile.id)
+        .maybeSingle();
+
+      if (prefs?.removal_strategy) {
+        setSelected(prefs.removal_strategy as RemovalStrategy);
+      }
+    }
+    load();
+  }, []);
 
   async function handleConfirm() {
     if (isSaving) return;
     setIsSaving(true);
-    localStorage.setItem(STORAGE_KEY, selected);
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
+    if (profileId) {
       await supabase
-        .from('user_profiles')
-        .update({ removal_aggression: selected })
-        .eq('auth_user_id', user.id);
+        .from('user_preferences')
+        .upsert({ user_id: profileId, removal_strategy: selected }, { onConflict: 'user_id' });
     }
 
     setIsSaving(false);
