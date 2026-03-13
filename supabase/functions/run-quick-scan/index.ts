@@ -9,10 +9,7 @@ import {
   type SearchInput,
 } from "../_shared/scrapers/index.ts";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+import { getCorsHeaders } from '../_shared/cors.ts'
 
 interface ScanRequest {
   scan_id: string;
@@ -86,6 +83,7 @@ function zipcodeToState(zipcode: string): string {
 }
 
 serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req)
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
