@@ -48,7 +48,7 @@ serve(async (req) => {
     // This creates a temporary user to trigger the email system
     try {
       // First, try to create a temporary user account to trigger email
-      const tempPassword = `temp-${Date.now()}-${Math.random()}`
+      const tempPassword = crypto.randomUUID()
       
       const { data: signUpData, error: signUpError } = await supabaseClient.auth.admin.createUser({
         email: email,
@@ -173,8 +173,7 @@ serve(async (req) => {
     
     return new Response(
       JSON.stringify({ 
-        error: 'Internal server error',
-        details: error.message 
+        error: 'Internal server error'
       }),
       { 
         status: 500, 
