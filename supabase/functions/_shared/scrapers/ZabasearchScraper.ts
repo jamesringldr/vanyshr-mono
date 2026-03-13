@@ -812,13 +812,33 @@ export class ZabasearchScraper extends BaseScraper {
       return this.searchByPhone(input.phone);
     }
 
-    // Default to name search
-    const profiles = await this.scrape(
+    // Default to name search — try city+state first, fall back to state-only, then no location
+    let profiles = await this.scrape(
       input.first_name || "",
       input.last_name || "",
       input.city,
       input.state
     );
+
+    if (profiles.length === 0 && input.city && input.state) {
+      console.log(`🔍 Zabasearch - No results with city, retrying state-only`);
+      profiles = await this.scrape(
+        input.first_name || "",
+        input.last_name || "",
+        undefined,
+        input.state
+      );
+    }
+
+    if (profiles.length === 0 && input.state) {
+      console.log(`🔍 Zabasearch - No results with state, retrying without location`);
+      profiles = await this.scrape(
+        input.first_name || "",
+        input.last_name || "",
+        undefined,
+        undefined
+      );
+    }
 
     // Filter by ZIP if provided
     const filtered = this.filterByZipCode(profiles, input.zip);
