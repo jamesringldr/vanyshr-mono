@@ -194,18 +194,37 @@ function mergeZabaData(profile: QuickScanProfileData, selectedProfile: ProfileMa
     try { zabaMatches = JSON.parse(zabaRaw); } catch { return deduped; }
     if (!zabaMatches?.length) return deduped;
 
-    // Find the best matching Zabasearch entry by name
+    // Find the best matching Zabasearch entry by name + phone/address overlap
     const targetName = normalizeName(selectedProfile.name || profile.name);
     const parts = targetName.split(/\s+/);
     const targetFirst = parts[0] || "";
     const targetLast = parts[parts.length - 1] || "";
 
-    const bestMatch = zabaMatches.find(zm => {
+    // Filter to name matches only
+    const nameMatches = zabaMatches.filter(zm => {
         const n = normalizeName(zm.name);
         return n.includes(targetFirst) && n.includes(targetLast);
-    }) ?? zabaMatches[0];
+    });
 
-    const zaba = bestMatch?.fullProfile;
+    // Score each name match by phone + address overlap with AnyWho profile
+    const scored = nameMatches.map(zm => {
+        const zp = zm.fullProfile;
+        let score = 0;
+        for (const p of zp?.phones ?? []) {
+            if (p.number && seenPhones.has(phoneKey(p.number))) score++;
+        }
+        for (const a of zp?.addresses ?? []) {
+            const k = addressKey({ city: a.city, state: a.state, zip: a.zip, full_address: a.full_address });
+            if (k && seenAddrs.has(k)) score++;
+        }
+        return { zm, score };
+    });
+
+    // Only merge if at least one candidate has a phone or address overlap
+    const best = scored.sort((a, b) => b.score - a.score)[0];
+    if (!best || best.score === 0) return deduped;
+
+    const zaba = best.zm.fullProfile;
     if (!zaba) return deduped;
 
     // Merge phones

@@ -27,21 +27,12 @@ export const emailService = {
         throw new Error(error.message);
       }
 
-      console.log(`✅ Verification email sent to: ${email} with code: ${code}`);
+      console.log(`✅ Verification email sent to: ${email}`);
       return { success: true };
     } catch (error) {
       console.error('Error sending verification email:', error);
       
-      // Fallback: Log to console for development
-      console.log('📧 EMAIL VERIFICATION CODE (Fallback)');
-      console.log('====================================');
-      console.log(`To: ${email}`);
-      console.log(`Subject: Your Vanyshr Verification Code`);
-      console.log(`Hi ${firstName}, your verification code is: ${code}`);
-      console.log(`This code expires in 10 minutes.`);
-      console.log('====================================');
-      
-      return { 
+      return {
         success: false, 
         error: error instanceof Error ? error.message : 'Failed to send email, but code logged to console' 
       };

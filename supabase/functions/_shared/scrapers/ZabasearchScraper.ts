@@ -13,13 +13,6 @@ export class ZabasearchScraper extends BaseScraper {
   name = "Zabasearch";
   supportedSearchTypes: SearchType[] = ["name", "phone"];
 
-  // Free CORS proxies for bypassing restrictions
-  private corsProxies = [
-    "https://corsproxy.io/?",
-    "https://api.codetabs.com/v1/proxy?quest=",
-    "https://api.allorigins.win/raw?url=",
-  ];
-
   // ZIP code to state mapping (first 3 digits)
   private static zipToState: { [key: string]: string } = {
     "005": "New York", "006": "Puerto Rico", "007": "Puerto Rico", "008": "Virgin Islands",
@@ -260,73 +253,177 @@ export class ZabasearchScraper extends BaseScraper {
   }
 
   /**
-   * Fetch URL using CORS proxy rotation
+   * Cloudflare block detection — checks both status codes and page content.
+   * Returns true if the response looks like a CF challenge or IP block.
+   */
+  private isBlockedResponse(status: number, html: string): boolean {
+    // Hard blocks from Cloudflare (no challenge page rendered)
+    if (status === 403 || status === 429 || status === 503) return true;
+
+    // Cloudflare challenge / CAPTCHA page markers
+    const blockPatterns = [
+      "Just a moment",
+      "Checking your browser",
+      "Enable JavaScript and cookies to continue",
+      "cf-browser-verification",
+      "Attention Required! | Cloudflare",
+      "Ray ID:",                        // CF error pages always include Ray ID
+      "Sorry, you have been blocked",
+      "Access denied",
+      "cf_chl_opt",                     // CF challenge JS object
+      "challenge-platform",             // CF managed challenge
+    ];
+
+    if (blockPatterns.some((p) => html.includes(p))) return true;
+
+    // ZabaSearch content pages are always large; tiny responses = block/redirect
+    if (html.length < 5000) return true;
+
+    return false;
+  }
+
+  /**
+   * Browser-like headers that pass Cloudflare's fingerprinting checks.
+   * The User-Agent, Sec-CH-UA trio, and Sec-Fetch-* headers are the main signals.
+   */
+  private get browserHeaders(): Record<string, string> {
+    return {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+      "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+      "Accept-Language": "en-US,en;q=0.9",
+      "Accept-Encoding": "gzip, deflate, br",
+      "Cache-Control": "max-age=0",
+      "Upgrade-Insecure-Requests": "1",
+      "Sec-Fetch-Dest": "document",
+      "Sec-Fetch-Mode": "navigate",
+      "Sec-Fetch-Site": "none",
+      "Sec-Fetch-User": "?1",
+      "Sec-CH-UA": '"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"',
+      "Sec-CH-UA-Mobile": "?0",
+      "Sec-CH-UA-Platform": '"Windows"',
+      "DNT": "1",
+    };
+  }
+
+  /**
+   * Fetch URL, routing through proxy services with Cloudflare bypass.
+   *
+   * ZabaSearch is behind Cloudflare and blocks datacenter IPs at the IP level.
+   * Headers alone won't help — you need a residential proxy or a service that
+   * handles CF challenges (ScraperAPI with render=true, Zyte, Zenrows).
+   *
+   * Priority:
+   *   1. ScraperAPI with render=true (solves JS challenge, uses residential IPs)
+   *   2. Zyte API (strong CF bypass, set ZYTE_API_KEY)
+   *   3. Direct fetch (works from residential/home IPs, blocked on datacenter)
    */
   private async fetchWithProxy(targetUrl: string): Promise<string | null> {
     console.log(`🔍 Zabasearch - Fetching URL: ${targetUrl}`);
 
-    // Try direct fetch first (works from Deno Edge Functions)
-    try {
-      const response = await fetch(targetUrl, {
-        headers: {
-          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-          "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-          "Accept-Language": "en-US,en;q=0.5",
-        },
-      });
+    // --- Route 0: CF Worker relay (free, bypasses CF IP blocking) ---
+    const cfWorkerUrl = (typeof Deno !== "undefined")
+      ? Deno.env.get("CF_RELAY_URL")
+      : undefined;
+    const cfRelayToken = (typeof Deno !== "undefined")
+      ? Deno.env.get("CF_RELAY_TOKEN")
+      : undefined;
 
-      if (response.ok) {
+    if (cfWorkerUrl && cfRelayToken) {
+      const proxyUrl = `${cfWorkerUrl}?url=${encodeURIComponent(targetUrl)}`;
+      console.log(`🔍 Zabasearch - Trying CF Worker relay`);
+      try {
+        const response = await fetch(proxyUrl, {
+          headers: { "x-relay-token": cfRelayToken },
+          signal: AbortSignal.timeout(35000),
+        });
         const html = await response.text();
-        if (html.length > 1000 && !html.includes("Just a moment...")) {
-          console.log(`✅ Zabasearch - Direct fetch success, HTML length: ${html.length}`);
+        if (!this.isBlockedResponse(response.status, html)) {
+          console.log(`✅ Zabasearch - CF Worker relay success, HTML length: ${html.length}`);
           return html;
         }
+        console.log(`🔍 Zabasearch - CF Worker relay blocked (status ${response.status})`);
+      } catch (error) {
+        console.log(`⚠️ Zabasearch - CF Worker relay failed: ${(error as Error).message}`);
       }
+    }
+
+    // --- Route 1: ScraperAPI with JS rendering (residential proxy + CF challenge solve) ---
+    const scraperApiKey = (typeof Deno !== "undefined")
+      ? Deno.env.get("SCRAPERAPI_KEY")
+      : undefined;
+
+    if (scraperApiKey) {
+      // render=true executes the Cloudflare JS challenge; premium=true forces residential IPs
+      const apiUrl = `http://api.scraperapi.com?api_key=${scraperApiKey}&url=${encodeURIComponent(targetUrl)}&render=true&premium=true`;
+      console.log(`🔍 Zabasearch - Trying ScraperAPI (render=true, premium=true)`);
+      try {
+        const response = await fetch(apiUrl, { signal: AbortSignal.timeout(60000) });
+        const html = await response.text();
+        if (!this.isBlockedResponse(response.status, html)) {
+          console.log(`✅ Zabasearch - ScraperAPI success, HTML length: ${html.length}`);
+          return html;
+        }
+        console.log(`🔍 Zabasearch - ScraperAPI blocked/empty (status ${response.status}, len ${html.length})`);
+      } catch (error) {
+        console.log(`⚠️ Zabasearch - ScraperAPI failed: ${(error as Error).message}`);
+      }
+    }
+
+    // --- Route 2: Zyte API (strong Cloudflare bypass) ---
+    const zyteApiKey = (typeof Deno !== "undefined")
+      ? Deno.env.get("ZYTE_API_KEY")
+      : undefined;
+
+    if (zyteApiKey) {
+      console.log(`🔍 Zabasearch - Trying Zyte API`);
+      try {
+        const response = await fetch("https://api.zyte.com/v1/extract", {
+          method: "POST",
+          headers: {
+            "Authorization": `Basic ${btoa(zyteApiKey + ":")}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            url: targetUrl,
+            httpResponseBody: true,
+            browserHtml: true,
+          }),
+          signal: AbortSignal.timeout(60000),
+        });
+        if (response.ok) {
+          const data = await response.json();
+          const html = data.browserHtml || atob(data.httpResponseBody || "");
+          if (!this.isBlockedResponse(response.status, html)) {
+            console.log(`✅ Zabasearch - Zyte API success, HTML length: ${html.length}`);
+            return html;
+          }
+        }
+        console.log(`🔍 Zabasearch - Zyte API blocked/empty (status ${response.status})`);
+      } catch (error) {
+        console.log(`⚠️ Zabasearch - Zyte API failed: ${(error as Error).message}`);
+      }
+    }
+
+    // --- Route 3: Direct fetch (works from home/residential IPs, blocked on datacenter/Supabase) ---
+    try {
+      const response = await fetch(targetUrl, {
+        headers: this.browserHeaders,
+        redirect: "follow",
+        signal: AbortSignal.timeout(30000),
+      });
+
+      const html = await response.text();
+      if (!this.isBlockedResponse(response.status, html)) {
+        console.log(`✅ Zabasearch - Direct fetch success, HTML length: ${html.length}`);
+        return html;
+      }
+      console.log(`🔍 Zabasearch - Direct fetch blocked (status ${response.status}, len ${html.length})`);
     } catch (error) {
       console.log(`⚠️ Zabasearch - Direct fetch failed: ${(error as Error).message}`);
     }
 
-    // Fallback to CORS proxies
-    for (let i = 0; i < this.corsProxies.length; i++) {
-      const proxy = this.corsProxies[i];
-      const proxyUrl = `${proxy}${encodeURIComponent(targetUrl)}`;
-
-      console.log(`🔍 Zabasearch - Trying proxy ${i + 1}/${this.corsProxies.length}`);
-
-      try {
-        const response = await fetch(proxyUrl, {
-          method: "GET",
-          headers: {
-            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
-          },
-        });
-
-        if (!response.ok) {
-          console.log(`🔍 Zabasearch - Proxy ${i + 1} failed with status: ${response.status}`);
-          continue;
-        }
-
-        const html = await response.text();
-
-        if (html.includes("Just a moment...") || html.includes("Checking your browser") || html.includes("Access denied")) {
-          console.log(`🔍 Zabasearch - Proxy ${i + 1} got blocked page`);
-          continue;
-        }
-
-        if (html.length < 1000) {
-          console.log(`🔍 Zabasearch - Proxy ${i + 1} returned too little content`);
-          continue;
-        }
-
-        console.log(`✅ Zabasearch - Proxy ${i + 1} success! HTML length: ${html.length}`);
-        return html;
-      } catch (error) {
-        console.error(`🔍 Zabasearch - Proxy ${i + 1} error:`, error);
-        continue;
-      }
-    }
-
-    console.log(`❌ Zabasearch - All fetch methods failed`);
+    console.log(`❌ Zabasearch - All fetch methods failed for: ${targetUrl}`);
+    console.log(`   Set SCRAPERAPI_KEY or ZYTE_API_KEY env vars to enable proxy bypass.`);
     return null;
   }
 
