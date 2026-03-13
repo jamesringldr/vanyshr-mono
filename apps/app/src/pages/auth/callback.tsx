@@ -30,54 +30,57 @@ export function AuthCallback() {
 
                 handled.current = true;
 
-                // Check if this auth user already has a linked Vanyshr profile.
-                // This distinguishes returning users (→ dashboard) from new users
-                // going through the QuickScan onboarding flow (→ welcome).
-                const { data: existingProfile } = await supabase
-                    .from("user_profiles")
-                    .select("id")
-                    .eq("auth_user_id", session.user.id)
-                    .maybeSingle();
-
-                if (existingProfile) {
-                    // Returning user — go to dashboard.
-                    navigate("/dashboard/home", { replace: true });
-                    return;
-                }
-
-                // profile_id was encoded in the emailRedirectTo URL by magic-link.tsx
+                // ── SIGNUP FLOW ──────────────────────────────────────────────
+                // profile_id in the URL means this link came from the QuickScan
+                // sign-up CTA (set by magic-link.tsx). Always link the account
+                // and send the user to /welcome, even if the profile is already
+                // linked (e.g. they clicked the same link twice).
                 const params = new URLSearchParams(window.location.search);
                 const profileId = params.get("profile_id")
                     ?? sessionStorage.getItem("pendingProfileId");
 
-                if (!profileId) {
-                    // No pending profile and no existing linked profile.
-                    // This means someone authenticated with an email that has no
-                    // Vanyshr account yet — likely a wrong email on /signup.
-                    const encodedEmail = encodeURIComponent(session.user.email ?? "");
-                    navigate(`/auth/wrong-email?email=${encodedEmail}`, { replace: true });
+                if (profileId) {
+                    try {
+                        const { error } = await supabase.functions.invoke("link-auth-to-profile", {
+                            body: { profile_id: profileId },
+                        });
+                        if (error) {
+                            console.error("link-auth-to-profile error:", error);
+                            // Non-fatal — profile may already be linked.
+                        }
+                    } catch (err) {
+                        console.error("AuthCallback: link error:", err);
+                    }
+
+                    sessionStorage.removeItem("pendingProfileId");
+                    sessionStorage.removeItem("pendingScanId");
+
+                    navigate("/welcome", { replace: true });
                     return;
                 }
 
-                try {
-                    const { error } = await supabase.functions.invoke("link-auth-to-profile", {
-                        body: { profile_id: profileId },
-                    });
+                // ── RETURNING LOGIN FLOW ─────────────────────────────────────
+                // No profile_id means this is a sign-in link (not sign-up).
+                // Check if the user has a linked profile and whether they have
+                // finished onboarding. Incomplete onboarding → progress page.
+                const { data: existingProfile } = await supabase
+                    .from("user_profiles")
+                    .select("id, onboarding_step")
+                    .eq("auth_user_id", session.user.id)
+                    .maybeSingle();
 
-                    if (error) {
-                        console.error("link-auth-to-profile error:", error);
-                        // Non-fatal — profile may already be linked (e.g. page refresh).
-                        // Proceed to onboarding regardless.
-                    }
-                } catch (err) {
-                    console.error("AuthCallback: link error:", err);
+                if (existingProfile) {
+                    const step = existingProfile.onboarding_step ?? 0;
+                    navigate(
+                        step >= 5 ? "/dashboard/home" : "/onboarding/progress",
+                        { replace: true }
+                    );
+                    return;
                 }
 
-                // Clean up pre-auth sessionStorage keys
-                sessionStorage.removeItem("pendingProfileId");
-                sessionStorage.removeItem("pendingScanId");
-
-                navigate("/welcome", { replace: true });
+                // No linked profile found for this auth user — wrong email.
+                const encodedEmail = encodeURIComponent(session.user.email ?? "");
+                navigate(`/auth/wrong-email?email=${encodedEmail}`, { replace: true });
             }
         );
 

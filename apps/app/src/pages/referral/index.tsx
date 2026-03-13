@@ -139,7 +139,7 @@ function SlideWithMockup({
           style={{
             transform: "scale(0.72)",
             transformOrigin: "top center",
-            marginTop: "clamp(-80px, calc(0.72 * (360px - 50vh) + 64px), 64px)",
+            marginTop: "clamp(-80px, calc(0.72 * (360px - 50vh) + 8px), 8px)",
           }}
         >
           {visual}
@@ -412,7 +412,7 @@ export function ReferralSlider() {
               toward content; springs up and shrinks on slides 2–4 ── */}
       <motion.div
         className="flex items-end justify-center shrink-0 relative z-10 pb-3"
-        animate={{ height: current === 0 ? 265 : 60 }}
+        animate={{ height: current === 0 ? 80 : 60 }}
         transition={{ type: "spring", stiffness: 180, damping: 26 }}
       >
         <motion.img
@@ -456,8 +456,8 @@ export function ReferralSlider() {
       <footer className="fixed bottom-0 left-0 right-0 z-50 px-3">
         <div className="bg-[#022136] rounded-t-[28px] backdrop-blur-md shadow-[0_0_40px_rgba(0,191,255,0.4),0_0_80px_rgba(0,191,255,0.22),0_-8px_24px_rgba(0,0,0,0.6)] pt-6 pb-6 px-6 flex flex-col gap-1 relative max-w-lg mx-auto">
           <div className="flex flex-col gap-1 text-center">
-            <p className="text-white font-bold text-[22px] leading-tight">
-              Check If Your Data Is Exposed
+            <p className="text-white font-bold text-[18px] leading-tight">
+              Is your data exposed?
             </p>
             <p className="text-white font-bold text-[22px] leading-tight">
               Run a QuickScan —{" "}

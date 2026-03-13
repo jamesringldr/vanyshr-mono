@@ -104,6 +104,7 @@ export function QuickScanForm({ supabaseClient, onProfileSelect, onClose, classN
 
   // DB scan tracking
   const [scanId, setScanId] = useState<string | null>(null);
+  const [zabaSearchDone, setZabaSearchDone] = useState(false);
 
   // Modal states
   const [showSingleModal, setShowSingleModal] = useState(false);
@@ -132,6 +133,7 @@ export function QuickScanForm({ supabaseClient, onProfileSelect, onClose, classN
     setError(null);
     setMatches([]);
     setScanId(null);
+    setZabaSearchDone(false);
     setView("scanning");
     setScanStepIndex(0);
 
@@ -199,7 +201,48 @@ export function QuickScanForm({ supabaseClient, onProfileSelect, onClose, classN
     const originalProfile = matches.find(m => m.id === profile.id);
     if (!originalProfile) return;
 
-    // Show step 2: Full Data Scan — run Zabasearch while the animation is visible
+    if (!zabaSearchDone) {
+      // Show step 2: Full Data Scan — run Zabasearch while the animation is visible
+      setView("scanning");
+      setScanStepIndex(1);
+
+      try {
+        const { data: zabaData } = await supabaseClient.functions.invoke(
+          "universal-search",
+          {
+            body: {
+              firstName: firstName.trim(),
+              lastName: lastName.trim(),
+              state: locationInfo?.state,
+              city: locationInfo?.city,
+              siteName: "Zabasearch",
+              scan_id: scanId,
+            },
+          }
+        );
+
+        if (zabaData?.profiles?.length) {
+          sessionStorage.setItem("zabaMatches", JSON.stringify(zabaData.profiles));
+        }
+      } catch (err) {
+        console.error("Zabasearch scan error:", err);
+        // Non-fatal — proceed regardless
+      }
+    }
+
+    onProfileSelect(originalProfile, {
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+      zipCode,
+      city: locationInfo?.city || "",
+      state: locationInfo?.state || "",
+    }, scanId);
+  }, [firstName, lastName, zipCode, locationInfo, onProfileSelect, matches, scanId, zabaSearchDone, supabaseClient]);
+
+  // Called when user rejects all AnyWho results — fall through to ZabaSearch before giving up
+  const handleNoneOfThese = useCallback(async () => {
+    setShowSingleModal(false);
+    setShowMultipleModal(false);
     setView("scanning");
     setScanStepIndex(1);
 
@@ -218,22 +261,24 @@ export function QuickScanForm({ supabaseClient, onProfileSelect, onClose, classN
         }
       );
 
-      if (zabaData?.profiles?.length) {
-        sessionStorage.setItem("zabaMatches", JSON.stringify(zabaData.profiles));
+      setZabaSearchDone(true);
+      setView("form");
+
+      if (zabaData?.profiles?.length === 1) {
+        setMatches(zabaData.profiles);
+        setShowSingleModal(true);
+      } else if (zabaData?.profiles?.length > 1) {
+        setMatches(zabaData.profiles);
+        setShowMultipleModal(true);
+      } else {
+        setShowNoResultsModal(true);
       }
     } catch (err) {
-      console.error("Zabasearch scan error:", err);
-      // Non-fatal — proceed regardless
+      console.error("Zabasearch fallback error:", err);
+      setView("form");
+      setShowNoResultsModal(true);
     }
-
-    onProfileSelect(originalProfile, {
-      firstName: firstName.trim(),
-      lastName: lastName.trim(),
-      zipCode,
-      city: locationInfo?.city || "",
-      state: locationInfo?.state || "",
-    }, scanId);
-  }, [firstName, lastName, zipCode, locationInfo, onProfileSelect, matches, scanId, supabaseClient]);
+  }, [firstName, lastName, locationInfo, scanId, supabaseClient]);
 
   const isLoading = status === "looking_up_zip" || status === "searching";
 
@@ -386,10 +431,7 @@ export function QuickScanForm({ supabaseClient, onProfileSelect, onClose, classN
           profile={mapProfile(matches[0])}
           region={locationInfo?.city}
           onThisIsMe={handleSelectProfile}
-          onThisIsNotMe={() => {
-            setShowSingleModal(false);
-            setShowNoResultsModal(true);
-          }}
+          onThisIsNotMe={handleNoneOfThese}
         />
       )}
 
@@ -401,10 +443,7 @@ export function QuickScanForm({ supabaseClient, onProfileSelect, onClose, classN
           region={locationInfo?.city}
           profiles={matches.map(mapProfile)}
           onProfileSelect={handleSelectProfile}
-          onNoneOfThese={() => {
-            setShowMultipleModal(false);
-            setShowNoResultsModal(true);
-          }}
+          onNoneOfThese={handleNoneOfThese}
         />
       )}
     </div>
