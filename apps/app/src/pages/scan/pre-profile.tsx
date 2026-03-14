@@ -430,42 +430,21 @@ export function PreProfile() {
     const [loadingState, setLoadingState] = useState<LoadingState>("loading");
     const [data, setData] = useState<PreProfileData | null>(null);
     const [error, setError] = useState<string | null>(null);
-    const [isStarting, setIsStarting] = useState(false);
     const [startError, setStartError] = useState<string | null>(null);
     const [isFooterVisible, setIsFooterVisible] = useState(false);
     const [loadingEllipsis, setLoadingEllipsis] = useState(".");
 
-    const handleStartVanyshing = useCallback(async () => {
+    const handleStartVanyshing = useCallback(() => {
         if (!scanId) {
             setStartError("Scan ID is missing. Please go back and try again.");
             return;
         }
-        setIsStarting(true);
-        setStartError(null);
-        try {
-            const { data: result, error: fnError } = await supabase.functions.invoke<{
-                success: boolean;
-                profile_id?: string;
-                error?: string;
-            }>("create-pending-profile", {
-                body: { scan_id: scanId },
-            });
-
-            if (fnError || !result?.success || !result?.profile_id) {
-                throw new Error(result?.error ?? fnError?.message ?? "Failed to create profile");
-            }
-
-            // Store profile_id so the auth callback can link it after magic link auth
-            sessionStorage.setItem("pendingProfileId", result.profile_id);
-            sessionStorage.setItem("pendingScanId", scanId);
-
-            navigate(`/signup`);
-        } catch (err) {
-            console.error("handleStartVanyshing error:", err);
-            setStartError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
-            setIsStarting(false);
-        }
+        // Store the scan_id so magic-link.tsx can call create-pending-profile
+        // after the user submits their email (captures email for re-engagement).
+        sessionStorage.setItem("pendingScanId", scanId);
+        navigate("/signup");
     }, [scanId, navigate]);
+
 
     const loadProfileData = useCallback(async () => {
         setLoadingState("loading");
@@ -941,18 +920,11 @@ export function PreProfile() {
                     <button
                         type="button"
                         onClick={handleStartVanyshing}
-                        disabled={isStarting}
-                        className={cx(
-                            "flex h-[52px] w-full max-w-md items-center justify-center gap-2 rounded-xl px-4 font-semibold text-white outline-none transition",
-                            isStarting
-                                ? "bg-[#00BFFF]/60 cursor-not-allowed"
-                                : "bg-[#00BFFF] hover:bg-[#0E9AE8]",
-                            "focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#022136]",
-                        )}
+                        className="flex h-[52px] w-full max-w-md items-center justify-center gap-2 rounded-xl px-4 font-semibold text-white outline-none transition bg-[#00BFFF] hover:bg-[#0E9AE8] focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#022136] cursor-pointer"
                         aria-label="Start Vanyshing for free"
                     >
-                        {isStarting ? "Setting up your profile..." : "Start Vanyshing for FREE"}
-                        {!isStarting && <ArrowRight className="h-5 w-5 shrink-0" aria-hidden />}
+                        Start Vanyshing for FREE
+                        <ArrowRight className="h-5 w-5 shrink-0" aria-hidden />
                     </button>
                     <p className="text-xs font-semibold uppercase tracking-wide text-[#B8C4CC]">
                         NO CREDIT CARD REQUIRED

@@ -21,7 +21,7 @@ serve(async (req) => {
       { auth: { autoRefreshToken: false, persistSession: false } }
     );
 
-    const { scan_id } = await req.json();
+    const { scan_id, email } = await req.json();
 
     if (!scan_id) {
       return new Response(
@@ -30,10 +30,13 @@ serve(async (req) => {
       );
     }
 
-    console.log(`🧩 create-pending-profile: scan_id=${scan_id}`);
+    console.log(`🧩 create-pending-profile: scan_id=${scan_id} email=${email ?? "(none)"}`);
 
     const { data, error } = await supabaseClient
-      .rpc("create_pending_profile", { p_scan_id: scan_id });
+      .rpc("create_pending_profile", {
+        p_scan_id: scan_id,
+        p_email:   email ?? null,
+      });
 
     if (error) {
       console.error("❌ create_pending_profile error:", error);
