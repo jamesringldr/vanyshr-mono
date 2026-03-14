@@ -96,7 +96,7 @@ interface PreProfileData {
     };
     alsoKnownAs: string[];
     familyAndFriends: { name: string; age?: number; relationship?: string }[];
-    pastAddresses: string[];
+    pastAddresses: Array<{ street: string; cityStateZip: string }>;
     pastPhones: string[];
     employers: string[];
     financialAssets: string[];
@@ -125,6 +125,18 @@ interface ZabaMatch {
 
 function normalizeName(name: string): string {
     return name.toLowerCase().trim().replace(/[^a-z\s]/g, "");
+}
+
+function toProperCase(str: string): string {
+    return str.replace(/\b\w/g, c => c.toUpperCase());
+}
+
+function formatPhone(num: string): string {
+    const digits = num.replace(/\D/g, "").slice(-10);
+    if (digits.length === 10) {
+        return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+    }
+    return num;
 }
 
 function phoneKey(n: string): string {
@@ -362,7 +374,8 @@ function convertToPreProfileData(
 
     // Find primary phone
     const primaryPhone = profile.phones?.find(p => p.is_primary) || profile.phones?.[0];
-    const primaryPhoneStr = primaryPhone?.number || selectedProfile?.phone_snippet || "—";
+    const rawPrimaryPhone = primaryPhone?.number || selectedProfile?.phone_snippet || "";
+    const primaryPhoneStr = rawPrimaryPhone ? formatPhone(rawPrimaryPhone) : "—";
 
     // Extract location
     const location = selectedProfile?.city_state ||
@@ -371,13 +384,18 @@ function convertToPreProfileData(
     // Past addresses (non-current)
     const pastAddresses = profile.addresses
         ?.filter(a => !a.is_current)
-        .map(a => a.full_address || `${a.street || ""} ${a.city || ""}, ${a.state || ""} ${a.zip || ""}`.trim())
-        .filter(Boolean) || [];
+        .map(a => {
+            const street = a.street || a.full_address || "";
+            const cityPart = [a.city, a.state].filter(Boolean).join(", ");
+            const cityStateZip = a.zip ? `${cityPart} ${a.zip}`.trim() : cityPart;
+            return { street, cityStateZip };
+        })
+        .filter(a => a.street || a.cityStateZip) || [];
 
     // Past phones (non-primary)
     const pastPhones = profile.phones
         ?.filter(p => !p.is_primary)
-        .map(p => p.number)
+        .map(p => formatPhone(p.number))
         .filter(Boolean) || [];
 
     // Employers
@@ -410,9 +428,9 @@ function convertToPreProfileData(
             currentAddress: currentAddressStr,
             primaryPhone: primaryPhoneStr,
         },
-        alsoKnownAs: profile.aliases || [],
+        alsoKnownAs: (profile.aliases || []).map(toProperCase),
         familyAndFriends: profile.relatives?.map(r => ({
-            name: r.name,
+            name: toProperCase(r.name),
             age: r.age ? parseInt(r.age, 10) : undefined,
             relationship: r.relationship,
         })) || [],
@@ -713,7 +731,7 @@ export function PreProfile() {
             role="main"
             aria-label="Pre-profile exposure summary"
         >
-            <div className="mx-auto max-w-3xl px-4 pb-44 pt-4 sm:pt-6">
+            <div className="mx-auto max-w-3xl px-4 pb-56 pt-4 sm:pt-6">
                 {/* Header */}
                 <header className="mb-6 flex h-14 items-center justify-between gap-4 sm:mb-8">
                     <div className="w-10 shrink-0" aria-hidden />
@@ -850,23 +868,19 @@ export function PreProfile() {
                     </section>
 
                     {/* Also Known As */}
-                    <DataTypeCard icon={CreditCard} title="Also Known As">
-                        {data.alsoKnownAs.length > 0 ? (
+                    {data.alsoKnownAs.length > 0 && (
+                        <DataTypeCard icon={CreditCard} title="Also Known As">
                             <div className="flex flex-wrap gap-2">
                                 {data.alsoKnownAs.map((alias, i) => (
                                     <Pill key={i}>{alias}</Pill>
                                 ))}
                             </div>
-                        ) : (
-                            <p className="text-sm text-[var(--text-muted)] dark:text-[#7A92A8]">
-                                No aliases found
-                            </p>
-                        )}
-                    </DataTypeCard>
+                        </DataTypeCard>
+                    )}
 
                     {/* Family & Friends */}
-                    <DataTypeCard icon={Users} title="Family & Friends">
-                        {data.familyAndFriends.length > 0 ? (
+                    {data.familyAndFriends.length > 0 && (
+                        <DataTypeCard icon={Users} title="Family & Friends">
                             <ul className="space-y-2">
                                 {data.familyAndFriends.map((item, i) => (
                                     <li
@@ -889,37 +903,35 @@ export function PreProfile() {
                                     </li>
                                 ))}
                             </ul>
-                        ) : (
-                            <p className="text-sm text-[var(--text-muted)] dark:text-[#7A92A8]">
-                                No family or friends found
-                            </p>
-                        )}
-                    </DataTypeCard>
+                        </DataTypeCard>
+                    )}
 
                     {/* Past addresses */}
-                    <DataTypeCard icon={MapPin} title="Past addresses">
-                        {data.pastAddresses.length > 0 ? (
-                            <ul className="space-y-1.5">
+                    {data.pastAddresses.length > 0 && (
+                        <DataTypeCard icon={MapPin} title="Past addresses">
+                            <ul className="space-y-3">
                                 {data.pastAddresses.map((addr, i) => (
-                                    <li
-                                        key={i}
-                                        className="text-sm text-[var(--text-primary)] dark:text-white"
-                                    >
-                                        {addr}
+                                    <li key={i}>
+                                        {addr.street && (
+                                            <p className="text-sm font-bold text-[var(--text-primary)] dark:text-white">
+                                                {addr.street}
+                                            </p>
+                                        )}
+                                        {addr.cityStateZip && (
+                                            <p className="text-sm font-normal text-[var(--text-secondary)] dark:text-[#B8C4CC]">
+                                                {addr.cityStateZip}
+                                            </p>
+                                        )}
                                     </li>
                                 ))}
                             </ul>
-                        ) : (
-                            <p className="text-sm text-[var(--text-muted)] dark:text-[#7A92A8]">
-                                No past addresses found
-                            </p>
-                        )}
-                    </DataTypeCard>
+                        </DataTypeCard>
+                    )}
 
                     {/* Past phone numbers */}
-                    <DataTypeCard icon={Phone} title="Past phone numbers">
-                        {data.pastPhones.length > 0 ? (
-                            <ul className="space-y-1.5">
+                    {data.pastPhones.length > 0 && (
+                        <DataTypeCard icon={Phone} title="Past phone numbers">
+                            <ul className="grid grid-cols-2 gap-x-4 gap-y-1.5">
                                 {data.pastPhones.map((phone, i) => (
                                     <li
                                         key={i}
@@ -929,16 +941,12 @@ export function PreProfile() {
                                     </li>
                                 ))}
                             </ul>
-                        ) : (
-                            <p className="text-sm text-[var(--text-muted)] dark:text-[#7A92A8]">
-                                No past phone numbers found
-                            </p>
-                        )}
-                    </DataTypeCard>
+                        </DataTypeCard>
+                    )}
 
                     {/* Employers */}
-                    <DataTypeCard icon={Building2} title="Employers">
-                        {data.employers.length > 0 ? (
+                    {data.employers.length > 0 && (
+                        <DataTypeCard icon={Building2} title="Employers">
                             <ul className="space-y-1.5">
                                 {data.employers.map((emp, i) => (
                                     <li
@@ -949,16 +957,12 @@ export function PreProfile() {
                                     </li>
                                 ))}
                             </ul>
-                        ) : (
-                            <p className="text-sm text-[var(--text-muted)] dark:text-[#7A92A8]">
-                                No employers found
-                            </p>
-                        )}
-                    </DataTypeCard>
+                        </DataTypeCard>
+                    )}
 
                     {/* Financial Assets */}
-                    <DataTypeCard icon={Landmark} title="Financial Assets">
-                        {data.financialAssets.length > 0 ? (
+                    {data.financialAssets.length > 0 && (
+                        <DataTypeCard icon={Landmark} title="Financial Assets">
                             <ul className="space-y-1.5">
                                 {data.financialAssets.map((asset, i) => (
                                     <li
@@ -969,16 +973,12 @@ export function PreProfile() {
                                     </li>
                                 ))}
                             </ul>
-                        ) : (
-                            <p className="text-sm text-[var(--text-muted)] dark:text-[#7A92A8]">
-                                No financial assets found
-                            </p>
-                        )}
-                    </DataTypeCard>
+                        </DataTypeCard>
+                    )}
 
                     {/* Court Records */}
-                    <DataTypeCard icon={Scale} title="Court Records">
-                        {data.courtRecords.length > 0 ? (
+                    {data.courtRecords.length > 0 && (
+                        <DataTypeCard icon={Scale} title="Court Records">
                             <ul className="space-y-1.5">
                                 {data.courtRecords.map((record, i) => (
                                     <li
@@ -989,12 +989,8 @@ export function PreProfile() {
                                     </li>
                                 ))}
                             </ul>
-                        ) : (
-                            <p className="text-sm text-[var(--text-muted)] dark:text-[#7A92A8]">
-                                No court records found
-                            </p>
-                        )}
-                    </DataTypeCard>
+                        </DataTypeCard>
+                    )}
                 </div>
             </div>
 
@@ -1016,11 +1012,11 @@ export function PreProfile() {
             >
                 <div className="mx-auto w-full max-w-3xl flex flex-col items-center gap-3">
                     <p className="text-base font-bold font-ubuntu text-white">
-                        Remove Your Data - For FREE...
+                        Let's Remove This Data
                     </p>
                     <span className="inline-flex items-center gap-1.5 rounded-full border border-[#00BFFF]/40 bg-[#00BFFF]/10 px-3 py-1.5 text-xs font-medium font-ubuntu text-[#00BFFF]">
                         <Zap className="h-3.5 w-3.5" aria-hidden />
-                        3 mins To Start Removing...
+                        3 mins To Start Removing
                     </span>
                     {startError && (
                         <p className="text-xs text-red-400 text-center">{startError}</p>
