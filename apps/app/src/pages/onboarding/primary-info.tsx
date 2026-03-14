@@ -17,6 +17,14 @@ interface PrimaryInfoField {
     status: BadgeStatus;
 }
 
+/** Convert ISO date (YYYY-MM-DD) to DD/MM/YYYY for display */
+function formatDateDisplay(iso: string): string {
+    if (!iso) return "";
+    const [y, m, d] = iso.split("-");
+    if (!y || !m || !d) return iso;
+    return `${d}/${m}/${y}`;
+}
+
 function EditInput({
     id,
     label,
@@ -71,8 +79,9 @@ function EditInput({
 
 export function VerifyPrimaryInfo() {
     const [fields, setFields] = useState<PrimaryInfoField[]>([]);
-    const [activeId, setActiveId] = useState<string | null>(null);
-    const [editingFieldId, setEditingFieldId] = useState<string | null>(null);
+    // DOB defaults expanded since it's empty/required on first load
+    const [activeId, setActiveId] = useState<string | null>("dateOfBirth");
+    const [editingFieldId, setEditingFieldId] = useState<string | null>("dateOfBirth");
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
 
@@ -98,6 +107,7 @@ export function VerifyPrimaryInfo() {
                 .single();
 
             if (profile) {
+                const hasDob = !!profile.date_of_birth;
                 setFields([
                     {
                         id: "legalName",
@@ -109,9 +119,20 @@ export function VerifyPrimaryInfo() {
                         id: "dateOfBirth",
                         label: "DATE OF BIRTH",
                         value: profile.date_of_birth ?? "",
-                        status: profile.date_of_birth ? "pending" : "pending",
+                        status: hasDob ? "pending" : "recommended",
                     },
                 ]);
+
+                // If DOB is already filled, start with it expanded for confirmation;
+                // otherwise default to legalName expanded
+                if (hasDob) {
+                    setActiveId("dateOfBirth");
+                    setEditingFieldId("dateOfBirth");
+                    setEditDob(profile.date_of_birth ?? "");
+                } else {
+                    setActiveId("dateOfBirth");
+                    setEditingFieldId("dateOfBirth");
+                }
             }
             setIsLoading(false);
         }
@@ -206,6 +227,8 @@ export function VerifyPrimaryInfo() {
                 currentStep={"basic" satisfies OnboardingStep}
                 completedSteps={[]}
                 title="Verify Primary Info"
+                subtitle="Click on Field to Edit"
+                onDashboardNavigate={() => navigate("/dashboard/home")}
                 footer={null}
             >
                 <div className="flex items-center justify-center py-16">
@@ -220,6 +243,8 @@ export function VerifyPrimaryInfo() {
             currentStep={"basic" satisfies OnboardingStep}
             completedSteps={[]}
             title="Verify Primary Info"
+            subtitle="Click on Field to Edit"
+            onDashboardNavigate={() => navigate("/dashboard/home")}
             footer={
                 <button
                     type="button"
@@ -238,52 +263,72 @@ export function VerifyPrimaryInfo() {
         >
             <div className="flex flex-col gap-4">
                 {fields.map((field) => (
-                    <OnboardingDataCard
-                        key={field.id}
-                        label={field.label}
-                        value={field.value}
-                        status={field.status}
-                        isExpanded={activeId === field.id}
-                        isEditing={editingFieldId === field.id}
-                        editContent={
-                            editingFieldId === field.id ? (
-                                field.id === "legalName" ? (
-                                    <>
+                    <div key={field.id} className="flex flex-col gap-2">
+                        <OnboardingDataCard
+                            label={field.label}
+                            value={field.value}
+                            displayValue={
+                                field.id === "dateOfBirth" && field.value
+                                    ? formatDateDisplay(field.value)
+                                    : undefined
+                            }
+                            status={field.status}
+                            hideStatus={field.id === "legalName"}
+                            isExpanded={activeId === field.id}
+                            isEditing={editingFieldId === field.id}
+                            editContent={
+                                editingFieldId === field.id ? (
+                                    field.id === "legalName" ? (
+                                        <>
+                                            <EditInput
+                                                id="edit-first-name"
+                                                label="First Name"
+                                                value={editFirstName}
+                                                onChange={setEditFirstName}
+                                                placeholder="First name"
+                                                icon={User}
+                                            />
+                                            <EditInput
+                                                id="edit-last-name"
+                                                label="Last Name"
+                                                value={editLastName}
+                                                onChange={setEditLastName}
+                                                placeholder="Last name"
+                                                icon={User}
+                                            />
+                                        </>
+                                    ) : (
                                         <EditInput
-                                            id="edit-first-name"
-                                            label="First Name"
-                                            value={editFirstName}
-                                            onChange={setEditFirstName}
-                                            placeholder="First name"
-                                            icon={User}
+                                            id="edit-dob"
+                                            label="Date of Birth"
+                                            value={editDob}
+                                            onChange={setEditDob}
+                                            placeholder="YYYY-MM-DD"
+                                            type="date"
+                                            icon={Calendar}
                                         />
-                                        <EditInput
-                                            id="edit-last-name"
-                                            label="Last Name"
-                                            value={editLastName}
-                                            onChange={setEditLastName}
-                                            placeholder="Last name"
-                                            icon={User}
-                                        />
-                                    </>
-                                ) : (
-                                    <EditInput
-                                        id="edit-dob"
-                                        label="Date of Birth"
-                                        value={editDob}
-                                        onChange={setEditDob}
-                                        placeholder="YYYY-MM-DD"
-                                        type="date"
-                                        icon={Calendar}
-                                    />
-                                )
-                            ) : undefined
-                        }
-                        onClick={() =>
-                            activeId === field.id ? setActiveId(null) : openEdit(field)
-                        }
-                        onConfirmAndContinue={() => saveAndConfirm(field.id)}
-                    />
+                                    )
+                                ) : undefined
+                            }
+                            onClick={() =>
+                                activeId === field.id ? setActiveId(null) : openEdit(field)
+                            }
+                            onConfirmAndContinue={() => saveAndConfirm(field.id)}
+                        />
+                        {field.id === "dateOfBirth" && (
+                            <div className={cx(
+                                "rounded-xl px-4 py-3",
+                                "bg-[#00BFFF]/10 dark:bg-[#00BFFF]/10",
+                                "border border-[#00BFFF]/25 dark:border-[#00BFFF]/20",
+                            )}>
+                                <p className="text-xs leading-relaxed text-[#0099CC] dark:text-[#00BFFF]">
+                                    We use your birthdate to help qualify your data and is often required by brokers to remove your data. Your search profile data is securely encrypted and{" "}
+                                    <strong>NEVER used, shared, or sold for marketing purposes.</strong>{" "}
+                                    Not even by us!
+                                </p>
+                            </div>
+                        )}
+                    </div>
                 ))}
             </div>
         </OnboardingLayout>

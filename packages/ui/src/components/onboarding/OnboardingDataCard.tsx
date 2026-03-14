@@ -6,7 +6,11 @@ interface OnboardingDataCardProps {
     /** Optional - omit for list items (e.g. phone/alias/address/email cards) */
     label?: string;
     value?: string;
+    /** Override the displayed value in the closed state (e.g. formatted date) */
+    displayValue?: string;
     status: BadgeStatus;
+    /** Hide the status badge entirely (e.g. for Legal Name) */
+    hideStatus?: boolean;
     isExpanded: boolean;
     isEditing?: boolean;
     editContent?: React.ReactNode;
@@ -24,7 +28,9 @@ interface OnboardingDataCardProps {
 export function OnboardingDataCard({
     label,
     value,
+    displayValue,
     status,
+    hideStatus = false,
     isExpanded,
     isEditing: _isEditing = false,
     editContent,
@@ -37,6 +43,8 @@ export function OnboardingDataCard({
     showDelete = false,
     onDelete,
 }: OnboardingDataCardProps) {
+    const shownValue = displayValue ?? value;
+
     return (
         <div
             role="button"
@@ -64,7 +72,7 @@ export function OnboardingDataCard({
                             {label}
                         </span>
                     )}
-                    <StatusBadge status={status} />
+                    {!hideStatus && <StatusBadge status={status} />}
                 </div>
                 <div className="flex shrink-0 items-center gap-3">
                     {toggleLabel != null && (
@@ -85,17 +93,16 @@ export function OnboardingDataCard({
                                     onToggleChange?.(!toggleValue);
                                 }}
                                 className={cx(
-                                    "relative h-6 w-11 shrink-0 rounded-full outline-none transition",
+                                    "relative h-6 w-11 shrink-0 rounded-full outline-none transition-colors duration-200 overflow-hidden",
                                     "focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2",
                                     toggleValue
-                                        ? "bg-[#00BFFF] dark:bg-[#00BFFF]"
+                                        ? "bg-[#00BFFF]"
                                         : "bg-[var(--border-subtle)] dark:bg-[#2A4A68]",
                                 )}
                             >
                                 <span
                                     className={cx(
-                                        "absolute top-1 rounded-full bg-white shadow transition-transform",
-                                        "h-5 w-5 left-0.5",
+                                        "absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform duration-200",
                                         toggleValue && "translate-x-5",
                                     )}
                                 />
@@ -124,13 +131,13 @@ export function OnboardingDataCard({
             </div>
 
             {/* Row 2: Value (always visible so data is on the card) */}
-            {value !== undefined && !isExpanded && (
+            {shownValue !== undefined && !isExpanded && (
                 <p className="mt-3 text-lg font-bold tracking-tight text-[#022136] dark:text-white">
-                    {value}
+                    {shownValue}
                 </p>
             )}
 
-            {/* Expanded: edit form + Update (saves this field) */}
+            {/* Expanded: edit form + Save (saves this field) */}
             {isExpanded && (
                 <>
                     {editContent ? (
@@ -138,9 +145,9 @@ export function OnboardingDataCard({
                             {editContent}
                         </div>
                     ) : (
-                        value !== undefined && (
+                        shownValue !== undefined && (
                             <p className="mt-4 text-center text-2xl font-bold tracking-tight text-[#022136] dark:text-white sm:text-3xl">
-                                {value}
+                                {shownValue}
                             </p>
                         )
                     )}
@@ -157,7 +164,7 @@ export function OnboardingDataCard({
                                 "focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#022136]",
                             )}
                         >
-                            Update
+                            Save
                         </button>
                     </div>
                 </>

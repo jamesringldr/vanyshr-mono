@@ -588,11 +588,35 @@ export class ZabasearchScraper extends BaseScraper {
                   is_last_known: true
                 });
               } else {
-                cityState = addressText.replace(/\n/g, ", ");
-                addresses.push({
-                  full_address: cityState,
-                  is_last_known: true
-                });
+                // Try "State Zip" on line 2 (city embedded at end of street line)
+                const stateZipMatch = cityStateZip.match(/^([A-Za-z][A-Za-z\s]+?)\s+(\d{5})/);
+                // Or single-line "Street City, State Zip" (no newline in HTML)
+                const fullLineMatch = !cityStateZip && street.match(/^(.+),\s*([A-Za-z][A-Za-z\s]+?)\s+(\d{5})\s*$/);
+                if (stateZipMatch) {
+                  cityState = `${street}, ${stateZipMatch[1].trim()}`;
+                  addresses.push({
+                    full_address: addressText.replace(/\n/g, ", "),
+                    street: street,
+                    state: stateZipMatch[1].trim(),
+                    zip: stateZipMatch[2],
+                    is_last_known: true
+                  });
+                } else if (fullLineMatch) {
+                  cityState = street;
+                  addresses.push({
+                    full_address: street,
+                    street: fullLineMatch[1].trim(),
+                    state: fullLineMatch[2].trim(),
+                    zip: fullLineMatch[3],
+                    is_last_known: true
+                  });
+                } else {
+                  cityState = addressText.replace(/\n/g, ", ");
+                  addresses.push({
+                    full_address: cityState,
+                    is_last_known: true
+                  });
+                }
               }
             }
           }
@@ -628,10 +652,32 @@ export class ZabasearchScraper extends BaseScraper {
                     is_last_known: false
                   });
                 } else {
-                  addresses.push({
-                    full_address: addressText.replace(/\n/g, ", "),
-                    is_last_known: false
-                  });
+                  // Try "State Zip" on line 2 (city embedded at end of street line)
+                  const stateZipMatch = cityStateZip.match(/^([A-Za-z][A-Za-z\s]+?)\s+(\d{5})/);
+                  // Or single-line "Street City, State Zip" (no newline in HTML)
+                  const fullLineMatch = !cityStateZip && street.match(/^(.+),\s*([A-Za-z][A-Za-z\s]+?)\s+(\d{5})\s*$/);
+                  if (stateZipMatch) {
+                    addresses.push({
+                      full_address: addressText.replace(/\n/g, ", "),
+                      street: street,
+                      state: stateZipMatch[1].trim(),
+                      zip: stateZipMatch[2],
+                      is_last_known: false
+                    });
+                  } else if (fullLineMatch) {
+                    addresses.push({
+                      full_address: street,
+                      street: fullLineMatch[1].trim(),
+                      state: fullLineMatch[2].trim(),
+                      zip: fullLineMatch[3],
+                      is_last_known: false
+                    });
+                  } else {
+                    addresses.push({
+                      full_address: addressText.replace(/\n/g, ", "),
+                      is_last_known: false
+                    });
+                  }
                 }
               }
             });
