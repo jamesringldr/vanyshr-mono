@@ -38,33 +38,55 @@ export function AuthMagicLink() {
             return;
         }
 
-        // Email is new — proceed with new account creation.
-        // Build the redirect URL with profile_id encoded as a query param
-        // so the auth callback can link the pending profile after auth completes.
-        const profileId = sessionStorage.getItem("pendingProfileId");
-        const redirectUrl = new URL(`${window.location.origin}/auth/callback`);
-        if (profileId) {
-            redirectUrl.searchParams.set("profile_id", profileId);
+        // Email is new — create the pending profile first so we capture the
+        // email address immediately. This enables re-engagement emails for
+        // users who submit here but never click the magic link (abandoned cart).
+        const scanId = sessionStorage.getItem("pendingScanId");
+
+        if (!scanId) {
+            setAuthError("Session expired. Please go back and try again.");
+            setIsSending(false);
+            return;
         }
 
-        // Pass profile_id (and scan_id if present) in options.data so they land
-        // in raw_user_meta_data on the auth.users row. The DB trigger reads this
-        // to link the pending profile at the moment auth is confirmed, before
-        // the edge function call in the callback even fires.
-        const scanId = sessionStorage.getItem("pendingScanId");
-        const metaData = profileId
-            ? {
-                  profile_id: profileId,
-                  ...(scanId ? { source_quick_scan_id: scanId } : {}),
-              }
-            : undefined;
+        // Step 1: Create the pending profile (captures email + scan data in DB).
+        let profileId: string | null = null;
+        try {
+            const { data: profileResult, error: profileError } = await supabase.functions.invoke<{
+                success: boolean;
+                profile_id?: string;
+                error?: string;
+            }>("create-pending-profile", {
+                body: { scan_id: scanId, email: email.trim() },
+            });
+
+            if (profileError || !profileResult?.success || !profileResult?.profile_id) {
+                throw new Error(profileResult?.error ?? profileError?.message ?? "Failed to create profile");
+            }
+
+            profileId = profileResult.profile_id;
+            sessionStorage.setItem("pendingProfileId", profileId);
+        } catch (err) {
+            console.error("create-pending-profile error:", err);
+            setAuthError("Something went wrong. Please try again.");
+            setIsSending(false);
+            return;
+        }
+
+        // Step 2: Send the magic link with profile_id embedded in the redirect
+        // URL and user metadata so the auth callback can link the profile.
+        const redirectUrl = new URL(`${window.location.origin}/auth/callback`);
+        redirectUrl.searchParams.set("profile_id", profileId);
 
         const { error } = await supabase.auth.signInWithOtp({
             email: email.trim(),
             options: {
                 emailRedirectTo: redirectUrl.toString(),
                 shouldCreateUser: true,
-                data: metaData,
+                data: {
+                    profile_id:           profileId,
+                    source_quick_scan_id: scanId,
+                },
             },
         });
 
