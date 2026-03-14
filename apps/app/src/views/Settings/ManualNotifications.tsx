@@ -1,6 +1,7 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router';
+import { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router';
 import { ChevronLeft, Shield } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -164,11 +165,47 @@ function loadSettings(): ManualSettings {
 
 export function ManualNotifications() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const returnTo = (location.state as { returnTo?: string } | null)?.returnTo ?? null;
 
   const [settings, setSettings] = useState<ManualSettings>(loadSettings);
   const [showBreachNudge, setShowBreachNudge] = useState(
     () => !loadSettings().alerts.darkWebBreach
   );
+  const [profileId, setProfileId] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Load profileId and merge any DB-saved settings on mount
+  useEffect(() => {
+    async function load() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: profile } = await supabase
+        .from('user_profiles')
+        .select('id')
+        .eq('auth_user_id', user.id)
+        .single();
+
+      if (!profile) return;
+      setProfileId(profile.id);
+
+      const { data: prefs } = await supabase
+        .from('user_preferences')
+        .select('notification_settings')
+        .eq('user_id', profile.id)
+        .maybeSingle();
+
+      // If DB has saved custom settings, prefer those over localStorage
+      if (prefs?.notification_settings && Object.keys(prefs.notification_settings).length > 0) {
+        const dbSettings = prefs.notification_settings as ManualSettings;
+        setSettings(dbSettings);
+        setShowBreachNudge(!dbSettings.alerts?.darkWebBreach);
+        localStorage.setItem(SETTINGS_KEY, JSON.stringify(dbSettings));
+      }
+    }
+    load();
+  }, []);
 
   function update<K extends keyof ManualSettings>(group: K, patch: Partial<ManualSettings[K]>) {
     setSettings((prev) => ({
@@ -181,10 +218,29 @@ export function ManualNotifications() {
     }
   }
 
-  function handleSave() {
+  async function handleSave() {
+    if (isSaving) return;
+    setIsSaving(true);
+
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
     localStorage.setItem(TIER_KEY, 'manual');
-    navigate(-1);
+
+    if (profileId) {
+      await supabase
+        .from('user_preferences')
+        .update({
+          notification_tier: 'manual',
+          notification_settings: settings,
+        })
+        .eq('user_id', profileId);
+    }
+
+    setIsSaving(false);
+    if (returnTo) {
+      navigate(returnTo, { replace: true });
+    } else {
+      navigate(-1);
+    }
   }
 
   const { alerts, scanActivity, removalActivity, recapReports, productUpdates, newsInfo } = settings;
@@ -425,9 +481,10 @@ export function ManualNotifications() {
       <div className="fixed bottom-0 left-0 right-0 bg-[#022136] border-t border-[#2A4A68] px-6 py-5">
         <button
           onClick={handleSave}
-          className="w-full h-[52px] rounded-xl bg-[#00BFFF] text-[#022136] font-bold text-base hover:bg-[#00D4FF] active:bg-[#0099CC] active:text-white transition-colors duration-150 cursor-pointer"
+          disabled={isSaving}
+          className="w-full h-[52px] rounded-xl bg-[#00BFFF] text-[#022136] font-bold text-base hover:bg-[#00D4FF] active:bg-[#0099CC] active:text-white transition-colors duration-150 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
         >
-          Save Preferences
+          {isSaving ? 'Saving...' : 'Save Preferences'}
         </button>
       </div>
     </div>

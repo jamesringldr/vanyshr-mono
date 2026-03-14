@@ -84,9 +84,10 @@ export function OnboardingRemovalStrategy() {
     setIsSaving(true);
 
     if (profileId) {
-      await supabase
+      const { error } = await supabase
         .from('user_preferences')
         .upsert({ user_id: profileId, removal_strategy: selected }, { onConflict: 'user_id' });
+      if (error) console.error('Failed to save removal strategy:', error);
     }
 
     setIsSaving(false);
