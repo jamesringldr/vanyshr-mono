@@ -1,6 +1,6 @@
 import { cx } from '@/utils/cx';
 
-export type BadgeStatus = "confirmed" | "pending" | "new" | "action_required";
+export type BadgeStatus = "confirmed" | "pending" | "new" | "action_required" | "required" | "recommended";
 
 interface StatusBadgeProps {
     status: BadgeStatus;
@@ -30,6 +30,16 @@ const STATUS_CONFIG: Record<
         label: "ACTION REQUIRED",
         bgClass: "bg-[#FF5757]/10 dark:bg-[#FF5757]/20",
         textClass: "text-[#FF5757] dark:text-[#FF5757]",
+    },
+    required: {
+        label: "REQUIRED",
+        bgClass: "bg-[#DC2626]/10 dark:bg-[#DC2626]/20",
+        textClass: "text-[#DC2626] dark:text-red-400",
+    },
+    recommended: {
+        label: "RECOMMENDED",
+        bgClass: "bg-[#00BFFF]/10 dark:bg-[#00BFFF]/15",
+        textClass: "text-[#0099CC] dark:text-[#00BFFF]",
     },
 };
 

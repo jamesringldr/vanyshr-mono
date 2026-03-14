@@ -173,6 +173,8 @@ export function OnboardingAliases() {
                 currentStep={"aliases" satisfies OnboardingStep}
                 completedSteps={["basic", "phone"]}
                 title="Aliases"
+                subtitle="Click on Field to Edit"
+                onDashboardNavigate={() => navigate("/dashboard/home")}
                 footer={null}
             >
                 <div className="flex items-center justify-center py-16">
@@ -187,18 +189,34 @@ export function OnboardingAliases() {
             currentStep={"aliases" satisfies OnboardingStep}
             completedSteps={["basic", "phone"]}
             title="Aliases"
+            subtitle="Click on Field to Edit"
+            onDashboardNavigate={() => navigate("/dashboard/home")}
             footer={
-                <button
-                    type="button"
-                    onClick={handleConfirmAndContinue}
-                    className={cx(
-                        "flex h-[52px] w-full items-center justify-center rounded-xl text-sm font-semibold text-white outline-none transition",
-                        "bg-[#00BFFF] hover:bg-[#0E9AE8]",
-                        "focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#022136]",
-                    )}
-                >
-                    Confirm & Continue
-                </button>
+                <div className="flex w-full gap-3">
+                    <button
+                        type="button"
+                        onClick={() => navigate("/onboarding/phone-numbers")}
+                        className={cx(
+                            "flex h-[52px] flex-1 items-center justify-center rounded-xl text-sm font-semibold outline-none transition",
+                            "border border-[var(--border-subtle)] dark:border-[#2A4A68]",
+                            "text-[#022136] dark:text-white bg-transparent hover:bg-black/5 dark:hover:bg-white/10",
+                            "focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#022136]",
+                        )}
+                    >
+                        &lt; BACK
+                    </button>
+                    <button
+                        type="button"
+                        onClick={handleConfirmAndContinue}
+                        className={cx(
+                            "flex h-[52px] flex-1 items-center justify-center rounded-xl text-sm font-semibold text-white outline-none transition",
+                            "bg-[#00BFFF] hover:bg-[#0E9AE8]",
+                            "focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#022136]",
+                        )}
+                    >
+                        CONFIRM &gt;
+                    </button>
+                </div>
             }
         >
             {items.length === 0 && (

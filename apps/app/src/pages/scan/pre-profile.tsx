@@ -325,6 +325,45 @@ function Pill({
     );
 }
 
+/**
+ * Parse a full address string like "500 E 3rd ST Kansas City, Missouri 64106"
+ * into a { street, cityStateZip } pair for two-line display.
+ */
+function parseFullAddress(fullAddr: string): { street: string; cityStateZip: string } {
+    // Match "Street City, State Zip"
+    const commaMatch = fullAddr.match(/^(.+),\s*([A-Za-z][A-Za-z\s]+?)\s+(\d{5})\s*$/);
+    if (commaMatch) {
+        const streetAndCity = commaMatch[1].trim();
+        const state = commaMatch[2].trim();
+        const zip = commaMatch[3];
+
+        // Try 2-word city: pre-city ends with digit or 2+ uppercase letters and has 3+ tokens
+        const twoWord = streetAndCity.match(/^(.+?)\s+([A-Z][a-z]+\s+[A-Z][a-z]+)$/);
+        if (twoWord && /(\d|[A-Z]{2,})$/.test(twoWord[1]) && twoWord[1].split(/\s+/).length >= 3) {
+            return { street: twoWord[1], cityStateZip: `${twoWord[2]}, ${state} ${zip}` };
+        }
+
+        // Try 1-word city: last title-case word
+        const oneWord = streetAndCity.match(/^(.+?)\s+([A-Z][a-z]+)$/);
+        if (oneWord) {
+            return { street: oneWord[1], cityStateZip: `${oneWord[2]}, ${state} ${zip}` };
+        }
+
+        return { street: streetAndCity, cityStateZip: `${state} ${zip}` };
+    }
+
+    // Fallback: split at last comma
+    const lastComma = fullAddr.lastIndexOf(",");
+    if (lastComma !== -1) {
+        return {
+            street: fullAddr.slice(0, lastComma).trim(),
+            cityStateZip: fullAddr.slice(lastComma + 1).trim(),
+        };
+    }
+
+    return { street: fullAddr, cityStateZip: "" };
+}
+
 // Convert QuickScanProfileData to PreProfileData for display
 function convertToPreProfileData(
     profile: QuickScanProfileData,
@@ -366,10 +405,18 @@ function convertToPreProfileData(
     const pastAddresses = profile.addresses
         ?.filter(a => !a.is_current)
         .map(a => {
-            const street = a.street || a.full_address || "";
-            const cityPart = [a.city, a.state].filter(Boolean).join(", ");
-            const cityStateZip = a.zip ? `${cityPart} ${a.zip}`.trim() : cityPart;
-            return { street, cityStateZip };
+            // Happy path: structured fields available
+            if (a.city || a.state) {
+                const street = a.street || a.full_address || "";
+                const cityPart = [a.city, a.state].filter(Boolean).join(", ");
+                const cityStateZip = a.zip ? `${cityPart} ${a.zip}`.trim() : cityPart;
+                return { street, cityStateZip };
+            }
+            // Fallback: only full_address stored — try to parse it
+            if (a.full_address) {
+                return parseFullAddress(a.full_address);
+            }
+            return { street: a.street || "", cityStateZip: "" };
         })
         .filter(a => a.street || a.cityStateZip) || [];
 

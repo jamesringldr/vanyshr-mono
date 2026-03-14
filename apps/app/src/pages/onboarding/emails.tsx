@@ -223,6 +223,8 @@ export function OnboardingEmails() {
                 currentStep={"emails" satisfies OnboardingStep}
                 completedSteps={["basic", "phone", "aliases", "addresses"]}
                 title="Emails"
+                subtitle="Click on Field to Edit"
+                onDashboardNavigate={() => navigate("/dashboard/home")}
                 footer={null}
             >
                 <div className="flex items-center justify-center py-16">
@@ -237,6 +239,8 @@ export function OnboardingEmails() {
             currentStep={"emails" satisfies OnboardingStep}
             completedSteps={["basic", "phone", "aliases", "addresses"]}
             title="Emails"
+            subtitle="Click on Field to Edit"
+            onDashboardNavigate={() => navigate("/dashboard/home")}
             footer={
                 <button
                     type="button"
