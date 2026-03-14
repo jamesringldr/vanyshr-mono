@@ -82,7 +82,7 @@ const TIERS: TierConfig[] = [
   },
   {
     id: 'manual',
-    label: 'Manual',
+    label: 'Custom',
     frequency: null,
     isNavigator: true,
     description:
@@ -130,7 +130,7 @@ export function OnboardingNotificationPreferences() {
 
   function handleTierSelect(id: NotificationTier) {
     if (id === 'manual') {
-      navigate('/settings/notifications');
+      navigate('/settings/notifications', { state: { returnTo: '/onboarding/progress' } });
       return;
     }
     setSelectedTier(id);
@@ -141,7 +141,7 @@ export function OnboardingNotificationPreferences() {
     setIsSaving(true);
 
     if (profileId) {
-      await supabase
+      const { error } = await supabase
         .from('user_preferences')
         .upsert(
           {
@@ -151,6 +151,7 @@ export function OnboardingNotificationPreferences() {
           },
           { onConflict: 'user_id' }
         );
+      if (error) console.error('Failed to save notification tier:', error);
     }
 
     setIsSaving(false);
