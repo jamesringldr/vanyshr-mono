@@ -58,6 +58,13 @@ serve(async (req) => {
       search_all = false
     } = requestBody
 
+    // Warm-up ping — keeps the function hot, no DB writes, no scraping
+    if ((requestBody as any).ping === true) {
+      return new Response(JSON.stringify({ pong: true }), {
+        status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
     if (!firstName || !lastName) {
       return new Response(
         JSON.stringify({ error: 'firstName and lastName are required' }),
@@ -140,11 +147,16 @@ serve(async (req) => {
 
     console.log(`🔍 Found ${matches.length} total matches`);
 
+    const scraperFailed = scraperRuns.some((r: any) => r.success === false);
+    const finalStatus = matches.length > 0
+      ? 'selection_required'
+      : scraperFailed ? 'scraper_failed' : 'no_matches';
+
     if (activeScanId) {
       const { error: updateError } = await supabaseClient
         .from('quick_scans')
         .update({
-          status: matches.length > 0 ? 'selection_required' : 'no_matches',
+          status: finalStatus,
           candidate_matches: matches,
           scraper_runs: scraperRuns,
         })
@@ -161,6 +173,7 @@ serve(async (req) => {
         scan_id: activeScanId,
         profiles: matches,
         count: matches.length,
+        scraper_failed: scraperFailed,
         scraper_runs: scraperRuns,
         available_scrapers: getAvailableScrapers(),
       }),

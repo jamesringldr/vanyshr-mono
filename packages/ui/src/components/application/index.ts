@@ -43,6 +43,9 @@ export * from "./qs-progress-steps/qs-progress-steps";
 // Quick Scan Form
 export * from "./quick-scan-form";
 
+// Quick Scan Error
+export * from "./quick-scan-error";
+
 // Quick Scan Result Modals
 export * from "./qs-result-modals";
 

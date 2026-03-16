@@ -25,6 +25,7 @@ export interface ProfileMatch {
 export interface QuickScanFormProps {
   supabaseClient: any;
   onProfileSelect: (profile: ProfileMatch, searchParams: { firstName: string; lastName: string; zipCode: string; city: string; state: string }, scanId: string | null) => void;
+  onTotalFailure?: (searchParams: { firstName: string; lastName: string; zipCode: string; city: string; state: string }, originalScanId: string | null) => void;
   onClose?: () => void;
   className?: string;
 }
@@ -88,7 +89,7 @@ function SquareLoader() {
   );
 }
 
-export function QuickScanForm({ supabaseClient, onProfileSelect, onClose, className }: QuickScanFormProps) {
+export function QuickScanForm({ supabaseClient, onProfileSelect, onTotalFailure, onClose, className }: QuickScanFormProps) {
   // Form state
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -156,6 +157,11 @@ export function QuickScanForm({ supabaseClient, onProfileSelect, onClose, classN
     };
   }, [zipCode]);
 
+  // Warm up universal-search on mount so it's hot by the time the user submits
+  useEffect(() => {
+    supabaseClient.functions.invoke("universal-search", { body: { ping: true } });
+  }, [supabaseClient]);
+
   // Form is only submittable once zip is confirmed valid
   const isFormValid = firstName.trim().length >= 2 && lastName.trim().length >= 2 && zipStatus === "valid" && zipLocation !== null;
 
@@ -171,6 +177,7 @@ export function QuickScanForm({ supabaseClient, onProfileSelect, onClose, classN
   });
 
   // Handle the scan — zip is already validated, city/state known from zipLocation
+  // Silently retries once on scraper failure before calling onTotalFailure
   const handleScan = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isFormValid || !zipLocation) return;
@@ -184,51 +191,78 @@ export function QuickScanForm({ supabaseClient, onProfileSelect, onClose, classN
     setScanStepIndex(0);
     setStatus("searching");
 
-    try {
-      const { data: searchData, error: searchError } = await supabaseClient.functions.invoke(
-        "universal-search",
-        {
-          body: {
-            firstName: firstName.trim(),
-            lastName: lastName.trim(),
-            zipCode,
-            state: zipLocation.state,
-            city: zipLocation.city,
-            siteName: "AnyWho",
-          },
+    const searchParams = {
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+      zipCode,
+      city: zipLocation.city,
+      state: zipLocation.state,
+    };
+
+    let lastScanId: string | null = null;
+    let searchData: any = null;
+
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const { data, error: searchError } = await supabaseClient.functions.invoke(
+          "universal-search",
+          {
+            body: {
+              firstName: searchParams.firstName,
+              lastName: searchParams.lastName,
+              zipCode: searchParams.zipCode,
+              state: searchParams.state,
+              city: searchParams.city,
+              siteName: "AnyWho",
+            },
+          }
+        );
+
+        if (searchError) throw new Error(searchError.message || "Failed to search");
+
+        if (data?.scan_id) {
+          lastScanId = data.scan_id;
+          setScanId(data.scan_id);
         }
-      );
 
-      if (searchError) throw new Error(searchError.message || "Failed to search");
+        if (data?.scraper_failed) {
+          // Scraper failed — retry silently on next attempt
+          continue;
+        }
 
-      if (searchData?.scan_id) {
-        setScanId(searchData.scan_id);
+        searchData = data;
+        break;
+      } catch (err) {
+        console.error(`Scan attempt ${attempt + 1} error:`, err);
+        // First attempt: retry. Second attempt: fall through to total failure.
       }
-
-      // Let step 1 animation breathe before showing modal
-      await new Promise(resolve => setTimeout(resolve, 3000));
-
-      setStatus("complete");
-      setView("form");
-
-      if (!searchData || searchData.count === 0) {
-        setMatches([]);
-        setShowNoResultsModal(true);
-      } else if (searchData.count === 1) {
-        setMatches(searchData.profiles);
-        setShowSingleModal(true);
-      } else {
-        setMatches(searchData.profiles);
-        setShowMultipleModal(true);
-      }
-    } catch (err) {
-      console.error("Scan error:", err);
-      setStatus("error");
-      setError(err instanceof Error ? err.message : "An unexpected error occurred");
-      setView("form");
-      setShowNoResultsModal(true);
     }
-  }, [firstName, lastName, zipCode, zipLocation, isFormValid, supabaseClient]);
+
+    if (!searchData) {
+      // Both attempts failed — surface the error UI
+      setStatus("error");
+      setView("form");
+      onTotalFailure?.(searchParams, lastScanId);
+      return;
+    }
+
+    // Let step 1 animation breathe before showing modal
+    await new Promise(resolve => setTimeout(resolve, 3000));
+
+    setStatus("complete");
+    setView("form");
+
+    if (!searchData || searchData.count === 0) {
+      setMatches([]);
+      setShowNoResultsModal(true);
+    } else if (searchData.count === 1) {
+      setMatches(searchData.profiles);
+      setShowSingleModal(true);
+    } else {
+      setMatches(searchData.profiles);
+      setShowMultipleModal(true);
+    }
+  }, [firstName, lastName, zipCode, zipLocation, isFormValid, supabaseClient, onTotalFailure]);
 
   const handleSelectProfile = useCallback(async (profile: QSProfileSummary) => {
     const originalProfile = matches.find(m => m.id === profile.id);

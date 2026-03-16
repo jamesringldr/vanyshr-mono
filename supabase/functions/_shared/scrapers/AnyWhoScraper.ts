@@ -1,11 +1,11 @@
-// AnyWho Scraper - Uses free CORS proxies (no Cloudflare protection)
+// AnyWho Scraper - CF Worker relay (primary), free CORS proxies (fallback)
 import { BaseScraper, PersonProfile, ProfileMatch, QuickScanProfileData, SearchInput, SearchType, convertToQuickScanProfileData } from "./BaseScraper.ts";
 
 export class AnyWhoScraper extends BaseScraper {
   name = "AnyWho";
   supportedSearchTypes: SearchType[] = ["name"];
 
-  // Free CORS proxies work fine for AnyWho
+  // Free CORS proxies — fallback only, used when CF Worker is unavailable
   private corsProxies = [
     "https://corsproxy.io/?",
     "https://api.codetabs.com/v1/proxy?quest=",
@@ -28,22 +28,73 @@ export class AnyWhoScraper extends BaseScraper {
     WV: "west-virginia", WI: "wisconsin", WY: "wyoming",
   };
 
-  private async fetchWithProxy(targetUrl: string): Promise<string | null> {
+  private isBlockedResponse(html: string): boolean {
+    return (
+      html.includes("Just a moment...") ||
+      html.includes("Checking your browser") ||
+      html.includes("Access denied") ||
+      html.length < 500  // suspiciously short — likely an error page
+    );
+  }
+
+  // Wraps fetch with an AbortController timeout so hanging routes fail fast
+  private async fetchWithTimeout(url: string, options: RequestInit, timeoutMs: number): Promise<Response> {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      return await fetch(url, { ...options, signal: controller.signal });
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  private async fetchWithProxy(targetUrl: string): Promise<string> {
     console.log(`🔍 AnyWho - Target URL: ${targetUrl}`);
 
+    // Route 0: CF Worker relay (primary — controlled, reliable, 8s timeout)
+    const relayUrl = Deno.env.get("CF_RELAY_URL");
+    const relayToken = Deno.env.get("CF_RELAY_TOKEN");
+
+    if (relayUrl && relayToken) {
+      console.log(`🔍 AnyWho - Trying CF Worker relay`);
+      try {
+        const response = await this.fetchWithTimeout(
+          `${relayUrl}?url=${encodeURIComponent(targetUrl)}`,
+          { method: "GET", headers: { "x-relay-token": relayToken } },
+          8000
+        );
+
+        if (response.ok) {
+          const html = await response.text();
+          if (!this.isBlockedResponse(html)) {
+            console.log(`🔍 AnyWho - CF Worker relay success! HTML length: ${html.length}`);
+            return html;
+          }
+          console.log(`🔍 AnyWho - CF Worker relay returned blocked/empty response`);
+        } else {
+          console.log(`🔍 AnyWho - CF Worker relay failed with status: ${response.status}`);
+        }
+      } catch (error: any) {
+        const reason = error?.name === "AbortError" ? "timed out after 8s" : error?.message;
+        console.error(`🔍 AnyWho - CF Worker relay error: ${reason}`);
+      }
+    } else {
+      console.log(`🔍 AnyWho - CF Worker env vars not set, skipping relay`);
+    }
+
+    // Route 1-3: Free CORS proxies (fallback, 6s timeout each)
     for (let i = 0; i < this.corsProxies.length; i++) {
       const proxy = this.corsProxies[i];
       const proxyUrl = `${proxy}${encodeURIComponent(targetUrl)}`;
 
-      console.log(`🔍 AnyWho - Trying proxy ${i + 1}/${this.corsProxies.length}: ${proxy}`);
+      console.log(`🔍 AnyWho - Trying fallback proxy ${i + 1}/${this.corsProxies.length}: ${proxy}`);
 
       try {
-        const response = await fetch(proxyUrl, {
-          method: "GET",
-          headers: {
-            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
-          },
-        });
+        const response = await this.fetchWithTimeout(
+          proxyUrl,
+          { method: "GET", headers: { "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36" } },
+          6000
+        );
 
         if (!response.ok) {
           console.log(`🔍 AnyWho - Proxy ${i + 1} failed with status: ${response.status}`);
@@ -52,21 +103,21 @@ export class AnyWhoScraper extends BaseScraper {
 
         const html = await response.text();
 
-        if (html.includes("Just a moment...") || html.includes("Checking your browser") || html.includes("Access denied")) {
-          console.log(`🔍 AnyWho - Proxy ${i + 1} got blocked, trying next...`);
+        if (this.isBlockedResponse(html)) {
+          console.log(`🔍 AnyWho - Proxy ${i + 1} got blocked or returned empty response`);
           continue;
         }
 
         console.log(`🔍 AnyWho - Proxy ${i + 1} success! HTML length: ${html.length}`);
         return html;
-      } catch (error) {
-        console.error(`🔍 AnyWho - Proxy ${i + 1} error:`, error);
+      } catch (error: any) {
+        const reason = error?.name === "AbortError" ? "timed out after 6s" : error?.message;
+        console.error(`🔍 AnyWho - Proxy ${i + 1} error: ${reason}`);
         continue;
       }
     }
 
-    console.log(`🔍 AnyWho - All CORS proxies failed`);
-    return null;
+    throw new Error("AnyWho: all fetch routes failed (CF Worker + 3 fallback proxies)");
   }
 
   async scrape(
@@ -87,7 +138,6 @@ export class AnyWhoScraper extends BaseScraper {
     }
 
     const html = await this.fetchWithProxy(url);
-    if (!html) return [];
 
     const doc = this.parseHtml(html);
     if (!doc) return [];
@@ -319,7 +369,6 @@ export class AnyWhoScraper extends BaseScraper {
   async scrapeDetails(url: string): Promise<PersonProfile | null> {
     console.log(`🔍 AnyWho - Scraping details from: ${url}`);
     const html = await this.fetchWithProxy(url);
-    if (!html) return null;
 
     const doc = this.parseHtml(html);
     if (!doc) return null;
