@@ -17,12 +17,22 @@ interface PrimaryInfoField {
     status: BadgeStatus;
 }
 
-/** Convert ISO date (YYYY-MM-DD) to DD/MM/YYYY for display */
+/** Convert ISO date (YYYY-MM-DD) to MM/DD/YYYY for display */
 function formatDateDisplay(iso: string): string {
     if (!iso) return "";
     const [y, m, d] = iso.split("-");
     if (!y || !m || !d) return iso;
-    return `${d}/${m}/${y}`;
+    return `${m}/${d}/${y}`;
+}
+
+/** Convert MM/DD/YYYY to YYYY-MM-DD for storage */
+function convertInputToIso(input: string): string {
+    if (!input) return "";
+    const parts = input.split("/");
+    if (parts.length !== 3) return input;
+    const [m, d, y] = parts;
+    if (!m || !d || !y) return input;
+    return `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
 }
 
 function EditInput({
@@ -128,7 +138,8 @@ export function VerifyPrimaryInfo() {
                 if (hasDob) {
                     setActiveId("dateOfBirth");
                     setEditingFieldId("dateOfBirth");
-                    setEditDob(profile.date_of_birth ?? "");
+                    // Convert YYYY-MM-DD to MM/DD/YYYY for editing
+                    setEditDob(formatDateDisplay(profile.date_of_birth ?? ""));
                 } else {
                     setActiveId("dateOfBirth");
                     setEditingFieldId("dateOfBirth");
@@ -168,7 +179,8 @@ export function VerifyPrimaryInfo() {
             setEditFirstName(parts[0] ?? "");
             setEditLastName(parts.slice(1).join(" ") ?? "");
         } else if (field.id === "dateOfBirth") {
-            setEditDob(field.value);
+            // Convert YYYY-MM-DD to MM/DD/YYYY for editing
+            setEditDob(formatDateDisplay(field.value));
         }
     };
 
@@ -185,9 +197,11 @@ export function VerifyPrimaryInfo() {
                     : f,
             );
         } else {
+            // Convert MM/DD/YYYY input back to YYYY-MM-DD for storage
+            const isoDate = convertInputToIso(editDob.trim());
             updated = fields.map((f) =>
                 f.id === id
-                    ? { ...f, value: editDob.trim() || f.value, status: "confirmed" as BadgeStatus }
+                    ? { ...f, value: isoDate || f.value, status: "confirmed" as BadgeStatus }
                     : f,
             );
         }
@@ -303,8 +317,8 @@ export function VerifyPrimaryInfo() {
                                             label="Date of Birth"
                                             value={editDob}
                                             onChange={setEditDob}
-                                            placeholder="YYYY-MM-DD"
-                                            type="date"
+                                            placeholder="MM/DD/YYYY"
+                                            type="text"
                                             icon={Calendar}
                                         />
                                     )
