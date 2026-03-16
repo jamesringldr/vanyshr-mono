@@ -28,8 +28,12 @@ serve(async (req) => {
     return new Response('ok', { headers: corsHeaders })
   }
 
+  // Hoisted so the catch block can mark the row as errored
+  let activeScanId: string | null = null;
+  let supabaseClient: any = null;
+
   try {
-    const supabaseClient = createClient(
+    supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
       {
@@ -71,6 +75,44 @@ serve(async (req) => {
     let matches: ProfileMatch[] = [];
     let scraperRuns: any[] = [];
 
+    // Create or claim the quick_scans row before scraping starts
+    activeScanId = scan_id ?? null;
+
+    if (activeScanId) {
+      // Row already created by zip-lookup — update status to scanning
+      const { error: updateError } = await supabaseClient
+        .from('quick_scans')
+        .update({ status: 'scanning' })
+        .eq('id', activeScanId);
+      if (updateError) console.error('Error updating quick_scans to scanning:', updateError);
+      else console.log(`✅ quick_scans ${activeScanId} → scanning`);
+    } else {
+      // Fallback: no scan_id provided (e.g. called directly without zip-lookup)
+      const { data: insertData, error: insertError } = await supabaseClient
+        .from('quick_scans')
+        .insert({
+          session_id: crypto.randomUUID(),
+          status: 'scanning',
+          search_input: {
+            first_name: firstName,
+            last_name: lastName,
+            zip_code: zipCode ?? null,
+            city: city ?? null,
+            state: state ?? null,
+          },
+          expires_at: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+        })
+        .select('id')
+        .single();
+
+      if (insertError) {
+        console.error('Error creating quick_scans row:', insertError);
+      } else if (insertData?.id) {
+        activeScanId = insertData.id;
+        console.log(`✅ Created quick_scans row: ${activeScanId} (status: scanning)`);
+      }
+    }
+
     if (search_all) {
       // Search across all name-capable scrapers
       const nameScrapers = getScrapersForSearchType('name');
@@ -95,36 +137,6 @@ serve(async (req) => {
     }
 
     console.log(`🔍 Found ${matches.length} total matches`);
-
-    // Create or update the quick_scans row
-    let activeScanId: string | null = scan_id ?? null;
-
-    if (!activeScanId) {
-      // No scan_id provided — create the initial row now (service role, no RLS issues)
-      const { data: insertData, error: insertError } = await supabaseClient
-        .from('quick_scans')
-        .insert({
-          session_id: crypto.randomUUID(),
-          status: 'scanning',
-          search_input: {
-            first_name: firstName,
-            last_name: lastName,
-            zip_code: zipCode ?? null,
-            city: city ?? null,
-            state: state ?? null,
-          },
-          expires_at: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
-        })
-        .select('id')
-        .single();
-
-      if (insertError) {
-        console.error('Error creating quick_scans row:', insertError);
-      } else if (insertData?.id) {
-        activeScanId = insertData.id;
-        console.log(`✅ Created quick_scans row: ${activeScanId}`);
-      }
-    }
 
     if (activeScanId) {
       const { error: updateError } = await supabaseClient
@@ -155,6 +167,16 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('🔍 Universal Search error:', error)
+
+    // Best-effort: mark the scan row as errored
+    if (activeScanId && supabaseClient) {
+      try {
+        await supabaseClient
+          .from('quick_scans')
+          .update({ status: 'error', error_message: (error as Error).message })
+          .eq('id', activeScanId);
+      } catch { /* ignore secondary failure */ }
+    }
 
     return new Response(
       JSON.stringify({
