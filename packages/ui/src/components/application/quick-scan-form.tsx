@@ -111,8 +111,53 @@ export function QuickScanForm({ supabaseClient, onProfileSelect, onClose, classN
   const [showMultipleModal, setShowMultipleModal] = useState(false);
   const [showNoResultsModal, setShowNoResultsModal] = useState(false);
 
-  // Validation
-  const isFormValid = firstName.trim().length >= 2 && lastName.trim().length >= 2 && zipCode.length === 5;
+  // Zip validation
+  const [zipStatus, setZipStatus] = useState<"idle" | "checking" | "valid" | "invalid">("idle");
+  const [zipLocation, setZipLocation] = useState<{ city: string; state: string } | null>(null);
+
+  // Call Zippopotam.us directly from the browser — no Edge Function, no bundle cost
+  useEffect(() => {
+    if (zipCode.length !== 5) {
+      setZipStatus("idle");
+      setZipLocation(null);
+      return;
+    }
+    setZipStatus("checking");
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`https://api.zippopotam.us/us/${zipCode}`, {
+          signal: controller.signal,
+        });
+        if (!res.ok) {
+          setZipStatus("invalid");
+          setZipLocation(null);
+        } else {
+          const data = await res.json();
+          const place = data.places?.[0];
+          if (place) {
+            setZipStatus("valid");
+            setZipLocation({ city: place["place name"], state: place["state abbreviation"] });
+          } else {
+            setZipStatus("invalid");
+            setZipLocation(null);
+          }
+        }
+      } catch (err: any) {
+        if (err?.name !== "AbortError") {
+          setZipStatus("invalid");
+          setZipLocation(null);
+        }
+      }
+    }, 150);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [zipCode]);
+
+  // Form is only submittable once zip is confirmed valid
+  const isFormValid = firstName.trim().length >= 2 && lastName.trim().length >= 2 && zipStatus === "valid" && zipLocation !== null;
 
   // No auto-looping for scan steps
 
@@ -125,32 +170,21 @@ export function QuickScanForm({ supabaseClient, onProfileSelect, onClose, classN
     // Add other fields if available in API response
   });
 
-  // Handle the scan
+  // Handle the scan — zip is already validated, city/state known from zipLocation
   const handleScan = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isFormValid) return;
+    if (!isFormValid || !zipLocation) return;
 
     setError(null);
     setMatches([]);
     setScanId(null);
     setZabaSearchDone(false);
+    setLocationInfo(zipLocation);
     setView("scanning");
     setScanStepIndex(0);
+    setStatus("searching");
 
     try {
-      setStatus("looking_up_zip");
-      const { data: zipData, error: zipError } = await supabaseClient.functions.invoke(
-        "zip-lookup",
-        { body: { zip_code: zipCode } }
-      );
-
-      if (zipError || !zipData) {
-        throw new Error(zipError?.message || "Failed to look up zip code");
-      }
-
-      setLocationInfo({ city: zipData.city, state: zipData.state_code });
-      setStatus("searching");
-
       const { data: searchData, error: searchError } = await supabaseClient.functions.invoke(
         "universal-search",
         {
@@ -158,8 +192,8 @@ export function QuickScanForm({ supabaseClient, onProfileSelect, onClose, classN
             firstName: firstName.trim(),
             lastName: lastName.trim(),
             zipCode,
-            state: zipData.state_code,
-            city: zipData.city,
+            state: zipLocation.state,
+            city: zipLocation.city,
             siteName: "AnyWho",
           },
         }
@@ -167,7 +201,6 @@ export function QuickScanForm({ supabaseClient, onProfileSelect, onClose, classN
 
       if (searchError) throw new Error(searchError.message || "Failed to search");
 
-      // Capture the scan_id created by the edge function
       if (searchData?.scan_id) {
         setScanId(searchData.scan_id);
       }
@@ -193,9 +226,9 @@ export function QuickScanForm({ supabaseClient, onProfileSelect, onClose, classN
       setStatus("error");
       setError(err instanceof Error ? err.message : "An unexpected error occurred");
       setView("form");
-      setShowNoResultsModal(true); // Can show error state here if needed
+      setShowNoResultsModal(true);
     }
-  }, [firstName, lastName, zipCode, isFormValid, supabaseClient]);
+  }, [firstName, lastName, zipCode, zipLocation, isFormValid, supabaseClient]);
 
   const handleSelectProfile = useCallback(async (profile: QSProfileSummary) => {
     const originalProfile = matches.find(m => m.id === profile.id);
@@ -280,7 +313,7 @@ export function QuickScanForm({ supabaseClient, onProfileSelect, onClose, classN
     }
   }, [firstName, lastName, locationInfo, scanId, supabaseClient]);
 
-  const isLoading = status === "looking_up_zip" || status === "searching";
+  const isLoading = status === "searching";
 
   if (view === "scanning") {
     const topCopy = STEP_TOP_COPY[scanStepIndex] ?? STEP_TOP_COPY[0];
@@ -376,7 +409,7 @@ export function QuickScanForm({ supabaseClient, onProfileSelect, onClose, classN
             />
           </div>
 
-          <div className="relative">
+          <div className="flex flex-col gap-1">
             <input
               type="text"
               inputMode="numeric"
@@ -385,8 +418,26 @@ export function QuickScanForm({ supabaseClient, onProfileSelect, onClose, classN
               value={zipCode}
               onChange={(e) => setZipCode(e.target.value.replace(/\D/g, "").slice(0, 5))}
               disabled={isLoading}
-              className="h-[52px] w-full rounded-xl border border-[#2A4A68] focus:border-[#00BFFF] focus:ring-1 focus:ring-[#00BFFF] px-4 py-3 text-base bg-[#022136]/50 text-white placeholder:text-[#7A92A8] font-ubuntu outline-none transition-colors duration-150 disabled:opacity-50"
+              className={cx(
+                "h-[52px] w-full rounded-xl border px-4 py-3 text-base bg-[#022136]/50 text-white placeholder:text-[#7A92A8] font-ubuntu outline-none transition-colors duration-150 disabled:opacity-50",
+                zipStatus === "invalid"
+                  ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500"
+                  : "border-[#2A4A68] focus:border-[#00BFFF] focus:ring-1 focus:ring-[#00BFFF]"
+              )}
             />
+            {zipStatus === "valid" && zipLocation && (
+              <p className="text-[#00BFFF] text-xs font-medium px-1">
+                {zipLocation.city}, {zipLocation.state}
+              </p>
+            )}
+            {zipStatus === "invalid" && (
+              <p className="text-red-400 text-xs font-medium px-1">
+                Invalid zip. Please use a valid Zip Code.
+              </p>
+            )}
+            {zipStatus === "checking" && (
+              <p className="text-[#7A92A8] text-xs px-1">Checking...</p>
+            )}
           </div>
 
           <div className="flex flex-col gap-3 mt-2">

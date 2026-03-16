@@ -9,6 +9,9 @@ const corsHeaders = {
 interface ZipLookupRequest {
   zip_code: string;
   profile_id?: string; // Optional: to update specific qs_profile record
+  // Optional: when provided, a quick_scans row is created and scan_id is returned
+  firstName?: string;
+  lastName?: string;
 }
 
 interface ZippopotamusResponse {
@@ -44,16 +47,50 @@ serve(async (req) => {
     )
 
     // Parse request body
-    const { zip_code, profile_id }: ZipLookupRequest = await req.json()
+    const { zip_code, profile_id, firstName, lastName }: ZipLookupRequest = await req.json()
 
     if (!zip_code) {
       return new Response(
         JSON.stringify({ error: 'zip_code is required' }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       )
+    }
+
+    // Create quick_scans row immediately if search context provided
+    let scanId: string | null = null
+    if (firstName && lastName) {
+      const { data: scanRow, error: scanInsertError } = await supabaseClient
+        .from('quick_scans')
+        .insert({
+          session_id: crypto.randomUUID(),
+          status: 'initiated',
+          search_input: {
+            first_name: firstName,
+            last_name: lastName,
+            zip_code: zip_code,
+          },
+        })
+        .select('id')
+        .single()
+
+      if (scanInsertError) {
+        console.error('Error creating quick_scans row:', scanInsertError)
+      } else if (scanRow?.id) {
+        scanId = scanRow.id
+        console.log(`✅ Created quick_scans row: ${scanId} (status: initiated)`)
+      }
+    }
+
+    // Helper to mark the scan row as failed before returning an error response
+    const failScan = async (reason: string) => {
+      if (!scanId) return
+      await supabaseClient
+        .from('quick_scans')
+        .update({ status: 'zip_lookup_failed', error_message: reason })
+        .eq('id', scanId)
     }
 
     console.log(`Looking up ZIP code: ${zip_code}`)
@@ -73,11 +110,12 @@ serve(async (req) => {
           zip_code: zip_code,
           city: existingZip.city,
           state_code: existingZip.state_code,
-          source: 'local_lookup'
+          source: 'local_lookup',
+          scan_id: scanId,
         }),
-        { 
-          status: 200, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       )
     }
@@ -89,32 +127,22 @@ serve(async (req) => {
     
     if (!externalResponse.ok) {
       if (externalResponse.status === 404) {
+        await failScan(`ZIP code not found: ${zip_code}`)
         return new Response(
-          JSON.stringify({ 
-            error: 'ZIP code not found',
-            zip_code: zip_code 
-          }),
-          { 
-            status: 404, 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-          }
+          JSON.stringify({ error: 'ZIP code not found', zip_code, scan_id: scanId }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
       }
       throw new Error(`External API error: ${externalResponse.status}`)
     }
 
     const zipData: ZippopotamusResponse = await externalResponse.json()
-    
+
     if (!zipData.places || zipData.places.length === 0) {
+      await failScan(`No location data for ZIP: ${zip_code}`)
       return new Response(
-        JSON.stringify({ 
-          error: 'No location data found for ZIP code',
-          zip_code: zip_code 
-        }),
-        { 
-          status: 404, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
+        JSON.stringify({ error: 'No location data found for ZIP code', zip_code, scan_id: scanId }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
@@ -149,25 +177,26 @@ serve(async (req) => {
         state_code: state_id,
         state_name: state_name,
         source: 'external_api',
-        added_to_lookup: !insertError
+        added_to_lookup: !insertError,
+        scan_id: scanId,
       }),
-      { 
-        status: 200, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     )
 
   } catch (error) {
     console.error('Edge function error:', error)
-    
+
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         error: 'Internal server error',
-        details: error.message 
+        details: error.message
       }),
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     )
   }
