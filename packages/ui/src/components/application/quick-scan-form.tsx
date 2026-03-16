@@ -268,8 +268,10 @@ export function QuickScanForm({ supabaseClient, onProfileSelect, onTotalFailure,
     const originalProfile = matches.find(m => m.id === profile.id);
     if (!originalProfile) return;
 
-    if (!zabaSearchDone) {
-      // Show step 2: Full Data Scan — run Zabasearch while the animation is visible
+    if (!zabaSearchDone && originalProfile.source !== "AnyWho") {
+      // Only run Zabasearch if this profile came from Zabasearch (i.e. AnyWho returned nothing).
+      // When AnyWho already found the correct person, skip Zaba entirely — its broader
+      // fallback searches can pull wrong profiles (e.g. maiden-name matches in other states).
       setView("scanning");
       setScanStepIndex(1);
 
@@ -295,6 +297,9 @@ export function QuickScanForm({ supabaseClient, onProfileSelect, onTotalFailure,
         console.error("Zabasearch scan error:", err);
         // Non-fatal — proceed regardless
       }
+    } else if (originalProfile.source === "AnyWho") {
+      // Clear any stale zabaMatches so pre-profile doesn't merge wrong data
+      sessionStorage.removeItem("zabaMatches");
     }
 
     onProfileSelect(originalProfile, {
