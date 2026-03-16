@@ -11,6 +11,23 @@ import { cx } from "@/utils/cx";
 import { Phone, Plus } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
+/** Convert E.164 (+18162258592) → display format (816) 225-8592 */
+function formatPhoneDisplay(number: string): string {
+    const digits = number.replace(/\D/g, "").slice(-10);
+    if (digits.length === 10) {
+        return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+    }
+    return number;
+}
+
+/** Normalize any user-typed phone number to E.164 (+1XXXXXXXXXX) */
+function normalizeToE164(input: string): string {
+    let digits = input.replace(/\D/g, "");
+    if (digits.length === 11 && digits.startsWith("1")) digits = digits.slice(1);
+    if (digits.length === 10) return `+1${digits}`;
+    return digits; // fallback — store as-is if non-standard
+}
+
 export interface PhoneNumberItem {
     id: string;          // user_phones.id (UUID)
     number: string;
@@ -56,7 +73,7 @@ export function OnboardingPhoneNumbers() {
             if (phones) {
                 setItems(phones.map((p) => ({
                     id:        p.id,
-                    number:    p.number,
+                    number:    formatPhoneDisplay(p.number),
                     isPrimary: p.is_primary,
                     status:    p.user_confirmed_status === "confirmed" ? "confirmed" : "pending" as BadgeStatus,
                 })));
@@ -136,17 +153,26 @@ export function OnboardingPhoneNumbers() {
     };
 
     const handleUpdate = async (id: string) => {
+        const rawValue = editValue.trim();
+        const normalized = rawValue ? normalizeToE164(rawValue) : null;
+        const display = normalized ? formatPhoneDisplay(normalized) : null;
+
         const updated = items.map((p) =>
             p.id === id
-                ? { ...p, number: editValue.trim() || p.number, status: "confirmed" as BadgeStatus }
+                ? {
+                      ...p,
+                      number: display ?? p.number,
+                      status: "confirmed" as BadgeStatus,
+                  }
                 : p,
         );
         setItems(updated);
         setEditingId(null);
         setActiveId(null);
 
+        // Save E.164 to DB, not the display format
         const item = updated.find((p) => p.id === id);
-        if (item) await upsertPhone(item);
+        if (item) await upsertPhone({ ...item, number: normalized ?? item.number });
     };
 
     const handleTogglePrimary = async (id: string, isPrimary: boolean) => {
