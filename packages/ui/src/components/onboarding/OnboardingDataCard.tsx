@@ -5,6 +5,8 @@ import { Trash2 } from "lucide-react";
 interface OnboardingDataCardProps {
     /** Optional - omit for list items (e.g. phone/alias/address/email cards) */
     label?: string;
+    /** Optional explainer text shown beneath the label */
+    description?: string;
     value?: string;
     /** Override the displayed value in the closed state (e.g. formatted date) */
     displayValue?: string;
@@ -27,6 +29,7 @@ interface OnboardingDataCardProps {
 
 export function OnboardingDataCard({
     label,
+    description,
     value,
     displayValue,
     status,
@@ -129,6 +132,13 @@ export function OnboardingDataCard({
                     )}
                 </div>
             </div>
+
+            {/* Description: explainer beneath the label */}
+            {description && (
+                <p className="mt-1.5 text-xs leading-relaxed text-[var(--text-muted)] dark:text-[#7A92A8]">
+                    {description}
+                </p>
+            )}
 
             {/* Row 2: Value (always visible so data is on the card) */}
             {shownValue !== undefined && !isExpanded && (

@@ -17,6 +17,19 @@ interface PrimaryInfoField {
     status: BadgeStatus;
 }
 
+/** Capitalize first letter of each word */
+function toProperCase(str: string): string {
+    return str.replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+/** Auto-format a DOB input to MM/DD/YYYY as digits are typed */
+function formatDobInput(raw: string): string {
+    const digits = raw.replace(/\D/g, "").slice(0, 8);
+    if (digits.length <= 2) return digits;
+    if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+    return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
+}
+
 /** Convert ISO date (YYYY-MM-DD) to MM/DD/YYYY for display */
 function formatDateDisplay(iso: string): string {
     if (!iso) return "";
@@ -122,7 +135,7 @@ export function VerifyPrimaryInfo() {
                     {
                         id: "legalName",
                         label: "LEGAL NAME",
-                        value: [profile.first_name, profile.last_name].filter(Boolean).join(" "),
+                        value: toProperCase([profile.first_name, profile.last_name].filter(Boolean).join(" ")),
                         status: "pending",
                     },
                     {
@@ -188,7 +201,7 @@ export function VerifyPrimaryInfo() {
         let updated: PrimaryInfoField[];
 
         if (id === "legalName") {
-            const fullName = [editFirstName.trim(), editLastName.trim()]
+            const fullName = [toProperCase(editFirstName.trim()), toProperCase(editLastName.trim())]
                 .filter(Boolean)
                 .join(" ");
             updated = fields.map((f) =>
@@ -316,7 +329,7 @@ export function VerifyPrimaryInfo() {
                                             id="edit-dob"
                                             label="Date of Birth"
                                             value={editDob}
-                                            onChange={setEditDob}
+                                            onChange={(v) => setEditDob(formatDobInput(v))}
                                             placeholder="MM/DD/YYYY"
                                             type="text"
                                             icon={Calendar}
@@ -335,9 +348,10 @@ export function VerifyPrimaryInfo() {
                                 "bg-[#00BFFF]/10 dark:bg-[#00BFFF]/10",
                                 "border border-[#00BFFF]/25 dark:border-[#00BFFF]/20",
                             )}>
-                                <p className="text-xs leading-relaxed text-[#0099CC] dark:text-[#00BFFF]">
-                                    We use your birthdate to help qualify your data and is often required by brokers to remove your data. Your search profile data is securely encrypted and{" "}
-                                    <strong>NEVER used, shared, or sold for marketing purposes.</strong>{" "}
+                                <p className="text-xs leading-relaxed text-[#0099CC] dark:text-[#00BFFF] text-center">
+                                    Your search profile data is securely encrypted and is{" "}
+                                    <strong className="text-white">NEVER used, shared, or sold for marketing purposes.</strong>
+                                    <br />
                                     Not even by us!
                                 </p>
                             </div>

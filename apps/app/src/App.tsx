@@ -27,6 +27,7 @@ import { ScanNow } from "./pages/scan/scan-now";
 import { SearchingPage } from "./pages/scan/searching";
 import { CompilingBrandedPage } from "./pages/scan/compiling-branded";
 import { LoadingPreProfilePage } from "./pages/scan/loading-pre-profile";
+import { ScanningStartedPage } from "./pages/scan/scanning-started";
 import { QuickScanErrorPage } from "./pages/quickscan-error";
 
 // Dashboard pages
@@ -144,6 +145,7 @@ export default function App() {
             <Route path="/searching" element={<SearchingPage />} />
             <Route path="/compiling" element={<CompilingBrandedPage />} />
             <Route path="/Loading-pre-profile" element={<LoadingPreProfilePage />} />
+            <Route path="/scanning-started" element={<ScanningStartedPage />} />
             
             {/* Sandbox Mockups */}
             <Route path="/sandbox/notifications" element={<VanyshrAppMockup />} />
