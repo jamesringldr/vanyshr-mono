@@ -29,8 +29,8 @@
 | `user_todos` | public | Manual action items for users |
 | `zip_lookup` | public | Zip → city/state lookup cache |
 | `brokers` | brokers | Data broker registry *(separate schema)* |
-| `broker_categories` | brokers | Broker classification categories *(separate schema)* |
-| `broker_category_map` | brokers | Many-to-many broker ↔ category *(separate schema)* |
+| `broker_stats` | brokers | Crowd-sourced removal outcome stats per broker *(separate schema)* |
+| `broker_vanyshr_stats` | brokers | Vanyshr-specific removal outcomes per broker/user *(separate schema)* |
 
 ---
 
@@ -411,6 +411,72 @@ PK: `zip` | RLS: ✅ | Rows: seeded
 
 ---
 
+## Brokers Schema Tables
+
+> All tables below live in the `brokers` Postgres schema (not `public`). Referenced in `public` tables as `brokers.brokers.id`.
+
+### `brokers.brokers`
+PK: `id` | RLS: none (service role) | Self-referencing FK: `parent_broker_id`
+
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid | PK |
+| name | text | |
+| parent_broker_id | uuid | nullable → `brokers.brokers.id` (subsidiary relationship) |
+| type | text | `people_search` \| `background_check` \| `marketing_list` \| `data_aggregator` \| `financial` \| `employment` \| `public_records` |
+| data_types | text[] | Subset of `identity`, `real_estate`, `employment`, `vehicle`, `voter`, `credit`, `phone_records`; default `{}` |
+| removal_priority | smallint | `0`–`3`; default `2` |
+| scrape_type | text | nullable; `web_form` \| `api` \| `email` \| `manual` \| `none` |
+| opt_out_type | text | nullable; `web_form` \| `email` \| `automated_api` \| `manual` |
+| company_url | text | nullable |
+| privacy_policy_url | text | nullable |
+| opt_out_url | text | nullable |
+| opt_out_email | text | nullable |
+| requires_email_verification | bool | default false |
+| removal_directions | text | nullable — human-readable opt-out instructions |
+| collection_practices_comments | text | nullable |
+| reporting_comments | text | nullable |
+| about | text | nullable — short descriptive snippet about the broker |
+| is_active | bool | default true |
+| created_at / updated_at | timestamptz | |
+
+---
+
+### `brokers.broker_stats`
+PK: `id` | RLS: none | FK: `broker_id → brokers.brokers.id`
+
+Crowd-sourced / aggregated removal outcome statistics per broker and request type.
+
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid | PK |
+| broker_id | uuid | |
+| request_type | text | `delete` \| `data_present` \| `data_shared` \| `opt_out` |
+| approval_ratio | numeric | nullable; 0.00–1.00 |
+| denial_ratio | numeric | nullable; 0.00–1.00 |
+| avg_days | numeric | nullable; average days to resolution ≥ 0 |
+| sample_size | int | default 0 |
+| created_at / updated_at | timestamptz | |
+
+---
+
+### `brokers.broker_vanyshr_stats`
+PK: `id` | RLS: none | FK: `broker_id → brokers.brokers.id`, `user_profile_id → public.user_profiles.id`
+
+Individual Vanyshr removal outcome records — feeds into `broker_stats` aggregates.
+
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid | PK |
+| broker_id | uuid | |
+| user_profile_id | uuid | nullable → `public.user_profiles.id` |
+| request_type | text | `delete` \| `data_present` \| `data_shared` \| `opt_out` |
+| outcome | text | nullable; `approved` \| `denied` \| `pending` \| `no_record` |
+| days_to_resolution | numeric | nullable; ≥ 0 |
+| created_at | timestamptz | |
+
+---
+
 ## Key Conventions
 
 - **RLS:** All tables use Row Level Security. Auth context resolved via `get_current_user_profile_id()` — not `auth.uid()` directly.
@@ -441,7 +507,8 @@ PK: `zip` | RLS: ✅ | Rows: seeded
 
 | Migration | Status | Description |
 |-----------|--------|-------------|
-| `20260316_user_updates.sql` | ⏳ Not yet applied | Creates `user_updates` table — per-user notifications/feature announcements with `unread → dismissed \| clicked \| converted` lifecycle. Includes `fan_out_broadcast_update()` function and RLS policies. |
+| `20260316_user_updates.sql` | ✅ Applied | Creates `user_updates` table — per-user notifications/feature announcements with `unread → dismissed \| clicked \| converted` lifecycle. Includes `fan_out_broadcast_update()` function and RLS policies. |
+| `20260317_brokers_about_column.sql` | ✅ Applied | Adds `about text` column to `brokers.brokers` for broker description snippets. |
 
 ### `user_updates` (pending)
 PK: `id` | RLS: ✅ | FK: `user_id → user_profiles.id`
