@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router';
+
 import {
-  Search,
   Filter,
   Shield,
   AlertTriangle,
@@ -55,7 +55,7 @@ const MOCK_ACTIVITIES: ActivityItem[] = [
 // ─────────────────────────────────────────────────────────────────────────────
 
 const TYPE_CONFIG: Record<ActivityType, { bg: string; iconColor: string; Icon: React.ElementType }> = {
-  'Scan':     { bg: 'bg-[#00BFFF]/10', iconColor: 'text-[#00BFFF]', Icon: Search        },
+  'Scan':     { bg: 'bg-[#00BFFF]/10', iconColor: 'text-[#00BFFF]', Icon: Activity      },
   'Exposure': { bg: 'bg-[#FF8A00]/10', iconColor: 'text-[#FF8A00]', Icon: AlertTriangle },
   'Breach':   { bg: 'bg-[#7A92A8]/10', iconColor: 'text-[#7A92A8]', Icon: Shield        },
 };
@@ -94,7 +94,6 @@ const DATE_GROUP_ORDER = ['Today', 'Yesterday', 'This Week'] as const;
 
 export const Transactions = () => {
   const navigate = useNavigate();
-  const [searchQuery,     setSearchQuery]     = useState('');
   const [typeFilter,      setTypeFilter]      = useState<TypeFilter>('All');
   const [statusFilter,    setStatusFilter]    = useState<StatusFilter>('All');
   const [showStatusMenu,  setShowStatusMenu]  = useState(false);
@@ -122,11 +121,7 @@ export const Transactions = () => {
 
   const filtered = MOCK_ACTIVITIES.filter(item =>
     matchesType(item) &&
-    (statusFilter === 'All' || item.status === statusFilter) &&
-    (searchQuery === '' ||
-      item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.subtype.toLowerCase().includes(searchQuery.toLowerCase()))
+    (statusFilter === 'All' || item.status === statusFilter)
   );
 
   const isStatusFiltered = statusFilter !== 'All';
@@ -141,18 +136,6 @@ export const Transactions = () => {
         {/* Page Title */}
         <div className="pt-6">
           <h1 className="text-2xl font-bold text-white">Activity</h1>
-        </div>
-
-        {/* Search Bar */}
-        <div className="relative">
-          <input
-            type="search"
-            placeholder="Search activity"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="h-[52px] w-full rounded-xl border border-[#2A4A68] px-12 py-3 text-sm bg-[#022136]/50 text-white placeholder:text-[#7A92A8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2 transition-all font-ubuntu"
-          />
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#7A92A8] pointer-events-none" />
         </div>
 
         {/* Type Filter Chips */}
@@ -191,7 +174,8 @@ export const Transactions = () => {
 
                   {/* Status filter — only rendered on the first visible group */}
                   {group === DATE_GROUP_ORDER.find(g => filtered.some(i => i.dateGroup === g)) && (
-                    <div className="relative" ref={filterMenuRef}>
+                    <div className="relative flex items-center gap-2" ref={filterMenuRef}>
+                      <span className="text-xs text-[#7A92A8]">Filter By Status</span>
                       <button
                         type="button"
                         aria-label="Filter by status"
@@ -286,23 +270,30 @@ export const Transactions = () => {
       </main>
 
       {/* ── BOTTOM NAV — matches /dashboard/home ──────────────────────────── */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-[#022136] border-t border-[#2A4A68] h-16 px-2 flex items-center justify-around z-50">
-        {[
-          { label: 'Home',      Icon: Home,         path: '/dashboard/home',     active: false },
-          { label: 'Exposures', Icon: Shield,        path: '/dashboard/exposures', active: false },
-          { label: 'Tasks',    Icon: ClipboardList, path: '/dashboard/tasks',     active: false },
-          { label: 'Activity',  Icon: Activity,      path: '/dashboard/activity',  active: true  },
-        ].map(({ label, Icon, path, active }) => (
-          <button
-            key={label}
-            type="button"
-            className="flex flex-col items-center gap-1 flex-1 py-2 cursor-pointer"
-            onClick={() => navigate(path)}
-          >
-            <Icon className={`w-5 h-5 ${active ? 'text-[#00BFFF]' : 'text-[#7A92A8]'}`} />
-            <span className={`text-[10px] font-medium ${active ? 'text-[#00BFFF]' : 'text-[#7A92A8]'}`}>{label}</span>
-          </button>
-        ))}
+      <nav className="fixed bottom-0 left-0 right-0 px-4 pb-4 pt-2 bg-gradient-to-t from-[#022136] to-transparent z-50" aria-label="Main navigation">
+        <div className="max-w-lg mx-auto">
+          <div className="flex items-center justify-around bg-[#2D3847] rounded-full px-4 py-2 border border-[#2A4A68]">
+            {[
+              { label: 'Home',      Icon: Home,         path: '/dashboard/home',      active: false },
+              { label: 'Exposures', Icon: AlertTriangle,  path: '/dashboard/exposures', active: false },
+              { label: 'Tasks',     Icon: ClipboardList, path: '/dashboard/tasks',     active: false },
+              { label: 'Activity',  Icon: Activity,      path: '/dashboard/activity',  active: true  },
+            ].map(({ label, Icon, path, active }) => (
+              <button
+                key={label}
+                type="button"
+                aria-label={label}
+                aria-current={active ? 'page' : undefined}
+                onClick={() => navigate(path)}
+                className={`relative flex items-center justify-center w-14 h-10 rounded-full transition-colors cursor-pointer ${
+                  active ? 'bg-[#022136]' : 'hover:bg-[#022136]/50'
+                }`}
+              >
+                <Icon className={`w-6 h-6 ${active ? 'text-[#00BFFF]' : 'text-[#7A92A8]'}`} />
+              </button>
+            ))}
+          </div>
+        </div>
       </nav>
 
     </div>

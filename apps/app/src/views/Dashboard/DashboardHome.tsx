@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { UserDrawer } from './UserDrawer';
 import {
-  Bell,
+  Settings,
   Info,
   ChevronDown,
   ChevronRight,
@@ -15,6 +15,7 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -34,6 +35,19 @@ interface DataBreach {
   exposed_data_types: string[] | null;
   matched_email: string;
   status: 'new' | 'unresolved' | 'resolved';
+  created_at: string;
+}
+
+interface UserUpdate {
+  id: string;
+  title: string;
+  message: string;
+  action_text: string | null;
+  action_route: string | null;
+  type: 'info' | 'tip' | 'alert' | 'action_required' | 'new_feature';
+  icon: string | null;
+  status: 'unread' | 'dismissed' | 'clicked' | 'converted';
+  expires_at: string | null;
   created_at: string;
 }
 
@@ -223,12 +237,16 @@ export function DashboardHome() {
   const [userDrawerOpen, setUserDrawerOpen] = useState(false);
   const [openInfoCard, setOpenInfoCard]     = useState<string | null>(null);
   const [showAllCaughtUp, setShowAllCaughtUp] = useState(false);
-  const prevBreachCountRef = useRef(0);
+  const prevUpdatesCountRef = useRef(0);
 
-  // Breach state (real DB data)
+  // Breach state (real DB data — feeds broker/breach list)
   const [profileId, setProfileId]           = useState<string | null>(null);
   const [newBreaches, setNewBreaches]       = useState<DataBreach[]>([]);
   const [breachesLoaded, setBreachesLoaded] = useState(false);
+
+  // Updates state (real DB data — drives the Updates section)
+  const [userUpdates, setUserUpdates]       = useState<UserUpdate[]>([]);
+  const [updatesLoaded, setUpdatesLoaded]   = useState(false);
 
   const exposures  = EXPOSURES_DATA[timeframe];
   const removalsConfirmed = REMOVALS_CONFIRMED_DATA[timeframe];
@@ -285,36 +303,46 @@ export function DashboardHome() {
       if (!profile) { setBreachesLoaded(true); return; }
       setProfileId(profile.id);
 
-      const { data } = await supabase
+      const { data: breachData } = await supabase
         .from('data_breaches')
         .select('*')
         .eq('user_id', profile.id)
         .eq('status', 'new')
         .order('created_at', { ascending: false });
 
-      setNewBreaches((data as DataBreach[]) ?? []);
+      setNewBreaches((breachData as DataBreach[]) ?? []);
       setBreachesLoaded(true);
+
+      const { data: updatesData } = await supabase
+        .from('user_updates')
+        .select('*')
+        .eq('user_id', profile.id)
+        .eq('status', 'unread')
+        .order('created_at', { ascending: false });
+
+      setUserUpdates((updatesData as UserUpdate[]) ?? []);
+      setUpdatesLoaded(true);
     }
     loadBreaches();
   }, []);
 
   // Show "all caught up" only when updates actually transition to zero.
   useEffect(() => {
-    if (!breachesLoaded) return;
+    if (!updatesLoaded) return;
 
-    const currentCount = newBreaches.length;
-    const previousCount = prevBreachCountRef.current;
+    const currentCount = userUpdates.length;
+    const previousCount = prevUpdatesCountRef.current;
 
     if (previousCount > 0 && currentCount === 0) {
       setShowAllCaughtUp(true);
       const timer = window.setTimeout(() => setShowAllCaughtUp(false), 1800);
-      prevBreachCountRef.current = currentCount;
+      prevUpdatesCountRef.current = currentCount;
       return () => window.clearTimeout(timer);
     }
 
-    prevBreachCountRef.current = currentCount;
+    prevUpdatesCountRef.current = currentCount;
     return undefined;
-  }, [breachesLoaded, newBreaches.length]);
+  }, [updatesLoaded, userUpdates.length]);
 
   // ── Dismiss: set status → 'unresolved' (optimistic) ─────────────────────
   async function dismissBreach(breachId: string) {
@@ -340,13 +368,48 @@ export function DashboardHome() {
     }
   }
 
+  // ── Dismiss update: status → 'dismissed' (optimistic) ───────────────────
+  async function dismissUpdate(updateId: string) {
+    setUserUpdates(prev => prev.filter(u => u.id !== updateId));
+
+    const { error } = await supabase
+      .from('user_updates')
+      .update({ status: 'dismissed' })
+      .eq('id', updateId);
+
+    if (error) {
+      console.error('[DashboardHome] dismissUpdate failed:', error.message);
+      if (profileId) {
+        const { data } = await supabase
+          .from('user_updates')
+          .select('*')
+          .eq('user_id', profileId)
+          .eq('status', 'unread')
+          .order('created_at', { ascending: false });
+        setUserUpdates((data as UserUpdate[]) ?? []);
+      }
+    }
+  }
+
+  // ── Click update CTA: status → 'clicked', then navigate ─────────────────
+  async function clickUpdate(updateId: string, route: string) {
+    setUserUpdates(prev => prev.filter(u => u.id !== updateId));
+
+    await supabase
+      .from('user_updates')
+      .update({ status: 'clicked' })
+      .eq('id', updateId);
+
+    navigate(route);
+  }
+
   function toggleInfo(cardId: string) {
     setOpenInfoCard(prev => (prev === cardId ? null : cardId));
   }
 
   const activeBreachCard = newBreaches[0] ?? null;
-  const hasNewBreaches = newBreaches.length > 0;
-  const shouldShowBreachSection = hasNewBreaches || showAllCaughtUp;
+  const activeUpdate = userUpdates[0] ?? null;
+  const shouldShowUpdatesSection = userUpdates.length > 0 || showAllCaughtUp;
 
   return (
     <div className="min-h-screen bg-[#022136] font-ubuntu">
@@ -374,7 +437,7 @@ export function DashboardHome() {
               onClick={() => console.log('open notifications')}
               aria-label="Open notifications"
             >
-              <Bell className="w-5 h-5 text-white" />
+              <Settings className="w-5 h-5 text-white" />
               {newBreaches.length > 0 && (
                 <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#FF8A00] rounded-full text-[#022136] text-[10px] font-bold flex items-center justify-center leading-none">
                   {newBreaches.length}
@@ -400,7 +463,7 @@ export function DashboardHome() {
                 <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-[#7A92A8] pointer-events-none" />
               </div>
             </div>
-            <p className="text-xs text-[#7A92A8] mt-1">Last scanned 2 hours ago</p>
+
           </section>
 
           {/* ── METRIC CARDS — 2×2 GRID ──────────────────────────────────── */}
@@ -494,68 +557,55 @@ export function DashboardHome() {
           </section>
 
           {/* ── UPDATES ───────────────────────────────────────────────────── */}
-          {shouldShowBreachSection && (
+          {shouldShowUpdatesSection && (
             <section>
               <div className="flex justify-between items-center mb-3">
                 <h2 className="text-base font-bold text-white">Updates</h2>
-                <span className="text-xs text-[#B8C4CC]">{newBreaches.length} new</span>
+                {userUpdates.length > 0 && (
+                  <span className="text-xs text-[#B8C4CC]">{userUpdates.length} new</span>
+                )}
               </div>
 
-              {activeBreachCard ? (
+              {activeUpdate ? (
                 <div className="bg-[#2D3847] border border-[#2A4A68] rounded-xl px-4 py-3 flex flex-col gap-2">
+                  {/* Title + dismiss */}
                   <div className="flex items-start justify-between gap-3">
-                    <p className="text-sm font-bold text-white">New Dark Web Breach Found</p>
+                    <p className="text-sm font-bold text-white">{activeUpdate.title}</p>
                     <button
-                      className="text-[10px] text-[#B8C4CC] border border-[#2A4A68] rounded-md px-2 py-1 hover:text-white hover:border-[#00BFFF] transition-colors duration-150 flex-shrink-0"
-                      onClick={() => dismissBreach(activeBreachCard.id)}
-                      aria-label={`Dismiss breach ${activeBreachCard.breach_title || activeBreachCard.breach_name}`}
+                      className="text-[#7A92A8] hover:text-white transition-colors duration-150 flex-shrink-0 leading-none text-base"
+                      onClick={() => dismissUpdate(activeUpdate.id)}
+                      aria-label="Dismiss update"
                     >
-                      Dismiss
+                      ×
                     </button>
                   </div>
 
-                  <div className="flex flex-col gap-1">
-                    <p className="text-xs text-[#B8C4CC]">
-                      <span className="text-[#7A92A8]">Company:</span>{' '}
-                      <span className="text-white">{activeBreachCard.breach_title || activeBreachCard.breach_name}</span>
-                    </p>
-                    <p className="text-xs text-[#B8C4CC]">
-                      <span className="text-[#7A92A8]">Email:</span>{' '}
-                      <span className="text-white">{activeBreachCard.matched_email}</span>
-                    </p>
-                    {activeBreachCard.breach_date && (
-                      <p className="text-xs text-[#B8C4CC]">
-                        <span className="text-[#7A92A8]">Breach Date:</span>{' '}
-                        <span className="text-white">{formatBreachDate(activeBreachCard.breach_date)}</span>
-                      </p>
-                    )}
-                    {activeBreachCard.exposed_data_types && activeBreachCard.exposed_data_types.length > 0 && (
-                      <p className="text-xs text-[#B8C4CC]">
-                        <span className="text-[#7A92A8]">Exposed:</span>{' '}
-                        <span className="text-white">
-                          {activeBreachCard.exposed_data_types.slice(0, 3).join(', ')}
-                          {activeBreachCard.exposed_data_types.length > 3 && ` +${activeBreachCard.exposed_data_types.length - 3} more`}
-                        </span>
-                      </p>
-                    )}
-                  </div>
+                  {/* Message */}
+                  <p className="text-xs text-[#B8C4CC]">{activeUpdate.message}</p>
 
-                  {newBreaches.length > 1 && (
-                    <p className="text-xs text-[#7A92A8]">
-                      + {newBreaches.length - 1} more breach{newBreaches.length - 1 > 1 ? 'es' : ''}
-                    </p>
-                  )}
-
-                  <div className="flex items-center justify-end">
-                    <button
-                      className="text-xs text-[#00BFFF] hover:text-[#00D4FF] transition-colors duration-150"
-                      onClick={() => navigate('/dashboard/dark-web')}
-                    >
-                      View Details &gt;
-                    </button>
+                  {/* Footer: CTA + overflow count */}
+                  <div className="flex items-center justify-between pt-1">
+                    {activeUpdate.action_text && activeUpdate.action_route ? (
+                      <button
+                        className="text-xs text-[#00BFFF] hover:text-[#00D4FF] transition-colors duration-150"
+                        onClick={() => clickUpdate(activeUpdate.id, activeUpdate.action_route!)}
+                      >
+                        {activeUpdate.action_text}
+                      </button>
+                    ) : <span />}
+                    {userUpdates.length > 1 && (
+                      <span className="text-xs text-[#7A92A8]">
+                        +{userUpdates.length - 1} more
+                      </span>
+                    )}
                   </div>
                 </div>
-              ) : null}
+              ) : (
+                <div className="bg-[#2D3847] border border-[#2A4A68] rounded-xl px-4 py-3 flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-[#00D4AA] flex-shrink-0" />
+                  <p className="text-xs text-[#B8C4CC]">You're all caught up</p>
+                </div>
+              )}
             </section>
           )}
 
@@ -690,22 +740,30 @@ export function DashboardHome() {
       </div>
 
       {/* ── FIXED BOTTOM NAV ──────────────────────────────────────────────── */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-[#022136] border-t border-[#2A4A68] h-16 px-2 flex items-center justify-around z-50">
-        {[
-          { label: 'Home',      Icon: Home,          path: '/dashboard/home',      active: true  },
-          { label: 'Exposures', Icon: Shield,         path: '/dashboard/exposures', active: false },
-          { label: 'Tasks',     Icon: ClipboardList,  path: '/dashboard/tasks',    active: false },
-          { label: 'Activity',  Icon: Activity,       path: '/activity',            active: false },
-        ].map(({ label, Icon, path, active }) => (
-          <button
-            key={label}
-            className="flex flex-col items-center gap-1 flex-1 py-2 cursor-pointer"
-            onClick={() => navigate(path)}
-          >
-            <Icon className={`w-5 h-5 ${active ? 'text-[#00BFFF]' : 'text-[#7A92A8]'}`} />
-            <span className={`text-[10px] font-medium ${active ? 'text-[#00BFFF]' : 'text-[#7A92A8]'}`}>{label}</span>
-          </button>
-        ))}
+      <nav className="fixed bottom-0 left-0 right-0 px-4 pb-4 pt-2 bg-gradient-to-t from-[#022136] to-transparent z-50" aria-label="Main navigation">
+        <div className="max-w-lg mx-auto">
+          <div className="flex items-center justify-around bg-[#2D3847] rounded-full px-4 py-2 border border-[#2A4A68]">
+            {[
+              { label: 'Home',      Icon: Home,         path: '/dashboard/home',      active: true  },
+              { label: 'Exposures', Icon: AlertTriangle,  path: '/dashboard/exposures', active: false },
+              { label: 'Tasks',     Icon: ClipboardList, path: '/dashboard/tasks',     active: false },
+              { label: 'Activity',  Icon: Activity,      path: '/dashboard/activity',  active: false },
+            ].map(({ label, Icon, path, active }) => (
+              <button
+                key={label}
+                type="button"
+                aria-label={label}
+                aria-current={active ? 'page' : undefined}
+                onClick={() => navigate(path)}
+                className={`relative flex items-center justify-center w-14 h-10 rounded-full transition-colors cursor-pointer ${
+                  active ? 'bg-[#022136]' : 'hover:bg-[#022136]/50'
+                }`}
+              >
+                <Icon className={`w-6 h-6 ${active ? 'text-[#00BFFF]' : 'text-[#7A92A8]'}`} />
+              </button>
+            ))}
+          </div>
+        </div>
       </nav>
 
       <UserDrawer isOpen={userDrawerOpen} onClose={() => setUserDrawerOpen(false)} />
