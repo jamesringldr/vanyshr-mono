@@ -1,12 +1,13 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router';
+
 import {
   ClipboardList,
   CheckCircle,
   Circle,
   Clock,
   Home,
-  Shield,
+  AlertTriangle,
   Activity,
 } from 'lucide-react';
 
@@ -166,23 +167,30 @@ const ALL_STATUSES: TaskStatus[] = ['todo', 'in-progress', 'done'];
 function BottomNav() {
   const navigate = useNavigate();
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-[#022136] border-t border-[#2A4A68] h-16 px-2 flex items-center justify-around z-50">
-      {[
-        { label: 'Home',     Icon: Home,         path: '/dashboard/home',     active: false },
-        { label: 'Exposures', Icon: Shield,       path: '/dashboard/exposures', active: false },
-        { label: 'Tasks',    Icon: ClipboardList, path: '/dashboard/tasks',    active: true  },
-        { label: 'Activity', Icon: Activity,      path: '/dashboard/activity', active: false },
-      ].map(({ label, Icon, path, active }) => (
-        <button
-          key={label}
-          className="flex flex-col items-center gap-1 flex-1 py-2 cursor-pointer"
-          onClick={() => navigate(path)}
-          aria-current={active ? 'page' : undefined}
-        >
-          <Icon className={`w-5 h-5 ${active ? 'text-[#00BFFF]' : 'text-[#7A92A8]'}`} />
-          <span className={`text-[10px] font-medium ${active ? 'text-[#00BFFF]' : 'text-[#7A92A8]'}`}>{label}</span>
-        </button>
-      ))}
+    <nav className="fixed bottom-0 left-0 right-0 px-4 pb-4 pt-2 bg-gradient-to-t from-[#022136] to-transparent z-50" aria-label="Main navigation">
+      <div className="max-w-lg mx-auto">
+        <div className="flex items-center justify-around bg-[#2D3847] rounded-full px-4 py-2 border border-[#2A4A68]">
+          {[
+            { label: 'Home',      Icon: Home,         path: '/dashboard/home',      active: false },
+            { label: 'Exposures', Icon: AlertTriangle,  path: '/dashboard/exposures', active: false },
+            { label: 'Tasks',     Icon: ClipboardList, path: '/dashboard/tasks',     active: true  },
+            { label: 'Activity',  Icon: Activity,      path: '/dashboard/activity',  active: false },
+          ].map(({ label, Icon, path, active }) => (
+            <button
+              key={label}
+              type="button"
+              aria-label={label}
+              aria-current={active ? 'page' : undefined}
+              onClick={() => navigate(path)}
+              className={`relative flex items-center justify-center w-14 h-10 rounded-full transition-colors cursor-pointer ${
+                active ? 'bg-[#022136]' : 'hover:bg-[#022136]/50'
+              }`}
+            >
+              <Icon className={`w-6 h-6 ${active ? 'text-[#00BFFF]' : 'text-[#7A92A8]'}`} />
+            </button>
+          ))}
+        </div>
+      </div>
     </nav>
   );
 }
