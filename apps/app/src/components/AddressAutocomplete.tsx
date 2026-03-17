@@ -97,9 +97,9 @@ export function AddressAutocomplete({
                     style={dropdownStyle}
                     className="z-[9999] overflow-hidden rounded-xl border border-[#2A4A68] bg-[#2D3847] shadow-xl"
                 >
-                    {suggestions.map((s) => (
+                    {suggestions.map((s, i) => (
                         <button
-                            key={s.formattedAddress}
+                            key={`${s.formatted}-${i}`}
                             type="button"
                             onMouseDown={() => handleSelect(s.formatted)}
                             className={cx(
