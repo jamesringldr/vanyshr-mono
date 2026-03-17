@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { cx } from '@/utils/cx';
 
 /** Vanyshr input: h-[52px], rounded-xl, split opacity bg, optional icon left. */
@@ -18,6 +19,17 @@ export function EditInput({
     type?: string;
     icon?: React.ElementType;
 }) {
+    const ref = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        const el = ref.current;
+        if (!el) return;
+        el.focus();
+        // Place cursor at end of any existing text
+        const len = el.value.length;
+        el.setSelectionRange(len, len);
+    }, []);
+
     return (
         <div className="space-y-1.5">
             <label
@@ -34,6 +46,7 @@ export function EditInput({
                     />
                 )}
                 <input
+                    ref={ref}
                     id={id}
                     type={type}
                     value={value}

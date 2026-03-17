@@ -27,6 +27,7 @@ import { ScanNow } from "./pages/scan/scan-now";
 import { SearchingPage } from "./pages/scan/searching";
 import { CompilingBrandedPage } from "./pages/scan/compiling-branded";
 import { LoadingPreProfilePage } from "./pages/scan/loading-pre-profile";
+import { ScanningStartedPage } from "./pages/scan/scanning-started";
 import { QuickScanErrorPage } from "./pages/quickscan-error";
 
 // Dashboard pages
@@ -52,6 +53,13 @@ import { ReferralSlider } from "./pages/referral";
 
 // Sandbox Mockups
 import { VanyshrAppMockup, ScamMockup, RemovalsMockup, DataExplosionMockup } from "@vanyshr/ui";
+
+// Dashboard pages are dev-only until they're ready for users.
+// In production, hitting a dashboard route redirects to /scanning-started.
+function DevOnly({ children }: { children: ReactNode }) {
+    if (!import.meta.env.DEV) return <Navigate to="/scanning-started" replace />;
+    return <>{children}</>;
+}
 
 function RequireAuth({ children }: { children: ReactNode }) {
     const [isReady, setIsReady] = useState(false);
@@ -95,15 +103,15 @@ function RequireAuth({ children }: { children: ReactNode }) {
 export default function App() {
     return (
         <Routes>
-            {/* Dashboard */}
+            {/* Dashboard — DevOnly until ready for users */}
             <Route path="/" element={<HomeScreen />} />
-            <Route path="/dashboard" element={<RequireAuth><FinancialDashboard /></RequireAuth>} />
-            <Route path="/dashboard/home" element={<RequireAuth><DashboardHome /></RequireAuth>} />
-            <Route path="/dashboard/dark-web" element={<RequireAuth><DarkWebPage /></RequireAuth>} />
-            <Route path="/dashboard/exposures" element={<RequireAuth><ExposuresPage /></RequireAuth>} />
-            <Route path="/dashboard/tasks" element={<RequireAuth><TodoPage /></RequireAuth>} />
-            <Route path="/dashboard/activity" element={<RequireAuth><Transactions /></RequireAuth>} />
-            <Route path="/transactions" element={<RequireAuth><Transactions /></RequireAuth>} />
+            <Route path="/dashboard" element={<DevOnly><RequireAuth><FinancialDashboard /></RequireAuth></DevOnly>} />
+            <Route path="/dashboard/home" element={<DevOnly><RequireAuth><DashboardHome /></RequireAuth></DevOnly>} />
+            <Route path="/dashboard/dark-web" element={<DevOnly><RequireAuth><DarkWebPage /></RequireAuth></DevOnly>} />
+            <Route path="/dashboard/exposures" element={<DevOnly><RequireAuth><ExposuresPage /></RequireAuth></DevOnly>} />
+            <Route path="/dashboard/tasks" element={<DevOnly><RequireAuth><TodoPage /></RequireAuth></DevOnly>} />
+            <Route path="/dashboard/activity" element={<DevOnly><RequireAuth><Transactions /></RequireAuth></DevOnly>} />
+            <Route path="/transactions" element={<DevOnly><RequireAuth><Transactions /></RequireAuth></DevOnly>} />
 
             {/* Auth */}
             <Route path="/signup" element={<AuthMagicLink />} />
@@ -144,6 +152,7 @@ export default function App() {
             <Route path="/searching" element={<SearchingPage />} />
             <Route path="/compiling" element={<CompilingBrandedPage />} />
             <Route path="/Loading-pre-profile" element={<LoadingPreProfilePage />} />
+            <Route path="/scanning-started" element={<ScanningStartedPage />} />
             
             {/* Sandbox Mockups */}
             <Route path="/sandbox/notifications" element={<VanyshrAppMockup />} />

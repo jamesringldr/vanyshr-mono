@@ -100,6 +100,7 @@ Main product web application.
 - **Port:** 5173 (dev)
 - **Tech:** Vite, React 19, React Router, TailwindCSS v4, Framer Motion
 - **Dependencies:** `@vanyshr/shared`, `@vanyshr/services`, `@vanyshr/ui`
+- **Dashboard gate:** All `/dashboard/*` routes are wrapped in a `DevOnly` guard. In production (`import.meta.env.DEV === false`) they redirect to `/scanning-started`. Dashboard is accessible in local dev only until it is ready for general users.
 
 ### `packages/shared`
 Shared types, constants, and utilities used across all packages.

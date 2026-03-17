@@ -494,7 +494,7 @@ export function OnboardingProgress() {
 
     function handleDashboard() {
         localStorage.setItem(COMPLETE_MODAL_KEY, "1");
-        navigate("/dashboard/home");
+        navigate("/scanning-started");
     }
 
     async function handleUseDefaultSettings() {
@@ -510,7 +510,7 @@ export function OnboardingProgress() {
                 })
                 .eq("user_id", profileId);
         }
-        navigate("/dashboard/home");
+        navigate("/scanning-started");
     }
 
     return (
@@ -519,7 +519,7 @@ export function OnboardingProgress() {
             {showAreYouSure && (
                 <AreYouSureModal
                     onCompleteSetUp={() => setShowAreYouSure(false)}
-                    onContinueToDashboard={() => navigate("/dashboard/home")}
+                    onContinueToDashboard={() => navigate("/scanning-started")}
                 />
             )}
 
@@ -536,7 +536,7 @@ export function OnboardingProgress() {
                     type="button"
                     onClick={() => {
                         if (allComplete) {
-                            navigate("/dashboard/home");
+                            navigate("/scanning-started");
                         } else {
                             setShowAreYouSure(true);
                         }

@@ -20,6 +20,15 @@ function formatPhoneDisplay(number: string): string {
     return number;
 }
 
+/** Auto-format phone digits to (XXX) XXX-XXXX as the user types */
+function formatPhoneInput(raw: string): string {
+    const digits = raw.replace(/\D/g, "").slice(0, 10);
+    if (digits.length === 0) return "";
+    if (digits.length <= 3) return `(${digits}`;
+    if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+}
+
 /** Normalize any user-typed phone number to E.164 (+1XXXXXXXXXX) */
 function normalizeToE164(input: string): string {
     let digits = input.replace(/\D/g, "");
@@ -149,7 +158,7 @@ export function OnboardingPhoneNumbers() {
     const openEdit = (item: PhoneNumberItem) => {
         setActiveId(item.id);
         setEditingId(item.id);
-        setEditValue(item.number);
+        setEditValue(formatPhoneInput(item.number));
     };
 
     const handleUpdate = async (id: string) => {
@@ -235,7 +244,7 @@ export function OnboardingPhoneNumbers() {
                 completedSteps={["basic"]}
                 title="Phone Numbers"
                 subtitle="Click on Field to Edit"
-                onDashboardNavigate={() => navigate("/dashboard/home")}
+                onDashboardNavigate={() => navigate("/scanning-started")}
                 footer={null}
             >
                 <div className="flex items-center justify-center py-16">
@@ -251,7 +260,7 @@ export function OnboardingPhoneNumbers() {
             completedSteps={["basic"]}
             title="Phone Numbers"
             subtitle="Click on Field to Edit"
-            onDashboardNavigate={() => navigate("/dashboard/home")}
+            onDashboardNavigate={() => navigate("/scanning-started")}
             footer={
                 <div className="flex w-full gap-3">
                     <button
@@ -306,7 +315,7 @@ export function OnboardingPhoneNumbers() {
                                     id={`phone-${item.id}`}
                                     label="Phone number"
                                     value={editValue}
-                                    onChange={setEditValue}
+                                    onChange={(v) => setEditValue(formatPhoneInput(v))}
                                     placeholder="+1 (555) 000-0000"
                                     icon={Phone}
                                 />
