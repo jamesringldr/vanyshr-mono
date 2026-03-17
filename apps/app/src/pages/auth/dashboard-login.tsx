@@ -1,8 +1,9 @@
 import { useMemo, useState } from "react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { Mail } from "lucide-react";
-import { UnauthNav } from "@/components/UnauthNav";
+import { cx } from "@/utils/cx";
 import { supabase } from "@/lib/supabase";
+import PrimaryLogoDark from "@vanyshr/ui/assets/PrimaryLogo-DarkMode.png";
 
 // ---------------------------------------------------------------------------
 // Error classification
@@ -28,9 +29,9 @@ function classifyError(message: string): SignInError {
 // ---------------------------------------------------------------------------
 
 export function DashboardLogin() {
+    const navigate = useNavigate();
     const [email, setEmail] = useState("");
     const [isSending, setIsSending] = useState(false);
-    const [sent, setSent] = useState(false);
     const [error, setError] = useState<SignInError | null>(null);
 
     const isValid = useMemo(() => /\S+@\S+\.\S+/.test(email.trim()), [email]);
@@ -54,101 +55,95 @@ export function DashboardLogin() {
             return;
         }
 
-        setSent(true);
+        navigate(`/confirm-email?email=${encodeURIComponent(email.trim())}`);
         setIsSending(false);
     };
 
     return (
-        <div className="min-h-screen w-full flex flex-col bg-[#022136]">
-            <UnauthNav />
+        <div className="min-h-screen w-full bg-[#022136] flex items-center justify-center px-6">
+            <div className="w-full max-w-md">
 
-            <main className="flex-1 flex flex-col items-center px-6 pt-8 pb-16">
-                <div className="w-full max-w-md flex flex-col gap-8">
+                {/* Logo */}
+                <img
+                    src={PrimaryLogoDark}
+                    alt="Vanyshr"
+                    className="h-[70px] w-auto mb-4"
+                />
 
-                    {/* Section 1 — Hero copy */}
-                    <section className="flex flex-col gap-3">
-                        <h1 className="text-2xl font-bold font-ubuntu tracking-tight text-white">
-                            Sign Back In to Your Dashboard
-                        </h1>
-                        <p className="text-base font-normal font-ubuntu text-[#B8C4CC]">
-                            Access your privacy dashboard and pick up where you left off
-                        </p>
-                    </section>
+                {/* Heading */}
+                <h1 className="text-4xl font-bold font-ubuntu tracking-tight text-white leading-tight mb-2">
+                    Welcome<br />Back!
+                </h1>
 
-                    {/* Section 2 — Email input (replaced by success state after send) */}
-                    <section>
-                        {sent ? (
-                            <div role="status" aria-live="polite" className="flex flex-col gap-2">
-                                <p className="text-base font-normal font-ubuntu text-[#B8C4CC]">
-                                    Check your inbox &mdash; we&apos;ve sent a sign-in link to{" "}
-                                    <strong className="text-white">{email.trim()}</strong>. The link will expire in 60 minutes.
-                                </p>
-                            </div>
-                        ) : (
-                            <div className="flex flex-col gap-3">
-                                <label
-                                    htmlFor="signin-email"
-                                    className="text-base font-normal font-ubuntu text-[#B8C4CC]"
-                                >
-                                    Enter your email to receive a sign-in link
-                                </label>
+                {/* Subheading */}
+                <p className="text-base font-bold font-ubuntu text-[#B8C4CC] mb-8">
+                    Sign In to Your Dashboard
+                </p>
 
-                                <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
-                                    <div className="relative flex-1">
-                                        <input
-                                            id="signin-email"
-                                            type="email"
-                                            value={email}
-                                            onChange={(e) => setEmail(e.target.value)}
-                                            onKeyDown={(e) => e.key === "Enter" && handleSend()}
-                                            disabled={isSending}
-                                            placeholder="you@example.com"
-                                            autoComplete="email"
-                                            className="h-[52px] w-full rounded-xl border border-[#2A4A68] bg-[#2D3847] px-12 py-3 text-sm text-white placeholder:text-[#7A92A8] font-ubuntu outline-none transition-colors duration-150 focus:border-[#00BFFF] focus:ring-1 focus:ring-[#00BFFF] disabled:opacity-50"
-                                            aria-describedby="signin-helper signin-error"
-                                            aria-invalid={error !== null}
-                                        />
-                                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#7A92A8]" />
-                                    </div>
-                                    <button
-                                        type="button"
-                                        onClick={handleSend}
-                                        disabled={!isValid || isSending}
-                                        className="h-[52px] px-6 rounded-xl font-bold text-base font-ubuntu cursor-pointer transition-colors duration-150 bg-[#00BFFF] text-[#022136] hover:bg-[#00D4FF] disabled:cursor-not-allowed disabled:opacity-50"
-                                    >
-                                        {isSending ? "Sending…" : "Send Link"}
-                                    </button>
-                                </div>
-
-                                <p id="signin-helper" className="text-xs font-normal font-ubuntu text-[#7A92A8]">
-                                    We&apos;ll send a magic link to this address.
-                                </p>
-
-                                {error && (
-                                    <p
-                                        id="signin-error"
-                                        role="alert"
-                                        className="text-xs font-normal font-ubuntu text-[#FF5757]"
-                                    >
-                                        {error === "user_not_found"
-                                            ? "We couldn't find an account for that email. Did you mean to run a QuickScan instead?"
-                                            : "Something went wrong. Please try again or contact support."}
-                                    </p>
-                                )}
-                            </div>
+                {/* Email input */}
+                <div className="relative">
+                    <input
+                        id="signin-email"
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && handleSend()}
+                        disabled={isSending}
+                        placeholder="Enter Your Account Email"
+                        autoComplete="email"
+                        className={cx(
+                            "h-[52px] w-full rounded-xl border px-12 py-3 text-sm font-ubuntu outline-none transition-colors duration-150",
+                            "bg-[#2D3847] border-[#2A4A68]",
+                            "text-white placeholder:text-[#7A92A8]",
+                            "focus:border-[#00BFFF] focus:ring-1 focus:ring-[#00BFFF]",
+                            "disabled:opacity-50",
                         )}
-                    </section>
-
-                    {/* Section 3 — CTA for non-users */}
-                    <p className="text-xs font-normal font-ubuntu text-[#7A92A8]">
-                        Don&apos;t have an account?{" "}
-                        <Link to="/" className="text-[#00BFFF] underline hover:text-[#00D4FF] transition-colors duration-150">
-                            Run a free QuickScan
-                        </Link>
-                    </p>
-
+                        aria-label="Email address"
+                        aria-describedby={error ? "signin-error" : undefined}
+                        aria-invalid={error !== null}
+                    />
+                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#7A92A8] pointer-events-none" />
                 </div>
-            </main>
+
+                {error && (
+                    <p
+                        id="signin-error"
+                        role="alert"
+                        className="mt-2 text-xs font-ubuntu text-[#FF5757]"
+                    >
+                        {error === "user_not_found"
+                            ? "We couldn't find an account for that email. Did you mean to run a QuickScan instead?"
+                            : "Something went wrong. Please try again or contact support."}
+                    </p>
+                )}
+
+                {/* CTA button */}
+                <button
+                    type="button"
+                    onClick={handleSend}
+                    disabled={!isValid || isSending}
+                    className={cx(
+                        "mt-4 h-[52px] w-full rounded-xl font-bold text-base font-ubuntu",
+                        "bg-[#00BFFF] text-[#022136] hover:bg-[#00D4FF]",
+                        "transition-colors duration-150 cursor-pointer",
+                        "focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2 focus-visible:ring-offset-[#022136]",
+                        "disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-[#00BFFF]",
+                    )}
+                >
+                    {isSending ? "Sending…" : "Send Magic Link"}
+                </button>
+
+                {/* Sign-up nudge */}
+                <p className="mt-5 text-sm font-ubuntu text-white text-center">
+                    Don&apos;t have an account?&nbsp;&nbsp;&nbsp;&nbsp;<Link
+                        to="/quick-scan"
+                        className="font-bold text-[#00BFFF] hover:text-[#00D4FF] transition-colors duration-150"
+                    >
+                        Start Here &rsaquo;
+                    </Link>
+                </p>
+
+            </div>
         </div>
     );
 }
