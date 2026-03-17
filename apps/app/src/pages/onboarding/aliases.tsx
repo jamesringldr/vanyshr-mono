@@ -174,7 +174,7 @@ export function OnboardingAliases() {
                 completedSteps={["basic", "phone"]}
                 title="Aliases"
                 subtitle="Click on Field to Edit"
-                onDashboardNavigate={() => navigate("/dashboard/home")}
+                onDashboardNavigate={() => navigate("/scanning-started")}
                 footer={null}
             >
                 <div className="flex items-center justify-center py-16">
@@ -190,7 +190,7 @@ export function OnboardingAliases() {
             completedSteps={["basic", "phone"]}
             title="Aliases"
             subtitle="Click on Field to Edit"
-            onDashboardNavigate={() => navigate("/dashboard/home")}
+            onDashboardNavigate={() => navigate("/scanning-started")}
             footer={
                 <div className="flex w-full gap-3">
                     <button

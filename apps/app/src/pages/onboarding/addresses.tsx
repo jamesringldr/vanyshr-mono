@@ -3,12 +3,12 @@ import { useNavigate } from "react-router";
 import {
     OnboardingLayout,
     OnboardingDataCard,
-    EditInput,
     type OnboardingStep,
     type BadgeStatus,
 } from "@vanyshr/ui/components/onboarding";
 import { cx } from "@/utils/cx";
-import { MapPin, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
+import { AddressAutocomplete } from "@/components/AddressAutocomplete";
 import { supabase } from "@/lib/supabase";
 
 export interface AddressItem {
@@ -216,7 +216,7 @@ export function OnboardingAddresses() {
                 completedSteps={["basic", "phone", "aliases"]}
                 title="Addresses"
                 subtitle="Click on Field to Edit"
-                onDashboardNavigate={() => navigate("/dashboard/home")}
+                onDashboardNavigate={() => navigate("/scanning-started")}
                 footer={null}
             >
                 <div className="flex items-center justify-center py-16">
@@ -232,7 +232,7 @@ export function OnboardingAddresses() {
             completedSteps={["basic", "phone", "aliases"]}
             title="Addresses"
             subtitle="Click on Field to Edit"
-            onDashboardNavigate={() => navigate("/dashboard/home")}
+            onDashboardNavigate={() => navigate("/scanning-started")}
             footer={
                 <div className="flex w-full gap-3">
                     <button
@@ -283,13 +283,10 @@ export function OnboardingAddresses() {
                         isEditing={editingId === item.id}
                         editContent={
                             editingId === item.id ? (
-                                <EditInput
+                                <AddressAutocomplete
                                     id={`addr-${item.id}`}
-                                    label="Address"
                                     value={editValue}
                                     onChange={setEditValue}
-                                    placeholder="Street, City, State"
-                                    icon={MapPin}
                                 />
                             ) : undefined
                         }

@@ -54,6 +54,7 @@ export function OnboardingDataCard({
             tabIndex={0}
             onClick={onClick}
             onKeyDown={(e) => {
+                if (e.target !== e.currentTarget) return;
                 if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault();
                     onClick?.();

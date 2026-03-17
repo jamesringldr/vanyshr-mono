@@ -255,7 +255,7 @@ export function VerifyPrimaryInfo() {
                 completedSteps={[]}
                 title="Verify Primary Info"
                 subtitle="Click on Field to Edit"
-                onDashboardNavigate={() => navigate("/dashboard/home")}
+                onDashboardNavigate={() => navigate("/scanning-started")}
                 footer={null}
             >
                 <div className="flex items-center justify-center py-16">
@@ -271,7 +271,7 @@ export function VerifyPrimaryInfo() {
             completedSteps={[]}
             title="Verify Primary Info"
             subtitle="Click on Field to Edit"
-            onDashboardNavigate={() => navigate("/dashboard/home")}
+            onDashboardNavigate={() => navigate("/scanning-started")}
             footer={
                 <button
                     type="button"

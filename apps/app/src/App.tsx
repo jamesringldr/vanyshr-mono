@@ -54,6 +54,13 @@ import { ReferralSlider } from "./pages/referral";
 // Sandbox Mockups
 import { VanyshrAppMockup, ScamMockup, RemovalsMockup, DataExplosionMockup } from "@vanyshr/ui";
 
+// Dashboard pages are dev-only until they're ready for users.
+// In production, hitting a dashboard route redirects to /scanning-started.
+function DevOnly({ children }: { children: ReactNode }) {
+    if (!import.meta.env.DEV) return <Navigate to="/scanning-started" replace />;
+    return <>{children}</>;
+}
+
 function RequireAuth({ children }: { children: ReactNode }) {
     const [isReady, setIsReady] = useState(false);
     const [isAuthed, setIsAuthed] = useState(false);
@@ -96,15 +103,15 @@ function RequireAuth({ children }: { children: ReactNode }) {
 export default function App() {
     return (
         <Routes>
-            {/* Dashboard */}
+            {/* Dashboard — DevOnly until ready for users */}
             <Route path="/" element={<HomeScreen />} />
-            <Route path="/dashboard" element={<RequireAuth><FinancialDashboard /></RequireAuth>} />
-            <Route path="/dashboard/home" element={<RequireAuth><DashboardHome /></RequireAuth>} />
-            <Route path="/dashboard/dark-web" element={<RequireAuth><DarkWebPage /></RequireAuth>} />
-            <Route path="/dashboard/exposures" element={<RequireAuth><ExposuresPage /></RequireAuth>} />
-            <Route path="/dashboard/tasks" element={<RequireAuth><TodoPage /></RequireAuth>} />
-            <Route path="/dashboard/activity" element={<RequireAuth><Transactions /></RequireAuth>} />
-            <Route path="/transactions" element={<RequireAuth><Transactions /></RequireAuth>} />
+            <Route path="/dashboard" element={<DevOnly><RequireAuth><FinancialDashboard /></RequireAuth></DevOnly>} />
+            <Route path="/dashboard/home" element={<DevOnly><RequireAuth><DashboardHome /></RequireAuth></DevOnly>} />
+            <Route path="/dashboard/dark-web" element={<DevOnly><RequireAuth><DarkWebPage /></RequireAuth></DevOnly>} />
+            <Route path="/dashboard/exposures" element={<DevOnly><RequireAuth><ExposuresPage /></RequireAuth></DevOnly>} />
+            <Route path="/dashboard/tasks" element={<DevOnly><RequireAuth><TodoPage /></RequireAuth></DevOnly>} />
+            <Route path="/dashboard/activity" element={<DevOnly><RequireAuth><Transactions /></RequireAuth></DevOnly>} />
+            <Route path="/transactions" element={<DevOnly><RequireAuth><Transactions /></RequireAuth></DevOnly>} />
 
             {/* Auth */}
             <Route path="/signup" element={<AuthMagicLink />} />
