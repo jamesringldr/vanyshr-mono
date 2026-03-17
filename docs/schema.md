@@ -1,33 +1,36 @@
 # Vanyshr Database Schema
 **Project:** Vanyshr Production (`skhejbzrfptrusskuqoy`, us-west-2)
-**Migrations applied:** 00001–00007
-**Last updated:** 2026-03-04
+**Last updated:** 2026-03-17 (exported from Supabase)
+
+> **Note — pending migration:** `20260316_user_updates.sql` creates the `user_updates` table but has not yet been applied to the DB. See the [Pending](#pending-migrations) section at the bottom.
 
 ---
 
 ## Tables Overview
 
-| Table | Description |
-|-------|-------------|
-| `user_profiles` | Core user record, decoupled from auth |
-| `user_phones` | Phone numbers per user |
-| `user_emails` | Email addresses per user |
-| `user_addresses` | Addresses per user |
-| `user_aliases` | Name aliases per user |
-| `user_onboarding_progress` | Step-by-step onboarding tracking |
-| `family_members` | Additional people monitored under one account |
-| `quick_scans` | Ephemeral pre-auth scan data (30-min TTL) |
-| `scan_history` | Audit log of full scans post-signup |
-| `exposures` | Data broker listings found for a user |
-| `removal_requests` | Opt-out requests per exposure |
-| `brokers` | Data broker registry |
-| `broker_categories` | Broker classification categories |
-| `broker_category_map` | Many-to-many broker ↔ category |
-| `data_breaches` | HIBP breach records per user |
-| `notifications` | In-app/email/push notification records |
-| `activity_log` | System audit trail |
-| `user_todos` | Manual action items for users |
-| `zip_lookup` | Zip → city/state lookup (seeded) |
+| Table | Schema | Description |
+|-------|--------|-------------|
+| `user_profiles` | public | Core user record, decoupled from auth |
+| `user_preferences` | public | Per-user removal strategy and notification settings |
+| `user_phones` | public | Phone numbers per user (E.164 stored) |
+| `user_emails` | public | Email addresses per user |
+| `user_addresses` | public | Addresses per user |
+| `user_aliases` | public | Name aliases per user |
+| `user_onboarding_progress` | public | Step-by-step onboarding tracking |
+| `family_members` | public | Additional people monitored under one account |
+| `quick_scans` | public | Ephemeral pre-auth scan data (30-min TTL) |
+| `scan_retry_requests` | public | Queued retry requests for failed scans |
+| `scan_history` | public | Audit log of full scans post-signup |
+| `exposures` | public | Data broker listings found for a user |
+| `removal_requests` | public | Opt-out requests per exposure |
+| `data_breaches` | public | HIBP breach records per user |
+| `notifications` | public | In-app / email / push notification records |
+| `activity_log` | public | System audit trail |
+| `user_todos` | public | Manual action items for users |
+| `zip_lookup` | public | Zip → city/state lookup cache |
+| `brokers` | brokers | Data broker registry *(separate schema)* |
+| `broker_categories` | brokers | Broker classification categories *(separate schema)* |
+| `broker_category_map` | brokers | Many-to-many broker ↔ category *(separate schema)* |
 
 ---
 
@@ -38,33 +41,48 @@ PK: `id` (own UUID — NOT `auth.uid()`) | RLS: ✅
 
 | Column | Type | Notes |
 |--------|------|-------|
-| id | uuid | PK |
+| id | uuid | PK — set explicitly (not auto-generated) |
 | first_name | text | |
 | last_name | text | |
 | middle_name | text | nullable |
 | date_of_birth | date | nullable |
 | gender | text | nullable |
-| email | text | nullable |
+| email | text | nullable — captured at magic-link submission |
 | auth_user_id | uuid | nullable, unique → `auth.users.id` |
 | signup_status | text | `pending_auth` \| `active` \| `suspended`; default `pending_auth` |
 | source_quick_scan_id | uuid | nullable → `quick_scans.id` |
 | onboarding_completed | bool | default false |
 | onboarding_step | int | default 0 |
+| removal_aggression | text | `aggressive` \| `targeted`; default `aggressive` |
+| notification_tier | text | `all` \| `general` \| `primary` \| `critical` \| `manual`; default `general` |
 | subscription_tier | text | `free` \| `basic` \| `premium` \| `family`; default `free` |
 | subscription_status | text | `active` \| `inactive` \| `cancelled` \| `past_due` \| `trialing`; default `active` |
 | subscription_started_at | timestamptz | nullable |
 | subscription_ends_at | timestamptz | nullable |
 | stripe_customer_id | text | nullable, unique |
 | stripe_subscription_id | text | nullable |
-| removal_aggression | text | `conservative` \| `balanced` \| `aggressive` \| `maximum`; default `balanced` |
 | preferences | jsonb | `{dark_mode, auto_remove, compact_view}` |
-| notification_settings | jsonb | `{push_enabled, email_new_exposure, email_weekly_summary, email_removal_complete}` |
+| notification_settings | jsonb | Full nested notification preferences object |
 | last_login_at | timestamptz | nullable |
 | last_scan_at | timestamptz | nullable |
-| created_at | timestamptz | |
-| updated_at | timestamptz | |
+| created_at / updated_at | timestamptz | |
 
 > RLS uses `get_current_user_profile_id()` helper function — NOT `auth.uid()` directly.
+
+---
+
+### `user_preferences`
+PK: `user_id` | RLS: ✅ | FK: `user_id → user_profiles.id`
+
+Separate from `user_profiles` to allow onboarding preferences to be written via service role before the user's auth row exists.
+
+| Column | Type | Notes |
+|--------|------|-------|
+| user_id | uuid | PK |
+| removal_strategy | text | `aggressive` \| `targeted`; nullable |
+| notification_tier | text | `all` \| `general` \| `primary` \| `critical` \| `manual`; nullable |
+| notification_settings | jsonb | Manual/custom notification preferences; default `{}` |
+| created_at / updated_at | timestamptz | |
 
 ---
 
@@ -75,13 +93,15 @@ PK: `id` | RLS: ✅ | FK: `user_id → user_profiles.id`
 |--------|------|-------|
 | id | uuid | PK |
 | user_id | uuid | |
-| number | text | |
+| number | text | Stored as E.164 (`+1XXXXXXXXXX`) |
 | is_primary | bool | default false |
 | user_confirmed_status | text | `unverified` \| `confirmed` \| `rejected`; default `unverified` |
 | confirmed_at | timestamptz | nullable |
-| source | text | `quick_scan` \| `user_input` \| `scan_discovery`; default `user_input` |
+| source | text | `anywho` \| `zabasearch` \| `both` \| `quick_scan` \| `user_input` \| `scan_discovery`; default `user_input` |
 | is_active | bool | default true (soft delete) |
 | created_at / updated_at | timestamptz | |
+
+> Partial unique index `idx_user_phones_unique_active` on `(user_id, number) WHERE is_active = TRUE` prevents duplicate active numbers per user.
 
 ---
 
@@ -96,11 +116,11 @@ PK: `id` | RLS: ✅ | FK: `user_id → user_profiles.id`
 | is_primary | bool | default false |
 | user_confirmed_status | text | `unverified` \| `confirmed` \| `rejected`; default `unverified` |
 | confirmed_at | timestamptz | nullable |
-| source | text | `quick_scan` \| `user_input` \| `scan_discovery` \| `auth`; default `user_input` |
+| source | text | `anywho` \| `zabasearch` \| `both` \| `quick_scan` \| `user_input` \| `scan_discovery` \| `auth`; default `user_input` |
 | is_active | bool | default true (soft delete) |
 | created_at / updated_at | timestamptz | |
 
-> Auth email is inserted with `source = 'auth'` and auto-confirmed (skips `unverified` state).
+> Auth email is inserted with `source = 'auth'` and auto-confirmed. Unique constraint on `(user_id, email)`.
 
 ---
 
@@ -117,13 +137,11 @@ PK: `id` | RLS: ✅ | FK: `user_id → user_profiles.id`
 | zip | text | nullable |
 | full_address | text | nullable |
 | is_current | bool | default false |
-| user_confirmed_status | text | `unverified` \| `confirmed` \| `rejected` |
+| user_confirmed_status | text | `unverified` \| `confirmed` \| `rejected`; default `unverified` |
 | confirmed_at | timestamptz | nullable |
-| source | text | `quick_scan` \| `user_input` \| `scan_discovery` |
+| source | text | `anywho` \| `zabasearch` \| `both` \| `quick_scan` \| `user_input` \| `scan_discovery`; default `user_input` |
 | is_active | bool | default true (soft delete) |
 | created_at / updated_at | timestamptz | |
-
-> On edit: structured fields (street/city/state/zip) are cleared to prevent stale data alongside new `full_address`.
 
 ---
 
@@ -135,11 +153,13 @@ PK: `id` | RLS: ✅ | FK: `user_id → user_profiles.id`
 | id | uuid | PK |
 | user_id | uuid | |
 | name | text | |
-| user_confirmed_status | text | `unverified` \| `confirmed` \| `rejected` |
+| user_confirmed_status | text | `unverified` \| `confirmed` \| `rejected`; default `unverified` |
 | confirmed_at | timestamptz | nullable |
-| source | text | `quick_scan` \| `user_input` \| `scan_discovery` |
+| source | text | `anywho` \| `zabasearch` \| `both` \| `quick_scan` \| `user_input` \| `scan_discovery`; default `user_input` |
 | is_active | bool | default true (soft delete) |
 | created_at / updated_at | timestamptz | |
+
+> Partial unique index `idx_user_aliases_unique_active` on `(user_id, lower(trim(name))) WHERE is_active = TRUE` prevents duplicate active aliases per user (case-insensitive).
 
 ---
 
@@ -185,11 +205,11 @@ PK: `id` | RLS: ✅ | TTL: 30 minutes
 | id | uuid | PK |
 | session_id | text | anonymous session identifier |
 | search_input | jsonb | name/location data entered by user |
-| status | text | `pending` \| `scanning` \| `matches_found` \| `selection_required` \| `processing` \| `completed` \| `no_matches` \| `failed` \| `expired` \| `pending_signup` |
+| status | text | See status values below |
 | profile_matches | jsonb | nullable — list of scraped candidates |
-| candidate_matches | jsonb | nullable |
+| candidate_matches | jsonb | nullable — Zabasearch matches with `fullProfile` |
 | selected_match_id | text | nullable |
-| profile_data | jsonb | nullable — full detail from `universal-details` edge fn |
+| profile_data | jsonb | nullable — full detail from AnyWho scrape |
 | data_sources | text[] | default `{}` |
 | scraper_runs | jsonb | default `[]` |
 | error_message | text | nullable |
@@ -197,6 +217,33 @@ PK: `id` | RLS: ✅ | TTL: 30 minutes
 | completed_at / converted_at | timestamptz | nullable |
 | converted_to_user_id | uuid | nullable |
 | created_at / updated_at | timestamptz | |
+
+**Status values:** `pending` \| `scanning` \| `matches_found` \| `selection_required` \| `processing` \| `completed` \| `no_matches` \| `failed` \| `expired` \| `pending_signup`
+
+> `status = 'pending_signup'` means the user clicked the CTA and profile creation has started but auth hasn't completed yet.
+
+---
+
+### `scan_retry_requests`
+PK: `id` | RLS: none (service role only)
+
+Stores email + search context for users whose scan failed. Retried asynchronously; results emailed when ready. 90-day expiry.
+
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid | PK |
+| email | text | User-provided email for result delivery |
+| search_input | jsonb | `{first_name, last_name, zip_code, city, state}` |
+| status | text | `pending` \| `processing` \| `completed` \| `failed_permanent`; default `pending` |
+| retry_count | int | default 0 |
+| last_retry_at | timestamptz | nullable |
+| original_scan_id | uuid | nullable — the failed `quick_scans.id` |
+| result_data | jsonb | nullable — populated on success |
+| notification_sent_at | timestamptz | nullable |
+| converted_to_user_id | uuid | nullable → `auth.users.id` |
+| converted_at | timestamptz | nullable |
+| created_at / updated_at | timestamptz | |
+| expires_at | timestamptz | default now()+90 days |
 
 ---
 
@@ -216,19 +263,19 @@ PK: `id` | RLS: ✅ | FK: `user_id → user_profiles.id`
 | results | jsonb | default `{}` |
 | started_at / completed_at | timestamptz | |
 | duration_ms | int | nullable |
-| created_at | timestamptz | |
+| created_at / updated_at | timestamptz | |
 
 ---
 
 ### `exposures`
-PK: `id` | RLS: ✅ | FK: `user_id → user_profiles.id`, `broker_id → brokers.id`
+PK: `id` | RLS: ✅ | FK: `user_id → user_profiles.id`, `broker_id → brokers.brokers.id`
 
 | Column | Type | Notes |
 |--------|------|-------|
 | id | uuid | PK |
 | user_id | uuid | |
 | family_member_id | uuid | nullable → `family_members.id` |
-| broker_id | uuid | |
+| broker_id | uuid | → `brokers.brokers.id` |
 | profile_url | text | nullable |
 | profile_identifier | text | nullable |
 | data_snapshot | jsonb | nullable — what was found |
@@ -269,57 +316,6 @@ PK: `id` | RLS: ✅ | FK: `exposure_id → exposures.id`
 
 ---
 
-### `brokers`
-PK: `id` | RLS: ✅
-
-| Column | Type | Notes |
-|--------|------|-------|
-| id | uuid | PK |
-| name / slug | text | unique |
-| parent_broker_id | uuid | nullable → self-ref |
-| website_url / search_url_template / opt_out_url / privacy_policy_url | text | nullable |
-| opt_out_method | text | `online_form` \| `email` \| `mail` \| `phone` \| `automated` \| `account_required` \| `none` |
-| opt_out_difficulty | text | `easy` \| `medium` \| `hard` \| `very_hard`; default `medium` |
-| opt_out_steps | jsonb | nullable |
-| requires_verification | bool | default false |
-| verification_method | text | `email` \| `phone` \| `sms` \| `id_upload` \| `notarized_letter` \| `none` |
-| estimated_removal_days | int | default 14 |
-| re_listing_likelihood | text | `low` \| `medium` \| `high`; default `medium` |
-| re_scan_interval_days | int | default 90 |
-| scraper_config | jsonb | default `{}` |
-| is_scrapeable | bool | default true |
-| scraper_status | text | `active` \| `degraded` \| `blocked` \| `maintenance` \| `disabled`; default `active` |
-| last_scrape_at / last_scrape_success / scrape_success_rate | — | nullable |
-| data_types_collected | text[] | default `{}` |
-| is_active | bool | default true |
-| priority | int | default 50 |
-| created_at / updated_at | timestamptz | |
-
----
-
-### `broker_categories`
-PK: `id` | RLS: ✅ | Rows: 6
-
-| Column | Type |
-|--------|------|
-| id | uuid PK |
-| name / slug | text, unique |
-| description / icon | text, nullable |
-| display_order | int, default 0 |
-| created_at | timestamptz |
-
----
-
-### `broker_category_map`
-PK: `(broker_id, category_id)` | RLS: ✅
-
-| Column | Type |
-|--------|------|
-| broker_id | uuid → `brokers.id` |
-| category_id | uuid → `broker_categories.id` |
-
----
-
 ### `data_breaches`
 PK: `id` | RLS: ✅ | FK: `user_id → user_profiles.id`
 
@@ -337,7 +333,7 @@ PK: `id` | RLS: ✅ | FK: `user_id → user_profiles.id`
 | hibp_data | jsonb | nullable |
 | status | text | `new` \| `unresolved` \| `resolved`; default `new` |
 | status_updated_at | timestamptz | nullable |
-| created_at | timestamptz | |
+| created_at / updated_at | timestamptz | |
 
 ---
 
@@ -387,7 +383,7 @@ PK: `id` | RLS: ✅ | FK: `user_id → user_profiles.id`
 | id | uuid | PK |
 | user_id | uuid | |
 | exposure_id | uuid | nullable → `exposures.id` |
-| broker_id | uuid | nullable → `brokers.id` |
+| broker_id | uuid | nullable → `brokers.brokers.id` |
 | title | text | |
 | description | text | nullable |
 | instructions | jsonb | nullable |
@@ -402,7 +398,7 @@ PK: `id` | RLS: ✅ | FK: `user_id → user_profiles.id`
 ---
 
 ### `zip_lookup`
-PK: `zip` | RLS: ✅ | Rows: ~46
+PK: `zip` | RLS: ✅ | Rows: seeded
 
 | Column | Type |
 |--------|------|
@@ -411,13 +407,57 @@ PK: `zip` | RLS: ✅ | Rows: ~46
 | state_code | text |
 | created_at | timestamptz |
 
+> Populated on first lookup via Zippopotam.us API and cached here for future requests.
+
 ---
 
 ## Key Conventions
 
 - **RLS:** All tables use Row Level Security. Auth context resolved via `get_current_user_profile_id()` — not `auth.uid()` directly.
-- **Pre-auth writes:** Must go through service-role edge functions (`create-pending-profile`, `link-auth-to-profile`). Never direct from client.
+- **Pre-auth writes:** Must go through service-role Edge Functions (`create-pending-profile`, `link-auth-to-profile`). Never direct from client.
 - **Soft delete:** `is_active = false` on user data tables (phones, emails, addresses, aliases, family_members).
-- **Confirmation flow:** All onboarding data starts `user_confirmed_status = 'unverified'`. User confirming → `confirmed`, `confirmed_at = NOW()`.
+- **Confirmation flow:** All onboarding data starts `user_confirmed_status = 'unverified'`. User confirming → `'confirmed'`, `confirmed_at = NOW()`.
 - **Auth email:** Auto-confirmed with `source = 'auth'` in `user_emails`.
-- **quick_scans TTL:** 30-minute expiry via `expires_at`. Status `pending_signup` means user clicked CTA but hasn't authed yet.
+- **Phone storage:** E.164 format (`+1XXXXXXXXXX`). Normalized on insert by `normalize_phone_e164()` DB function.
+- **Source tracking:** `user_phones`, `user_emails`, `user_addresses`, `user_aliases` all track `source` as `anywho` | `zabasearch` | `both` | `quick_scan` | `user_input` | `scan_discovery`. `both` means the same record was found by both scrapers.
+- **quick_scans TTL:** 30-minute expiry via `expires_at`. Status `pending_signup` means user clicked CTA but hasn't completed auth yet.
+- **Brokers schema:** `brokers`, `broker_categories`, and `broker_category_map` live in a separate `brokers` Postgres schema (not `public`).
+
+---
+
+## DB Functions
+
+| Function | Description |
+|----------|-------------|
+| `get_current_user_profile_id()` | Resolves the `user_profiles.id` for the current auth session. Used in all RLS policies. |
+| `normalize_phone_e164(text)` | Strips non-digits, normalizes 10- and 11-digit US numbers to `+1XXXXXXXXXX`. `IMMUTABLE`. |
+| `create_pending_profile(p_scan_id UUID, p_email TEXT DEFAULT NULL)` | Creates a `user_profiles` row from a `quick_scans` record. Merges AnyWho (`profile_data`) and Zabasearch (`candidate_matches`) data, deduplicates phones/aliases with `source='both'`, normalizes phones to E.164, inserts emails. |
+| `initialize_onboarding_steps(user_id UUID)` | Seeds `user_onboarding_progress` rows for a new user. Called by `create_pending_profile`. |
+| `fan_out_broadcast_update(...)` | `SECURITY DEFINER` — inserts a `user_updates` row for every active user. Used for admin broadcasts. *(Available after pending migration is applied.)* |
+
+---
+
+## Pending Migrations
+
+| Migration | Status | Description |
+|-----------|--------|-------------|
+| `20260316_user_updates.sql` | ⏳ Not yet applied | Creates `user_updates` table — per-user notifications/feature announcements with `unread → dismissed \| clicked \| converted` lifecycle. Includes `fan_out_broadcast_update()` function and RLS policies. |
+
+### `user_updates` (pending)
+PK: `id` | RLS: ✅ | FK: `user_id → user_profiles.id`
+
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid | PK |
+| user_id | uuid | |
+| title | text | |
+| message | text | |
+| action_text | text | nullable — CTA label |
+| action_route | text | nullable — in-app route to navigate on click |
+| type | text | `info` \| `tip` \| `alert` \| `action_required` \| `new_feature`; default `info` |
+| icon | text | nullable |
+| status | text | `unread` \| `dismissed` \| `clicked` \| `converted`; default `unread` |
+| expires_at | timestamptz | nullable |
+| created_at | timestamptz | |
+
+> Index: `idx_user_updates_user_status` on `(user_id, status, created_at DESC)`.
