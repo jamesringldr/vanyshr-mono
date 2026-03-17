@@ -13,6 +13,10 @@ import {
   Search,
   CheckCircle,
   AlertTriangle,
+  Bell,
+  Lightbulb,
+  AlertCircle,
+  Zap,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
@@ -168,6 +172,14 @@ const REMOVAL_ACTIVITY_ITEMS: {
     minutesAgo: 180,
   },
 ];
+
+const UPDATE_TYPE_CONFIG: Record<string, { Icon: React.ElementType; label: string }> = {
+  info:            { Icon: Info,          label: 'Info'            },
+  tip:             { Icon: Lightbulb,     label: 'Tip'             },
+  alert:           { Icon: AlertTriangle, label: 'Alert'           },
+  action_required: { Icon: AlertCircle,   label: 'Action Required' },
+  new_feature:     { Icon: Zap,           label: 'New Feature'     },
+};
 
 const ACTIVITY_STYLES: Record<ActivityType, { bg: string; iconColor: string; Icon: React.ElementType }> = {
   'Broker Scan':   { bg: 'bg-[#00BFFF]/10', iconColor: 'text-[#00BFFF]', Icon: Search        },
@@ -566,44 +578,54 @@ export function DashboardHome() {
                 )}
               </div>
 
-              {activeUpdate ? (
-                <div className="bg-[#2D3847] border border-[#2A4A68] rounded-xl px-4 py-3 flex flex-col gap-2">
-                  {/* Title + dismiss */}
-                  <div className="flex items-start justify-between gap-3">
-                    <p className="text-sm font-bold text-white">{activeUpdate.title}</p>
-                    <button
-                      className="text-[#7A92A8] hover:text-white transition-colors duration-150 flex-shrink-0 leading-none text-base"
-                      onClick={() => dismissUpdate(activeUpdate.id)}
-                      aria-label="Dismiss update"
-                    >
-                      ×
-                    </button>
-                  </div>
-
-                  {/* Message */}
-                  <p className="text-xs text-[#B8C4CC]">{activeUpdate.message}</p>
-
-                  {/* Footer: CTA + overflow count */}
-                  <div className="flex items-center justify-between pt-1">
-                    {activeUpdate.action_text && activeUpdate.action_route ? (
+              {activeUpdate ? (() => {
+                const typeConfig = UPDATE_TYPE_CONFIG[activeUpdate.type] ?? UPDATE_TYPE_CONFIG.info;
+                const TypeIcon = typeConfig.Icon;
+                const currentIndex = userUpdates.findIndex(u => u.id === activeUpdate.id) + 1;
+                return (
+                  <div className="bg-[#2D3847] border border-[#2A4A68] rounded-2xl px-5 py-4 flex flex-col gap-4">
+                    {/* Top row: icon + label | dismiss */}
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2">
+                        <TypeIcon className="w-4 h-4 text-[#7A92A8] flex-shrink-0" />
+                        <span className="text-xs text-[#7A92A8] font-medium">{activeUpdate.title}</span>
+                      </div>
                       <button
-                        className="text-xs text-[#00BFFF] hover:text-[#00D4FF] transition-colors duration-150"
-                        onClick={() => clickUpdate(activeUpdate.id, activeUpdate.action_route!)}
+                        className="text-[#7A92A8] hover:text-white transition-colors duration-150 flex-shrink-0 cursor-pointer"
+                        onClick={() => dismissUpdate(activeUpdate.id)}
+                        aria-label="Dismiss update"
                       >
-                        {activeUpdate.action_text}
+                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M1 1L11 11M11 1L1 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                        </svg>
                       </button>
-                    ) : <span />}
-                    {userUpdates.length > 1 && (
-                      <span className="text-xs text-[#7A92A8]">
-                        +{userUpdates.length - 1} more
-                      </span>
-                    )}
+                    </div>
+
+                    {/* Body: large message text */}
+                    <p className="text-base font-normal text-white leading-snug">{activeUpdate.message}</p>
+
+                    {/* Footer: CTA + counter */}
+                    <div className="flex items-center justify-between">
+                      {activeUpdate.action_text && activeUpdate.action_route ? (
+                        <button
+                          className="text-sm font-semibold text-[#00BFFF] hover:text-[#00D4FF] underline underline-offset-2 transition-colors duration-150 cursor-pointer"
+                          onClick={() => clickUpdate(activeUpdate.id, activeUpdate.action_route!)}
+                        >
+                          {activeUpdate.action_text}
+                        </button>
+                      ) : <span />}
+                      {userUpdates.length > 1 && (
+                        <span className="text-sm text-[#7A92A8]">
+                          {currentIndex}/{userUpdates.length}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ) : (
-                <div className="bg-[#2D3847] border border-[#2A4A68] rounded-xl px-4 py-3 flex items-center gap-2">
+                );
+              })() : (
+                <div className="bg-[#2D3847] border border-[#2A4A68] rounded-2xl px-5 py-4 flex items-center gap-2">
                   <CheckCircle className="w-4 h-4 text-[#00D4AA] flex-shrink-0" />
-                  <p className="text-xs text-[#B8C4CC]">You're all caught up</p>
+                  <p className="text-sm text-[#B8C4CC]">You're all caught up</p>
                 </div>
               )}
             </section>
