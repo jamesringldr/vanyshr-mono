@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
-import { Link, useParams, useNavigate } from "react-router";
+import { Link, useParams } from "react-router";
+import { useBetaModal } from "@/components/BetaModalContext";
 import { motion, useReducedMotion } from "framer-motion";
 import {
     Menu,
@@ -491,7 +492,7 @@ function convertToPreProfileData(
 
 export function PreProfile() {
     const { scanId } = useParams<{ scanId?: string }>();
-    const navigate = useNavigate();
+    const { openBetaModal } = useBetaModal();
     const prefersReducedMotion = useReducedMotion();
     const [loadingState, setLoadingState] = useState<LoadingState>("loading");
     const [data, setData] = useState<PreProfileData | null>(null);
@@ -500,16 +501,40 @@ export function PreProfile() {
     const [isFooterVisible, setIsFooterVisible] = useState(false);
     const [loadingEllipsis, setLoadingEllipsis] = useState(".");
 
-    const handleStartVanyshing = useCallback(() => {
+    const [isStarting, setIsStarting] = useState(false);
+
+    const handleStartVanyshing = useCallback(async () => {
         if (!scanId) {
             setStartError("Scan ID is missing. Please go back and try again.");
             return;
         }
-        // Store the scan_id so magic-link.tsx can call create-pending-profile
-        // after the user submits their email (captures email for re-engagement).
-        sessionStorage.setItem("pendingScanId", scanId);
-        navigate("/signup");
-    }, [scanId, navigate]);
+
+        setIsStarting(true);
+        setStartError(null);
+
+        try {
+            const { data, error } = await supabase.functions.invoke<{
+                success: boolean;
+                profile_id?: string;
+                scan_id?: string;
+                error?: string;
+            }>("create-pending-profile", {
+                body: { scan_id: scanId },
+            });
+
+            if (error || !data?.success || !data.profile_id) {
+                throw new Error(data?.error ?? error?.message ?? "Failed to start. Please try again.");
+            }
+
+            sessionStorage.setItem("pendingScanId", scanId);
+            sessionStorage.setItem("pendingProfileId", data.profile_id);
+            openBetaModal();
+        } catch (err) {
+            setStartError(err instanceof Error ? err.message : "Failed to start. Please try again.");
+        } finally {
+            setIsStarting(false);
+        }
+    }, [scanId, openBetaModal]);
 
 
     const loadProfileData = useCallback(async () => {
@@ -1050,11 +1075,12 @@ export function PreProfile() {
                     <button
                         type="button"
                         onClick={handleStartVanyshing}
-                        className="flex h-[52px] w-full max-w-md items-center justify-center gap-2 rounded-xl px-4 font-semibold text-white outline-none transition bg-[#00BFFF] hover:bg-[#0E9AE8] focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#022136] cursor-pointer"
+                        disabled={isStarting}
+                        className="flex h-[52px] w-full max-w-md items-center justify-center gap-2 rounded-xl px-4 font-semibold text-white outline-none transition bg-[#00BFFF] hover:bg-[#0E9AE8] focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#022136] cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
                         aria-label="Start Vanyshing for free"
                     >
-                        Start Vanyshing for FREE
-                        <ArrowRight className="h-5 w-5 shrink-0" aria-hidden />
+                        {isStarting ? "Starting…" : "Start Vanyshing for FREE"}
+                        {!isStarting && <ArrowRight className="h-5 w-5 shrink-0" aria-hidden />}
                     </button>
                     <p className="text-xs font-semibold uppercase tracking-wide text-[#B8C4CC]">
                         NO CREDIT CARD REQUIRED

@@ -1,8 +1,6 @@
 # Vanyshr Database Schema
 **Project:** Vanyshr Production (`skhejbzrfptrusskuqoy`, us-west-2)
-**Last updated:** 2026-03-17 (exported from Supabase)
-
-> **Note — pending migration:** `20260316_user_updates.sql` creates the `user_updates` table but has not yet been applied to the DB. See the [Pending](#pending-migrations) section at the bottom.
+**Last updated:** 2026-03-18
 
 ---
 
@@ -28,6 +26,7 @@
 | `activity_log` | public | System audit trail |
 | `user_todos` | public | Manual action items for users |
 | `zip_lookup` | public | Zip → city/state lookup cache |
+| `access_codes` | public | Private beta access codes (shared multi-use and user-specific single-use) |
 | `brokers` | brokers | Data broker registry *(separate schema)* |
 | `broker_stats` | brokers | Crowd-sourced removal outcome stats per broker *(separate schema)* |
 | `broker_vanyshr_stats` | brokers | Vanyshr-specific removal outcomes per broker/user *(separate schema)* |
@@ -49,7 +48,7 @@ PK: `id` (own UUID — NOT `auth.uid()`) | RLS: ✅
 | gender | text | nullable |
 | email | text | nullable — captured at magic-link submission |
 | auth_user_id | uuid | nullable, unique → `auth.users.id` |
-| signup_status | text | `pending_auth` \| `active` \| `suspended`; default `pending_auth` |
+| signup_status | text | Funnel: `pending_user` → `waitlisted` or `accessed_pending_signup` → `pending_auth` → `active`; also `suspended`. Default `pending_user`. |
 | source_quick_scan_id | uuid | nullable → `quick_scans.id` |
 | onboarding_completed | bool | default false |
 | onboarding_step | int | default 0 |
@@ -411,6 +410,27 @@ PK: `zip` | RLS: ✅ | Rows: seeded
 
 ---
 
+### `access_codes`
+PK: `id` | RLS: service_role only
+
+Supports two modes: **Option A** — shared multi-use code (`reserved_for_profile_id = NULL`, `max_uses = NULL` for unlimited or an integer cap); **Option B** — single-use user-specific code (`reserved_for_profile_id = <uuid>`, `max_uses = 1`).
+
+| Column | Type | Notes |
+|--------|------|-------|
+| id | uuid | PK |
+| code | text | Unique; auto-uppercased + trimmed on insert via trigger |
+| description | text | nullable |
+| max_uses | int | nullable — NULL = unlimited uses; integer = hard cap |
+| use_count | int | default 0 |
+| reserved_for_profile_id | uuid | nullable → `user_profiles.id`; NULL = shared (Option A); set for user-specific (Option B) |
+| is_active | bool | default true |
+| expires_at | timestamptz | nullable |
+| created_at / updated_at | timestamptz | |
+
+> RLS: service_role full access only — codes are never read or written directly from the client.
+
+---
+
 ## Brokers Schema Tables
 
 > All tables below live in the `brokers` Postgres schema (not `public`). Referenced in `public` tables as `brokers.brokers.id`.
@@ -500,6 +520,9 @@ Individual Vanyshr removal outcome records — feeds into `broker_stats` aggrega
 | `create_pending_profile(p_scan_id UUID, p_email TEXT DEFAULT NULL)` | Creates a `user_profiles` row from a `quick_scans` record. Merges AnyWho (`profile_data`) and Zabasearch (`candidate_matches`) data, deduplicates phones/aliases with `source='both'`, normalizes phones to E.164, inserts emails. |
 | `initialize_onboarding_steps(user_id UUID)` | Seeds `user_onboarding_progress` rows for a new user. Called by `create_pending_profile`. |
 | `fan_out_broadcast_update(...)` | `SECURITY DEFINER` — inserts a `user_updates` row for every active user. Used for admin broadcasts. *(Available after pending migration is applied.)* |
+| `validate_access_code(p_code TEXT, p_profile_id UUID)` | Validates a beta access code (active, not expired, under use cap), increments `use_count` atomically, advances profile `signup_status` → `accessed_pending_signup`. Returns `{ success, profile_id }`. service_role only. |
+| `join_waitlist(p_profile_id UUID, p_email TEXT)` | Sets profile `signup_status` → `waitlisted`, writes email to `user_profiles.email` and upserts into `user_emails`. Returns `{ success, profile_id }`. service_role only. |
+| `purge_orphaned_beta_profiles(p_older_than_days INTEGER DEFAULT 7)` | Deletes `pending_user` and `accessed_pending_signup` profiles older than the threshold (no `auth_user_id`). Unlocks associated `quick_scans` first. Returns deleted count. Wire to a scheduled cron job. service_role only. |
 
 ---
 
@@ -509,6 +532,7 @@ Individual Vanyshr removal outcome records — feeds into `broker_stats` aggrega
 |-----------|--------|-------------|
 | `20260316_user_updates.sql` | ✅ Applied | Creates `user_updates` table — per-user notifications/feature announcements with `unread → dismissed \| clicked \| converted` lifecycle. Includes `fan_out_broadcast_update()` function and RLS policies. |
 | `20260317_brokers_about_column.sql` | ✅ Applied | Adds `about text` column to `brokers.brokers` for broker description snippets. |
+| `20260318_beta_access.sql` | ✅ Applied | Expands `signup_status` to 6-value funnel; adds `access_codes` table; adds `validate_access_code()`, `join_waitlist()`, `purge_orphaned_beta_profiles()` functions. |
 
 ### `user_updates` (pending)
 PK: `id` | RLS: ✅ | FK: `user_id → user_profiles.id`
