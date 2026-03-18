@@ -28,6 +28,7 @@ export function OnboardingEmails() {
     const [activeId, setActiveId] = useState<string | null>(null);
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editValue, setEditValue] = useState("");
+    const [editError, setEditError] = useState<string | null>(null);
 
     const navigate = useNavigate();
 
@@ -135,12 +136,21 @@ export function OnboardingEmails() {
         setActiveId(item.id);
         setEditingId(item.id);
         setEditValue(item.email);
+        setEditError(null);
     };
 
+    const isValidEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+
     const handleUpdate = async (id: string) => {
+        const trimmed = editValue.trim();
+        if (!isValidEmail(trimmed)) {
+            setEditError("Please enter a valid email address.");
+            return;
+        }
+        setEditError(null);
         const updated = items.map((e) =>
             e.id === id
-                ? { ...e, email: editValue.trim() || e.email, status: "confirmed" as BadgeStatus }
+                ? { ...e, email: trimmed, status: "confirmed" as BadgeStatus }
                 : e,
         );
         setItems(updated);
@@ -283,10 +293,11 @@ export function OnboardingEmails() {
                                     id={`email-${item.id}`}
                                     label="Email address"
                                     value={editValue}
-                                    onChange={setEditValue}
+                                    onChange={(v) => { setEditValue(v); setEditError(null); }}
                                     placeholder="you@example.com"
                                     type="email"
                                     icon={Mail}
+                                    error={editError ?? undefined}
                                 />
                             ) : undefined
                         }
