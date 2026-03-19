@@ -246,17 +246,26 @@ export class AnyWhoScraper extends BaseScraper {
         }
 
         const phones: Array<{ number: string; type?: string; primary?: boolean }> = [];
-        // Match all phone numbers after "Phone number(s):"
-        const phoneSectionMatch = text.match(/Phone number\(s\):\s*([^]+?)(?:Email|Related to|AKA|Lives in|Used to live|View Details|$)/i);
-        if (phoneSectionMatch) {
-          const phoneSection = phoneSectionMatch[1];
-          // Match all phone numbers in format (XXX) XXX-XXXX
-          const phonePattern = /(\(\d{3}\)\s*\d{3}-\d{4})/g;
-          const phoneMatches = phoneSection.matchAll(phonePattern);
-          let phoneIndex = 0;
-          for (const match of phoneMatches) {
-            phones.push({ number: match[1], type: "unknown", primary: phoneIndex === 0 });
-            phoneIndex++;
+        // AnyWho renders phones via split-span with data-content attribute for last 4 digits.
+        // e.g. <span>(816) 632-</span><span data-content="2218" class="blur-sm ..."></span>
+        const phoneHeaders = Array.from(card.querySelectorAll("h3")).filter(
+          (h: any) => h.textContent?.toLowerCase().includes("phone number")
+        );
+        if (phoneHeaders.length > 0) {
+          const phoneLabelEl = phoneHeaders[0] as any;
+          const phoneSectionEl = phoneLabelEl.parentElement;
+          if (phoneSectionEl) {
+            const phoneSpans = phoneSectionEl.querySelectorAll("span[data-content]");
+            phoneSpans.forEach((blurSpan: any, idx: number) => {
+              const visibleSpan = blurSpan.previousElementSibling;
+              const visibleText = visibleSpan?.textContent?.trim() || "";
+              const hiddenDigits = blurSpan.getAttribute("data-content") || "";
+              const fullNumber = visibleText + hiddenDigits;
+              const digits = fullNumber.replace(/\D/g, "");
+              if (digits.length >= 10) {
+                phones.push({ number: fullNumber, type: "unknown", primary: idx === 0 });
+              }
+            });
           }
         }
 
@@ -425,60 +434,45 @@ export class AnyWhoScraper extends BaseScraper {
     }
 
     // Extract phones
+    // AnyWho renders phones via split-span with data-content for the last 4 digits:
+    // <span>816-225-</span><span data-content="8592" class="blur-sm ..."></span>
+    // Each phone is in a .show-more-item div inside the #phones section.
     const seenPhones = new Set<string>();
-    const allTelLinks = doc.querySelectorAll("a[href^='tel:']");
-    allTelLinks.forEach((link: any, index: number) => {
-      const phoneNumber = link.textContent?.trim().replace(/\D/g, "") || "";
-      const formattedPhone = link.textContent?.trim() || "";
+    const phonesSection = doc.getElementById("phones");
+    if (phonesSection) {
+      const phoneItems = phonesSection.querySelectorAll(".show-more-item");
+      let phoneIndex = 0;
+      phoneItems.forEach((item: any) => {
+        const blurSpan = item.querySelector("span[data-content]");
+        if (!blurSpan) return;
+        const visibleSpan = blurSpan.previousElementSibling;
+        const visibleText = visibleSpan?.textContent?.trim() || "";
+        const hiddenDigits = blurSpan.getAttribute("data-content") || "";
+        const fullNumber = visibleText + hiddenDigits;
+        const digits = fullNumber.replace(/\D/g, "");
+        if (digits.length < 10 || seenPhones.has(digits)) return;
+        seenPhones.add(digits);
 
-      if (phoneNumber.length >= 10 && !seenPhones.has(phoneNumber)) {
-        seenPhones.add(phoneNumber);
-
+        const infoDiv = item.querySelector(".text-body-sm");
+        const infoText = infoDiv?.textContent || "";
+        const infoParts = infoText.split("•").map((p: string) => p.trim()).filter(Boolean);
+        const carrier = infoParts[1] || "";
         let phoneType = "unknown";
-        let provider = "";
-
-        const parentDiv = link.parentElement;
-        if (parentDiv) {
-          const containerText = parentDiv.textContent || "";
-          const carrierMatch = containerText.match(/•\s*([A-Za-z&\s-]+?)(?:\s*$|\s*View)/);
-          if (carrierMatch) provider = carrierMatch[1].trim();
-          if (provider.includes("T-Mobile") || provider.includes("AT&T") || provider.includes("Verizon")) {
-            phoneType = "mobile";
-          }
+        if (carrier.includes("T-Mobile") || carrier.includes("AT&T") || carrier.includes("Verizon")) {
+          phoneType = "mobile";
         }
 
         profile.phones?.push({
-          number: formattedPhone,
+          number: fullNumber,
           type: phoneType,
-          provider: provider || undefined,
-          primary: index === 0,
+          provider: carrier || undefined,
+          primary: phoneIndex === 0,
         });
 
-        if (index === 0) {
-          profile.current_phone = formattedPhone;
-        } else {
-          profile.additional_numbers?.push(formattedPhone);
-        }
-      }
-    });
-
-    // Fallback phone extraction from text
-    if (profile.phones?.length === 0) {
-      const phonePattern = /(\d{3}[-.]?\d{3}[-.]?\d{4})/g;
-      const phoneMatches = bodyText.matchAll(phonePattern);
-      let phoneIndex = 0;
-
-      for (const match of phoneMatches) {
-        const cleanPhone = match[1].replace(/\D/g, "");
-        if (cleanPhone.length === 10 && !seenPhones.has(cleanPhone)) {
-          seenPhones.add(cleanPhone);
-          const formatted = `${cleanPhone.slice(0, 3)}-${cleanPhone.slice(3, 6)}-${cleanPhone.slice(6)}`;
-          profile.phones?.push({ number: formatted, type: "unknown", primary: phoneIndex === 0 });
-          if (phoneIndex === 0) profile.current_phone = formatted;
-          else profile.additional_numbers?.push(formatted);
-          phoneIndex++;
-        }
-      }
+        if (phoneIndex === 0) profile.current_phone = fullNumber;
+        else profile.additional_numbers?.push(fullNumber);
+        phoneIndex++;
+      });
     }
 
     console.log(`📞 Found ${profile.phones?.length || 0} phone numbers`);
@@ -557,14 +551,33 @@ export class AnyWhoScraper extends BaseScraper {
     }
 
     // Extract addresses
+    // AnyWho blurs street numbers via data-content spans (same technique as phones).
+    // heading.textContent alone omits the blurred house number — reconstruct the full
+    // street string by combining data-content values + visible span text in DOM order.
     const addressesSection = doc.getElementById("addresses");
     const seenAddresses = new Set<string>();
 
     if (addressesSection) {
       const addressHeadings = addressesSection.querySelectorAll("h4");
       addressHeadings.forEach((heading: any, index: number) => {
-        const streetText = heading.textContent?.trim() || "";
-        if (!streetText || !/\d/.test(streetText) || streetText.length < 5) return;
+        // Reconstruct street address including blurred number parts
+        const outerSpan = heading.querySelector("span");
+        let streetText = "";
+        if (outerSpan) {
+          for (const child of outerSpan.childNodes) {
+            const dataContent = (child as any).getAttribute?.("data-content");
+            if (dataContent) {
+              streetText += dataContent;
+            } else {
+              streetText += (child as any).textContent || "";
+            }
+          }
+        } else {
+          streetText = heading.textContent || "";
+        }
+        streetText = streetText.trim();
+
+        if (!streetText || streetText.length < 5) return;
         if (streetText.includes("Address History") || streetText.includes("We found")) return;
 
         const container = heading.parentElement;
