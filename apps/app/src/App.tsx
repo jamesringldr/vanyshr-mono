@@ -31,7 +31,6 @@ import { ScanningStartedPage } from "./pages/scan/scanning-started";
 import { QuickScanErrorPage } from "./pages/quickscan-error";
 
 // Dashboard pages
-import { HomeScreen } from "./pages/dashboard/home";
 import { FinancialDashboard } from "./pages/dashboard/financial";
 import { Transactions } from "./pages/dashboard/activity";
 import { DashboardHome } from "./views/Dashboard/DashboardHome";
@@ -104,7 +103,7 @@ export default function App() {
     return (
         <Routes>
             {/* Dashboard — DevOnly until ready for users */}
-            <Route path="/" element={<HomeScreen />} />
+            <Route path="/" element={<Navigate to="/quick-scan" replace />} />
             <Route path="/dashboard" element={<DevOnly><RequireAuth><FinancialDashboard /></RequireAuth></DevOnly>} />
             <Route path="/dashboard/home" element={<DevOnly><RequireAuth><DashboardHome /></RequireAuth></DevOnly>} />
             <Route path="/dashboard/dark-web" element={<DevOnly><RequireAuth><DarkWebPage /></RequireAuth></DevOnly>} />
