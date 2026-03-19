@@ -248,7 +248,7 @@ export class AnyWhoScraper extends BaseScraper {
         const phones: Array<{ number: string; type?: string; primary?: boolean }> = [];
         // AnyWho renders phones via split-span with data-content attribute for last 4 digits.
         // e.g. <span>(816) 632-</span><span data-content="2218" class="blur-sm ..."></span>
-        // We find the Phone number(s) header, then read the span structure directly from DOM.
+
         const phoneHeaders = Array.from(card.querySelectorAll("h3")).filter(
           (h: any) => h.textContent?.toLowerCase().includes("phone number")
         );
@@ -444,7 +444,7 @@ export class AnyWhoScraper extends BaseScraper {
       const phoneItems = phonesSection.querySelectorAll(".show-more-item");
       let phoneIndex = 0;
       phoneItems.forEach((item: any) => {
-        // The blurred span holds the last 4 digits in data-content
+
         const blurSpan = item.querySelector("span[data-content]");
         if (!blurSpan) return;
         const visibleSpan = blurSpan.previousElementSibling;
@@ -455,7 +455,7 @@ export class AnyWhoScraper extends BaseScraper {
         if (digits.length < 10 || seenPhones.has(digits)) return;
         seenPhones.add(digits);
 
-        // Carrier and location from the info row
+
         const infoDiv = item.querySelector(".text-body-sm");
         const infoText = infoDiv?.textContent || "";
         const infoParts = infoText.split("•").map((p: string) => p.trim()).filter(Boolean);
@@ -554,14 +554,33 @@ export class AnyWhoScraper extends BaseScraper {
     }
 
     // Extract addresses
+    // AnyWho blurs street numbers via data-content spans (same technique as phones).
+    // heading.textContent alone omits the blurred house number — reconstruct the full
+    // street string by combining data-content values + visible span text in DOM order.
     const addressesSection = doc.getElementById("addresses");
     const seenAddresses = new Set<string>();
 
     if (addressesSection) {
       const addressHeadings = addressesSection.querySelectorAll("h4");
       addressHeadings.forEach((heading: any, index: number) => {
-        const streetText = heading.textContent?.trim() || "";
-        if (!streetText || !/\d/.test(streetText) || streetText.length < 5) return;
+        // Reconstruct street address including blurred number parts
+        const outerSpan = heading.querySelector("span");
+        let streetText = "";
+        if (outerSpan) {
+          for (const child of outerSpan.childNodes) {
+            const dataContent = (child as any).getAttribute?.("data-content");
+            if (dataContent) {
+              streetText += dataContent;
+            } else {
+              streetText += (child as any).textContent || "";
+            }
+          }
+        } else {
+          streetText = heading.textContent || "";
+        }
+        streetText = streetText.trim();
+
+        if (!streetText || streetText.length < 5) return;
         if (streetText.includes("Address History") || streetText.includes("We found")) return;
 
         const container = heading.parentElement;
