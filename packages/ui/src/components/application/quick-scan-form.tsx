@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
-import { User, MapPin, X } from "lucide-react";
+import { User, MapPin, X, Zap } from "lucide-react";
 import { cx } from "@/utils/cx";
 import { 
   QSProgressSteps, 
@@ -401,11 +401,17 @@ export function QuickScanForm({ supabaseClient, onProfileSelect, onTotalFailure,
         {/* Header Section */}
         <div className="flex flex-col gap-2 text-center">
           <h1 className="text-4xl font-bold text-white leading-[1.1] tracking-tighter">
-            Reveal Your Exposure Risk In Seconds.
+            Are you exposed?
           </h1>
-          <p className="text-[#00BFFF] text-base font-bold leading-snug">
-            QuickScans search ~5% of data brokers and ONLY return publicly available data.
+          <p className="text-sm font-light text-[#B8C4CC] leading-snug">
+            Run a QuickScan to see what<br />personal info is public.
           </p>
+          <div className="flex justify-center mt-1">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#022136] border border-[#2A4A68] text-[#00BFFF] text-xs font-medium">
+              <Zap className="w-3 h-3 fill-[#00BFFF]" />
+              90 seconds to see your risks
+            </span>
+          </div>
         </div>
 
         {/* Privacy Section */}
@@ -413,18 +419,18 @@ export function QuickScanForm({ supabaseClient, onProfileSelect, onTotalFailure,
           <h3 className="text-white text-lg font-bold">
             Your Privacy is Paramount
           </h3>
-          <ul className="flex flex-col gap-1.5 list-none text-[#B8C4CC] text-base font-normal">
+          <ul className="flex flex-col gap-1.5 list-none text-[#B8C4CC] text-sm font-normal">
             <li className="flex items-start gap-2">
-              <span className="text-[#00BFFF] font-bold leading-none mt-1">•</span>
+              <span className="text-[#00BFFF] font-bold leading-none mt-0.5">•</span>
               <span>QuickScans <span className="text-white font-bold italic uppercase">do not</span> Create Profiles for You</span>
             </li>
             <li className="flex items-start gap-2">
-              <span className="text-[#00BFFF] font-bold leading-none mt-1">•</span>
-              <span>QuickScan Data is <span className="text-white font-bold italic">NEVER</span> Sold, <span className="text-white font-bold italic">NEVER</span> Shared, and <span className="text-white font-bold italic">NEVER</span> Used to Send You Marketing Spam</span>
+              <span className="text-[#00BFFF] font-bold leading-none mt-0.5">•</span>
+              <span>We <span className="text-white font-bold italic uppercase">do not</span> Save Any Data From Your QuickScan</span>
             </li>
             <li className="flex items-start gap-2">
-              <span className="text-[#00BFFF] font-bold leading-none mt-1">•</span>
-              <span>We <span className="text-white font-bold italic uppercase">do not</span> Save Any Data From Your QuickScan</span>
+              <span className="text-[#00BFFF] font-bold leading-none mt-0.5">•</span>
+              <span>QuickScan Data is <span className="text-white font-bold italic">NEVER</span> Sold, <span className="text-white font-bold italic">NEVER</span> Shared, and <span className="text-white font-bold italic">NEVER</span> Used to Send You Marketing Spam</span>
             </li>
           </ul>
         </div>
