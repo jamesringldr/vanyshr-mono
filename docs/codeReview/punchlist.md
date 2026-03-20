@@ -32,11 +32,11 @@
 
 ## P1 — Important
 
-### 4. `validate_access_code` race condition: check and increment are non-atomic
+### ~~4. `validate_access_code` race condition: check and increment are non-atomic~~ ✅ RESOLVED
 - **File:** `supabase/migrations/20260318_beta_access.sql:293–301`
 - **Source:** CL
 - **Critical:** Yes (for limited codes)
-- **Notes:** Two concurrent submissions of a `max_uses = 1` code can both pass the `use_count >= max_uses` check before either increments. No impact for unlimited shared codes; real double-spend for user-specific (Option B) codes. Fix: atomic `UPDATE … WHERE use_count < max_uses RETURNING id`.
+- **Fix:** `supabase/migrations/20260320_fix_validate_access_code_atomic.sql` — collapsed check+increment into a single `UPDATE ... WHERE use_count < max_uses RETURNING id`. Reordered ops: claim use atomically first, then advance profile, with use_count compensation rollback if profile update fails.
 
 ---
 
@@ -123,7 +123,7 @@
 | ~~2~~ | ~~`validate_access_code` returns success with 0 rows updated~~ | ~~P0~~ | ✅ |
 | ~~2~~ | ~~`validate_access_code` returns success with 0 rows updated~~ | ~~P0~~ | ✅ |
 | ~~3~~ | ~~`scanId ?? profile.id` falls back to `aw-*` synthetic IDs~~ | ~~P0~~ | ✅ |
-| 4 | `validate_access_code` non-atomic check+increment race condition | P1 | Yes (limited codes) |
+| ~~4~~ | ~~`validate_access_code` non-atomic check+increment race condition~~ | ~~P1~~ | ✅ |
 | ~~5~~ | ~~Dead 1-arg `create_pending_profile` overload~~ | ~~P1~~ | ✅ |
 | 6 | Ping 400s from deploy skew | P1 | No |
 | 7 | No rate limiting on `validate-access-code` | P1 | No |
