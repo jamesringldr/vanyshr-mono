@@ -350,6 +350,20 @@ authorization_url_path = "/oauth/consent"
 # Allow dynamic client registration
 allow_dynamic_registration = false
 
+# ──────────────────────────────────────────────────────────────────────────────
+# Edge Function configuration
+# verify_jwt = false for pre-auth functions — these are called by unauthenticated
+# users (no session exists yet). All DB writes go through service_role internally.
+# ──────────────────────────────────────────────────────────────────────────────
+[functions.create-pending-profile]
+verify_jwt = false
+
+[functions.validate-access-code]
+verify_jwt = false
+
+[functions.join-waitlist]
+verify_jwt = false
+
 [edge_runtime]
 enabled = true
 # Supported request policies: `oneshot`, `per_worker`.
