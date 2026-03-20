@@ -28,6 +28,13 @@ serve(async (req) => {
       );
     }
 
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Invalid email format" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     console.log(`📋 join-waitlist: profile_id=${profile_id}`);
 
     const { data, error } = await supabaseClient
@@ -47,7 +54,7 @@ serve(async (req) => {
     if (!data?.success) {
       return new Response(
         JSON.stringify({ success: false, error: data?.error ?? "Unknown error" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 

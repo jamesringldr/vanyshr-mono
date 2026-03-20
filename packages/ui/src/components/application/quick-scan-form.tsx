@@ -159,7 +159,7 @@ export function QuickScanForm({ supabaseClient, onProfileSelect, onTotalFailure,
 
   // Warm up universal-search on mount so it's hot by the time the user submits
   useEffect(() => {
-    supabaseClient.functions.invoke("universal-search", { body: { ping: true } });
+    supabaseClient.functions.invoke("universal-search", { body: { ping: true } }).catch(() => {});
   }, [supabaseClient]);
 
   // Form is only submittable once zip is confirmed valid
