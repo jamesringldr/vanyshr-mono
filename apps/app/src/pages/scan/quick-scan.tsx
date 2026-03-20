@@ -10,9 +10,13 @@ export function QuickScan() {
 
   // Handle profile selection
   const handleSelectProfile = useCallback((profile: ProfileMatch, searchParams: { firstName: string; lastName: string; zipCode: string; city: string; state: string }, scanId: string | null) => {
+    if (!scanId) {
+      navigate("/quickscan-error", { state: { searchParams, originalScanId: null } });
+      return;
+    }
     sessionStorage.setItem("selectedProfile", JSON.stringify(profile));
     sessionStorage.setItem("searchParams", JSON.stringify(searchParams));
-    navigate(`/quick-scan/pre-profile/${scanId ?? profile.id}`);
+    navigate(`/quick-scan/pre-profile/${scanId}`);
   }, [navigate]);
 
   // Handle total scan failure after both attempts — navigate to error page with context
