@@ -520,7 +520,7 @@ Individual Vanyshr removal outcome records — feeds into `broker_stats` aggrega
 | `create_pending_profile(p_scan_id UUID, p_email TEXT DEFAULT NULL)` | Creates a `user_profiles` row from a `quick_scans` record with `signup_status = 'pending_user'`. Seeds phones, addresses, and aliases from `quick_scans.profile_data`; seeds `user_preferences`; calls `initialize_onboarding_steps`. service_role only. |
 | `initialize_onboarding_steps(user_id UUID)` | Seeds `user_onboarding_progress` rows for a new user. Called by `create_pending_profile`. |
 | `fan_out_broadcast_update(...)` | `SECURITY DEFINER` — inserts a `user_updates` row for every active user. Used for admin broadcasts. *(Available after pending migration is applied.)* |
-| `validate_access_code(p_code TEXT, p_profile_id UUID)` | Validates a beta access code (active, not expired, under use cap), advances profile `signup_status` → `accessed_pending_signup` first, then increments `use_count`. Returns `{ success: false }` if profile isn't in `pending_user` state (no code use consumed). Returns `{ success, profile_id }`. service_role only. |
+| `validate_access_code(p_code TEXT, p_profile_id UUID)` | Validates a beta access code (active, not expired). Atomically claims a use via `UPDATE ... WHERE use_count < max_uses RETURNING id` (prevents double-spend on limited codes), then advances profile `signup_status` → `accessed_pending_signup`. Compensates (decrements `use_count`) if the profile update fails. Returns `{ success: false }` on any failure. Returns `{ success, profile_id }`. service_role only. |
 | `join_waitlist(p_profile_id UUID, p_email TEXT)` | Sets profile `signup_status` → `waitlisted`, writes email to `user_profiles.email` and upserts into `user_emails`. Returns `{ success, profile_id }`. service_role only. |
 | `purge_orphaned_beta_profiles(p_older_than_days INTEGER DEFAULT 7)` | Deletes `pending_user` and `accessed_pending_signup` profiles older than the threshold (no `auth_user_id`). Unlocks associated `quick_scans` first. Returns deleted count. Wire to a scheduled cron job. service_role only. |
 
@@ -535,6 +535,7 @@ Individual Vanyshr removal outcome records — feeds into `broker_stats` aggrega
 | `20260318_beta_access.sql` | ✅ Applied | Expands `signup_status` to 6-value funnel; adds `access_codes` table; adds `validate_access_code()`, `join_waitlist()`, `purge_orphaned_beta_profiles()` functions. |
 | `20260320_fix_pending_profile_status.sql` | ✅ Applied | Drops dead 1-arg `create_pending_profile(UUID)` overload (accidentally created by 20260318); updates canonical 2-arg version to write `signup_status = 'pending_user'` instead of `'pending_auth'`. |
 | `20260320_fix_validate_access_code.sql` | ✅ Applied | Fixes `validate_access_code()`: reorders ops (profile UPDATE before `use_count` increment) and adds `IF NOT FOUND` guard — wrong-state profiles now return `{ success: false }` without consuming a code use. |
+| `20260320_fix_validate_access_code_atomic.sql` | ✅ Applied | Makes `validate_access_code()` fully atomic: collapses `use_count` check+increment into a single `UPDATE ... WHERE use_count < max_uses RETURNING id`; adds compensation decrement if profile update fails. Supersedes `20260320_fix_validate_access_code.sql`. |
 
 ### `user_updates` (pending)
 PK: `id` | RLS: ✅ | FK: `user_id → user_profiles.id`
