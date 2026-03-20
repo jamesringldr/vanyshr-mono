@@ -517,7 +517,7 @@ Individual Vanyshr removal outcome records — feeds into `broker_stats` aggrega
 |----------|-------------|
 | `get_current_user_profile_id()` | Resolves the `user_profiles.id` for the current auth session. Used in all RLS policies. |
 | `normalize_phone_e164(text)` | Strips non-digits, normalizes 10- and 11-digit US numbers to `+1XXXXXXXXXX`. `IMMUTABLE`. |
-| `create_pending_profile(p_scan_id UUID, p_email TEXT DEFAULT NULL)` | Creates a `user_profiles` row from a `quick_scans` record. Merges AnyWho (`profile_data`) and Zabasearch (`candidate_matches`) data, deduplicates phones/aliases with `source='both'`, normalizes phones to E.164, inserts emails. |
+| `create_pending_profile(p_scan_id UUID, p_email TEXT DEFAULT NULL)` | Creates a `user_profiles` row from a `quick_scans` record with `signup_status = 'pending_user'`. Seeds phones, addresses, and aliases from `quick_scans.profile_data`; seeds `user_preferences`; calls `initialize_onboarding_steps`. service_role only. |
 | `initialize_onboarding_steps(user_id UUID)` | Seeds `user_onboarding_progress` rows for a new user. Called by `create_pending_profile`. |
 | `fan_out_broadcast_update(...)` | `SECURITY DEFINER` — inserts a `user_updates` row for every active user. Used for admin broadcasts. *(Available after pending migration is applied.)* |
 | `validate_access_code(p_code TEXT, p_profile_id UUID)` | Validates a beta access code (active, not expired, under use cap), increments `use_count` atomically, advances profile `signup_status` → `accessed_pending_signup`. Returns `{ success, profile_id }`. service_role only. |
@@ -533,6 +533,7 @@ Individual Vanyshr removal outcome records — feeds into `broker_stats` aggrega
 | `20260316_user_updates.sql` | ✅ Applied | Creates `user_updates` table — per-user notifications/feature announcements with `unread → dismissed \| clicked \| converted` lifecycle. Includes `fan_out_broadcast_update()` function and RLS policies. |
 | `20260317_brokers_about_column.sql` | ✅ Applied | Adds `about text` column to `brokers.brokers` for broker description snippets. |
 | `20260318_beta_access.sql` | ✅ Applied | Expands `signup_status` to 6-value funnel; adds `access_codes` table; adds `validate_access_code()`, `join_waitlist()`, `purge_orphaned_beta_profiles()` functions. |
+| `20260320_fix_pending_profile_status.sql` | ✅ Applied | Drops dead 1-arg `create_pending_profile(UUID)` overload (accidentally created by 20260318); updates canonical 2-arg version to write `signup_status = 'pending_user'` instead of `'pending_auth'`. |
 
 ### `user_updates` (pending)
 PK: `id` | RLS: ✅ | FK: `user_id → user_profiles.id`
