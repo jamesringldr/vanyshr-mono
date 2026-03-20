@@ -9,6 +9,8 @@ interface BetaModalProps {
     onClose: () => void;
 }
 
+const INVALID_CODE_MSG = "Invalid code — please check your code and retry, or sign up for the waitlist and we'll send you a valid code soon.";
+
 export default function BetaModal({ isOpen, onClose }: BetaModalProps) {
     const [reserveOpen, setReserveOpen] = useState(false);
     const [email, setEmail] = useState('');
@@ -92,12 +94,12 @@ export default function BetaModal({ isOpen, onClose }: BetaModalProps) {
             }
 
             if (!data?.success) {
-                throw new Error("Invalid code — please check your code and retry, or sign up for the waitlist and we'll send you a valid code soon.");
+                throw new Error(INVALID_CODE_MSG);
             }
 
             window.location.assign('/signup');
         } catch (err) {
-            setAccessError(err instanceof Error ? err.message : "Invalid code — please check your code and retry, or sign up for the waitlist and we'll send you a valid code soon.");
+            setAccessError(err instanceof Error ? err.message : INVALID_CODE_MSG);
         } finally {
             setAccessLoading(false);
         }

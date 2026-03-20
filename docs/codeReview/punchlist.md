@@ -48,11 +48,11 @@
 
 ---
 
-### 6. `universal-search` ping check is correct in code — console 400s are a deploy skew issue
+### ~~6. `universal-search` ping check is correct in code — console 400s are a deploy skew issue~~ ✅ RESOLVED
 - **File:** `supabase/functions/universal-search/index.ts:62–66`
 - **Sources:** G, CU
 - **Critical:** No
-- **Notes:** Ping intercepts correctly before the `!firstName || !lastName` guard. The observed 400s on mount come from an older deployed bundle without the ping branch. Resolved on redeploy. Residual: the client fire-and-forgets the ping — errors are silent in logs but appear in the console.
+- **Fix:** `packages/ui/src/components/application/quick-scan-form.tsx:162` — added `.catch(() => {})` to the fire-and-forget ping call so deploy-skew 400s don't surface in the console.
 
 ---
 
@@ -74,19 +74,19 @@
 
 ## P2 — Minor / Nit
 
-### 9. `join-waitlist` returns HTTP 500 for a business logic / client error
+### ~~9. `join-waitlist` returns HTTP 500 for a business logic / client error~~ ✅ RESOLVED
 - **File:** `supabase/functions/join-waitlist/index.ts:47–52`
 - **Source:** CL
 - **Critical:** No
-- **Notes:** "Profile not found or not in pending state" is a 400-class error. `validate-access-code` handles the analogous case correctly with `status: 200` + `success: false`. Inconsistent and makes monitoring harder.
+- **Fix:** Changed `status: 500` → `status: 400` for the `!data?.success` branch.
 
 ---
 
-### 10. No email format validation in `join-waitlist` Edge Function
+### ~~10. No email format validation in `join-waitlist` Edge Function~~ ✅ RESOLVED
 - **File:** `supabase/functions/join-waitlist/index.ts:22–28`
 - **Source:** CL
 - **Critical:** No
-- **Notes:** Presence is validated but format is not. Browser `type="email"` + `required` covers the UI path; a direct API call can store malformed email. The DB only does `LOWER(TRIM(...))`.
+- **Fix:** Added regex format check after presence validation — returns 400 for malformed emails before the RPC is called.
 
 ---
 
@@ -98,11 +98,11 @@
 
 ---
 
-### 12. Duplicate error string in `BetaModal.tsx`
+### ~~12. Duplicate error string in `BetaModal.tsx`~~ ✅ RESOLVED
 - **File:** `apps/app/src/components/BetaModal.tsx:95, 100`
 - **Source:** CL
 - **Critical:** No
-- **Notes:** The "Invalid code — please check your code…" message is hardcoded verbatim in two places. Extract to a constant.
+- **Fix:** Extracted to `INVALID_CODE_MSG` constant above the component.
 
 ---
 
@@ -125,11 +125,11 @@
 | ~~3~~ | ~~`scanId ?? profile.id` falls back to `aw-*` synthetic IDs~~ | ~~P0~~ | ✅ |
 | ~~4~~ | ~~`validate_access_code` non-atomic check+increment race condition~~ | ~~P1~~ | ✅ |
 | ~~5~~ | ~~Dead 1-arg `create_pending_profile` overload~~ | ~~P1~~ | ✅ |
-| 6 | Ping 400s from deploy skew | P1 | No |
+| ~~6~~ | ~~Ping 400s from deploy skew~~ | ~~P1~~ | ✅ |
 | 7 | No rate limiting on `validate-access-code` | P1 | No |
 | 8 | `purge_orphaned_beta_profiles` cron not wired | P1 | No |
-| 9 | `join-waitlist` returns 500 for business logic error | P2 | No |
-| 10 | No email format validation in `join-waitlist` | P2 | No |
+| ~~9~~ | ~~`join-waitlist` returns 500 for business logic error~~ | ~~P2~~ | ✅ |
+| ~~10~~ | ~~No email format validation in `join-waitlist`~~ | ~~P2~~ | ✅ |
 | 11 | `use_count` not decremented on purge | P2 | No |
-| 12 | Duplicate error string in `BetaModal.tsx` | P2 | No |
+| ~~12~~ | ~~Duplicate error string in `BetaModal.tsx`~~ | ~~P2~~ | ✅ |
 | 13 | AnyWho scraper regression | — | Resolved |
