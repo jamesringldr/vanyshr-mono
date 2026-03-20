@@ -14,19 +14,19 @@
 
 ---
 
-### 2. `validate_access_code` returns `{ success: true }` when profile status UPDATE hits 0 rows — no `FOUND` check
+### ~~2. `validate_access_code` returns `{ success: true }` when profile status UPDATE hits 0 rows — no `FOUND` check~~ ✅ RESOLVED
 - **File:** `supabase/migrations/20260318_beta_access.sql:303–313`
 - **Sources:** G (implied), confirmed in code
 - **Critical:** Yes
-- **Notes:** `use_count` is incremented and the function returns success even when the profile was in the wrong state (issue #1). Codes get consumed, profile status never advances, and the client redirects to `/signup` with a stale profile.
+- **Fix:** `supabase/migrations/20260320_fix_validate_access_code.sql` — reordered ops (profile update first, use_count increment second) and added `IF NOT FOUND` guard. A profile in the wrong state now returns `{ success: false }` and does not consume a code use.
 
 ---
 
-### 3. `scanId ?? profile.id` falls back to synthetic `aw-*` IDs when `scan_id` is null
+### ~~3. `scanId ?? profile.id` falls back to synthetic `aw-*` IDs when `scan_id` is null~~ ✅ RESOLVED
 - **File:** `apps/app/src/pages/scan/quick-scan.tsx:15`
 - **Source:** CU
 - **Critical:** Yes
-- **Notes:** If `quick_scans` INSERT fails or `universal-search` returns `scan_id: null`, navigation sends `aw-0` etc. to `pre-profile/:scanId`. `create-pending-profile` tries to query `quick_scans WHERE id = 'aw-0'` as a UUID → Postgres cast error → 500. The beta flow made this a hard crash instead of a deferred failure.
+- **Fix:** Guard added in `handleSelectProfile` — if `scanId` is null, navigate to `/quickscan-error` with `searchParams` so the user can queue a retry. Removed the `?? profile.id` fallback entirely.
 
 ---
 
@@ -120,8 +120,9 @@
 | # | Issue | Priority | Critical? |
 |---|-------|----------|-----------|
 | ~~1~~ | ~~`create_pending_profile` 2-arg writes `pending_auth` not `pending_user`~~ | ~~P0~~ | ✅ |
-| 2 | `validate_access_code` returns success with 0 rows updated | P0 | Yes |
-| 3 | `scanId ?? profile.id` falls back to `aw-*` synthetic IDs | P0 | Yes |
+| ~~2~~ | ~~`validate_access_code` returns success with 0 rows updated~~ | ~~P0~~ | ✅ |
+| ~~2~~ | ~~`validate_access_code` returns success with 0 rows updated~~ | ~~P0~~ | ✅ |
+| ~~3~~ | ~~`scanId ?? profile.id` falls back to `aw-*` synthetic IDs~~ | ~~P0~~ | ✅ |
 | 4 | `validate_access_code` non-atomic check+increment race condition | P1 | Yes (limited codes) |
 | ~~5~~ | ~~Dead 1-arg `create_pending_profile` overload~~ | ~~P1~~ | ✅ |
 | 6 | Ping 400s from deploy skew | P1 | No |
