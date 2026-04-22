@@ -110,7 +110,7 @@ Shared types, constants, and utilities used across all packages.
 ### `packages/services`
 Business logic layer with scrapers, auth, database, and email services.
 - **Modules:** scrapers, auth, database, email
-- **Dependencies:** `@vanyshr/shared`, `@supabase/supabase-js`, axios
+- **Dependencies:** `@vanyshr/shared`, `@supabase/supabase-js`
 
 ### `packages/ui`
 Reusable React component library shared across the app.
@@ -197,7 +197,6 @@ wrangler deploy
 See `/docs` for detailed documentation:
 - `CICD.md` — CI/CD procedures
 - `ARCHITECTURE.md` — System design
-- `DESIGN_SYSTEM.md` — Design system reference
 - `schema.md` — Database schema
 
 ## Maintenance

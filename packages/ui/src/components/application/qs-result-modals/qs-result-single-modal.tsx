@@ -35,17 +35,17 @@ export function QSResultSingleModal({
     const [showButtons, setShowButtons] = useState(false);
 
     useEffect(() => {
-        if (isOpen) {
-            const timer = setTimeout(() => setShowContent(true), 10);
-            const buttonTimer = setTimeout(() => setShowButtons(true), 500);
-            return () => {
-                clearTimeout(timer);
-                clearTimeout(buttonTimer);
-            };
-        } else {
+        if (!isOpen) {
             setShowContent(false);
             setShowButtons(false);
+            return;
         }
+        const timer = setTimeout(() => setShowContent(true), 10);
+        const buttonTimer = setTimeout(() => setShowButtons(true), 500);
+        return () => {
+            clearTimeout(timer);
+            clearTimeout(buttonTimer);
+        };
     }, [isOpen]);
 
     const close = () => onOpenChange(false);

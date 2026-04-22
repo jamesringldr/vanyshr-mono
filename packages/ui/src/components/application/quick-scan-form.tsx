@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from "react";
-import { User, MapPin, X, Zap } from "lucide-react";
+import { Zap } from "lucide-react";
 import { cx } from "@/utils/cx";
+import type { ZabaPhoneResult } from "@vanyshr/shared/types";
 import { 
   QSProgressSteps, 
   QSInfoCard, 
@@ -27,6 +28,8 @@ export interface QuickScanFormProps {
   onProfileSelect: (profile: ProfileMatch, searchParams: { firstName: string; lastName: string; zipCode: string; city: string; state: string }, scanId: string | null) => void;
   onTotalFailure?: (searchParams: { firstName: string; lastName: string; zipCode: string; city: string; state: string }, originalScanId: string | null) => void;
   onClose?: () => void;
+  /** Called when user submits a phone number. Should invoke the phone-lookup edge function. */
+  onPhoneLookup?: (phone: string) => Promise<ZabaPhoneResult | { error: string }>;
   className?: string;
 }
 
@@ -89,7 +92,7 @@ function SquareLoader() {
   );
 }
 
-export function QuickScanForm({ supabaseClient, onProfileSelect, onTotalFailure, onClose, className }: QuickScanFormProps) {
+export function QuickScanForm({ supabaseClient, onProfileSelect, onTotalFailure, onClose: _onClose, onPhoneLookup, className }: QuickScanFormProps) {
   // Form state
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -98,7 +101,7 @@ export function QuickScanForm({ supabaseClient, onProfileSelect, onTotalFailure,
   // Scan state
   const [view, setView] = useState<"form" | "scanning">("form");
   const [status, setStatus] = useState<"idle" | "looking_up_zip" | "searching" | "complete" | "error">("idle");
-  const [error, setError] = useState<string | null>(null);
+  const [, setError] = useState<string | null>(null);
   const [matches, setMatches] = useState<ProfileMatch[]>([]);
   const [locationInfo, setLocationInfo] = useState<{ city: string; state: string } | null>(null);
   const [scanStepIndex, setScanStepIndex] = useState(0);
@@ -514,10 +517,11 @@ export function QuickScanForm({ supabaseClient, onProfileSelect, onTotalFailure,
       </div>
 
       {/* Result Modals */}
-      <QSNoResultsModal 
+      <QSNoResultsModal
           isOpen={showNoResultsModal}
           onOpenChange={setShowNoResultsModal}
           searchName={`${firstName} ${lastName}`}
+          onPhoneLookup={onPhoneLookup}
           onScanAgain={(type, value) => {
             if (type === "first") setFirstName(value);
             else setLastName(value);

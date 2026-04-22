@@ -40,18 +40,18 @@ export function QSResultMultipleModal({
     const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null);
 
     useEffect(() => {
-        if (isOpen) {
-            const timer = setTimeout(() => setShowContent(true), 10);
-            const buttonTimer = setTimeout(() => setShowNoneButton(true), 2000);
-            return () => {
-                clearTimeout(timer);
-                clearTimeout(buttonTimer);
-            };
-        } else {
+        if (!isOpen) {
             setShowContent(false);
             setShowNoneButton(false);
             setSelectedProfileId(null);
+            return;
         }
+        const timer = setTimeout(() => setShowContent(true), 10);
+        const buttonTimer = setTimeout(() => setShowNoneButton(true), 2000);
+        return () => {
+            clearTimeout(timer);
+            clearTimeout(buttonTimer);
+        };
     }, [isOpen]);
 
     const close = () => onOpenChange(false);
