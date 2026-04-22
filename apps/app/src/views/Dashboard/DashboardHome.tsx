@@ -13,7 +13,6 @@ import {
   Search,
   CheckCircle,
   AlertTriangle,
-  Bell,
   Lightbulb,
   AlertCircle,
   Zap,
@@ -210,14 +209,6 @@ const BROKER_STATUS_STYLES: Record<BrokerStatus, { dot: string; text: string; la
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
-function formatBreachDate(dateStr: string | null): string {
-  if (!dateStr) return 'Unknown date';
-  try {
-    return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  } catch {
-    return dateStr;
-  }
-}
 
 function getDeltaColor(delta: string, cardTrend: 'risk' | 'progress'): string {
   const isNegative = delta.startsWith('-');
@@ -267,8 +258,9 @@ export function DashboardHome() {
     .filter(item => item.type === 'Dark Web Scan' || item.type === 'Broker Scan')
     .reduce<Record<'Dark Web Scan' | 'Broker Scan', (typeof ACTIVITY_ITEMS)[number] | null>>(
       (acc, item) => {
-        if (!acc[item.type] || item.minutesAgo < acc[item.type]!.minutesAgo) {
-          acc[item.type] = item;
+        const key = item.type as 'Dark Web Scan' | 'Broker Scan';
+        if (!acc[key] || item.minutesAgo < acc[key]!.minutesAgo) {
+          acc[key] = item;
         }
         return acc;
       },
@@ -356,31 +348,7 @@ export function DashboardHome() {
     return undefined;
   }, [updatesLoaded, userUpdates.length]);
 
-  // ── Dismiss: set status → 'unresolved' (optimistic) ─────────────────────
-  async function dismissBreach(breachId: string) {
-    setNewBreaches(prev => prev.filter(b => b.id !== breachId));
-
-    const { error } = await supabase
-      .from('data_breaches')
-      .update({ status: 'unresolved', status_updated_at: new Date().toISOString() })
-      .eq('id', breachId);
-
-    if (error) {
-      console.error('[DashboardHome] dismiss failed:', error.message);
-      // Revert: reload from DB
-      if (profileId) {
-        const { data } = await supabase
-          .from('data_breaches')
-          .select('*')
-          .eq('user_id', profileId)
-          .eq('status', 'new')
-          .order('created_at', { ascending: false });
-        setNewBreaches((data as DataBreach[]) ?? []);
-      }
-    }
-  }
-
-  // ── Dismiss update: status → 'dismissed' (optimistic) ───────────────────
+// ── Dismiss update: status → 'dismissed' (optimistic) ───────────────────
   async function dismissUpdate(updateId: string) {
     setUserUpdates(prev => prev.filter(u => u.id !== updateId));
 
@@ -419,7 +387,6 @@ export function DashboardHome() {
     setOpenInfoCard(prev => (prev === cardId ? null : cardId));
   }
 
-  const activeBreachCard = newBreaches[0] ?? null;
   const activeUpdate = userUpdates[0] ?? null;
   const shouldShowUpdatesSection = userUpdates.length > 0 || showAllCaughtUp;
 

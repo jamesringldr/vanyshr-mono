@@ -1,1 +1,21 @@
-export {};
+export type ZabaPhoneResult = {
+  phone: string;
+  source_url: string;
+  name: string | null;
+  age: string | null;
+  birth_year: string | null;
+  line_type: string | null;
+  carrier: string | null;
+  location: string | null;
+  time_zone: string | null;
+  aliases: string[];
+  related_persons: Array<{ name: string; href: string }>;
+  most_recent_address: string | null;
+  previous_addresses: string[];
+  email_domains: string[];
+  previous_phones: string[];
+  social_media: string[];
+  jobs: string[];
+  education: string[];
+  professional_licenses: string[];
+};

@@ -45,6 +45,11 @@ export function QuickScan() {
         supabaseClient={supabase}
         onProfileSelect={handleSelectProfile}
         onTotalFailure={handleTotalFailure}
+        onPhoneLookup={async (phone: string) => {
+          const { data, error } = await supabase.functions.invoke('phone-lookup', { body: { phone } });
+          if (error) return { error: 'fetch_failed' };
+          return data;
+        }}
         className="max-w-md border border-[#D4DFE8] dark:border-[#2A4A68] shadow-lg"
       />
     </div>

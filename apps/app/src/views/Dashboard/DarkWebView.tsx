@@ -63,7 +63,7 @@ function timeAgo(dateStr: string): string {
 export function DarkWebView() {
   const navigate = useNavigate();
 
-  const [profileId, setProfileId]   = useState<string | null>(null);
+  const [, setProfileId]   = useState<string | null>(null);
   const [breaches, setBreaches]     = useState<DataBreach[]>([]);
   const [isLoading, setIsLoading]   = useState(true);
   const [activeFilter, setActiveFilter] = useState<FilterTab>('all');

@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from "react";
 import PrimaryLogoDark from "@vanyshr/ui/assets/PrimaryLogo-DarkMode.png";
 import { useNavigate } from "react-router";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, Check } from "lucide-react";
+import { Menu, Check } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { QuickScanForm, type ProfileMatch } from "@vanyshr/ui/components/application";
 import { DataExposedAnimation } from "@vanyshr/ui/components/animations";
@@ -187,10 +187,15 @@ export function ScanNow() {
                                 
                                 {/* Form Content */}
                                 <div className="overflow-y-auto px-1 pb-10">
-                                    <QuickScanForm 
+                                    <QuickScanForm
                                         supabaseClient={supabase}
                                         onProfileSelect={handleSelectProfile}
                                         onClose={() => setIsDrawerOpen(false)}
+                                        onPhoneLookup={async (phone: string) => {
+                                          const { data, error } = await supabase.functions.invoke('phone-lookup', { body: { phone } });
+                                          if (error) return { error: 'fetch_failed' };
+                                          return data;
+                                        }}
                                         className="!bg-transparent"
                                     />
                                 </div>

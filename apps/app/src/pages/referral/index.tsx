@@ -521,6 +521,11 @@ export function ReferralSlider() {
                     supabaseClient={supabase}
                     onProfileSelect={handleSelectProfile}
                     onClose={() => setIsDrawerOpen(false)}
+                    onPhoneLookup={async (phone: string) => {
+                      const { data, error } = await supabase.functions.invoke('phone-lookup', { body: { phone } });
+                      if (error) return { error: 'fetch_failed' };
+                      return data;
+                    }}
                     className="!bg-transparent"
                   />
                 </div>
