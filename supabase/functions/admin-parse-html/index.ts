@@ -36,6 +36,10 @@ interface AdminParseRequest {
   selected_match_id?: string;
   /** Batch: parse multiple broker HTML files into one merged profile_data row */
   sources?: AdminParseSource[];
+  /** Admin invite mode: saves with status 'admin_sent' instead of 'completed' */
+  invite_mode?: boolean;
+  /** Email for invite recipient (normalized to lowercase) */
+  invited_email?: string;
 }
 
 function normalizeSiteName(siteName: string): string {
@@ -121,6 +125,8 @@ async function handleBatchParse(
     save_to_db = true,
     search_input,
     sources = [],
+    invite_mode = false,
+    invited_email,
   } = body;
 
   if (!search_input?.first_name || !search_input?.last_name) {
@@ -208,14 +214,16 @@ async function handleBatchParse(
   }));
 
   if (save_to_db) {
+    const normEmail = invited_email?.trim().toLowerCase() ?? undefined;
     const row = {
       id: activeScanId,
       session_id: crypto.randomUUID(),
-      status: "completed",
+      status: invite_mode ? "admin_sent" : "completed",
       search_input: buildSearchInputPayload(search_input),
       profile_data: mergedProfile,
       scraper_runs: scraperRuns,
-      expires_at: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+      expires_at: new Date(Date.now() + (invite_mode ? 7 * 24 * 60 * 60 * 1000 : 30 * 60 * 1000)).toISOString(),
+      ...(invite_mode && { invited_email: normEmail }),
     };
 
     const { error: upsertError } = await supabaseClient
@@ -258,6 +266,7 @@ async function handleBatchParse(
         source_results: sourceResults,
         merged_from: parsedProfiles.length,
         pre_profile_url: `/quick-scan/pre-profile/${activeScanId}`,
+        ...(invite_mode && { requires_auth: true }),
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
@@ -315,6 +324,8 @@ serve(async (req) => {
       detail_url,
       selected_profile,
       selected_match_id,
+      invite_mode = false,
+      invited_email,
     } = body;
 
     if (!html?.trim()) {
@@ -412,11 +423,12 @@ serve(async (req) => {
 
     if (!activeScanId && save_to_db) {
       const input = search_input ?? {};
+      const normEmail = invited_email?.trim().toLowerCase() ?? undefined;
       const { data: insertData, error: insertError } = await supabaseClient
         .from("quick_scans")
         .insert({
           session_id: crypto.randomUUID(),
-          status: "completed",
+          status: invite_mode ? "admin_sent" : "completed",
           search_input: {
             first_name: input.first_name ?? profileData.first_name ?? null,
             last_name: input.last_name ?? profileData.last_name ?? null,
@@ -426,7 +438,8 @@ serve(async (req) => {
           },
           profile_data: profileData,
           selected_match_id: selected_match_id ?? selected_profile?.id ?? null,
-          expires_at: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+          expires_at: new Date(Date.now() + (invite_mode ? 7 * 24 * 60 * 60 * 1000 : 30 * 60 * 1000)).toISOString(),
+          ...(invite_mode && { invited_email: normEmail }),
         })
         .select("id")
         .single();
@@ -437,12 +450,14 @@ serve(async (req) => {
         activeScanId = insertData?.id ?? null;
       }
     } else if (activeScanId && save_to_db) {
+      const normEmail = invited_email?.trim().toLowerCase() ?? undefined;
       const { error: updateError } = await supabaseClient
         .from("quick_scans")
         .update({
-          status: "completed",
+          status: invite_mode ? "admin_sent" : "completed",
           profile_data: profileData,
           selected_match_id: selected_match_id ?? selected_profile?.id ?? null,
+          ...(invite_mode && { invited_email: normEmail }),
         })
         .eq("id", activeScanId);
 
@@ -456,6 +471,7 @@ serve(async (req) => {
         page_type,
         profile_data: profileData,
         pre_profile_url: activeScanId ? `/quick-scan/pre-profile/${activeScanId}` : null,
+        ...(invite_mode && { requires_auth: true }),
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );

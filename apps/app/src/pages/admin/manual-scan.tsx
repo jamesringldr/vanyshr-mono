@@ -2,6 +2,8 @@ import { useCallback, useState } from "react";
 import { Link } from "react-router";
 import { supabase } from "../../lib/supabase";
 
+// Requires VITE_ADMIN_PARSE_SECRET and VITE_SUPABASE_URL in apps/app/.env.local
+
 const BROKERS = [
   {
     id: "fastpeoplesearch",
@@ -84,6 +86,12 @@ export function AdminManualScan() {
   const [error, setError] = useState<string | null>(null);
   const [resultJson, setResultJson] = useState<string | null>(null);
   const [sourceResults, setSourceResults] = useState<SourceResult[] | null>(null);
+  const [inviteMode, setInviteMode] = useState(true);
+  const [invitedEmail, setInvitedEmail] = useState("");
+  const [inviteError, setInviteError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [copyableUrl, setCopyableUrl] = useState<string | null>(null);
+  const [isSendingInvite, setIsSendingInvite] = useState(false);
 
   const updateBroker = useCallback((id: BrokerId, patch: Partial<BrokerUpload>) => {
     setBrokers((prev) => ({ ...prev, [id]: { ...prev[id], ...patch } }));
@@ -104,7 +112,74 @@ export function AdminManualScan() {
     setError(null);
     setResultJson(null);
     setSourceResults(null);
+    setInviteError(null);
+    setSuccessMessage(null);
+    setCopyableUrl(null);
+    setInvitedEmail("");
   }, []);
+
+  const validateEmail = (addr: string): boolean => {
+    const emailRegex = /^.+@.+\..+$/;
+    return emailRegex.test(addr.trim());
+  };
+
+  const sendInvite = useCallback(
+    async (scanIdForInvite: string) => {
+      if (!invitedEmail.trim()) {
+        setInviteError("Email is required for invite mode.");
+        return;
+      }
+
+      if (!validateEmail(invitedEmail)) {
+        setInviteError("Please enter a valid email address.");
+        return;
+      }
+
+      setIsSendingInvite(true);
+      setInviteError(null);
+
+      try {
+        const adminSecret = import.meta.env.VITE_ADMIN_PARSE_SECRET;
+        if (!adminSecret) {
+          throw new Error("VITE_ADMIN_PARSE_SECRET is not configured.");
+        }
+
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+        if (!supabaseUrl) {
+          throw new Error("VITE_SUPABASE_URL is not configured.");
+        }
+
+        const normalizedEmail = invitedEmail.trim().toLowerCase();
+        const { data, error: invokeError } = await supabase.functions.invoke("admin-send-invite", {
+          headers: {
+            "x-admin-secret": adminSecret,
+          },
+          body: {
+            scan_id: scanIdForInvite,
+            email: normalizedEmail,
+          },
+        });
+
+        if (invokeError) {
+          throw new Error(invokeError.message);
+        }
+
+        if (!data?.success) {
+          throw new Error(data?.error ?? "Failed to send invite");
+        }
+
+        const origin = window.location.origin;
+        const preProfileUrl = `${origin}/quick-scan/pre-profile/${scanIdForInvite}`;
+        setCopyableUrl(preProfileUrl);
+        setSuccessMessage(`Invite sent to ${normalizedEmail}`);
+      } catch (err) {
+        setInviteError(err instanceof Error ? err.message : "Something went wrong sending the invite.");
+      } finally {
+        setIsSendingInvite(false);
+      }
+    },
+    [invitedEmail],
+  );
 
   const handleSubmit = useCallback(async () => {
     if (!firstName.trim() || !lastName.trim()) {
@@ -118,10 +193,18 @@ export function AdminManualScan() {
       return;
     }
 
+    if (inviteMode && !validateEmail(invitedEmail)) {
+      setInviteError("Please enter a valid email address for the invite.");
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
     setResultJson(null);
     setSourceResults(null);
+    setInviteError(null);
+    setSuccessMessage(null);
+    setCopyableUrl(null);
 
     try {
       const sources: Array<{ site_name: string; detail_url?: string; html: string }> = [];
@@ -151,21 +234,45 @@ export function AdminManualScan() {
         sources.push(sourcePayload);
       }
 
+      const adminSecret = import.meta.env.VITE_ADMIN_PARSE_SECRET;
+      if (inviteMode && !adminSecret) {
+        throw new Error("VITE_ADMIN_PARSE_SECRET is not configured.");
+      }
+
+      const requestBody: {
+        scan_id: string;
+        search_input: Record<string, string | undefined>;
+        sources: Array<{ site_name: string; detail_url?: string; html: string }>;
+        save_to_db: boolean;
+        invite_mode?: boolean;
+        invited_email?: string;
+      } = {
+        scan_id: scanId,
+        search_input: {
+          first_name: firstName.trim(),
+          last_name: lastName.trim(),
+          email: email.trim() || undefined,
+          city: city.trim() || undefined,
+          state: state.trim() || undefined,
+        },
+        sources,
+        save_to_db: true,
+      };
+
+      if (inviteMode) {
+        requestBody.invite_mode = true;
+        requestBody.invited_email = invitedEmail.trim().toLowerCase();
+      }
+
       const { data, error: invokeError } = await supabase.functions.invoke<BatchParseResponse>(
         "admin-parse-html",
         {
-          body: {
-            scan_id: scanId,
-            search_input: {
-              first_name: firstName.trim(),
-              last_name: lastName.trim(),
-              email: email.trim() || undefined,
-              city: city.trim() || undefined,
-              state: state.trim() || undefined,
-            },
-            sources,
-            save_to_db: true,
-          },
+          headers: inviteMode
+            ? {
+                "x-admin-secret": adminSecret,
+              }
+            : undefined,
+          body: requestBody,
         },
       );
 
@@ -188,12 +295,17 @@ export function AdminManualScan() {
       }
 
       setResultJson(JSON.stringify(data, null, 2));
+
+      // For invite mode, send the invite
+      if (inviteMode) {
+        await sendInvite(scanId);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
       setIsLoading(false);
     }
-  }, [brokers, city, email, firstName, lastName, scanId, state]);
+  }, [brokers, city, email, firstName, lastName, scanId, state, inviteMode, invitedEmail, sendInvite]);
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
@@ -271,6 +383,39 @@ export function AdminManualScan() {
                 className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2"
               />
             </label>
+          </div>
+
+          <div className="rounded-lg border border-amber-700/40 bg-amber-950/20 p-4 space-y-3">
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={inviteMode}
+                onChange={(e) => setInviteMode(e.target.checked)}
+                className="h-4 w-4 rounded border-slate-700 bg-slate-950 text-amber-500 focus:ring-amber-500"
+              />
+              <span className="font-medium text-amber-300">Invite-only scan (requires magic link)</span>
+            </label>
+            {inviteMode && (
+              <label className="block text-sm">
+                <span className="mb-1 block text-slate-400">Invite recipient email</span>
+                <input
+                  type="email"
+                  value={invitedEmail}
+                  onChange={(e) => setInvitedEmail(e.target.value)}
+                  placeholder="user@example.com"
+                  autoComplete="off"
+                  className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2"
+                />
+                <span className="mt-1 block text-xs text-slate-500">
+                  We email a secure link; the user must auth before seeing the report.
+                </span>
+              </label>
+            )}
+            {inviteError && (
+              <p className="rounded border border-red-900/50 bg-red-950/40 px-3 py-2 text-xs text-red-300">
+                {inviteError}
+              </p>
+            )}
           </div>
 
           <div className="space-y-4">
@@ -366,20 +511,47 @@ export function AdminManualScan() {
           <button
             type="button"
             onClick={() => void handleSubmit()}
-            disabled={isLoading}
+            disabled={isLoading || isSendingInvite}
             className="w-full rounded-lg bg-amber-500 py-2.5 text-sm font-semibold text-slate-950 disabled:opacity-50"
           >
-            {isLoading ? "Parsing & merging…" : "Parse all & save to DB"}
+            {isLoading
+              ? "Parsing & merging…"
+              : isSendingInvite
+                ? "Sending invite…"
+                : inviteMode
+                  ? "Save & Send Invite"
+                  : "Parse all & save to DB"}
           </button>
+
+          {successMessage && (
+            <div className="rounded-lg border border-emerald-800/50 bg-emerald-950/30 px-3 py-2 text-sm text-emerald-300">
+              {successMessage}
+            </div>
+          )}
+
+          {copyableUrl && (
+            <label className="block text-xs text-slate-400">
+              <span className="mb-1 block">Pre-profile URL (for support reference)</span>
+              <input
+                type="text"
+                readOnly
+                value={copyableUrl}
+                onFocus={(e) => e.currentTarget.select()}
+                className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 font-mono text-xs text-slate-300"
+              />
+            </label>
+          )}
 
           {!error && resultJson && (
             <div className="text-sm space-y-2">
-              <Link
-                to={`/quick-scan/pre-profile/${scanId}`}
-                className="inline-block text-amber-400 underline"
-              >
-                Open pre-profile →
-              </Link>
+              {!inviteMode && (
+                <Link
+                  to={`/quick-scan/pre-profile/${scanId}`}
+                  className="inline-block text-amber-400 underline"
+                >
+                  Open pre-profile →
+                </Link>
+              )}
               <pre className="max-h-64 overflow-auto rounded-lg border border-slate-800 bg-slate-950 p-4 text-xs text-slate-300">
                 {resultJson}
               </pre>

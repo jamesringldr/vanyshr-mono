@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
-import { Link, useParams } from "react-router";
+import { Link, useParams, useNavigate } from "react-router";
 import { useBetaModal } from "@/components/BetaModalContext";
+import { AdminInviteGate } from "@/components/AdminInviteGate";
 import { motion, useReducedMotion } from "framer-motion";
 import {
     Menu,
@@ -533,6 +534,7 @@ function convertToPreProfileData(
 
 export function PreProfile() {
     const { scanId } = useParams<{ scanId?: string }>();
+    const navigate = useNavigate();
     const { openBetaModal } = useBetaModal();
     const prefersReducedMotion = useReducedMotion();
     const [loadingState, setLoadingState] = useState<LoadingState>("loading");
@@ -541,8 +543,16 @@ export function PreProfile() {
     const [startError, setStartError] = useState<string | null>(null);
     const [isFooterVisible, setIsFooterVisible] = useState(false);
     const [loadingEllipsis, setLoadingEllipsis] = useState(".");
-
     const [isStarting, setIsStarting] = useState(false);
+
+    // Admin invite flow state
+    const [scan, setScan] = useState<{
+      status?: string;
+      invited_email?: string | null;
+      converted_to_user_id?: string | null;
+    } | null>(null);
+    const [gateState, setGateState] = useState<"loading" | "gate" | "wrong-email" | null>(null);
+    const [sessionEmail, setSessionEmail] = useState<string | null>(null);
 
     const handleStartVanyshing = useCallback(async () => {
         if (!scanId) {
@@ -554,6 +564,14 @@ export function PreProfile() {
         setStartError(null);
 
         try {
+            // Admin invite flow: if authenticated + scan has converted_to_user_id, skip beta modal
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session && scan?.converted_to_user_id) {
+                navigate("/welcome", { replace: true });
+                return;
+            }
+
+            // Existing public flow logic
             const existingProfileId = sessionStorage.getItem("pendingProfileId");
             if (existingProfileId) {
                 sessionStorage.setItem("pendingScanId", scanId);
@@ -595,8 +613,69 @@ export function PreProfile() {
         } finally {
             setIsStarting(false);
         }
-    }, [scanId, openBetaModal]);
+    }, [scanId, scan, navigate, openBetaModal]);
 
+
+    // Admin invite gate check: fetch scan status + invited_email before loading profile data
+    useEffect(() => {
+        if (!scanId) return;
+
+        (async () => {
+            try {
+                const { data: scanRow, error: scanError } = await supabase
+                    .from("quick_scans")
+                    .select("status, invited_email, converted_to_user_id")
+                    .eq("id", scanId)
+                    .maybeSingle();
+
+                if (scanError) {
+                    console.error("Error fetching scan metadata:", scanError);
+                    setScan(null);
+                    setGateState(null);
+                    return;
+                }
+
+                setScan(scanRow);
+
+                // If status is 'admin_sent', gate the page
+                if (scanRow?.status === "admin_sent") {
+                    setGateState("loading");
+
+                    // Check if user has a session
+                    const { data: { session } } = await supabase.auth.getSession();
+
+                    if (!session) {
+                        // No session — show invite gate
+                        setGateState("gate");
+                        setLoadingState("loaded");
+                        return;
+                    }
+
+                    // Session exists — verify email matches
+                    const userEmail = session.user.email?.toLowerCase();
+                    const invitedEmail = scanRow.invited_email?.toLowerCase();
+
+                    if (userEmail && invitedEmail && userEmail !== invitedEmail) {
+                        // Wrong email — show sign-out prompt
+                        setSessionEmail(userEmail);
+                        setGateState("wrong-email");
+                        setLoadingState("loaded");
+                        return;
+                    }
+
+                    // Email matches or no invited_email yet — allow profile load
+                    setGateState(null);
+                } else {
+                    // Not an admin_sent scan — proceed with normal flow
+                    setGateState(null);
+                }
+            } catch (err) {
+                console.error("Admin gate check error:", err);
+                setScan(null);
+                setGateState(null);
+            }
+        })();
+    }, [scanId]);
 
     const loadProfileData = useCallback(async () => {
         setLoadingState("loading");
@@ -704,9 +783,14 @@ export function PreProfile() {
         }
     }, [scanId]);
 
+    // Only load profile data if gate is not active
     useEffect(() => {
+        if (gateState !== null) {
+            // Gate is active or loading — don't load profile data yet
+            return;
+        }
         loadProfileData();
-    }, [loadProfileData]);
+    }, [loadProfileData, gateState]);
 
     useEffect(() => {
         if (loadingState !== "loaded") {
@@ -733,6 +817,44 @@ export function PreProfile() {
 
         return () => window.clearInterval(intervalId);
     }, []);
+
+    // Admin invite gate — unauthenticated user landed on an admin_sent scan
+    if (gateState === "gate" && scanId) {
+        return <AdminInviteGate scanId={scanId} emailHint={scan?.invited_email ?? null} />;
+    }
+
+    // Admin invite gate — wrong account signed in
+    if (gateState === "wrong-email") {
+        return (
+            <div
+                className="min-h-screen w-full flex flex-col items-center justify-center p-4 bg-[#F0F4F8] dark:bg-[#022136] font-sans transition-colors duration-200"
+                role="main"
+                aria-label="Wrong account"
+            >
+                <div className="w-full max-w-md text-center">
+                    <div className="w-16 h-16 rounded-full bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center mx-auto mb-4">
+                        <Scale className="w-8 h-8 text-yellow-600 dark:text-yellow-400" />
+                    </div>
+                    <h1 className="text-xl font-bold text-[#022136] dark:text-white mb-2">
+                        Wrong account
+                    </h1>
+                    <p className="text-sm text-[#B8C4CC] dark:text-[#B8C4CC] mb-6">
+                        You&apos;re signed in as <span className="font-semibold">{sessionEmail}</span>, but this invite was sent to a different email. Sign out and open the link again.
+                    </p>
+                    <button
+                        type="button"
+                        onClick={async () => {
+                            await supabase.auth.signOut();
+                            window.location.reload();
+                        }}
+                        className="inline-flex h-[44px] items-center justify-center px-6 rounded-xl bg-[#00BFFF] hover:bg-[#1196E0] text-white font-semibold transition-all"
+                    >
+                        Sign out
+                    </button>
+                </div>
+            </div>
+        );
+    }
 
     // Loading state
     if (loadingState === "loading") {
