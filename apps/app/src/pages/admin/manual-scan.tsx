@@ -43,6 +43,7 @@ interface SourceResult {
 interface BatchParseResponse {
   success: boolean;
   scan_id?: string;
+  profile_id?: string;
   profile_data?: { name?: string; age?: string };
   source_results?: SourceResult[];
   merged_from?: number;
@@ -75,7 +76,7 @@ export function AdminManualScan() {
   const [scanId, setScanId] = useState(newScanId);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
-  const [age, setAge] = useState("");
+  const [email, setEmail] = useState("");
   const [city, setCity] = useState("");
   const [state, setState] = useState("");
   const [brokers, setBrokers] = useState(emptyBrokerState);
@@ -158,7 +159,7 @@ export function AdminManualScan() {
             search_input: {
               first_name: firstName.trim(),
               last_name: lastName.trim(),
-              age: age.trim() || undefined,
+              email: email.trim() || undefined,
               city: city.trim() || undefined,
               state: state.trim() || undefined,
             },
@@ -180,8 +181,11 @@ export function AdminManualScan() {
       if (data.source_results) setSourceResults(data.source_results);
 
       // Pre-profile loads merged profile_data from quick_scans by scan id.
-      // Do not set a stub selectedProfile — it would skip DB and show empty UI.
       sessionStorage.removeItem("selectedProfile");
+      if (data.profile_id) {
+        sessionStorage.setItem("pendingProfileId", data.profile_id);
+        sessionStorage.setItem("pendingScanId", data.scan_id ?? scanId);
+      }
 
       setResultJson(JSON.stringify(data, null, 2));
     } catch (err) {
@@ -189,7 +193,7 @@ export function AdminManualScan() {
     } finally {
       setIsLoading(false);
     }
-  }, [age, brokers, city, firstName, lastName, scanId, state]);
+  }, [brokers, city, email, firstName, lastName, scanId, state]);
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
@@ -237,16 +241,18 @@ export function AdminManualScan() {
                 className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2"
               />
             </label>
-            <label className="block text-sm">
-              <span className="mb-1 block text-slate-400">Age (optional)</span>
+            <label className="block text-sm sm:col-span-2">
+              <span className="mb-1 block text-slate-400">Email (optional)</span>
               <input
-                value={age}
-                onChange={(e) => setAge(e.target.value)}
-                placeholder="33"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="claire@example.com"
+                autoComplete="email"
                 className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2"
               />
               <span className="mt-1 block text-xs text-slate-500">
-                Used instead of Zabasearch&apos;s age on the page (often wrong).
+                Creates a pending user profile (signup step) with this email when provided.
               </span>
             </label>
             <label className="block text-sm">

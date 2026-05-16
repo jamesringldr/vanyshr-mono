@@ -8,6 +8,7 @@ import {
   type ProfileMatch,
   type SearchInput,
 } from "../_shared/scrapers/index.ts";
+import { scraperLabEnabled, searchViaScraperLab } from "../_shared/scraper-lab-client.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -122,8 +123,22 @@ serve(async (req) => {
       }
     }
 
-    if (search_all) {
-      // Search across all name-capable scrapers
+    if (scraperLabEnabled()) {
+      const scraperName = siteName.toLowerCase().replace(/\s+/g, '');
+      const siteList = search_all
+        ? getScrapersForSearchType('name').map((s) => s.name.toLowerCase().replace(/\s+/g, ''))
+        : [scraperName];
+      console.log(`🏠 Using scraper-lab (home worker) for: ${siteList.join(', ')}`);
+      try {
+        const result = await searchViaScraperLab(siteList, searchInput);
+        matches = result.matches;
+        scraperRuns = result.runs;
+      } catch (e) {
+        console.error('🏠 scraper-lab error:', e);
+        scraperRuns = [{ scraper: 'scraper-lab', success: false, error: (e as Error).message }];
+      }
+    } else if (search_all) {
+      // Search across all name-capable scrapers (datacenter edge scrapers)
       const nameScrapers = getScrapersForSearchType('name');
       const scraperNames = nameScrapers.map(s => s.name.toLowerCase().replace(/\s+/g, ''));
 

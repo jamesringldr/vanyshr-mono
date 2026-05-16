@@ -46,25 +46,70 @@ function buildSearchInputPayload(input: SearchInput) {
   return {
     first_name: input.first_name,
     last_name: input.last_name,
+    email: input.email ?? null,
     zip_code: input.zip ?? null,
     city: input.city ?? null,
     state: input.state ?? null,
-    age: input.age ?? null,
   };
 }
 
-/** Prefer user-provided age over broker listings (Zabasearch ages are often wrong). */
+/** Prefer Zabasearch match age over broker listing ages (Zabasearch ages are often wrong). */
 function applyCanonicalAge(
   merged: QuickScanProfileData,
-  searchInput?: SearchInput,
+  _searchInput?: SearchInput,
   sources: AdminParseSource[] = [],
 ): void {
-  const fromSearch = searchInput?.age?.match(/\d+/)?.[0];
   const fromZabaMatch = sources
     .find((s) => normalizeSiteName(s.site_name).includes("zaba"))
     ?.selected_profile?.age?.match(/\d+/)?.[0];
-  const canonical = fromSearch || fromZabaMatch;
-  if (canonical) merged.age = canonical;
+  if (fromZabaMatch) merged.age = fromZabaMatch;
+}
+
+async function ensurePendingUserProfile(
+  supabaseClient: ReturnType<typeof createClient>,
+  scanId: string,
+  email?: string,
+): Promise<{ profile_id?: string; error?: string }> {
+  const trimmedEmail = email?.trim() || undefined;
+
+  const { data: scanRow, error: scanError } = await supabaseClient
+    .from("quick_scans")
+    .select("converted_to_user_id")
+    .eq("id", scanId)
+    .maybeSingle();
+
+  if (scanError) {
+    return { error: scanError.message };
+  }
+
+  if (scanRow?.converted_to_user_id) {
+    const profileId = scanRow.converted_to_user_id as string;
+    if (trimmedEmail) {
+      const { error: updateError } = await supabaseClient
+        .from("user_profiles")
+        .update({ email: trimmedEmail })
+        .eq("id", profileId);
+      if (updateError) {
+        return { error: updateError.message };
+      }
+    }
+    return { profile_id: profileId };
+  }
+
+  const { data, error } = await supabaseClient.rpc("create_pending_profile", {
+    p_scan_id: scanId,
+    p_email: trimmedEmail ?? null,
+  });
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  if (!data?.success) {
+    return { error: (data?.error as string) ?? "Failed to create user profile" };
+  }
+
+  return { profile_id: data.profile_id as string };
 }
 
 async function handleBatchParse(
@@ -184,6 +229,38 @@ async function handleBatchParse(
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
+
+    const { profile_id, error: profileError } = await ensurePendingUserProfile(
+      supabaseClient,
+      activeScanId,
+      search_input?.email,
+    );
+
+    if (profileError) {
+      console.error("Error creating pending user profile:", profileError);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: `Scan saved but user profile failed: ${profileError}`,
+          scan_id: activeScanId,
+          source_results: sourceResults,
+        }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        scan_id: activeScanId,
+        profile_id,
+        profile_data: mergedProfile,
+        source_results: sourceResults,
+        merged_from: parsedProfiles.length,
+        pre_profile_url: `/quick-scan/pre-profile/${activeScanId}`,
+      }),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
   }
 
   return new Response(

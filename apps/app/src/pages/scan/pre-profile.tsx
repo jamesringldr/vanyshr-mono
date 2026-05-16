@@ -331,18 +331,20 @@ function Pill({
 
 const LIST_PREVIEW_MAX = 5;
 
-/** Two-column grid: up to 5 items, then "{n} More..." in the 6th cell (second column, row 3). */
+/** Two-column grid: up to maxVisible items, then "{n} More..." in the next cell. */
 function LimitedTwoColumnGrid<T>({
     items,
     renderItem,
     moreClassName,
+    maxVisible = LIST_PREVIEW_MAX,
 }: {
     items: T[];
     renderItem: (item: T, index: number) => React.ReactNode;
     moreClassName?: string;
+    maxVisible?: number;
 }) {
-    const visible = items.slice(0, LIST_PREVIEW_MAX);
-    const remaining = items.length - LIST_PREVIEW_MAX;
+    const visible = items.slice(0, maxVisible);
+    const remaining = items.length - maxVisible;
 
     return (
         <ul className="grid grid-cols-2 gap-x-4 gap-y-2">
@@ -552,6 +554,26 @@ export function PreProfile() {
         setStartError(null);
 
         try {
+            const existingProfileId = sessionStorage.getItem("pendingProfileId");
+            if (existingProfileId) {
+                sessionStorage.setItem("pendingScanId", scanId);
+                openBetaModal();
+                return;
+            }
+
+            const { data: scanRow } = await supabase
+                .from("quick_scans")
+                .select("converted_to_user_id")
+                .eq("id", scanId)
+                .maybeSingle();
+
+            if (scanRow?.converted_to_user_id) {
+                sessionStorage.setItem("pendingScanId", scanId);
+                sessionStorage.setItem("pendingProfileId", scanRow.converted_to_user_id);
+                openBetaModal();
+                return;
+            }
+
             const { data, error } = await supabase.functions.invoke<{
                 success: boolean;
                 profile_id?: string;
@@ -592,7 +614,7 @@ export function PreProfile() {
             if (scanId) {
                 const { data: scanRow, error: scanError } = await supabase
                     .from("quick_scans")
-                    .select("profile_data")
+                    .select("profile_data, converted_to_user_id")
                     .eq("id", scanId)
                     .maybeSingle();
 
@@ -604,6 +626,10 @@ export function PreProfile() {
                         age: profileData.age,
                         source: profileData.sources?.[0] ?? "AnyWho",
                     };
+                    if (scanRow.converted_to_user_id) {
+                        sessionStorage.setItem("pendingProfileId", scanRow.converted_to_user_id);
+                        sessionStorage.setItem("pendingScanId", scanId);
+                    }
                     const merged = mergeZabaData(profileData, stub);
                     setData(convertToPreProfileData(merged, stub));
                     setLoadingState("loaded");
@@ -957,9 +983,11 @@ export function PreProfile() {
                     {/* Past addresses */}
                     {data.pastAddresses.length > 0 && (
                         <DataTypeCard icon={MapPin} title="Past addresses">
-                            <ul className="space-y-3">
-                                {data.pastAddresses.map((addr, i) => (
-                                    <li key={i}>
+                            <LimitedTwoColumnGrid
+                                items={data.pastAddresses}
+                                maxVisible={3}
+                                renderItem={(addr) => (
+                                    <div>
                                         {addr.street && (
                                             <p className="text-sm font-bold text-[var(--text-primary)] dark:text-white">
                                                 {addr.street}
@@ -970,9 +998,9 @@ export function PreProfile() {
                                                 {addr.cityStateZip}
                                             </p>
                                         )}
-                                    </li>
-                                ))}
-                            </ul>
+                                    </div>
+                                )}
+                            />
                         </DataTypeCard>
                     )}
 
