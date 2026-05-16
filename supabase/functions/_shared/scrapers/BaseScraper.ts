@@ -471,7 +471,8 @@ export function mergeProfileData(
     if (!merged.name && profile.name) merged.name = profile.name;
     if (!merged.first_name && profile.first_name) merged.first_name = profile.first_name;
     if (!merged.last_name && profile.last_name) merged.last_name = profile.last_name;
-    if (!merged.age && profile.age) merged.age = profile.age;
+    const isZabaOnlyAge = profile.sources?.some((s) => /zabasearch/i.test(s));
+    if (!merged.age && profile.age && !isZabaOnlyAge) merged.age = profile.age;
     if (!merged.date_of_birth && profile.date_of_birth) merged.date_of_birth = profile.date_of_birth;
     if (!merged.gender && profile.gender) merged.gender = profile.gender;
 
@@ -562,6 +563,8 @@ export interface SearchInput {
   state?: string;
   zip?: string;
   address?: string;
+  /** Known correct age — overrides unreliable Zabasearch listing ages at merge time */
+  age?: string;
 }
 
 /**

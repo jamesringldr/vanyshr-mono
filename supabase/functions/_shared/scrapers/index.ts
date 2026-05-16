@@ -14,6 +14,9 @@ import {
 } from "./BaseScraper.ts";
 import { AnyWhoScraper } from "./AnyWhoScraper.ts";
 import { ZabasearchScraper } from "./ZabasearchScraper.ts";
+import { FastPeopleSearchScraper } from "./FastPeopleSearchScraper.ts";
+
+export { FastPeopleSearchScraper } from "./FastPeopleSearchScraper.ts";
 
 // Re-export types
 export type {
@@ -41,10 +44,12 @@ export function getScraperDebugInfo(): Record<string, unknown> {
   };
 }
 
-// Scraper registry - AnyWho and Zabasearch only
+// Scraper registry
 const scrapers: { [key: string]: ScrapingStrategy } = {
   anywho: new AnyWhoScraper(),
   zabasearch: new ZabasearchScraper(),
+  fastpeoplesearch: new FastPeopleSearchScraper(),
+  fps: new FastPeopleSearchScraper(),
 };
 
 /**
@@ -288,6 +293,101 @@ export async function scrapeFullProfile(
     console.error(`❌ ${siteName} scrapeFullProfile error:`, error);
     return null;
   }
+}
+
+/**
+ * Parse uploaded search-results HTML (no network fetch).
+ */
+export function parseSearchFromHtml(
+  siteName: string,
+  html: string,
+  input: SearchInput,
+): ProfileMatch[] {
+  const scraper = getScraper(siteName) as {
+    parseSearchFromHtml?: (html: string, firstName: string, lastName: string) => unknown[];
+    filterByZipCode?: (profiles: unknown[], zip?: string) => unknown[];
+    name?: string;
+  } | null;
+
+  if (!scraper?.parseSearchFromHtml) {
+    throw new Error(`Scraper ${siteName} does not support parseSearchFromHtml`);
+  }
+
+  let profiles = scraper.parseSearchFromHtml(
+    html,
+    input.first_name || "",
+    input.last_name || "",
+  );
+
+  if (scraper.filterByZipCode && input.zip) {
+    profiles = scraper.filterByZipCode(profiles, input.zip) as typeof profiles;
+  }
+
+  return (profiles as PersonProfile[]).map((profile) => ({
+    ...convertToProfileMatch(profile),
+    source: scraper.name || profile.source,
+    fullProfile: profile,
+  }));
+}
+
+/**
+ * Parse uploaded detail-page HTML into QuickScanProfileData JSONB shape.
+ */
+export async function parseDetailFromHtml(
+  siteName: string,
+  html: string,
+  url?: string,
+  selectedProfile?: Partial<PersonProfile>,
+): QuickScanProfileData | null {
+  const scraper = getScraper(siteName) as {
+    parseDetailFromHtml?: (html: string, url?: string) => PersonProfile | null;
+    parseProfileFromSearchHtml?: (
+      html: string,
+      url: string,
+      selectedProfile?: Partial<PersonProfile>,
+    ) => Promise<QuickScanProfileData | null> | QuickScanProfileData | null;
+  } | null;
+
+  if (!scraper) {
+    console.error(`❌ No scraper found for site: ${siteName}`);
+    return null;
+  }
+
+  const normalizedSite = siteName.toLowerCase();
+
+  // Zabasearch: multi-person feed HTML (div.person cards), not single-person detail pages
+  if (normalizedSite.includes("zaba") && scraper.parseProfileFromSearchHtml) {
+    const zabaScraper = getScraper("zabasearch") as ZabasearchScraper;
+    const zabaDoc = zabaScraper.parseHtml(html);
+    const personCardCount = zabaDoc?.querySelectorAll("div.person")?.length ?? 0;
+    const urlLooksLikeSearchFeed = Boolean(
+      url?.includes("zabasearch.com") &&
+        (url.includes("#CTA") || url.match(/\/people\/[^/]+\/[^/]+\/[^/]+$/)),
+    );
+    if (personCardCount > 0 || urlLooksLikeSearchFeed) {
+      return await scraper.parseProfileFromSearchHtml(
+        html,
+        url || "https://www.zabasearch.com/people/manual-upload",
+        selectedProfile,
+      );
+    }
+  }
+
+  if (normalizedSite.includes("fastpeople") || normalizedSite === "fps") {
+    const fps = getScraper("fastpeoplesearch") as FastPeopleSearchScraper;
+    return fps.parseDetailFromHtml(html, url, selectedProfile);
+  }
+
+  if (scraper.parseDetailFromHtml) {
+    const profile = scraper.parseDetailFromHtml(html, url);
+    if (profile) {
+      const data = convertToQuickScanProfileData(profile);
+      if (url) data.detail_link = url;
+      return data;
+    }
+  }
+
+  return null;
 }
 
 /**

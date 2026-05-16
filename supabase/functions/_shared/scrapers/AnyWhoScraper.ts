@@ -138,7 +138,10 @@ export class AnyWhoScraper extends BaseScraper {
     }
 
     const html = await this.fetchWithProxy(url);
+    return this.parseSearchFromHtml(html, firstName, lastName);
+  }
 
+  parseSearchFromHtml(html: string, firstName: string, lastName: string): PersonProfile[] {
     const doc = this.parseHtml(html);
     if (!doc) return [];
 
@@ -378,7 +381,10 @@ export class AnyWhoScraper extends BaseScraper {
   async scrapeDetails(url: string): Promise<PersonProfile | null> {
     console.log(`🔍 AnyWho - Scraping details from: ${url}`);
     const html = await this.fetchWithProxy(url);
+    return this.parseDetailFromHtml(html, url);
+  }
 
+  parseDetailFromHtml(html: string, url?: string): PersonProfile | null {
     const doc = this.parseHtml(html);
     if (!doc) return null;
 
@@ -782,6 +788,10 @@ export class AnyWhoScraper extends BaseScraper {
       aliases: profile.aliases?.length || 0,
       assets: profile.assets?.length || 0,
     });
+
+    if (url && !profile.detail_link) {
+      profile.detail_link = url;
+    }
 
     return profile;
   }

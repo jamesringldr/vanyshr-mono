@@ -354,6 +354,46 @@ export class ZabasearchScraper extends BaseScraper {
     return filtered;
   }
 
+  /**
+   * Read name/age from the person card header only (not section h3s like "Possible Relatives").
+   * Listing ages on Zabasearch are often wrong — callers should not treat this as ground truth.
+   */
+  private extractPersonHeader(personDiv: any): { name: string; listingAge?: string } {
+    const nameEl =
+      personDiv.querySelector("#container-name h2 a") ||
+      personDiv.querySelector("#container-name h2") ||
+      personDiv.querySelector("h2 a");
+    let name = nameEl?.textContent?.trim() || "";
+
+    let listingAge: string | undefined;
+    const dataAge = personDiv.getAttribute("data-age")?.trim();
+    if (dataAge && /^\d{1,3}$/.test(dataAge)) listingAge = dataAge;
+
+    const commaAge = name.match(/^(.+?),\s*(\d{1,3})\s*$/);
+    if (commaAge) {
+      name = commaAge[1].trim();
+      listingAge = listingAge || commaAge[2];
+    }
+    const parenAge = name.match(/^(.+?)\s*\((\d{1,3})\)\s*$/);
+    if (parenAge) {
+      name = parenAge[1].trim();
+      listingAge = listingAge || parenAge[2];
+    }
+
+    const headerH3 =
+      personDiv.querySelector("#container-name h3") ||
+      personDiv.querySelector(".flex > div:nth-child(2) h3");
+    const h3Text = headerH3?.textContent?.trim() || "";
+    if (/^\d{1,3}$/.test(h3Text)) {
+      listingAge = listingAge || h3Text;
+    } else {
+      const ageLabel = h3Text.match(/Age\s*:?\s*(\d{1,3})/i);
+      if (ageLabel) listingAge = listingAge || ageLabel[1];
+    }
+
+    return { name, listingAge: listingAge?.match(/\d+/)?.[0] };
+  }
+
   // --------------------------------------------------------------------------
   // Public Scraping Methods
   // --------------------------------------------------------------------------
@@ -386,7 +426,10 @@ export class ZabasearchScraper extends BaseScraper {
 
     const html = await this.fetchWithProxy(url);
     if (!html) return [];
+    return this.parseSearchFromHtml(html, firstName, lastName);
+  }
 
+  parseSearchFromHtml(html: string, firstName: string, lastName: string): PersonProfile[] {
     const doc = this.parseHtml(html);
     if (!doc) return [];
 
@@ -400,11 +443,10 @@ export class ZabasearchScraper extends BaseScraper {
       try {
         const id = personDiv.getAttribute("data-id") || `zaba-${index}`;
         const nameElement = personDiv.querySelector("h2 a");
-        const ageElement = personDiv.querySelector("h3");
+        const header = this.extractPersonHeader(personDiv);
 
-        // Extract name and age
-        const name = nameElement?.textContent?.trim() || `${firstName} ${lastName}`;
-        const age = ageElement?.textContent?.trim();
+        const name = header.name || nameElement?.textContent?.trim() || `${firstName} ${lastName}`;
+        const age = header.listingAge;
 
         // Extract aliases from #container-alt-names
         const aliases: Array<{ alias: string }> = [];
@@ -818,7 +860,7 @@ export class ZabasearchScraper extends BaseScraper {
       try {
         const id = personDiv.getAttribute("data-id") || `zaba-phone-${index}`;
         const nameElement = personDiv.querySelector("h2 a");
-        const ageElement = personDiv.querySelector("h3");
+        const header = this.extractPersonHeader(personDiv);
         const locationElement = personDiv.querySelector("[data-location]") ||
                                 personDiv.querySelector(".location");
 
@@ -834,8 +876,8 @@ export class ZabasearchScraper extends BaseScraper {
 
         profiles.push({
           id,
-          name: nameElement?.textContent?.trim() || "Unknown",
-          age: ageElement?.textContent?.trim(),
+          name: header.name || nameElement?.textContent?.trim() || "Unknown",
+          age: header.listingAge,
           city_state: locationElement?.textContent?.trim(),
           phone_snippet: this.maskPhone(phone),
           detail_link: detailLink,
@@ -857,9 +899,18 @@ export class ZabasearchScraper extends BaseScraper {
 
     const html = await this.fetchWithProxy(url);
     if (!html) return null;
+    return this.parseDetailFromHtml(html, url);
+  }
 
+  parseDetailFromHtml(html: string, url?: string): PersonProfile | null {
     const doc = this.parseHtml(html);
     if (!doc) return null;
+
+    // Search-result feeds must use parseProfileFromSearchHtml (scoped per div.person)
+    if (doc.querySelectorAll("div.person").length > 0) {
+      console.warn("Zabasearch: HTML has div.person cards — use parseProfileFromSearchHtml instead");
+      return null;
+    }
 
     const bodyText = doc.body?.textContent || doc.documentElement?.textContent || "";
 
@@ -940,7 +991,12 @@ export class ZabasearchScraper extends BaseScraper {
     const seenEmails = new Set<string>();
     for (const match of emailMatches) {
       const email = match[1].toLowerCase();
-      if (!seenEmails.has(email) && !email.includes("zabasearch")) {
+      if (
+        !seenEmails.has(email) &&
+        !email.includes("zabasearch") &&
+        !/x{3,}/i.test(email) &&
+        email.length <= 80
+      ) {
         seenEmails.add(email);
         profile.emails?.push({ email });
       }
@@ -1305,7 +1361,8 @@ export class ZabasearchScraper extends BaseScraper {
     profileData.first_name = nameParts[0];
     profileData.last_name = nameParts.length > 1 ? nameParts[nameParts.length - 1] : undefined;
     profileData.middle_name = nameParts.length > 2 ? nameParts.slice(1, -1).join(" ") : undefined;
-    profileData.age = profile.age;
+    // Zabasearch listing ages are frequently wrong — age comes from other brokers or user input at merge time.
+    profileData.age = undefined;
 
     profileData.phones = (profile.phones || []).map(p => ({
       number: p.number,
@@ -1362,6 +1419,54 @@ export class ZabasearchScraper extends BaseScraper {
     return profileData;
   }
 
+  async parseProfileFromSearchHtml(
+    html: string,
+    url: string,
+    selectedProfile?: Partial<PersonProfile>,
+  ): Promise<QuickScanProfileData | null> {
+    const doc = this.parseHtml(html);
+    if (!doc) {
+      console.error('❌ Failed to parse search results page HTML');
+      return null;
+    }
+
+    const personDivs = doc.querySelectorAll("div.person");
+    console.log(`🔍 Found ${personDivs.length} profiles on search results page`);
+
+    let matchedProfile: PersonProfile | null = null;
+    for (let i = 0; i < personDivs.length; i++) {
+      const personDiv = personDivs[i];
+      const id = personDiv.getAttribute("data-id") || `zaba-${i}`;
+      const header = this.extractPersonHeader(personDiv);
+      const name = header.name || personDiv.querySelector("h2 a")?.textContent?.trim() || "";
+
+      if (selectedProfile?.name) {
+        const nameMatch =
+          name.toLowerCase().includes(selectedProfile.name.toLowerCase()) ||
+          selectedProfile.name.toLowerCase().includes(name.toLowerCase());
+
+        if (nameMatch) {
+          console.log(`✅ Matched profile by name: ${name} (zaba listing age ignored)`);
+          matchedProfile = await this.extractFullProfileFromDiv(personDiv, name, undefined, id);
+          break;
+        }
+      } else if (i === 0) {
+        matchedProfile = await this.extractFullProfileFromDiv(personDiv, name, undefined, id);
+        break;
+      }
+    }
+
+    if (!matchedProfile) {
+      console.error('❌ Could not find matching profile on search results page');
+      return null;
+    }
+
+    const profileData = this.convertPersonProfileToQuickScanProfileData(matchedProfile, url);
+    const userAge = selectedProfile?.age?.match(/\d+/)?.[0];
+    if (userAge) profileData.age = userAge;
+    return profileData;
+  }
+
   override async scrapeFullProfile(url: string, selectedProfile?: Partial<PersonProfile>): Promise<QuickScanProfileData | null> {
     // Check if this is a search results page (contains #CTA anchor or is search results URL pattern)
     // For Zabasearch, search results pages contain all full profile data
@@ -1370,65 +1475,13 @@ export class ZabasearchScraper extends BaseScraper {
     
     if (isSearchResultsPage) {
       console.log(`🔍 Zabasearch - Detected search results page, extracting specific profile...`);
-      
-      // Remove anchor from URL
       const baseUrl = url.split('#')[0];
-      
-      // Re-fetch the search results page
       const html = await this.fetchWithProxy(baseUrl);
       if (!html) {
         console.error('❌ Failed to fetch search results page');
         return null;
       }
-      
-      const doc = this.parseHtml(html);
-      if (!doc) {
-        console.error('❌ Failed to parse search results page');
-        return null;
-      }
-      
-      // Extract all profiles from the page
-      const personDivs = doc.querySelectorAll("div.person");
-      console.log(`🔍 Found ${personDivs.length} profiles on search results page`);
-      
-      // Find the matching profile by name/age
-      let matchedProfile: PersonProfile | null = null;
-      for (let i = 0; i < personDivs.length; i++) {
-        const personDiv = personDivs[i];
-        const id = personDiv.getAttribute("data-id") || `zaba-${i}`;
-        const nameElement = personDiv.querySelector("h2 a");
-        const ageElement = personDiv.querySelector("h3");
-        const name = nameElement?.textContent?.trim() || "";
-        const age = ageElement?.textContent?.trim();
-        
-        // Match by name and age if provided
-        if (selectedProfile) {
-          const nameMatch = !selectedProfile.name || 
-            name.toLowerCase().includes(selectedProfile.name.toLowerCase()) ||
-            selectedProfile.name.toLowerCase().includes(name.toLowerCase());
-          const ageMatch = !selectedProfile.age || age === selectedProfile.age;
-          
-          if (nameMatch && ageMatch) {
-            console.log(`✅ Matched profile: ${name}, age: ${age}`);
-            matchedProfile = await this.extractFullProfileFromDiv(personDiv, name, age, id);
-            break;
-          }
-        } else {
-          // If no selectedProfile provided, use the first profile
-          if (i === 0) {
-            matchedProfile = await this.extractFullProfileFromDiv(personDiv, name, age, id);
-            break;
-          }
-        }
-      }
-      
-      if (!matchedProfile) {
-        console.error('❌ Could not find matching profile on search results page');
-        return null;
-      }
-      
-      // Convert to QuickScanProfileData format
-      return this.convertPersonProfileToQuickScanProfileData(matchedProfile, url);
+      return this.parseProfileFromSearchHtml(html, url, selectedProfile);
     }
     
     // Otherwise, treat as detail page (legacy behavior)
@@ -1444,7 +1497,8 @@ export class ZabasearchScraper extends BaseScraper {
     profileData.first_name = nameParts[0];
     profileData.last_name = nameParts.length > 1 ? nameParts[nameParts.length - 1] : undefined;
     profileData.middle_name = nameParts.length > 2 ? nameParts.slice(1, -1).join(" ") : undefined;
-    profileData.age = legacyProfile.age;
+    const userAge = selectedProfile?.age?.match(/\d+/)?.[0];
+    profileData.age = userAge;
 
     // Map phones
     profileData.phones = (legacyProfile.phones || []).map(p => ({
