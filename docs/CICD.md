@@ -86,7 +86,7 @@ style: update dashboard card spacing
 | Branch | Deployment Type | URL |
 |--------|----------------|-----|
 | `main` | Production | `app.vanyshr.com` |
-| `sandbox` | Preview | `vanyshr-git-sandbox-james-projects-9bdace54.vercel.app` |
+| `sandbox` | Preview | Vercel preview URL |
 | `dev/*` | Preview | unique per-branch Vercel URL |
 
 Preview deployments are created automatically on every push. Check the Vercel dashboard or GitHub PR for the preview URL.
@@ -96,3 +96,4 @@ Preview deployments are created automatically on every push. Check the Vercel da
 - Local: `apps/app/.env.local` (never committed)
 - Production/Preview: set in Vercel dashboard under **Settings → Environment Variables**
 - Required vars: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`
+- Admin UI: private repo `vanyshr-admin` — see `docs/ADMIN_APP.md`

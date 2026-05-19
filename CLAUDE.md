@@ -28,7 +28,7 @@ Only merge `sandbox` → `main` when explicitly instructed by the user. Never su
 ## Stack
 - React + Vite + TypeScript + TailwindCSS v4 + Framer Motion
 - Supabase (Postgres + Edge Functions in Deno)
-- Monorepo: `apps/app` (frontend), `packages/ui` (shared components), `supabase/`
+- Monorepo: `apps/app` (consumer), `packages/ui`, `supabase/` — admin UI is private repo `vanyshr-admin` (see `docs/ADMIN_APP.md`)
 - Package manager: pnpm + Turborepo
 
 ## Key Conventions
@@ -39,10 +39,9 @@ Only merge `sandbox` → `main` when explicitly instructed by the user. Never su
 - `envDir` is NOT set in vite.config — Vite reads from `apps/app/` by default
 
 ## Vercel Deployment
-- Production branch: `main` → `app.vanyshr.com`
+- **Consumer** (`apps/app`): `main` → `app.vanyshr.com` — build `cd apps/app && pnpm build`, output `apps/app/dist`
+- **Admin**: private repo `vanyshr-admin` → `admin.vanyshr.com` (not in this public mono)
 - Preview branches: `sandbox`, `dev/*` → Vercel preview URLs
-- Build command: `cd apps/app && pnpm build`
-- Output directory: `apps/app/dist`
 - Root directory: `./` (monorepo root, so pnpm resolves workspace deps)
 
 ## Reference

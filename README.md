@@ -7,7 +7,7 @@ A modern, scalable monorepo for the Vanyshr platform — featuring the web appli
 ```
 vanyshr-mono/
 ├── apps/
-│   └── app/                  # Main React web application
+│   └── app/                  # Consumer web application (app.vanyshr.com)
 ├── packages/
 │   ├── shared/               # Shared types, constants, and utilities
 │   ├── services/             # Business logic (scrapers, auth, database, email, etc.)
@@ -96,11 +96,14 @@ pnpm exec prettier --write "**/*.{ts,tsx,js,jsx,json,md}"
 ## Package Details
 
 ### `apps/app`
-Main product web application.
+Consumer web application (`app.vanyshr.com`).
 - **Port:** 5173 (dev)
 - **Tech:** Vite, React 19, React Router, TailwindCSS v4, Framer Motion
 - **Dependencies:** `@vanyshr/shared`, `@vanyshr/services`, `@vanyshr/ui`
 - **Dashboard gate:** All `/dashboard/*` routes are wrapped in a `DevOnly` guard. In production (`import.meta.env.DEV === false`) they redirect to `/scanning-started`. Dashboard is accessible in local dev only until it is ready for general users.
+
+### Admin UI (private repo)
+Internal admin UI (`admin.vanyshr.com`) is in the **private** repo `vanyshr-admin`, not this public monorepo. See `docs/ADMIN_APP.md`.
 
 ### `packages/shared`
 Shared types, constants, and utilities used across all packages.
@@ -178,6 +181,7 @@ No circular dependencies — lower-level packages must not depend on higher-leve
 - **Preview:** `sandbox`, `dev/*` → Vercel preview URLs
 - Build command: `cd apps/app && pnpm build`
 - Output directory: `apps/app/dist`
+- **Admin UI:** private repo `vanyshr-admin` → `admin.vanyshr.com` (see `docs/ADMIN_APP.md`)
 
 See `docs/CICD.md` for the full CI/CD protocol.
 
