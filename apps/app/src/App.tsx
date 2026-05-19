@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Navigate, Route, Routes } from "react-router";
 import { supabase } from "./lib/supabase";
+import { isProductionApp } from "./lib/env";
 
 // Auth pages
 import { AuthMagicLink } from "./pages/auth/magic-link";
@@ -54,14 +55,22 @@ import { ReferralSlider } from "./pages/referral";
 // Sandbox Mockups
 import { VanyshrAppMockup, ScamMockup, RemovalsMockup, DataExplosionMockup } from "@vanyshr/ui";
 
-// Dashboard pages are dev-only until they're ready for users.
-// In production, hitting a dashboard route redirects to /scanning-started.
+// Dashboard pages are hidden on production until ready for users.
 function DevOnly({ children }: { children: ReactNode }) {
-    if (!import.meta.env.DEV) return <Navigate to="/scanning-started" replace />;
+    if (isProductionApp()) return <Navigate to="/scanning-started" replace />;
     return <>{children}</>;
 }
 
-function RequireAuth({ children }: { children: ReactNode }) {
+function RequireAuth({
+    children,
+    productionOnly = false,
+}: {
+    children: ReactNode;
+    productionOnly?: boolean;
+}) {
+    if (productionOnly && !isProductionApp()) {
+        return <>{children}</>;
+    }
     const [isReady, setIsReady] = useState(false);
     const [isAuthed, setIsAuthed] = useState(false);
 
@@ -105,13 +114,13 @@ export default function App() {
         <Routes>
             {/* Dashboard — DevOnly until ready for users */}
             <Route path="/" element={<Navigate to="/quick-scan" replace />} />
-            <Route path="/dashboard" element={<DevOnly><RequireAuth><FinancialDashboard /></RequireAuth></DevOnly>} />
-            <Route path="/dashboard/home" element={<DevOnly><RequireAuth><DashboardHome /></RequireAuth></DevOnly>} />
-            <Route path="/dashboard/dark-web" element={<DevOnly><RequireAuth><DarkWebPage /></RequireAuth></DevOnly>} />
-            <Route path="/dashboard/exposures" element={<DevOnly><RequireAuth><ExposuresPage /></RequireAuth></DevOnly>} />
-            <Route path="/dashboard/tasks" element={<DevOnly><RequireAuth><TodoPage /></RequireAuth></DevOnly>} />
-            <Route path="/dashboard/activity" element={<DevOnly><RequireAuth><Transactions /></RequireAuth></DevOnly>} />
-            <Route path="/transactions" element={<DevOnly><RequireAuth><Transactions /></RequireAuth></DevOnly>} />
+            <Route path="/dashboard" element={<DevOnly><RequireAuth productionOnly><FinancialDashboard /></RequireAuth></DevOnly>} />
+            <Route path="/dashboard/home" element={<DevOnly><RequireAuth productionOnly><DashboardHome /></RequireAuth></DevOnly>} />
+            <Route path="/dashboard/dark-web" element={<DevOnly><RequireAuth productionOnly><DarkWebPage /></RequireAuth></DevOnly>} />
+            <Route path="/dashboard/exposures" element={<DevOnly><RequireAuth productionOnly><ExposuresPage /></RequireAuth></DevOnly>} />
+            <Route path="/dashboard/tasks" element={<DevOnly><RequireAuth productionOnly><TodoPage /></RequireAuth></DevOnly>} />
+            <Route path="/dashboard/activity" element={<DevOnly><RequireAuth productionOnly><Transactions /></RequireAuth></DevOnly>} />
+            <Route path="/transactions" element={<DevOnly><RequireAuth productionOnly><Transactions /></RequireAuth></DevOnly>} />
 
             {/* Auth */}
             <Route path="/signup" element={<AuthMagicLink />} />

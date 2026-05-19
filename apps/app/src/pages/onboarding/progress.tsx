@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router";
 import {
     Check,
@@ -14,6 +14,7 @@ import {
 import PrimaryLogoDark from "@vanyshr/ui/assets/PrimaryLogo-DarkMode.png";
 import { cx } from "@/utils/cx";
 import { supabase } from "@/lib/supabase";
+import { markOnboardingComplete } from "@/lib/onboarding";
 
 // ---------------------------------------------------------------------------
 // Progress Ring
@@ -376,6 +377,7 @@ export function OnboardingProgress() {
     const [showAreYouSure, setShowAreYouSure] = useState(false);
     const [isApplyingDefaults, setIsApplyingDefaults] = useState(false);
     const [completionVisible, setCompletionVisible] = useState(false);
+    const markedCompleteRef = useRef(false);
     const navigate = useNavigate();
     const location = useLocation();
 
@@ -434,8 +436,14 @@ export function OnboardingProgress() {
         const step1Done = onboardingStep >= 5;
         const step2Done = !!removalStrategy;
         const step3Done = !!notificationTier;
-        if (step1Done && step2Done && step3Done && !localStorage.getItem(COMPLETE_MODAL_KEY)) {
-            setShowModal(true);
+        if (step1Done && step2Done && step3Done) {
+            if (!markedCompleteRef.current) {
+                markedCompleteRef.current = true;
+                void markOnboardingComplete();
+            }
+            if (!localStorage.getItem(COMPLETE_MODAL_KEY)) {
+                setShowModal(true);
+            }
         }
     }, [isLoading, onboardingStep, removalStrategy, notificationTier]);
 
@@ -494,6 +502,7 @@ export function OnboardingProgress() {
 
     function handleDashboard() {
         localStorage.setItem(COMPLETE_MODAL_KEY, "1");
+        void markOnboardingComplete();
         navigate("/scanning-started");
     }
 
@@ -510,6 +519,7 @@ export function OnboardingProgress() {
                 })
                 .eq("user_id", profileId);
         }
+        await markOnboardingComplete();
         navigate("/scanning-started");
     }
 

@@ -370,6 +370,13 @@ verify_jwt = false
 [functions.admin-parse-html]
 verify_jwt = false
 
+# breaches-scan validates JWT (or service role) inside the function handler
+[functions.breaches-scan]
+verify_jwt = false
+
+[functions.breach-scan-all]
+verify_jwt = false
+
 [edge_runtime]
 enabled = true
 # Supported request policies: `oneshot`, `per_worker`.

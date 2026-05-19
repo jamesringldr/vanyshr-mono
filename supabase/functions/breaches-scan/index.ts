@@ -76,47 +76,28 @@ const BLANK_BREACH = (name: string): HIBPBreach => ({
 
 /** Fetch all HIBP breaches for a single email. Returns [] on 404/error. */
 async function fetchBreachesForEmail(email: string, apiKey: string): Promise<HIBPBreach[]> {
-  let breachNames: { Name: string }[] = [];
-
   try {
     const listRes = await fetch(
-      `https://haveibeenpwned.com/api/v3/breachedaccount/${encodeURIComponent(email)}`,
+      `https://haveibeenpwned.com/api/v3/breachedaccount/${encodeURIComponent(email)}?truncateResponse=false`,
       { headers: { 'hibp-api-key': apiKey, 'user-agent': 'Vanyshr-BreachesScan' } }
     );
 
     if (listRes.status === 404) return [];
     if (listRes.status !== 200) {
-      console.error(`🔒 HIBP list error for ${email}: HTTP ${listRes.status}`);
+      console.error(`🔒 HIBP error for ${email}: HTTP ${listRes.status}`);
       return [];
     }
-    breachNames = await listRes.json();
-    console.log(`🔒 ${email} — ${breachNames.length} breach(es)`);
+
+    const rows: HIBPAPIResponse[] = await listRes.json();
+    console.log(`🔒 ${email} — ${rows.length} breach(es)`);
+    return rows.map((row) => {
+      const normalized = normalizeHIBPResponse(row);
+      return normalized.Name ? normalized : BLANK_BREACH(row.Name ?? row.name ?? 'unknown');
+    });
   } catch (err) {
-    console.error(`🔒 HIBP list fetch failed for ${email}:`, err);
+    console.error(`🔒 HIBP fetch failed for ${email}:`, err);
     return [];
   }
-
-  const detailed: HIBPBreach[] = [];
-
-  for (const b of breachNames) {
-    try {
-      const detailRes = await fetch(
-        `https://haveibeenpwned.com/api/v3/breach/${encodeURIComponent(b.Name)}`,
-        { headers: { 'hibp-api-key': apiKey, 'user-agent': 'Vanyshr-BreachesScan' } }
-      );
-      detailed.push(
-        detailRes.status === 200
-          ? normalizeHIBPResponse(await detailRes.json())
-          : BLANK_BREACH(b.Name)
-      );
-    } catch {
-      detailed.push(BLANK_BREACH(b.Name));
-    }
-    // 100ms between breach detail requests (separate endpoint, lighter rate limit)
-    await new Promise(r => setTimeout(r, 100));
-  }
-
-  return detailed;
 }
 
 // ─── Main handler ─────────────────────────────────────────────────────────────
@@ -205,12 +186,21 @@ serve(async (req: Request) => {
       .from('user_emails')
       .select('email')
       .eq('user_id', profileId)
-      .eq('is_active', true);
+      .eq('is_active', true)
+      .eq('user_confirmed_status', 'confirmed');
 
     const emailSet = new Set<string>();
     if (profile?.email) emailSet.add(profile.email.toLowerCase());
     (userEmails ?? []).forEach(r => { if (r.email) emailSet.add(r.email.toLowerCase()); });
     const emails = Array.from(emailSet);
+
+    if (emails.length === 0) {
+      console.log(`🔒 No confirmed emails to scan for profile ${profileId}`);
+      return new Response(
+        JSON.stringify({ success: true, emails_scanned: 0, new_breaches_found: 0, total_breaches: 0 }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      );
+    }
 
     console.log(`🔒 Emails to scan (${emails.length}): ${emails.join(', ')}`);
 
