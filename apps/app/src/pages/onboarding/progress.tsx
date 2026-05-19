@@ -448,27 +448,27 @@ export function OnboardingProgress() {
             isComplete: onboardingStep >= 1,
         },
         {
+            label: "Emails",
+            icon: Mail,
+            route: "/onboarding/emails",
+            isComplete: onboardingStep >= 2,
+        },
+        {
             label: "Phone Numbers",
             icon: Phone,
             route: "/onboarding/phone-numbers",
-            isComplete: onboardingStep >= 2,
+            isComplete: onboardingStep >= 3,
         },
         {
             label: "Aliases",
             icon: User,
             route: "/onboarding/aliases",
-            isComplete: onboardingStep >= 3,
+            isComplete: onboardingStep >= 4,
         },
         {
             label: "Addresses",
             icon: Home,
             route: "/onboarding/addresses",
-            isComplete: onboardingStep >= 4,
-        },
-        {
-            label: "Emails",
-            icon: Mail,
-            route: "/onboarding/emails",
             isComplete: onboardingStep >= 5,
         },
     ];

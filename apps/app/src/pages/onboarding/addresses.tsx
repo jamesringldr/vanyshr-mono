@@ -34,6 +34,7 @@ export function OnboardingAddresses() {
     const [items, setItems] = useState<AddressItem[]>([]);
     const [profileId, setProfileId] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [isSaving, setIsSaving] = useState(false);
     const [activeId, setActiveId] = useState<string | null>(null);
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editValue, setEditValue] = useState("");
@@ -185,7 +186,8 @@ export function OnboardingAddresses() {
         setEditValue("");
     };
 
-    const handleConfirmAndContinue = async () => {
+    const handleFinishSetup = async () => {
+        setIsSaving(true);
         // Bulk-confirm all active items so none are left as 'unverified'
         if (profileId) {
             await supabase
@@ -197,23 +199,37 @@ export function OnboardingAddresses() {
                 .eq("user_id", profileId)
                 .eq("is_active", true);
         }
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
             await supabase
                 .from("user_profiles")
-                .update({ onboarding_step: 4 })
-                .eq("auth_user_id", user.id);
+                .update({ onboarding_completed: true, onboarding_step: 5 })
+                .eq("auth_user_id", session.user.id);
+
+            // Fire-and-forget initial breach scan — runs in background,
+            // does not block navigation. Results appear on the dashboard.
+            if (profileId) {
+                fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/breaches-scan`, {
+                    method:  "POST",
+                    headers: {
+                        "Content-Type":  "application/json",
+                        "Authorization": `Bearer ${session.access_token}`,
+                    },
+                    body: JSON.stringify({ profile_id: profileId }),
+                }).catch(err => console.error("[Onboarding] breach scan trigger failed:", err));
+            }
         }
         setActiveId(null);
         setEditingId(null);
-        navigate("/onboarding/emails");
+        setIsSaving(false);
+        navigate("/onboarding/progress");
     };
 
     if (isLoading) {
         return (
             <OnboardingLayout
                 currentStep={"addresses" satisfies OnboardingStep}
-                completedSteps={["basic", "phone", "aliases"]}
+                completedSteps={["basic", "emails", "phone", "aliases"]}
                 title="Addresses"
                 subtitle="Click on Field to Edit"
                 onDashboardNavigate={() => navigate("/scanning-started")}
@@ -229,7 +245,7 @@ export function OnboardingAddresses() {
     return (
         <OnboardingLayout
             currentStep={"addresses" satisfies OnboardingStep}
-            completedSteps={["basic", "phone", "aliases"]}
+            completedSteps={["basic", "emails", "phone", "aliases"]}
             title="Addresses"
             subtitle="Click on Field to Edit"
             onDashboardNavigate={() => navigate("/scanning-started")}
@@ -249,14 +265,16 @@ export function OnboardingAddresses() {
                     </button>
                     <button
                         type="button"
-                        onClick={handleConfirmAndContinue}
+                        onClick={handleFinishSetup}
+                        disabled={isSaving}
                         className={cx(
                             "flex h-[52px] flex-1 items-center justify-center rounded-xl text-sm font-semibold text-white outline-none transition",
                             "bg-[#00BFFF] hover:bg-[#0E9AE8]",
                             "focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#022136]",
+                            isSaving && "opacity-60 cursor-not-allowed",
                         )}
                     >
-                        CONFIRM &gt;
+                        {isSaving ? "Saving..." : "Finish Profile"}
                     </button>
                 </div>
             }

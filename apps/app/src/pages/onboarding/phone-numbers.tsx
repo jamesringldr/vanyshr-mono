@@ -229,7 +229,7 @@ export function OnboardingPhoneNumbers() {
         if (user) {
             await supabase
                 .from("user_profiles")
-                .update({ onboarding_step: 2 })
+                .update({ onboarding_step: 3 })
                 .eq("auth_user_id", user.id);
         }
         setActiveId(null);
@@ -241,7 +241,7 @@ export function OnboardingPhoneNumbers() {
         return (
             <OnboardingLayout
                 currentStep={"phone" satisfies OnboardingStep}
-                completedSteps={["basic"]}
+                completedSteps={["basic", "emails"]}
                 title="Phone Numbers"
                 subtitle="Click on Field to Edit"
                 onDashboardNavigate={() => navigate("/scanning-started")}
@@ -257,7 +257,7 @@ export function OnboardingPhoneNumbers() {
     return (
         <OnboardingLayout
             currentStep={"phone" satisfies OnboardingStep}
-            completedSteps={["basic"]}
+            completedSteps={["basic", "emails"]}
             title="Phone Numbers"
             subtitle="Click on Field to Edit"
             onDashboardNavigate={() => navigate("/scanning-started")}
@@ -265,7 +265,7 @@ export function OnboardingPhoneNumbers() {
                 <div className="flex w-full gap-3">
                     <button
                         type="button"
-                        onClick={() => navigate("/onboarding/primary-info")}
+                        onClick={() => navigate("/onboarding/emails")}
                         className={cx(
                             "flex h-[52px] flex-1 items-center justify-center rounded-xl text-sm font-semibold outline-none transition",
                             "border border-[var(--border-subtle)] dark:border-[#2A4A68]",

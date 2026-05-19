@@ -26,10 +26,10 @@ const STEPS: {
     label: string;
 }[] = [
     { id: "basic", icon: FileText, label: "Basic Information" },
+    { id: "emails", icon: Mail, label: "Emails" },
     { id: "phone", icon: Phone, label: "Phone Numbers" },
     { id: "aliases", icon: User, label: "Aliases" },
     { id: "addresses", icon: Home, label: "Addresses" },
-    { id: "emails", icon: Mail, label: "Emails" },
 ];
 
 export function StepProgressIndicator({

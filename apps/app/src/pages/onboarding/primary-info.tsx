@@ -245,7 +245,7 @@ export function VerifyPrimaryInfo() {
 
         await saveToDb(firstName, lastName, dob);
         setIsSaving(false);
-        navigate("/onboarding/phone-numbers");
+        navigate("/onboarding/emails");
     };
 
     if (isLoading) {
