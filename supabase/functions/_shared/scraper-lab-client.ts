@@ -45,30 +45,16 @@ function mapMatches(raw: unknown[]): ProfileMatch[] {
   });
 }
 
-export async function searchViaScraperLab(
-  siteNames: string[],
-  input: SearchInput,
-): Promise<{ matches: ProfileMatch[]; runs: Array<Record<string, unknown>> }> {
-  const base = (Deno.env.get("SCRAPER_LAB_URL") ?? "").replace(/\/$/, "");
-  const token = Deno.env.get("SCRAPER_LAB_TOKEN") ?? "";
-  if (!base || !token) {
-    throw new Error("SCRAPER_LAB_URL and SCRAPER_LAB_TOKEN required");
-  }
-
-  const sources = siteNamesToSources(siteNames);
-  const pollSec = Number(Deno.env.get("SCRAPER_LAB_POLL_MAX_SEC") ?? "150");
-  const pollIntervalMs = Number(Deno.env.get("SCRAPER_LAB_POLL_MS") ?? "2000");
-
-  const body = {
-    first_name: input.first_name,
-    last_name: input.last_name,
-    city: input.city,
-    state: input.state,
-    zip: input.zip,
-    sources,
-  };
-
-  console.log(`🏠 scraper-lab POST ${base}/v1/quickscan/search sources=${sources.join(",")}`);
+async function runJob(
+  base: string,
+  token: string,
+  body: Record<string, unknown>,
+  pollSec: number,
+  pollIntervalMs: number,
+  sources: string[],
+): Promise<{ matches: ProfileMatch[]; runs: Array<Record<string, unknown>>; outcome?: string }> {
+  const labelCity = (body as { city?: string }).city ? ` city=${(body as { city: string }).city}` : ' (no city)';
+  console.log(`🏠 scraper-lab POST ${base}/v1/quickscan/search sources=${sources.join(",")}${labelCity}`);
 
   const createRes = await fetch(`${base}/v1/quickscan/search`, {
     method: "POST",
@@ -108,21 +94,88 @@ export async function searchViaScraperLab(
       const matches = mapMatches(job.matches ?? []);
       const runs = (job.runs ?? []).map((r) => ({
         scraper: String(r.scraper ?? ""),
-        success: r.status === "success",
+        success: r.status === "success" || r.status === "no_results",
         matchCount: r.profiles_found ?? 0,
+        runStatus: r.status,
         error: r.error,
         via: "scraper-lab",
       }));
       console.log(`🏠 scraper-lab job ${jobId} completed: ${matches.length} matches`);
-      return { matches, runs };
+      return { matches, runs, outcome: job.outcome };
     }
 
     if (job.status === "failed") {
-      throw new Error(job.error ?? "scraper-lab job failed");
+      const runs = (job.runs ?? []).map((r) => ({
+        scraper: String(r.scraper ?? ""),
+        success: r.status === "success",
+        matchCount: r.profiles_found ?? 0,
+        runStatus: r.status,
+        error: r.error,
+        via: "scraper-lab",
+      }));
+      if (runs.length === 0) {
+        runs.push({
+          scraper: sources[0] ?? "scraper-lab",
+          success: false,
+          matchCount: 0,
+          error: job.error ?? "scraper-lab job failed",
+          via: "scraper-lab",
+        });
+      }
+      console.log(`🏠 scraper-lab job ${jobId} failed: ${job.error ?? "unknown"}`);
+      return { matches: [], runs, outcome: "failed" };
     }
 
     await new Promise((r) => setTimeout(r, pollIntervalMs));
   }
 
   throw new Error(`scraper-lab job ${jobId} timed out after ${pollSec}s`);
+}
+
+export async function searchViaScraperLab(
+  siteNames: string[],
+  input: SearchInput,
+): Promise<{ matches: ProfileMatch[]; runs: Array<Record<string, unknown>> }> {
+  const base = (Deno.env.get("SCRAPER_LAB_URL") ?? "").replace(/\/$/, "");
+  const token = Deno.env.get("SCRAPER_LAB_TOKEN") ?? "";
+  if (!base || !token) {
+    throw new Error("SCRAPER_LAB_URL and SCRAPER_LAB_TOKEN required");
+  }
+
+  const sources = siteNamesToSources(siteNames);
+  const pollSec = Number(Deno.env.get("SCRAPER_LAB_POLL_MAX_SEC") ?? "150");
+  const pollIntervalMs = Number(Deno.env.get("SCRAPER_LAB_POLL_MS") ?? "2000");
+
+  const body = {
+    first_name: input.first_name,
+    last_name: input.last_name,
+    city: input.city,
+    state: input.state,
+    zip: input.zip,
+    sources,
+  };
+
+  const first = await runJob(base, token, body, pollSec, pollIntervalMs, sources);
+  if (first.matches.length > 0 || !input.city) {
+    return { matches: first.matches, runs: first.runs };
+  }
+
+  // No matches with a city filter — retry state-only.
+  // City/zip identify the user, not a filter — broker sites often list under a
+  // different metro name than the USPS mail city (e.g. 66210 → Overland Park, not Shawnee Mission).
+  console.log(`🏠 scraper-lab: 0 matches with city=${input.city}, retrying state-only`);
+  const second = await runJob(
+    base,
+    token,
+    { ...body, city: undefined },
+    pollSec,
+    pollIntervalMs,
+    sources,
+  );
+
+  const mergedRuns = [
+    ...first.runs.map((r) => ({ ...r, attempt: "with_city" })),
+    ...second.runs.map((r) => ({ ...r, attempt: "state_only" })),
+  ];
+  return { matches: second.matches, runs: mergedRuns };
 }

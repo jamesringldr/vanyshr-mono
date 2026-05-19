@@ -80,6 +80,7 @@ serve(async (req) => {
       last_name: lastName,
       city: city || undefined,
       state: state || undefined,
+      zip: zipCode || undefined,
     };
 
     let matches: ProfileMatch[] = [];
@@ -124,18 +125,19 @@ serve(async (req) => {
     }
 
     if (scraperLabEnabled()) {
-      const scraperName = siteName.toLowerCase().replace(/\s+/g, '');
-      const siteList = search_all
-        ? getScrapersForSearchType('name').map((s) => s.name.toLowerCase().replace(/\s+/g, ''))
-        : [scraperName];
-      console.log(`🏠 Using scraper-lab (home worker) for: ${siteList.join(', ')}`);
+      // AnyWho-only mode: run AnyWho once. If it returns 0 matches, the
+      // scan finalizes as `no_matches` and the frontend shows the
+      // "nothing found" modal that previously appeared after the full
+      // anywho → fastpeoplesearch → zabasearch sequence failed.
+      console.log(`🏠 Running scraper-lab: anywho (only)`);
       try {
-        const result = await searchViaScraperLab(siteList, searchInput);
+        const result = await searchViaScraperLab(['anywho'], searchInput);
+        scraperRuns.push(...result.runs);
         matches = result.matches;
-        scraperRuns = result.runs;
+        console.log(`🏠 scraper-lab anywho returned ${result.matches.length} matches`);
       } catch (e) {
-        console.error('🏠 scraper-lab error:', e);
-        scraperRuns = [{ scraper: 'scraper-lab', success: false, error: (e as Error).message }];
+        console.error(`🏠 scraper-lab anywho error:`, e);
+        scraperRuns.push({ scraper: 'anywho', success: false, error: (e as Error).message, via: 'scraper-lab' });
       }
     } else if (search_all) {
       // Search across all name-capable scrapers (datacenter edge scrapers)
@@ -162,10 +164,12 @@ serve(async (req) => {
 
     console.log(`🔍 Found ${matches.length} total matches`);
 
-    const scraperFailed = scraperRuns.some((r: any) => r.success === false);
-    const finalStatus = matches.length > 0
-      ? 'selection_required'
-      : scraperFailed ? 'scraper_failed' : 'no_matches';
+    // AnyWho-only mode: there is no fallback scraper, so a failed AnyWho run
+    // should drop the user into the "nothing found" modal — not the error UI.
+    // We suppress scraper_failed entirely when matches are empty so the
+    // frontend's retry-then-error path never fires.
+    const scraperFailed = false;
+    const finalStatus = matches.length > 0 ? 'selection_required' : 'no_matches';
 
     if (activeScanId) {
       const { error: updateError } = await supabaseClient
