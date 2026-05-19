@@ -65,6 +65,7 @@ serve(async (req) => {
         .insert({
           session_id: crypto.randomUUID(),
           status: 'initiated',
+          source: 'quickscan',
           search_input: {
             first_name: firstName,
             last_name: lastName,

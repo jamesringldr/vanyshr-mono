@@ -179,12 +179,15 @@ function mergeZabaData(profile: QuickScanProfileData, selectedProfile: ProfileMa
             seenRelatives.add(k);
             return true;
         }),
-        aliases: profile.aliases.filter(a => {
-            const k = a.toLowerCase();
-            if (!k || seenAliases.has(k)) return false;
-            seenAliases.add(k);
-            return true;
-        }),
+        aliases: profile.aliases
+            .map((a) => (typeof a === "string" ? a : (a as { alias?: string }).alias || ""))
+            .filter((a) => a.length > 1 && !/^\(aliases/i.test(a))
+            .filter((a) => {
+                const k = a.toLowerCase();
+                if (!k || seenAliases.has(k)) return false;
+                seenAliases.add(k);
+                return true;
+            }),
         emails: profile.emails.filter(e => {
             const k = e.email.toLowerCase();
             if (!k || seenEmails.has(k)) return false;
@@ -345,6 +348,42 @@ function Pill({
     );
 }
 
+const LIST_PREVIEW_MAX = 5;
+
+/** Two-column grid: up to maxVisible items, then "{n} More..." in the next cell. */
+function LimitedTwoColumnGrid<T>({
+    items,
+    renderItem,
+    moreClassName,
+    maxVisible = LIST_PREVIEW_MAX,
+}: {
+    items: T[];
+    renderItem: (item: T, index: number) => React.ReactNode;
+    moreClassName?: string;
+    maxVisible?: number;
+}) {
+    const visible = items.slice(0, maxVisible);
+    const remaining = items.length - maxVisible;
+
+    return (
+        <ul className="grid grid-cols-2 gap-x-4 gap-y-2">
+            {visible.map((item, i) => (
+                <li key={i}>{renderItem(item, i)}</li>
+            ))}
+            {remaining > 0 && (
+                <li
+                    className={cx(
+                        "text-sm font-medium text-[var(--text-muted)] dark:text-[#7A92A8]",
+                        moreClassName,
+                    )}
+                >
+                    {remaining} More...
+                </li>
+            )}
+        </ul>
+    );
+}
+
 /**
  * Parse a full address string like "500 E 3rd ST Kansas City, Missouri 64106"
  * into a { street, cityStateZip } pair for two-line display.
@@ -405,12 +444,28 @@ function convertToPreProfileData(
     const spamRisks = Math.min(Math.floor(phoneCount * 5 + relativeCount), 35);
 
     // Find current address
-    const currentAddr = profile.addresses?.find(a => a.is_current) || profile.addresses?.[0];
-    const currentAddressStr = currentAddr
-        ? [currentAddr.street, currentAddr.city && currentAddr.state ? `${currentAddr.city}, ${currentAddr.state}` : currentAddr.full_address]
-            .filter(Boolean)
-            .join("\n")
-        : "—";
+    const currentAddr =
+        profile.addresses?.find((a) => a.is_current) ||
+        profile.addresses?.find((a) => a.street || a.full_address) ||
+        profile.addresses?.[0];
+    let currentAddressStr = "—";
+    if (currentAddr) {
+        if (currentAddr.street) {
+            currentAddressStr = [
+                currentAddr.street,
+                currentAddr.city && currentAddr.state
+                    ? `${currentAddr.city}, ${currentAddr.state}`
+                    : currentAddr.full_address,
+            ]
+                .filter(Boolean)
+                .join("\n");
+        } else if (currentAddr.full_address) {
+            const parsed = parseFullAddress(currentAddr.full_address);
+            currentAddressStr = parsed.cityStateZip
+                ? `${parsed.street}\n${parsed.cityStateZip}`
+                : currentAddr.full_address;
+        }
+    }
 
     // Find primary phone
     const primaryPhone = profile.phones?.find(p => p.is_primary) || profile.phones?.[0];
@@ -477,11 +532,16 @@ function convertToPreProfileData(
             primaryPhone: primaryPhoneStr,
         },
         alsoKnownAs: (profile.aliases || []).map(toProperCase),
-        familyAndFriends: profile.relatives?.map(r => ({
-            name: toProperCase(r.name),
-            age: r.age ? parseInt(r.age, 10) : undefined,
-            relationship: r.relationship,
-        })) || [],
+        familyAndFriends: profile.relatives
+            ?.map((r) => {
+                const parsedAge = r.age ? parseInt(r.age, 10) : undefined;
+                return {
+                    name: toProperCase(r.name),
+                    age: parsedAge != null && !Number.isNaN(parsedAge) ? parsedAge : undefined,
+                    relationship: r.relationship,
+                };
+            })
+            .filter((r) => r.age == null || r.age <= 80) || [],
         pastAddresses,
         pastPhones,
         employers,
@@ -513,6 +573,26 @@ export function PreProfile() {
         setStartError(null);
 
         try {
+            const existingProfileId = sessionStorage.getItem("pendingProfileId");
+            if (existingProfileId) {
+                sessionStorage.setItem("pendingScanId", scanId);
+                openBetaModal();
+                return;
+            }
+
+            const { data: scanRow } = await supabase
+                .from("quick_scans")
+                .select("converted_to_user_id")
+                .eq("id", scanId)
+                .maybeSingle();
+
+            if (scanRow?.converted_to_user_id) {
+                sessionStorage.setItem("pendingScanId", scanId);
+                sessionStorage.setItem("pendingProfileId", scanRow.converted_to_user_id);
+                openBetaModal();
+                return;
+            }
+
             const { data, error } = await supabase.functions.invoke<{
                 success: boolean;
                 profile_id?: string;
@@ -547,6 +627,34 @@ export function PreProfile() {
             const selectedProfile: ProfileMatch | null = selectedProfileStr
                 ? JSON.parse(selectedProfileStr)
                 : null;
+
+            // Prefer saved profile_data when we have a scan id (manual admin upload, completed scans).
+            // A stub selectedProfile from manual-scan must not skip this path.
+            if (scanId) {
+                const { data: scanRow, error: scanError } = await supabase
+                    .from("quick_scans")
+                    .select("profile_data, converted_to_user_id")
+                    .eq("id", scanId)
+                    .maybeSingle();
+
+                if (!scanError && scanRow?.profile_data) {
+                    const profileData = scanRow.profile_data as QuickScanProfileData;
+                    const stub: ProfileMatch = selectedProfile ?? {
+                        id: "db-loaded",
+                        name: profileData.name,
+                        age: profileData.age,
+                        source: profileData.sources?.[0] ?? "AnyWho",
+                    };
+                    if (scanRow.converted_to_user_id) {
+                        sessionStorage.setItem("pendingProfileId", scanRow.converted_to_user_id);
+                        sessionStorage.setItem("pendingScanId", scanId);
+                    }
+                    const merged = mergeZabaData(profileData, stub);
+                    setData(convertToPreProfileData(merged, stub));
+                    setLoadingState("loaded");
+                    return;
+                }
+            }
 
             if (!selectedProfile) {
                 throw new Error("No profile selected. Please go back and select a profile.");
@@ -932,12 +1040,10 @@ export function PreProfile() {
                     {/* Family & Friends */}
                     {data.familyAndFriends.length > 0 && (
                         <DataTypeCard icon={Users} title="Family & Friends">
-                            <ul className="space-y-2">
-                                {data.familyAndFriends.map((item, i) => (
-                                    <li
-                                        key={i}
-                                        className="flex flex-wrap items-center justify-between gap-2"
-                                    >
+                            <LimitedTwoColumnGrid
+                                items={data.familyAndFriends}
+                                renderItem={(item) => (
+                                    <div className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5">
                                         <span className="text-sm text-[var(--text-primary)] dark:text-white">
                                             {item.name}
                                             {item.relationship && (
@@ -947,22 +1053,24 @@ export function PreProfile() {
                                             )}
                                         </span>
                                         {item.age != null && (
-                                            <span className="text-sm text-[var(--text-muted)] dark:text-[#7A92A8] tabular-nums">
+                                            <span className="shrink-0 text-sm text-[var(--text-muted)] dark:text-[#7A92A8] tabular-nums">
                                                 {item.age}
                                             </span>
                                         )}
-                                    </li>
-                                ))}
-                            </ul>
+                                    </div>
+                                )}
+                            />
                         </DataTypeCard>
                     )}
 
                     {/* Past addresses */}
                     {data.pastAddresses.length > 0 && (
                         <DataTypeCard icon={MapPin} title="Past addresses">
-                            <ul className="space-y-3">
-                                {data.pastAddresses.map((addr, i) => (
-                                    <li key={i}>
+                            <LimitedTwoColumnGrid
+                                items={data.pastAddresses}
+                                maxVisible={3}
+                                renderItem={(addr) => (
+                                    <div>
                                         {addr.street && (
                                             <p className="text-sm font-bold text-[var(--text-primary)] dark:text-white">
                                                 {addr.street}
@@ -973,25 +1081,24 @@ export function PreProfile() {
                                                 {addr.cityStateZip}
                                             </p>
                                         )}
-                                    </li>
-                                ))}
-                            </ul>
+                                    </div>
+                                )}
+                            />
                         </DataTypeCard>
                     )}
 
                     {/* Past phone numbers */}
                     {data.pastPhones.length > 0 && (
                         <DataTypeCard icon={Phone} title="Past phone numbers">
-                            <ul className="grid grid-cols-2 gap-x-4 gap-y-1.5">
-                                {data.pastPhones.map((phone, i) => (
-                                    <li
-                                        key={i}
-                                        className="font-mono text-sm tabular-nums text-[var(--text-primary)] dark:text-white"
-                                    >
+                            <LimitedTwoColumnGrid
+                                items={data.pastPhones}
+                                moreClassName="font-mono"
+                                renderItem={(phone) => (
+                                    <span className="font-mono text-sm tabular-nums text-[var(--text-primary)] dark:text-white">
                                         {phone}
-                                    </li>
-                                ))}
-                            </ul>
+                                    </span>
+                                )}
+                            />
                         </DataTypeCard>
                     )}
 

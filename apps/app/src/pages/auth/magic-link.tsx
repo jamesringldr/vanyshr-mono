@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import PrimaryIconOutline from "@vanyshr/ui/assets/PrimaryIcon-outline.png";
 import { Mail, Check, Zap, Key } from "lucide-react";
@@ -13,6 +13,13 @@ export function AuthMagicLink() {
     const [showExistingModal, setShowExistingModal] = useState(false);
 
     const isValid = useMemo(() => /\S+@\S+\.\S+/.test(email.trim()), [email]);
+
+    useEffect(() => {
+        const prefill = sessionStorage.getItem("invitePrefillEmail");
+        if (prefill) {
+            setEmail(prefill);
+        }
+    }, []);
 
     const handleSend = async () => {
         if (!isValid || isSending) return;

@@ -29,6 +29,7 @@ import { CompilingBrandedPage } from "./pages/scan/compiling-branded";
 import { LoadingPreProfilePage } from "./pages/scan/loading-pre-profile";
 import { ScanningStartedPage } from "./pages/scan/scanning-started";
 import { QuickScanErrorPage } from "./pages/quickscan-error";
+import { AdminManualScan } from "./pages/admin/manual-scan";
 
 // Dashboard pages
 import { FinancialDashboard } from "./pages/dashboard/financial";
@@ -49,6 +50,8 @@ import { OnboardingRemovalStrategyPage } from "./pages/onboarding/removal-strate
 import { Pricing } from "./pages/pricing";
 import { NotFound } from "./pages/not-found";
 import { ReferralSlider } from "./pages/referral";
+import { Invite } from "./pages/invite";
+import { InviteLoading } from "./pages/invite-loading";
 
 // Sandbox Mockups
 import { VanyshrAppMockup, ScamMockup, RemovalsMockup, DataExplosionMockup } from "@vanyshr/ui";
@@ -139,11 +142,16 @@ export default function App() {
             <Route path="/quick-scan/compiling" element={<QSCompiling />} />
             <Route path="/quick-scan/pre-profile/:scanId?" element={<PreProfile />} />
 
+            {/* Admin — dev only */}
+            <Route path="/admin/manual-scan" element={<DevOnly><AdminManualScan /></DevOnly>} />
+
             {/* Settings */}
             <Route path="/settings/notifications" element={<RequireAuth><NotificationsPage /></RequireAuth>} />
 
             {/* Referral */}
             <Route path="/referral" element={<ReferralSlider />} />
+            <Route path="/invite" element={<Invite />} />
+            <Route path="/invite/loading/:scanId" element={<InviteLoading />} />
 
             {/* Other */}
             <Route path="/pricing" element={<Pricing />} />

@@ -4,11 +4,11 @@
 
 ### Branch rules
 - `main` — production only. NEVER commit directly to main. NEVER force push to main.
-- `sandbox` — active development branch. Default branch for all work.
-- `dev/<issue-name>` — isolated feature/fix branches. Always branch from `sandbox`, not `main`.
+- `staging` — staging / pre-production integration branch. Default branch for all work.
+- `dev/<issue-name>` — isolated feature/fix branches. Always branch from `staging`, not `main`.
 
 ### Before any git operation, confirm the current branch
-- If on `main`, stop and switch to `sandbox` before making changes
+- If on `main`, stop and switch to `staging` before making changes
 - If asked to commit, always confirm which branch we're on first
 
 ### Commit message format
@@ -18,7 +18,7 @@
 Types: `feat`, `fix`, `chore`, `refactor`, `style`, `docs`
 
 ### Merging to production
-Only merge `sandbox` → `main` when explicitly instructed by the user. Never suggest or initiate this automatically.
+Only merge `staging` → `main` when explicitly instructed by the user. Never suggest or initiate this automatically.
 
 ### Never commit
 - `.env.local` or any file containing secrets
@@ -40,7 +40,7 @@ Only merge `sandbox` → `main` when explicitly instructed by the user. Never su
 
 ## Vercel Deployment
 - Production branch: `main` → `app.vanyshr.com`
-- Preview branches: `sandbox`, `dev/*` → Vercel preview URLs
+- Preview branches: `staging`, `dev/*` → Vercel preview URLs
 - Build command: `cd apps/app && pnpm build`
 - Output directory: `apps/app/dist`
 - Root directory: `./` (monorepo root, so pnpm resolves workspace deps)

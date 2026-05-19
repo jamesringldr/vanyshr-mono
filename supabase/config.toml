@@ -367,6 +367,12 @@ verify_jwt = false
 [functions.phone-lookup]
 verify_jwt = false
 
+[functions.admin-parse-html]
+verify_jwt = false
+
+[functions.admin-send-invite]
+verify_jwt = false
+
 [edge_runtime]
 enabled = true
 # Supported request policies: `oneshot`, `per_worker`.
