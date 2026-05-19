@@ -21,7 +21,7 @@ serve(async (req) => {
       { auth: { autoRefreshToken: false, persistSession: false } }
     );
 
-    const { scan_id, email } = await req.json();
+    const { scan_id, email, source } = await req.json();
 
     if (!scan_id) {
       return new Response(
@@ -30,12 +30,32 @@ serve(async (req) => {
       );
     }
 
-    console.log(`🧩 create-pending-profile: scan_id=${scan_id} email=${email ?? "(none)"}`);
+    let resolvedEmail =
+      typeof email === "string" && email.trim() ? email.trim() : null;
+
+    if (!resolvedEmail) {
+      const { data: scanRow } = await supabaseClient
+        .from("quick_scans")
+        .select("email")
+        .eq("id", scan_id)
+        .maybeSingle();
+      if (scanRow?.email && String(scanRow.email).trim()) {
+        resolvedEmail = String(scanRow.email).trim();
+      }
+    }
+
+    console.log(`🧩 create-pending-profile: scan_id=${scan_id} email=${resolvedEmail ?? "(none)"}`);
+
+    const profileSource =
+      typeof source === "string" && ["invite", "quickscan"].includes(source)
+        ? source
+        : "quickscan";
 
     const { data, error } = await supabaseClient
       .rpc("create_pending_profile", {
         p_scan_id: scan_id,
-        p_email:   email ?? null,
+        p_email:   resolvedEmail,
+        p_source:  profileSource,
       });
 
     if (error) {

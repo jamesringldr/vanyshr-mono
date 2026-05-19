@@ -49,6 +49,8 @@ PK: `id` (own UUID — NOT `auth.uid()`) | RLS: ✅
 | email | text | nullable — captured at magic-link submission |
 | auth_user_id | uuid | nullable, unique → `auth.users.id` |
 | signup_status | text | Funnel: `pending_user` → `waitlisted` or `accessed_pending_signup` → `pending_auth` → `active`; also `suspended`. Default `pending_user`. |
+| role | text | `test` \| `user` \| `family_admin`. Default `user`. `family_admin` = family plan owner; `test` = QA accounts. Clients cannot change via RLS (trigger enforces). |
+| source | text | `invite` \| `quickscan`. How the profile was created. Default `quickscan`. Set to `invite` for admin/concierge flows. |
 | source_quick_scan_id | uuid | nullable → `quick_scans.id` |
 | onboarding_completed | bool | default false |
 | onboarding_step | int | default 0 |
@@ -204,6 +206,8 @@ PK: `id` | RLS: ✅ | TTL: 30 minutes
 | id | uuid | PK |
 | session_id | text | anonymous session identifier |
 | search_input | jsonb | name/location data entered by user |
+| email | text | nullable — invite recipient email; pre-fills magic-link signup when set |
+| source | text | `invite` \| `quickscan`. How the scan was created. Default `quickscan`. |
 | status | text | See status values below |
 | profile_matches | jsonb | nullable — list of scraped candidates |
 | candidate_matches | jsonb | nullable — Zabasearch matches with `fullProfile` |
@@ -517,7 +521,10 @@ Individual Vanyshr removal outcome records — feeds into `broker_stats` aggrega
 |----------|-------------|
 | `get_current_user_profile_id()` | Resolves the `user_profiles.id` for the current auth session. Used in all RLS policies. |
 | `normalize_phone_e164(text)` | Strips non-digits, normalizes 10- and 11-digit US numbers to `+1XXXXXXXXXX`. `IMMUTABLE`. |
-| `create_pending_profile(p_scan_id UUID, p_email TEXT DEFAULT NULL)` | Creates a `user_profiles` row from a `quick_scans` record with `signup_status = 'pending_user'`. Seeds phones, addresses, and aliases from `quick_scans.profile_data`; seeds `user_preferences`; calls `initialize_onboarding_steps`. service_role only. |
+| `create_pending_profile(p_scan_id UUID, p_email TEXT DEFAULT NULL, p_source TEXT DEFAULT 'quickscan')` | Creates a `user_profiles` row from a `quick_scans` record with `signup_status = 'pending_user'` and `source` (`invite` \| `quickscan`). Seeds phones, addresses, and aliases from `quick_scans.profile_data`; seeds `user_preferences`; calls `initialize_onboarding_steps`. service_role only. |
+| `get_invite_profile(p_profile_id UUID)` | Legacy: profile-id invite lookup. Prefer `get_invite_scan`. |
+| `get_invite_scan(p_scan_id UUID)` | Returns `{ success, first_name?, last_name?, city?, state?, email?, scan_id, profile_id? }` for `/invite?id=<quick_scans.id>`. Requires `quick_scans.source = 'invite'`. Granted to `anon` + `authenticated`. |
+| `confirm_invite_scan(p_scan_id UUID, p_first_name, p_last_name, p_city, p_state)` | Saves confirmed name/location to `quick_scans.search_input` and linked `user_profiles`. Granted to `anon` + `authenticated`. |
 | `initialize_onboarding_steps(user_id UUID)` | Seeds `user_onboarding_progress` rows for a new user. Called by `create_pending_profile`. |
 | `fan_out_broadcast_update(...)` | `SECURITY DEFINER` — inserts a `user_updates` row for every active user. Used for admin broadcasts. *(Available after pending migration is applied.)* |
 | `validate_access_code(p_code TEXT, p_profile_id UUID)` | Validates a beta access code (active, not expired). Atomically claims a use via `UPDATE ... WHERE use_count < max_uses RETURNING id` (prevents double-spend on limited codes), then advances profile `signup_status` → `accessed_pending_signup`. Compensates (decrements `use_count`) if the profile update fails. Returns `{ success: false }` on any failure. Returns `{ success, profile_id }`. service_role only. |

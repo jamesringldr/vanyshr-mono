@@ -36,6 +36,16 @@ interface AdminParseRequest {
   selected_match_id?: string;
   /** Batch: parse multiple broker HTML files into one merged profile_data row */
   sources?: AdminParseSource[];
+  /** When true, recipient email comes from invited_email (admin concierge flow) */
+  invite_mode?: boolean;
+  invited_email?: string;
+}
+
+function resolveInviteRecipientEmail(body: AdminParseRequest): string | null {
+  const fromInvite = body.invited_email?.trim().toLowerCase();
+  if (fromInvite) return fromInvite;
+  if (body.invite_mode) return null;
+  return body.search_input?.email?.trim().toLowerCase() || null;
 }
 
 function normalizeSiteName(siteName: string): string {
@@ -87,11 +97,15 @@ async function ensurePendingUserProfile(
     if (trimmedEmail) {
       const { error: updateError } = await supabaseClient
         .from("user_profiles")
-        .update({ email: trimmedEmail })
+        .update({ email: trimmedEmail, source: "invite" })
         .eq("id", profileId);
       if (updateError) {
         return { error: updateError.message };
       }
+      await supabaseClient
+        .from("quick_scans")
+        .update({ email: trimmedEmail })
+        .eq("id", scanId);
     }
     return { profile_id: profileId };
   }
@@ -99,6 +113,7 @@ async function ensurePendingUserProfile(
   const { data, error } = await supabaseClient.rpc("create_pending_profile", {
     p_scan_id: scanId,
     p_email: trimmedEmail ?? null,
+    p_source: "invite",
   });
 
   if (error) {
@@ -121,7 +136,19 @@ async function handleBatchParse(
     save_to_db = true,
     search_input,
     sources = [],
+    invite_mode = false,
   } = body;
+
+  const inviteRecipientEmail = resolveInviteRecipientEmail(body);
+  if (invite_mode && !inviteRecipientEmail) {
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: "invited_email is required when invite_mode is true",
+      }),
+      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
+  }
 
   if (!search_input?.first_name || !search_input?.last_name) {
     return new Response(
@@ -212,6 +239,8 @@ async function handleBatchParse(
       id: activeScanId,
       session_id: crypto.randomUUID(),
       status: "completed",
+      source: "invite",
+      email: inviteRecipientEmail,
       search_input: buildSearchInputPayload(search_input),
       profile_data: mergedProfile,
       scraper_runs: scraperRuns,
@@ -233,7 +262,7 @@ async function handleBatchParse(
     const { profile_id, error: profileError } = await ensurePendingUserProfile(
       supabaseClient,
       activeScanId,
-      search_input?.email,
+      inviteRecipientEmail ?? undefined,
     );
 
     if (profileError) {
@@ -258,6 +287,7 @@ async function handleBatchParse(
         source_results: sourceResults,
         merged_from: parsedProfiles.length,
         pre_profile_url: `/quick-scan/pre-profile/${activeScanId}`,
+        invite_url: `/invite?id=${activeScanId}`,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
@@ -271,6 +301,7 @@ async function handleBatchParse(
       source_results: sourceResults,
       merged_from: parsedProfiles.length,
       pre_profile_url: `/quick-scan/pre-profile/${activeScanId}`,
+      invite_url: `/invite?id=${activeScanId}`,
     }),
     { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
   );
@@ -353,6 +384,8 @@ serve(async (req) => {
           .insert({
             session_id: crypto.randomUUID(),
             status: matches.length > 0 ? "selection_required" : "no_matches",
+            source: "invite",
+            email: search_input?.email?.trim() || null,
             search_input: buildSearchInputPayload(search_input),
             candidate_matches: matches,
             scraper_runs: [{
@@ -417,6 +450,8 @@ serve(async (req) => {
         .insert({
           session_id: crypto.randomUUID(),
           status: "completed",
+          source: "invite",
+          email: input.email?.trim() || null,
           search_input: {
             first_name: input.first_name ?? profileData.first_name ?? null,
             last_name: input.last_name ?? profileData.last_name ?? null,

@@ -50,6 +50,8 @@ import { OnboardingRemovalStrategyPage } from "./pages/onboarding/removal-strate
 import { Pricing } from "./pages/pricing";
 import { NotFound } from "./pages/not-found";
 import { ReferralSlider } from "./pages/referral";
+import { Invite } from "./pages/invite";
+import { InviteLoading } from "./pages/invite-loading";
 
 // Sandbox Mockups
 import { VanyshrAppMockup, ScamMockup, RemovalsMockup, DataExplosionMockup } from "@vanyshr/ui";
@@ -148,6 +150,8 @@ export default function App() {
 
             {/* Referral */}
             <Route path="/referral" element={<ReferralSlider />} />
+            <Route path="/invite" element={<Invite />} />
+            <Route path="/invite/loading/:scanId" element={<InviteLoading />} />
 
             {/* Other */}
             <Route path="/pricing" element={<Pricing />} />

@@ -1,5 +1,5 @@
 -- ============================================================================
--- Migration: 20260519_user_profiles_role.sql
+-- Migration: 20260519100000_user_profiles_role.sql
 -- ============================================================================
 -- Description: Add account role to user_profiles for test users and family admins.
 --
