@@ -48,6 +48,7 @@ interface BatchParseResponse {
   source_results?: SourceResult[];
   merged_from?: number;
   pre_profile_url?: string;
+  invite_url?: string;
   error?: string;
 }
 
@@ -83,6 +84,7 @@ export function AdminManualScan() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [resultJson, setResultJson] = useState<string | null>(null);
+  const [inviteUrl, setInviteUrl] = useState<string | null>(null);
   const [sourceResults, setSourceResults] = useState<SourceResult[] | null>(null);
 
   const updateBroker = useCallback((id: BrokerId, patch: Partial<BrokerUpload>) => {
@@ -121,6 +123,7 @@ export function AdminManualScan() {
     setIsLoading(true);
     setError(null);
     setResultJson(null);
+    setInviteUrl(null);
     setSourceResults(null);
 
     try {
@@ -187,6 +190,17 @@ export function AdminManualScan() {
         sessionStorage.setItem("pendingScanId", data.scan_id ?? scanId);
       }
 
+      const resolvedScanId = data.scan_id ?? scanId;
+      const resolvedInvite =
+        data.invite_url ??
+        (resolvedScanId ? `/invite?id=${resolvedScanId}` : null);
+      setInviteUrl(
+        resolvedInvite
+          ? resolvedInvite.startsWith("http")
+            ? resolvedInvite
+            : `${window.location.origin}${resolvedInvite}`
+          : null,
+      );
       setResultJson(JSON.stringify(data, null, 2));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
@@ -373,12 +387,30 @@ export function AdminManualScan() {
           </button>
 
           {!error && resultJson && (
-            <div className="text-sm space-y-2">
+            <div className="text-sm space-y-3">
+              {inviteUrl && (
+                <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3">
+                  <p className="text-xs font-medium uppercase tracking-wide text-amber-300">
+                    User invite link (send this)
+                  </p>
+                  <a
+                    href={inviteUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-1 block break-all font-mono text-sm text-amber-200 underline"
+                  >
+                    {inviteUrl}
+                  </a>
+                  <p className="mt-2 text-xs text-slate-400">
+                    Must use <code className="text-amber-200">/invite?id=</code> — not the raw scan UUID or pre-profile URL.
+                  </p>
+                </div>
+              )}
               <Link
                 to={`/quick-scan/pre-profile/${scanId}`}
-                className="inline-block text-amber-400 underline"
+                className="inline-block text-slate-400 underline"
               >
-                Open pre-profile →
+                Admin: open pre-profile →
               </Link>
               <pre className="max-h-64 overflow-auto rounded-lg border border-slate-800 bg-slate-950 p-4 text-xs text-slate-300">
                 {resultJson}
