@@ -159,7 +159,7 @@ export function OnboardingAliases() {
         if (user) {
             await supabase
                 .from("user_profiles")
-                .update({ onboarding_step: 3 })
+                .update({ onboarding_step: 4 })
                 .eq("auth_user_id", user.id);
         }
         setActiveId(null);
@@ -171,7 +171,7 @@ export function OnboardingAliases() {
         return (
             <OnboardingLayout
                 currentStep={"aliases" satisfies OnboardingStep}
-                completedSteps={["basic", "phone"]}
+                completedSteps={["basic", "emails", "phone"]}
                 title="Aliases"
                 subtitle="Click on Field to Edit"
                 onDashboardNavigate={() => navigate("/scanning-started")}
@@ -187,7 +187,7 @@ export function OnboardingAliases() {
     return (
         <OnboardingLayout
             currentStep={"aliases" satisfies OnboardingStep}
-            completedSteps={["basic", "phone"]}
+            completedSteps={["basic", "emails", "phone"]}
             title="Aliases"
             subtitle="Click on Field to Edit"
             onDashboardNavigate={() => navigate("/scanning-started")}

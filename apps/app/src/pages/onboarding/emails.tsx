@@ -189,8 +189,7 @@ export function OnboardingEmails() {
         setEditValue("");
     };
 
-    // Final step — mark onboarding complete and go to dashboard
-    const handleFinishSetup = async () => {
+    const handleConfirmAndContinue = async () => {
         setIsSaving(true);
         // Bulk-confirm all active items so none are left as 'unverified'
         if (profileId) {
@@ -203,35 +202,22 @@ export function OnboardingEmails() {
                 .eq("user_id", profileId)
                 .eq("is_active", true);
         }
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
             await supabase
                 .from("user_profiles")
-                .update({ onboarding_completed: true, onboarding_step: 5 })
-                .eq("auth_user_id", session.user.id);
-
-            // Fire-and-forget initial breach scan — runs in background,
-            // does not block navigation. Results appear on the dashboard.
-            if (profileId) {
-                fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/breaches-scan`, {
-                    method:  "POST",
-                    headers: {
-                        "Content-Type":  "application/json",
-                        "Authorization": `Bearer ${session.access_token}`,
-                    },
-                    body: JSON.stringify({ profile_id: profileId }),
-                }).catch(err => console.error("[Onboarding] breach scan trigger failed:", err));
-            }
+                .update({ onboarding_step: 2 })
+                .eq("auth_user_id", user.id);
         }
         setIsSaving(false);
-        navigate("/onboarding/progress");
+        navigate("/onboarding/phone-numbers");
     };
 
     if (isLoading) {
         return (
             <OnboardingLayout
                 currentStep={"emails" satisfies OnboardingStep}
-                completedSteps={["basic", "phone", "aliases", "addresses"]}
+                completedSteps={["basic"]}
                 title="Emails"
                 subtitle="Click on Field to Edit"
                 onDashboardNavigate={() => navigate("/scanning-started")}
@@ -247,24 +233,38 @@ export function OnboardingEmails() {
     return (
         <OnboardingLayout
             currentStep={"emails" satisfies OnboardingStep}
-            completedSteps={["basic", "phone", "aliases", "addresses"]}
+            completedSteps={["basic"]}
             title="Emails"
             subtitle="Click on Field to Edit"
             onDashboardNavigate={() => navigate("/scanning-started")}
             footer={
-                <button
-                    type="button"
-                    onClick={handleFinishSetup}
-                    disabled={isSaving}
-                    className={cx(
-                        "flex h-[52px] w-full items-center justify-center rounded-xl text-sm font-semibold text-white outline-none transition",
-                        "bg-[#00BFFF] hover:bg-[#0E9AE8]",
-                        "focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#022136]",
-                        isSaving && "opacity-60 cursor-not-allowed",
-                    )}
-                >
-                    {isSaving ? "Saving..." : "Finish Profile"}
-                </button>
+                <div className="flex w-full gap-3">
+                    <button
+                        type="button"
+                        onClick={() => navigate("/onboarding/primary-info")}
+                        className={cx(
+                            "flex h-[52px] flex-1 items-center justify-center rounded-xl text-sm font-semibold outline-none transition",
+                            "border border-[var(--border-subtle)] dark:border-[#2A4A68]",
+                            "text-[#022136] dark:text-white bg-transparent hover:bg-black/5 dark:hover:bg-white/10",
+                            "focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#022136]",
+                        )}
+                    >
+                        &lt; BACK
+                    </button>
+                    <button
+                        type="button"
+                        onClick={handleConfirmAndContinue}
+                        disabled={isSaving}
+                        className={cx(
+                            "flex h-[52px] flex-1 items-center justify-center rounded-xl text-sm font-semibold text-white outline-none transition",
+                            "bg-[#00BFFF] hover:bg-[#0E9AE8]",
+                            "focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#022136]",
+                            isSaving && "opacity-60 cursor-not-allowed",
+                        )}
+                    >
+                        {isSaving ? "Saving..." : "CONFIRM >"}
+                    </button>
+                </div>
             }
         >
             {items.length === 0 && (
