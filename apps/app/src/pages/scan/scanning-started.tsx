@@ -1,4 +1,6 @@
+import { useNavigate } from "react-router";
 import PrimaryIconOutline from "@vanyshr/ui/assets/PrimaryIcon-outline.png";
+import { cx } from "@/utils/cx";
 
 const KEYFRAMES = `
 @keyframes qs-float {
@@ -28,15 +30,18 @@ const KEYFRAMES = `
 `;
 
 export function ScanningStartedPage() {
+  const navigate = useNavigate();
+
   return (
     <>
       <style>{KEYFRAMES}</style>
 
       <div
-        className="min-h-screen w-full bg-[#022136] flex items-center justify-center px-6 py-12"
+        className="flex min-h-screen flex-col bg-[#022136]"
         role="main"
         aria-label="Scan started"
       >
+        <div className="flex flex-1 items-start justify-center overflow-y-auto px-6 py-12 pb-28">
         <div className="w-full max-w-sm flex flex-col items-center text-center">
 
           {/* ── Ghost icon ────────────────────────────── */}
@@ -178,6 +183,30 @@ export function ScanningStartedPage() {
             </div>
           </div>
         </div>
+        </div>
+
+        <footer
+          className={cx(
+            "fixed bottom-0 left-0 right-0 border-t px-4 py-4",
+            "border-[#2A4A68] bg-[#2D3847]",
+            "shadow-[0_-8px_24px_rgba(0,0,0,0.45)]",
+          )}
+          role="contentinfo"
+        >
+          <div className="mx-auto w-full max-w-lg">
+            <button
+              type="button"
+              onClick={() => navigate("/dashboard/home")}
+              className={cx(
+                "flex h-[52px] w-full items-center justify-center rounded-xl text-sm font-semibold text-white outline-none transition",
+                "bg-[#00BFFF] hover:bg-[#0E9AE8]",
+                "focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2 focus-visible:ring-offset-[#2D3847]",
+              )}
+            >
+              Go To Dashboard
+            </button>
+          </div>
+        </footer>
       </div>
     </>
   );

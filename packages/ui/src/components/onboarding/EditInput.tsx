@@ -59,7 +59,7 @@ export function EditInput({
                     aria-invalid={!!error}
                     aria-describedby={error ? `${id}-error` : undefined}
                     className={cx(
-                        "h-[52px] w-full rounded-xl border py-3 text-sm outline-none transition",
+                        "h-[52px] w-full rounded-xl border py-3 text-base outline-none transition",
                         "bg-[#F0F4F8]/50 dark:bg-[#022136]/50",
                         error
                             ? "border-red-500 dark:border-red-400"
