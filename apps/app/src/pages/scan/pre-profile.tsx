@@ -1,6 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { Link, useParams } from "react-router";
-import { useBetaModal } from "@/components/BetaModalContext";
+import { Link, useNavigate, useParams } from "react-router";
 import { motion, useReducedMotion } from "framer-motion";
 import {
     Menu,
@@ -552,7 +551,7 @@ function convertToPreProfileData(
 
 export function PreProfile() {
     const { scanId } = useParams<{ scanId?: string }>();
-    const { openBetaModal } = useBetaModal();
+    const navigate = useNavigate();
     const prefersReducedMotion = useReducedMotion();
     const [loadingState, setLoadingState] = useState<LoadingState>("loading");
     const [data, setData] = useState<PreProfileData | null>(null);
@@ -561,60 +560,16 @@ export function PreProfile() {
     const [isFooterVisible, setIsFooterVisible] = useState(false);
     const [loadingEllipsis, setLoadingEllipsis] = useState(".");
 
-    const [isStarting, setIsStarting] = useState(false);
-
-    const handleStartVanyshing = useCallback(async () => {
+    const handleStartVanyshing = useCallback(() => {
         if (!scanId) {
             setStartError("Scan ID is missing. Please go back and try again.");
             return;
         }
 
-        setIsStarting(true);
         setStartError(null);
-
-        try {
-            const existingProfileId = sessionStorage.getItem("pendingProfileId");
-            if (existingProfileId) {
-                sessionStorage.setItem("pendingScanId", scanId);
-                openBetaModal();
-                return;
-            }
-
-            const { data: scanRow } = await supabase
-                .from("quick_scans")
-                .select("converted_to_user_id")
-                .eq("id", scanId)
-                .maybeSingle();
-
-            if (scanRow?.converted_to_user_id) {
-                sessionStorage.setItem("pendingScanId", scanId);
-                sessionStorage.setItem("pendingProfileId", scanRow.converted_to_user_id);
-                openBetaModal();
-                return;
-            }
-
-            const { data, error } = await supabase.functions.invoke<{
-                success: boolean;
-                profile_id?: string;
-                scan_id?: string;
-                error?: string;
-            }>("create-pending-profile", {
-                body: { scan_id: scanId },
-            });
-
-            if (error || !data?.success || !data.profile_id) {
-                throw new Error(data?.error ?? error?.message ?? "Failed to start. Please try again.");
-            }
-
-            sessionStorage.setItem("pendingScanId", scanId);
-            sessionStorage.setItem("pendingProfileId", data.profile_id);
-            openBetaModal();
-        } catch (err) {
-            setStartError(err instanceof Error ? err.message : "Failed to start. Please try again.");
-        } finally {
-            setIsStarting(false);
-        }
-    }, [scanId, openBetaModal]);
+        sessionStorage.setItem("pendingScanId", scanId);
+        navigate("/signup");
+    }, [scanId, navigate]);
 
 
     const loadProfileData = useCallback(async () => {
@@ -1182,12 +1137,11 @@ export function PreProfile() {
                     <button
                         type="button"
                         onClick={handleStartVanyshing}
-                        disabled={isStarting}
-                        className="flex h-[52px] w-full max-w-md items-center justify-center gap-2 rounded-xl px-4 font-semibold text-white outline-none transition bg-[#00BFFF] hover:bg-[#0E9AE8] focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#022136] cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                        className="flex h-[52px] w-full max-w-md items-center justify-center gap-2 rounded-xl px-4 font-semibold text-white outline-none transition bg-[#00BFFF] hover:bg-[#0E9AE8] focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#022136] cursor-pointer"
                         aria-label="Start Vanyshing for free"
                     >
-                        {isStarting ? "Starting…" : "Start Vanyshing for FREE"}
-                        {!isStarting && <ArrowRight className="h-5 w-5 shrink-0" aria-hidden />}
+                        Start Vanyshing for FREE
+                        <ArrowRight className="h-5 w-5 shrink-0" aria-hidden />
                     </button>
                     <p className="text-xs font-semibold uppercase tracking-wide text-[#B8C4CC]">
                         NO CREDIT CARD REQUIRED
