@@ -24,7 +24,7 @@ Implement end-to-end:
 
 ## Hard rules (violations = failure)
 
-1. **Branch:** `dev/admin-invite-flow` from `sandbox`. Never commit to `main`. Never force-push `main`.
+1. **Branch:** `dev/admin-invite-flow` from `staging`. Never commit to `main`. Never force-push `main`.
 2. **Scope:** Only touch files listed in the plan §10 (+ imports/types they require). No drive-by refactors, no unrelated lint fixes, no new markdown unless the plan says so.
 3. **Secrets:** Never commit `.env.local`, real API keys, or `pnpm-lock.yaml`.
 4. **Security:** Client-side auth gates are **not sufficient**. `admin_sent` scans must be protected by **RLS** (or an edge function if RLS blocks you — prefer RLS per plan).
@@ -55,8 +55,8 @@ After each wave, **stop and report** to the user:
 
 ```bash
 git fetch origin
-git checkout sandbox
-git pull origin sandbox
+git checkout staging
+git pull origin staging
 git checkout -b dev/admin-invite-flow
 git branch --show-current   # must print dev/admin-invite-flow
 ```

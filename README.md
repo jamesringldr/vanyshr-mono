@@ -175,7 +175,7 @@ No circular dependencies — lower-level packages must not depend on higher-leve
 
 ### Web App (Vercel)
 - **Production:** `main` → `app.vanyshr.com`
-- **Preview:** `sandbox`, `dev/*` → Vercel preview URLs
+- **Preview:** `staging`, `dev/*` → Vercel preview URLs
 - Build command: `cd apps/app && pnpm build`
 - Output directory: `apps/app/dist`
 

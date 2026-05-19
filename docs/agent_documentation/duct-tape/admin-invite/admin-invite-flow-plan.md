@@ -2,7 +2,7 @@
 
 **Codename:** `duct-tape-plan`  
 **Repo:** `vanyshr-mono`  
-**Branch:** `dev/admin-invite-flow` from `sandbox` (never `main`)  
+**Branch:** `dev/admin-invite-flow` from `staging` (never `main`)  
 **Goal:** Admin runs manual scan → enters email → user gets magic link → **authenticated** pre-profile → Start Vanyshing → `/welcome` (skip beta + `/signup`) → onboarding.
 
 ---
@@ -347,7 +347,7 @@ Use **one Opus orchestrator** + **6 Haiku workers**. Each Haiku prompt must incl
 
 ### Wave 0 — Orchestrator (Opus, no Haiku)
 
-1. `git checkout sandbox && git pull && git checkout -b dev/admin-invite-flow`
+1. `git checkout staging && git pull && git checkout -b dev/admin-invite-flow`
 2. Create empty migration file with section comments only.
 3. This document is the source of truth.
 
@@ -463,7 +463,7 @@ Use **one Opus orchestrator** + **6 Haiku workers**. Each Haiku prompt must incl
 ### Wave 4 — Orchestrator (Opus)
 
 1. Merge conflicts, run `pnpm build` in `apps/app`.
-2. Run migration on linked Supabase project (sandbox).
+2. Run migration on linked Supabase staging project.
 3. Deploy edge functions: `supabase functions deploy admin-parse-html admin-send-invite`
 4. Execute acceptance tests A1–A10.
 5. Single commit: `feat: admin invite flow with gated pre-profile`
@@ -544,7 +544,7 @@ If not using sub-agents:
 ## 13. Commit & deploy
 
 ```bash
-git checkout sandbox
+git checkout staging
 git pull
 git checkout -b dev/admin-invite-flow
 # ... work ...
@@ -559,7 +559,7 @@ EOF
 git push -u origin dev/admin-invite-flow
 ```
 
-**Supabase:** `supabase db push` (sandbox project) + deploy both edge functions.  
+**Supabase:** `supabase db push` (staging project) + deploy both edge functions.  
 **Do not merge to `main`** unless explicitly instructed.
 
 ---

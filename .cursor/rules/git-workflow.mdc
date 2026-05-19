@@ -7,19 +7,19 @@ alwaysApply: true
 
 ## Branch Structure
 - `main` — production only → deploys to app.vanyshr.com
-- `sandbox` — active development, push here freely
-- `dev/<issue-name>` — isolated work, always branch from `sandbox`
+- `staging` — staging / pre-production integration; push tested work here
+- `dev/<issue-name>` — isolated work, always branch from `staging`
 
 ## Critical Rules
 - NEVER commit directly to `main`
 - NEVER force push to `main`
-- `dev/*` branches always branch from `sandbox`, never from `main`
-- Merge order: `dev/*` → `sandbox` → `main`
-- Only merge `sandbox` → `main` when explicitly instructed
+- `dev/*` branches always branch from `staging`, never from `main`
+- Merge order: `dev/*` → `staging` → `main`
+- Only merge `staging` → `main` when explicitly instructed
 
 ## Before Any Commit
 1. Confirm current branch (`git branch`)
-2. If on `main`, switch to `sandbox` first
+2. If on `main`, switch to `staging` first
 3. Never stage: `.env.local`, `pnpm-lock.yaml`, `dist/`, `.turbo/`
 
 ## Commit Message Format
@@ -34,7 +34,7 @@ alwaysApply: true
 - `docs` — documentation only
 
 ## Vercel Previews
-Every push to `sandbox` or `dev/*` creates a Vercel preview deployment automatically.
+Every push to `staging` or `dev/*` creates a Vercel preview deployment automatically.
 Test on the preview URL before merging to `main`.
 
 ## Full Reference
