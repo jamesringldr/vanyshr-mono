@@ -10,6 +10,7 @@ import {
 import { cx } from "@/utils/cx";
 import { Mail, Plus } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { triggerBreachesScan } from "@/lib/breaches";
 
 export interface EmailItem {
     id: string;
@@ -191,7 +192,6 @@ export function OnboardingEmails() {
 
     const handleConfirmAndContinue = async () => {
         setIsSaving(true);
-        // Bulk-confirm all active items so none are left as 'unverified'
         if (profileId) {
             await supabase
                 .from("user_emails")
@@ -201,6 +201,8 @@ export function OnboardingEmails() {
                 })
                 .eq("user_id", profileId)
                 .eq("is_active", true);
+
+            triggerBreachesScan(profileId);
         }
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
