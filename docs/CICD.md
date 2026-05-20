@@ -96,6 +96,7 @@ Preview deployments are created automatically on every push. Check the Vercel da
 - Local: `apps/app/.env.local` (never committed)
 - Production/Preview: set in Vercel dashboard under **Settings → Environment Variables**
 - Required vars: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`
+- Admin UI: private repo `vanyshr-admin` — see `docs/ADMIN_APP.md`
 
 ## Staging deploy check
 

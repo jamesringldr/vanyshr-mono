@@ -205,19 +205,6 @@ export function OnboardingAddresses() {
                 .from("user_profiles")
                 .update({ onboarding_completed: true, onboarding_step: 5 })
                 .eq("auth_user_id", session.user.id);
-
-            // Fire-and-forget initial breach scan — runs in background,
-            // does not block navigation. Results appear on the dashboard.
-            if (profileId) {
-                fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/breaches-scan`, {
-                    method:  "POST",
-                    headers: {
-                        "Content-Type":  "application/json",
-                        "Authorization": `Bearer ${session.access_token}`,
-                    },
-                    body: JSON.stringify({ profile_id: profileId }),
-                }).catch(err => console.error("[Onboarding] breach scan trigger failed:", err));
-            }
         }
         setActiveId(null);
         setEditingId(null);

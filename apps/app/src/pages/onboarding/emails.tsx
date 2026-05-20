@@ -10,6 +10,7 @@ import {
 import { cx } from "@/utils/cx";
 import { Mail, Plus } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { triggerBreachesScan } from "@/lib/breaches";
 
 export interface EmailItem {
     id: string;
@@ -191,7 +192,6 @@ export function OnboardingEmails() {
 
     const handleConfirmAndContinue = async () => {
         setIsSaving(true);
-        // Bulk-confirm all active items so none are left as 'unverified'
         if (profileId) {
             await supabase
                 .from("user_emails")
@@ -201,13 +201,28 @@ export function OnboardingEmails() {
                 })
                 .eq("user_id", profileId)
                 .eq("is_active", true);
+
+            triggerBreachesScan(profileId);
         }
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
             await supabase
                 .from("user_profiles")
                 .update({ onboarding_step: 2 })
-                .eq("auth_user_id", user.id);
+                .eq("auth_user_id", session.user.id);
+
+            // Fire-and-forget HIBP breach scan — runs in background after emails
+            // are confirmed. Results appear on the dashboard.
+            if (profileId) {
+                fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/breaches-scan`, {
+                    method:  "POST",
+                    headers: {
+                        "Content-Type":  "application/json",
+                        "Authorization": `Bearer ${session.access_token}`,
+                    },
+                    body: JSON.stringify({ profile_id: profileId }),
+                }).catch(err => console.error("[Onboarding] breach scan trigger failed:", err));
+            }
         }
         setIsSaving(false);
         navigate("/onboarding/phone-numbers");

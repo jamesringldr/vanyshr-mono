@@ -83,7 +83,7 @@ export function AddressAutocomplete({
                     placeholder="Start typing an address..."
                     autoComplete="off"
                     className={cx(
-                        "h-[52px] w-full rounded-xl border py-3 pl-12 pr-4 text-sm outline-none transition",
+                        "h-[52px] w-full rounded-xl border py-3 pl-12 pr-4 text-base outline-none transition",
                         "bg-[#022136]/50 dark:bg-[#022136]/50",
                         "border-[#2A4A68]",
                         "text-white placeholder:text-[#7A92A8]",

@@ -28,7 +28,7 @@ Only merge `staging` → `main` when explicitly instructed by the user. Never su
 ## Stack
 - React + Vite + TypeScript + TailwindCSS v4 + Framer Motion
 - Supabase (Postgres + Edge Functions in Deno)
-- Monorepo: `apps/app` (frontend), `packages/ui` (shared components), `supabase/`
+- Monorepo: `apps/app` (consumer), `packages/ui`, `supabase/` — admin UI is private repo `vanyshr-admin` (see `docs/ADMIN_APP.md`)
 - Package manager: pnpm + Turborepo
 
 ## Key Conventions
@@ -39,7 +39,8 @@ Only merge `staging` → `main` when explicitly instructed by the user. Never su
 - `envDir` is NOT set in vite.config — Vite reads from `apps/app/` by default
 
 ## Vercel Deployment
-- Production branch: `main` → `app.vanyshr.com`
+- **Consumer** (`apps/app`): production branch `main` → `app.vanyshr.com`
+- **Admin**: private repo `vanyshr-admin` → `admin.vanyshr.com` (not in this public mono)
 - Preview branches: `staging`, `dev/*` → Vercel preview URLs
 - Build command: `cd apps/app && pnpm build`
 - Output directory: `apps/app/dist`
