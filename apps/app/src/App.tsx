@@ -29,8 +29,6 @@ import { CompilingBrandedPage } from "./pages/scan/compiling-branded";
 import { LoadingPreProfilePage } from "./pages/scan/loading-pre-profile";
 import { ScanningStartedPage } from "./pages/scan/scanning-started";
 import { QuickScanErrorPage } from "./pages/quickscan-error";
-import { AdminManualScan } from "./pages/admin/manual-scan";
-
 // Dashboard pages
 import { FinancialDashboard } from "./pages/dashboard/financial";
 import { Transactions } from "./pages/dashboard/activity";
@@ -141,9 +139,6 @@ export default function App() {
             <Route path="/quick-scan/scanning" element={<QSScanning />} />
             <Route path="/quick-scan/compiling" element={<QSCompiling />} />
             <Route path="/quick-scan/pre-profile/:scanId?" element={<PreProfile />} />
-
-            {/* Admin — dev only */}
-            <Route path="/admin/manual-scan" element={<DevOnly><AdminManualScan /></DevOnly>} />
 
             {/* Settings */}
             <Route path="/settings/notifications" element={<RequireAuth><NotificationsPage /></RequireAuth>} />

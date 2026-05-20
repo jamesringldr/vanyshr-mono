@@ -4,18 +4,45 @@ import { Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 /**
+ * Validates the `next` redirect parameter for safety.
+ *
+ * Allowlist:
+ *  • Must start with `/quick-scan/pre-profile/`
+ *  • Must not contain `//`, `\`, or any protocol/host (`:` only valid after leading `/`)
+ *
+ * @param next - The redirect path to validate
+ * @returns true if safe to redirect, false otherwise
+ */
+function isSafeNext(next: string | null): boolean {
+  if (!next) return false;
+  if (!next.startsWith("/quick-scan/pre-profile/")) return false;
+  // Reject double slashes, backslashes, and colon-paths (e.g., http://, file://)
+  if (next.includes("//") || next.includes("\\")) return false;
+  // Reject any colon not in the leading slash (prevents protocol://host patterns)
+  if (next.slice(1).includes(":")) return false;
+  return true;
+}
+
+/**
  * /auth/callback
  *
  * Supabase redirects here after the user clicks the magic link in their email.
  * The URL contains the session tokens in the hash fragment — Supabase JS picks
  * these up automatically via onAuthStateChange.
  *
+ * Redirect matrix:
+ *  • profile_id + safe next → redirect to next
+ *  • profile_id + no/unsafe next → redirect to /welcome
+ *  • no profile_id + existing profile → redirect to /dashboard/home or /onboarding/progress
+ *  • no profile_id + no profile → redirect to /auth/wrong-email
+ *
  * Responsibilities:
  *  1. Wait for the confirmed auth session.
- *  2. Read the pending profile_id from the URL query param (set in magic-link.tsx).
- *  3. Call the link-auth-to-profile edge function (service role via anon key + bearer).
- *  4. Clear sessionStorage keys used during the pre-auth flow.
- *  5. Navigate to /welcome to begin onboarding.
+ *  2. Read the pending profile_id from the URL query param (set in magic-link.tsx or admin-send-invite).
+ *  3. Read the optional next param for admin invite redirects.
+ *  4. Call the link-auth-to-profile edge function (service role via anon key + bearer).
+ *  5. Clear sessionStorage keys used during the pre-auth flow.
+ *  6. Navigate to the appropriate destination based on profile_id and next param.
  */
 export function AuthCallback() {
     const navigate = useNavigate();
@@ -32,12 +59,13 @@ export function AuthCallback() {
 
                 // ── SIGNUP FLOW ──────────────────────────────────────────────
                 // profile_id in the URL means this link came from the QuickScan
-                // sign-up CTA (set by magic-link.tsx). Always link the account
-                // and send the user to /welcome, even if the profile is already
-                // linked (e.g. they clicked the same link twice).
+                // sign-up CTA (set by magic-link.tsx) or admin invite (set by admin-send-invite).
+                // Always link the account and send the user to the appropriate destination,
+                // even if the profile is already linked (e.g. they clicked the same link twice).
                 const params = new URLSearchParams(window.location.search);
                 const profileId = params.get("profile_id")
                     ?? sessionStorage.getItem("pendingProfileId");
+                const next = params.get("next");
 
                 if (profileId) {
                     try {
@@ -55,7 +83,12 @@ export function AuthCallback() {
                     sessionStorage.removeItem("pendingProfileId");
                     sessionStorage.removeItem("pendingScanId");
 
-                    navigate("/welcome", { replace: true });
+                    // For admin invite flow: redirect to next if it's safe, otherwise default to /welcome
+                    if (next && isSafeNext(next)) {
+                        navigate(next, { replace: true });
+                    } else {
+                        navigate("/welcome", { replace: true });
+                    }
                     return;
                 }
 
