@@ -79,7 +79,9 @@ export function Invite() {
             }
             const resolvedScanId = result.scan_id ?? scanIdParam;
             setScanId(resolvedScanId);
-            sessionStorage.setItem("pendingScanId", resolvedScanId);
+            if (resolvedScanId) {
+                sessionStorage.setItem("pendingScanId", resolvedScanId);
+            }
             if (result.profile_id) {
                 sessionStorage.setItem("pendingProfileId", result.profile_id);
             }
