@@ -206,7 +206,7 @@ serve(async (req) => {
       try {
         await supabaseClient
           .from('quick_scans')
-          .update({ status: 'error', error_message: (error as Error).message })
+          .update({ status: 'failed', error_message: (error as Error).message })
           .eq('id', activeScanId);
       } catch { /* ignore secondary failure */ }
     }
