@@ -209,18 +209,37 @@ function mergeZabaData(profile: QuickScanProfileData, selectedProfile: ProfileMa
     try { zabaMatches = JSON.parse(zabaRaw); } catch { return deduped; }
     if (!zabaMatches?.length) return deduped;
 
-    // Find the best matching Zabasearch entry by name
+    // Find the best matching Zabasearch entry by name + phone/address overlap
     const targetName = normalizeName(selectedProfile.name || profile.name);
     const parts = targetName.split(/\s+/);
     const targetFirst = parts[0] || "";
     const targetLast = parts[parts.length - 1] || "";
 
-    const bestMatch = zabaMatches.find(zm => {
+    // Filter to name matches only
+    const nameMatches = zabaMatches.filter(zm => {
         const n = normalizeName(zm.name);
         return n.includes(targetFirst) && n.includes(targetLast);
-    }) ?? zabaMatches[0];
+    });
 
-    const zaba = bestMatch?.fullProfile;
+    // Score each name match by phone + address overlap with AnyWho profile
+    const scored = nameMatches.map(zm => {
+        const zp = zm.fullProfile;
+        let score = 0;
+        for (const p of zp?.phones ?? []) {
+            if (p.number && seenPhones.has(phoneKey(p.number))) score++;
+        }
+        for (const a of zp?.addresses ?? []) {
+            const k = addressKey({ city: a.city, state: a.state, zip: a.zip, full_address: a.full_address });
+            if (k && seenAddrs.has(k)) score++;
+        }
+        return { zm, score };
+    });
+
+    // Only merge if at least one candidate has a phone or address overlap
+    const best = scored.sort((a, b) => b.score - a.score)[0];
+    if (!best || best.score === 0) return deduped;
+
+    const zaba = best.zm.fullProfile;
     if (!zaba) return deduped;
 
     // Merge phones
@@ -622,6 +641,70 @@ export function PreProfile() {
                     setData(preProfileData);
                     setLoadingState("loaded");
                     return;
+                }
+            }
+
+            // Zabasearch-primary path: user selected from Zabasearch results (no AnyWho detail link)
+            // Pull the full profile directly from sessionStorage zabaMatches
+            if (selectedProfile.source?.toLowerCase() === "zabasearch") {
+                const zabaRaw = sessionStorage.getItem("zabaMatches");
+                if (zabaRaw) {
+                    try {
+                        const zabaMatches: ZabaMatch[] = JSON.parse(zabaRaw);
+                        const targetName = (selectedProfile.name || "").toLowerCase();
+                        const nameParts = targetName.split(/\s+/);
+                        const targetFirst = nameParts[0] || "";
+                        const targetLast = nameParts[nameParts.length - 1] || "";
+                        const zabaMatch = zabaMatches.find(zm => {
+                            const n = (zm.name || "").toLowerCase();
+                            return n.includes(targetFirst) && n.includes(targetLast);
+                        }) ?? zabaMatches.find(zm => zm.id === selectedProfile.id);
+
+                        if (zabaMatch?.fullProfile) {
+                            const zp = zabaMatch.fullProfile;
+                            const zabaProfileData: QuickScanProfileData = {
+                                name: zabaMatch.name,
+                                age: zabaMatch.age,
+                                phones: (zp.phones || []).map(p => ({
+                                    number: p.number,
+                                    type: p.type,
+                                    is_primary: p.primary,
+                                })),
+                                emails: (zp.emails || []).map(e => ({
+                                    email: e.email,
+                                    type: e.type,
+                                })),
+                                addresses: (zp.addresses || []).map(a => ({
+                                    full_address: a.full_address,
+                                    street: a.street,
+                                    city: a.city,
+                                    state: a.state,
+                                    zip: a.zip,
+                                    is_current: a.is_last_known,
+                                })),
+                                relatives: (zp.relatives || []).map(r => ({
+                                    name: r.name,
+                                    relationship: r.relationship,
+                                    age: r.age,
+                                })),
+                                aliases: (zp.aliases || []).map(a => a.alias),
+                                jobs: (zp.jobs || []).map(j => ({
+                                    company: j.company,
+                                    title: j.title,
+                                    is_current: j.is_current,
+                                })),
+                                assets: [],
+                                legal_records: [],
+                                sources: ["Zabasearch"],
+                            };
+                            const preProfileData = convertToPreProfileData(zabaProfileData, selectedProfile);
+                            setData(preProfileData);
+                            setLoadingState("loaded");
+                            return;
+                        }
+                    } catch (e) {
+                        console.error("Error parsing zabaMatches for direct path:", e);
+                    }
                 }
             }
 

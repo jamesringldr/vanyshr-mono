@@ -339,6 +339,10 @@ export function QuickScanForm({ supabaseClient, onProfileSelect, onTotalFailure,
       setZabaSearchDone(true);
       setView("form");
 
+      if (zabaData?.profiles?.length) {
+        sessionStorage.setItem("zabaMatches", JSON.stringify(zabaData.profiles));
+      }
+
       if (zabaData?.profiles?.length === 1) {
         setMatches(zabaData.profiles);
         setShowSingleModal(true);

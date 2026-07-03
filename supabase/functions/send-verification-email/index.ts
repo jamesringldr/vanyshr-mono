@@ -1,10 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+import { getCorsHeaders } from '../_shared/cors.ts'
 
 interface EmailRequest {
   email: string;
@@ -14,6 +11,7 @@ interface EmailRequest {
 }
 
 serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req)
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -44,13 +42,13 @@ serve(async (req) => {
       )
     }
 
-    console.log(`Sending verification email to: ${email} with code: ${code}`)
+    console.log(`Sending verification email to: ${email}`)
 
     // Method 1: Use Supabase Auth Admin API to send custom email
     // This creates a temporary user to trigger the email system
     try {
       // First, try to create a temporary user account to trigger email
-      const tempPassword = `temp-${Date.now()}-${Math.random()}`
+      const tempPassword = crypto.randomUUID()
       
       const { data: signUpData, error: signUpError } = await supabaseClient.auth.admin.createUser({
         email: email,
@@ -144,10 +142,8 @@ serve(async (req) => {
       }
 
       return new Response(
-        JSON.stringify({ 
-          message: 'Verification email sent successfully',
-          email: email,
-          code: code // For development - remove in production
+        JSON.stringify({
+          success: true
         }),
         { 
           status: 200, 
@@ -158,31 +154,12 @@ serve(async (req) => {
     } catch (authError) {
       console.error('Supabase Auth error:', authError)
       
-      // Fallback: Just return success and log the code
-      console.log('📧 FALLBACK EMAIL VERIFICATION')
-      console.log('==============================')
-      console.log(`To: ${email}`)
-      console.log(`From: Vanyshr Security Team`)
-      console.log(`Subject: Your Verification Code`)
-      console.log(``)
-      console.log(`Hi ${firstName},`)
-      console.log(``)
-      console.log(`Your verification code is: ${code}`)
-      console.log(``)
-      console.log(`This code will expire in 10 minutes.`)
-      console.log(``)
-      console.log(`If you didn't request this code, please ignore this email.`)
-      console.log(``)
-      console.log(`Best regards,`)
-      console.log(`The Vanyshr Team`)
-      console.log('==============================')
+      console.error(`Fallback triggered: failed to send verification email to ${email}`)
 
       return new Response(
-        JSON.stringify({ 
-          message: 'Email sending failed, but verification code logged to server console',
-          email: email,
-          code: code,
-          fallback: true
+        JSON.stringify({
+          success: false,
+          error: 'Failed to send verification email'
         }),
         { 
           status: 200, 
@@ -196,8 +173,7 @@ serve(async (req) => {
     
     return new Response(
       JSON.stringify({ 
-        error: 'Internal server error',
-        details: error.message 
+        error: 'Internal server error'
       }),
       { 
         status: 500, 

@@ -251,6 +251,7 @@ export class AnyWhoScraper extends BaseScraper {
         const phones: Array<{ number: string; type?: string; primary?: boolean }> = [];
         // AnyWho renders phones via split-span with data-content attribute for last 4 digits.
         // e.g. <span>(816) 632-</span><span data-content="2218" class="blur-sm ..."></span>
+
         const phoneHeaders = Array.from(card.querySelectorAll("h3")).filter(
           (h: any) => h.textContent?.toLowerCase().includes("phone number")
         );
@@ -449,6 +450,7 @@ export class AnyWhoScraper extends BaseScraper {
       const phoneItems = phonesSection.querySelectorAll(".show-more-item");
       let phoneIndex = 0;
       phoneItems.forEach((item: any) => {
+
         const blurSpan = item.querySelector("span[data-content]");
         if (!blurSpan) return;
         const visibleSpan = blurSpan.previousElementSibling;
@@ -458,6 +460,7 @@ export class AnyWhoScraper extends BaseScraper {
         const digits = fullNumber.replace(/\D/g, "");
         if (digits.length < 10 || seenPhones.has(digits)) return;
         seenPhones.add(digits);
+
 
         const infoDiv = item.querySelector(".text-body-sm");
         const infoText = infoDiv?.textContent || "";

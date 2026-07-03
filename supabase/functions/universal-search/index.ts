@@ -10,10 +10,7 @@ import {
 } from "../_shared/scrapers/index.ts";
 import { scraperLabEnabled, searchViaScraperLab } from "../_shared/scraper-lab-client.ts";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+import { getCorsHeaders } from '../_shared/cors.ts'
 
 interface SearchRequest {
   scan_id?: string; // quick_scans ID — if omitted, one will be created
@@ -27,6 +24,7 @@ interface SearchRequest {
 }
 
 serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req)
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
