@@ -15,6 +15,7 @@ import {
 import { AnyWhoScraper } from "./AnyWhoScraper.ts";
 import { ZabasearchScraper } from "./ZabasearchScraper.ts";
 import { FastPeopleSearchScraper } from "./FastPeopleSearchScraper.ts";
+import { fpsServiceEnabled, searchViaFpsService } from "../fps-service-client.ts";
 
 export { FastPeopleSearchScraper } from "./FastPeopleSearchScraper.ts";
 
@@ -145,6 +146,18 @@ export async function searchProfiles(
   siteName: string,
   input: SearchInput
 ): Promise<ProfileMatch[]> {
+  const normalizedSite = siteName.toLowerCase().replace(/\s+/g, "");
+  if ((normalizedSite === "fastpeoplesearch" || normalizedSite === "fps") && fpsServiceEnabled()) {
+    try {
+      const matches = await searchViaFpsService(input);
+      console.log(`✅ ${siteName} (fps-service) returned ${matches.length} profile matches`);
+      return matches;
+    } catch (error) {
+      console.error(`❌ ${siteName} (fps-service) searchProfiles error:`, error);
+      return [];
+    }
+  }
+
   const scraper = getScraper(siteName);
 
   if (!scraper) {

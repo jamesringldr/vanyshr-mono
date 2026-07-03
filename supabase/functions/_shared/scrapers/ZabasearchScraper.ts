@@ -313,8 +313,10 @@ export class ZabasearchScraper extends BaseScraper {
    * handles CF challenges (ScraperAPI with render=true, Zyte, Zenrows).
    *
    * Priority:
-   *   1. ScraperAPI with render=true (solves JS challenge, uses residential IPs)
-   *   2. Zyte API (strong CF bypass, set ZYTE_API_KEY)
+   *   0. CF Worker relay (set CF_RELAY_URL/CF_RELAY_TOKEN)
+   *   0.5. FlameProxies rotating residential proxy (set FLAMEPROXIES_PROXY_URL)
+   *   1. ScraperAPI with render=true (legacy — set SCRAPERAPI_KEY, not currently used)
+   *   2. Zyte API (legacy — set ZYTE_API_KEY, not currently used)
    *   3. Direct fetch (works from residential/home IPs, blocked on datacenter)
    */
   private async fetchWithProxy(targetUrl: string): Promise<string | null> {
@@ -344,6 +346,32 @@ export class ZabasearchScraper extends BaseScraper {
         console.log(`🔍 Zabasearch - CF Worker relay blocked (status ${response.status})`);
       } catch (error) {
         console.log(`⚠️ Zabasearch - CF Worker relay failed: ${(error as Error).message}`);
+      }
+    }
+
+    // --- Route 0.5: FlameProxies rotating residential proxy ---
+    const flameProxyUrl = (typeof Deno !== "undefined")
+      ? Deno.env.get("FLAMEPROXIES_PROXY_URL")
+      : undefined;
+
+    if (flameProxyUrl) {
+      console.log(`🔍 Zabasearch - Trying FlameProxies residential proxy`);
+      try {
+        const client = Deno.createHttpClient({ proxy: { url: flameProxyUrl } });
+        const response = await fetch(targetUrl, {
+          client,
+          headers: this.browserHeaders,
+          redirect: "follow",
+          signal: AbortSignal.timeout(30000),
+        });
+        const html = await response.text();
+        if (!this.isBlockedResponse(response.status, html)) {
+          console.log(`✅ Zabasearch - FlameProxies success, HTML length: ${html.length}`);
+          return html;
+        }
+        console.log(`🔍 Zabasearch - FlameProxies blocked (status ${response.status}, len ${html.length})`);
+      } catch (error) {
+        console.log(`⚠️ Zabasearch - FlameProxies failed: ${(error as Error).message}`);
       }
     }
 
