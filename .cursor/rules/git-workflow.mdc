@@ -1,13 +1,57 @@
 ---
-description: Git workflow and CI/CD rules for Vanyshr monorepo
+description: Ambient git workflow for Vanyshr — act on intent, notify after, gate only at production
 alwaysApply: true
 ---
 
-# Git Workflow Rules
+# Git Workflow — Ambient (act, don't wait)
+
+James is weak at git hygiene by his own account: he forgets to branch for
+parallel work, forgets to check in/out, and forgets to run a git tool at the
+right moment. **You are the memory he doesn't have.** Do not wait to be told to
+do git things. On every turn, read his intent; when a trigger below fires, take
+the git action yourself and **tell him after.** You ask first only at the
+**production gate** and when something is genuinely ambiguous.
+
+## Intent → action
+
+| When James… | You (then notify) |
+|---|---|
+| starts new, unrelated work | create `dev/<slug>` off `staging`, checkout (a genuinely parallel task can go in its own git worktree so it can't tangle with in-flight work) |
+| says "let me test this locally" | run `git branch`/`git status` **first** — confirm he's on the branch he thinks and the tree matches intent; warn if he'd be testing stale or wrong-branch code |
+| says "that works" / "looks good" | commit to the current `dev/<slug>` with a `<type>: <desc>` message |
+| says "this one's done" | merge `dev/<slug>` → `staging`; offer to delete the branch |
+| says "let me test the whole thing" | ensure it's on `staging`; point him at the Vercel preview URL |
+| says "ship it" / "go live" | **PRODUCTION GATE** (below) — never skip |
+| anything ambiguous | ask, don't guess |
+
+## Production gate (the one place you stop)
+
+`staging → main` is the **only** action you never take on your own initiative.
+When he says "ship it," stop and present a **plain-language summary** (his chosen
+approval format — no diffs or jargon unless he asks):
+
+```
+🚀 READY TO SHIP TO PRODUCTION (main → app.vanyshr.com)
+
+What this ships, in plain English:
+  <1–3 sentences: what changes for users / what got fixed>
+
+Under the hood: merging staging → main, then pushing.
+Tests/build: <passed | not run | FAILED — blocking>
+
+Approve? (yes / not yet)
+```
+
+Only on an explicit "yes": merge `staging` → `main`, update the changelog, push.
+Failing tests block unless he overrides.
+
+---
+
+# Reference — branch structure & rules
 
 ## Branch Structure
 - `main` — production only → deploys to app.vanyshr.com
-- `staging` — staging / pre-production integration; push tested work here
+- `staging` — staging / pre-production integration; push tested work here (Vercel preview)
 - `dev/<issue-name>` — isolated work, always branch from `staging`
 
 ## Critical Rules
@@ -15,7 +59,7 @@ alwaysApply: true
 - NEVER force push to `main`
 - `dev/*` branches always branch from `staging`, never from `main`
 - Merge order: `dev/*` → `staging` → `main`
-- Only merge `staging` → `main` when explicitly instructed
+- Only merge `staging` → `main` at the production gate above (explicit approval)
 
 ## Before Any Commit
 1. Confirm current branch (`git branch`)
