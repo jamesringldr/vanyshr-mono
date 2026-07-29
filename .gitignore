@@ -46,3 +46,10 @@ Thumbs.db
 .cache/
 tmp/
 temp/
+
+# ── Sandbox artifacts (logs, videos, venvs, scraper output) ───────────────────
+# Never ship these. If tools recreate them during dev, they land here & stay ignored.
+_artifacts/
+_sandbox/**/out/
+_sandbox/**/.venv-local/
+_sandbox/**/__pycache__/
