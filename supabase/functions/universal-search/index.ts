@@ -123,11 +123,54 @@ serve(async (req) => {
       }
     }
 
+    // Residential-only scrapers (FPS / Zaba) live on serv-01 — not reachable from
+    // Supabase Edge (datacenter, no Tailscale). Call those services directly like
+    // scrape_runner does; never route them through this function.
+    const EDGE_BLOCKED = new Set(['zabasearch', 'zaba', 'fastpeoplesearch', 'fps']);
+    const normSite = (siteName || '').toLowerCase().replace(/\s+/g, '');
+
+    if (EDGE_BLOCKED.has(normSite) && !search_all) {
+      console.warn(
+        `⛔ refusing residential scraper "${siteName}" from edge — use serv01 HTTP service ` +
+          `(FPS :8787 / Zaba :8788), not universal-search`,
+      );
+      if (activeScanId) {
+        await supabaseClient
+          .from('quick_scans')
+          .update({
+            status: 'no_matches',
+            candidate_matches: [],
+            scraper_runs: [{
+              scraper: normSite,
+              success: false,
+              error: 'residential_service_only',
+              message: 'Call serv01 zaba/fps service directly; not available on edge',
+            }],
+          })
+          .eq('id', activeScanId);
+      }
+      return new Response(
+        JSON.stringify({
+          success: false,
+          scan_id: activeScanId,
+          profiles: [],
+          count: 0,
+          scraper_failed: true,
+          error: 'residential_service_only',
+          message:
+            'Zabasearch/FPS run on serv01 (residential), not Supabase Edge. ' +
+            'Invoke the HTTP service directly (same path as FPS).',
+          scraper_runs: [{ scraper: normSite, success: false, error: 'residential_service_only' }],
+          available_scrapers: getAvailableScrapers(),
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
+
     if (scraperLabEnabled()) {
       // AnyWho-only mode: run AnyWho once. If it returns 0 matches, the
       // scan finalizes as `no_matches` and the frontend shows the
-      // "nothing found" modal that previously appeared after the full
-      // anywho → fastpeoplesearch → zabasearch sequence failed.
+      // "nothing found" modal.
       console.log(`🏠 Running scraper-lab: anywho (only)`);
       try {
         const result = await searchViaScraperLab(['anywho'], searchInput);
@@ -139,18 +182,19 @@ serve(async (req) => {
         scraperRuns.push({ scraper: 'anywho', success: false, error: (e as Error).message, via: 'scraper-lab' });
       }
     } else if (search_all) {
-      // Search across all name-capable scrapers (datacenter edge scrapers)
-      const nameScrapers = getScrapersForSearchType('name');
+      // Edge-capable name scrapers only (exclude residential FPS/Zaba)
+      const nameScrapers = getScrapersForSearchType('name')
+        .filter(s => !EDGE_BLOCKED.has(s.name.toLowerCase().replace(/\s+/g, '')));
       const scraperNames = nameScrapers.map(s => s.name.toLowerCase().replace(/\s+/g, ''));
 
-      console.log(`🔍 Searching across all scrapers: ${scraperNames.join(', ')}`);
+      console.log(`🔍 Searching edge scrapers only: ${scraperNames.join(', ')}`);
 
       const result = await searchProfilesMulti(scraperNames, searchInput);
       matches = result.matches;
       scraperRuns = result.runs;
     } else {
-      // Search single scraper
-      const scraperName = siteName.toLowerCase().replace(/\s+/g, '');
+      // Search single edge scraper
+      const scraperName = normSite;
       console.log(`🔍 Searching single scraper: ${scraperName}`);
 
       try {

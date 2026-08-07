@@ -21,6 +21,81 @@ export interface ProfileMatch {
   detail_link?: string;
   source: string;
   match_score?: number;
+  /** Present when profile came from residential zaba service (full card) */
+  fullProfile?: Record<string, unknown>;
+}
+
+/** Map zaba service card → ProfileMatch used by pre-profile / sessionStorage */
+function mapZabaServiceProfiles(data: {
+  profiles?: Array<Record<string, any>>;
+}): ProfileMatch[] {
+  const list = data.profiles || [];
+  return list.map((p, i) => ({
+    id: String(p.id || `zaba-${i}`),
+    name: p.name || "",
+    age: p.age != null ? String(p.age) : undefined,
+    city_state: p.city_state,
+    phone_snippet: p.phone_snippet,
+    detail_link: p.detail_link,
+    source: "Zabasearch",
+    fullProfile: {
+      phones: p.phones || [],
+      addresses: p.addresses || [],
+      relatives: p.relatives || [],
+      aliases: p.aliases || [],
+      emails: p.emails || [],
+    },
+  }));
+}
+
+/**
+ * Call residential zaba-scraper on serv01 (same pattern as FPS).
+ * Not via universal-search — Edge has no Tailscale path.
+ *
+ * Env (Vite):
+ *   VITE_ZABA_SERVICE_URL  e.g. http://serv-01.tail7e9bab.ts.net:8788
+ *   VITE_ZABA_SERVICE_TOKEN  optional Bearer for the service
+ *
+ * When URL is unset (typical public prod), returns empty — no 120s edge hang.
+ */
+async function runZabaResidentialSearch(params: {
+  firstName: string;
+  lastName: string;
+  city?: string;
+  state?: string;
+}): Promise<ProfileMatch[]> {
+  const base = (import.meta as any).env?.VITE_ZABA_SERVICE_URL as string | undefined;
+  const token = (import.meta as any).env?.VITE_ZABA_SERVICE_TOKEN as string | undefined;
+  if (!base) {
+    console.warn(
+      "Zaba residential service URL not configured (VITE_ZABA_SERVICE_URL) — skipping Zaba",
+    );
+    return [];
+  }
+
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (token) headers.Authorization = `Bearer ${token}`;
+
+  const res = await fetch(`${base.replace(/\/$/, "")}/v1/zaba/search`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({
+      first_name: params.firstName,
+      last_name: params.lastName,
+      city: params.city || null,
+      state: params.state || null,
+    }),
+    signal: AbortSignal.timeout(120_000),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Zaba service HTTP ${res.status}`);
+  }
+  const data = await res.json();
+  if (data.status === "failed") {
+    throw new Error(data.error || "zaba service failed");
+  }
+  return mapZabaServiceProfiles(data);
 }
 
 export interface QuickScanFormProps {
@@ -272,33 +347,22 @@ export function QuickScanForm({ supabaseClient, onProfileSelect, onTotalFailure,
     if (!originalProfile) return;
 
     if (!zabaSearchDone && originalProfile.source !== "AnyWho") {
-      // Only run Zabasearch if this profile came from Zabasearch (i.e. AnyWho returned nothing).
-      // When AnyWho already found the correct person, skip Zaba entirely — its broader
-      // fallback searches can pull wrong profiles (e.g. maiden-name matches in other states).
+      // Profile already from Zaba path: fetch rich matches from serv01 (not edge).
       setView("scanning");
       setScanStepIndex(1);
 
       try {
-        const { data: zabaData } = await supabaseClient.functions.invoke(
-          "universal-search",
-          {
-            body: {
-              firstName: firstName.trim(),
-              lastName: lastName.trim(),
-              state: locationInfo?.state,
-              city: locationInfo?.city,
-              siteName: "Zabasearch",
-              scan_id: scanId,
-            },
-          }
-        );
-
-        if (zabaData?.profiles?.length) {
-          sessionStorage.setItem("zabaMatches", JSON.stringify(zabaData.profiles));
+        const profiles = await runZabaResidentialSearch({
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
+          state: locationInfo?.state,
+          city: locationInfo?.city,
+        });
+        if (profiles.length) {
+          sessionStorage.setItem("zabaMatches", JSON.stringify(profiles));
         }
       } catch (err) {
         console.error("Zabasearch scan error:", err);
-        // Non-fatal — proceed regardless
       }
     } else if (originalProfile.source === "AnyWho") {
       // Clear any stale zabaMatches so pre-profile doesn't merge wrong data
@@ -314,7 +378,7 @@ export function QuickScanForm({ supabaseClient, onProfileSelect, onTotalFailure,
     }, scanId);
   }, [firstName, lastName, zipCode, locationInfo, onProfileSelect, matches, scanId, zabaSearchDone, supabaseClient]);
 
-  // Called when user rejects all AnyWho results — fall through to ZabaSearch before giving up
+  // Called when user rejects all AnyWho results — fall through to residential Zaba on serv01
   const handleNoneOfThese = useCallback(async () => {
     setShowSingleModal(false);
     setShowMultipleModal(false);
@@ -322,42 +386,36 @@ export function QuickScanForm({ supabaseClient, onProfileSelect, onTotalFailure,
     setScanStepIndex(1);
 
     try {
-      const { data: zabaData } = await supabaseClient.functions.invoke(
-        "universal-search",
-        {
-          body: {
-            firstName: firstName.trim(),
-            lastName: lastName.trim(),
-            state: locationInfo?.state,
-            city: locationInfo?.city,
-            siteName: "Zabasearch",
-            scan_id: scanId,
-          },
-        }
-      );
+      const profiles = await runZabaResidentialSearch({
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        state: locationInfo?.state,
+        city: locationInfo?.city,
+      });
 
       setZabaSearchDone(true);
       setView("form");
 
-      if (zabaData?.profiles?.length) {
-        sessionStorage.setItem("zabaMatches", JSON.stringify(zabaData.profiles));
+      if (profiles.length) {
+        sessionStorage.setItem("zabaMatches", JSON.stringify(profiles));
       }
 
-      if (zabaData?.profiles?.length === 1) {
-        setMatches(zabaData.profiles);
+      if (profiles.length === 1) {
+        setMatches(profiles);
         setShowSingleModal(true);
-      } else if (zabaData?.profiles?.length > 1) {
-        setMatches(zabaData.profiles);
+      } else if (profiles.length > 1) {
+        setMatches(profiles);
         setShowMultipleModal(true);
       } else {
         setShowNoResultsModal(true);
       }
     } catch (err) {
       console.error("Zabasearch fallback error:", err);
+      setZabaSearchDone(true);
       setView("form");
       setShowNoResultsModal(true);
     }
-  }, [firstName, lastName, locationInfo, scanId, supabaseClient]);
+  }, [firstName, lastName, locationInfo]);
 
   const isLoading = status === "searching";
 
