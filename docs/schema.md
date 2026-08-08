@@ -543,6 +543,8 @@ Individual Vanyshr removal outcome records — feeds into `broker_stats` aggrega
 | `20260320_fix_pending_profile_status.sql` | ✅ Applied | Drops dead 1-arg `create_pending_profile(UUID)` overload (accidentally created by 20260318); updates canonical 2-arg version to write `signup_status = 'pending_user'` instead of `'pending_auth'`. |
 | `20260320_fix_validate_access_code.sql` | ✅ Applied | Fixes `validate_access_code()`: reorders ops (profile UPDATE before `use_count` increment) and adds `IF NOT FOUND` guard — wrong-state profiles now return `{ success: false }` without consuming a code use. |
 | `20260320_fix_validate_access_code_atomic.sql` | ✅ Applied | Makes `validate_access_code()` fully atomic: collapses `use_count` check+increment into a single `UPDATE ... WHERE use_count < max_uses RETURNING id`; adds compensation decrement if profile update fails. Supersedes `20260320_fix_validate_access_code.sql`. |
+| `20260729_scrape_results.sql` | ✅ Applied | Creates `scrape_results` table — logs real scraper executions (fps/anywho/zabasearch) for integration testing + debugging; tracks input, summary/full results, errors, and performance. 4 indexes for scrape_id/target+mode/status/target lookups. |
+| `20260807_scrape_results_allow_npd.sql` | ✅ Applied | Extends `scrape_results` constraints: adds `npd` as a valid `target`, adds `both` as a valid `scrape_type`. |
 
 ### `user_updates` (pending)
 PK: `id` | RLS: ✅ | FK: `user_id → user_profiles.id`
@@ -562,3 +564,26 @@ PK: `id` | RLS: ✅ | FK: `user_id → user_profiles.id`
 | created_at | timestamptz | |
 
 > Index: `idx_user_updates_user_status` on `(user_id, status, created_at DESC)`.
+
+### `scrape_results` (pending)
+PK: `id` | RLS: ❌ (internal/ops table, not user-linked)
+
+| Column | Type | Notes |
+|--------|------|-------|
+| id | bigserial | PK |
+| scrape_id | text | format `target.MM.DD.HH.MM` (e.g. `anywho.07.29.11.53`); multiple rows share one `scrape_id` if a scrape returns multiple people |
+| target | text | `fps` \| `anywho` \| `zabasearch` \| `npd` |
+| mode | text | `local` \| `prod` |
+| scrape_type | text | `summary` \| `full` \| `both` |
+| input_data | jsonb | nullable — request input |
+| summary_results | jsonb | nullable |
+| full_profile_results | jsonb | nullable |
+| errors | text | nullable |
+| status | text | `success` \| `partial` \| `failed` \| `timeout` \| `blocked` |
+| response_time_ms | integer | nullable |
+| response_bytes | integer | nullable |
+| created_at / updated_at | timestamptz | |
+
+**Usage:** inserted by `scrape_runner.py` after each scrape; queried for debugging, stats, and audit trail.
+
+> Indexes: `idx_scrape_results_scrape_id`, `idx_scrape_results_target_mode_created`, `idx_scrape_results_status_created`, `idx_scrape_results_target_created`.
