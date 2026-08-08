@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router";
 import { QSInfoCard } from "@vanyshr/ui/components/application/qs-info-card/qs-info-card";
 import { QSProgressSteps } from "@vanyshr/ui/components/application/qs-progress-steps/qs-progress-steps";
 import PrimaryIconOutline from "@vanyshr/ui/assets/PrimaryIcon-outline.png";
+import { allowLocalRouteBypass } from "@/lib/env";
 
 const SCAN_MS = 3000;
 const COMPILE_MS = 3000;
@@ -11,12 +12,18 @@ export function InviteLoading() {
     const { scanId } = useParams<{ scanId: string }>();
     const navigate = useNavigate();
     const [phase, setPhase] = useState<"scanning" | "compiling">("scanning");
+    const holdForUiPreview = allowLocalRouteBypass();
 
     useEffect(() => {
         if (!scanId) {
+            // Local UI preview: keep the loading screen without an invite id.
+            if (holdForUiPreview) return;
             navigate("/invite", { replace: true });
             return;
         }
+
+        // Local: stay on this URL so you can inspect the loading UI.
+        if (holdForUiPreview) return;
 
         const scanTimer = window.setTimeout(() => setPhase("compiling"), SCAN_MS);
         const doneTimer = window.setTimeout(() => {
@@ -27,7 +34,7 @@ export function InviteLoading() {
             window.clearTimeout(scanTimer);
             window.clearTimeout(doneTimer);
         };
-    }, [scanId, navigate]);
+    }, [scanId, navigate, holdForUiPreview]);
 
     const isScanning = phase === "scanning";
 

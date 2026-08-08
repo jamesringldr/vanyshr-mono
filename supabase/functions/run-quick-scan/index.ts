@@ -193,9 +193,9 @@ serve(async (req) => {
       state: state || undefined,
     };
 
-    // Get all scrapers that support name search
-    // We want AnyWho first, then Zabasearch as requested
-    const scraperNames = ['anywho', 'zabasearch'];
+    // Edge-only path: AnyWho. Residential Zaba/FPS are initiated on serv01
+    // (same as FPS service) — not from this Supabase Edge function.
+    const scraperNames = ['anywho'];
 
     console.log(`🔍 Searching sequentially (stop on results): ${scraperNames.join(', ')}`);
 

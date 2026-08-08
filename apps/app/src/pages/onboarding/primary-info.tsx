@@ -9,6 +9,7 @@ import {
 import { cx } from "@/utils/cx";
 import { User, Calendar } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { allowLocalRouteBypass } from "@/lib/env";
 
 interface PrimaryInfoField {
     id: string;
@@ -121,7 +122,30 @@ export function VerifyPrimaryInfo() {
     useEffect(() => {
         async function load() {
             const { data: { user } } = await supabase.auth.getUser();
-            if (!user) { setIsLoading(false); return; }
+            if (!user) {
+                // Local UI preview: show sample fields so the layout isn't empty.
+                if (allowLocalRouteBypass()) {
+                    setFields([
+                        {
+                            id: "legalName",
+                            label: "LEGAL NAME",
+                            value: "Alex Rivera",
+                            status: "pending",
+                        },
+                        {
+                            id: "dateOfBirth",
+                            label: "DATE OF BIRTH",
+                            value: "1990-06-15",
+                            status: "pending",
+                        },
+                    ]);
+                    setEditFirstName("Alex");
+                    setEditLastName("Rivera");
+                    setEditDob("06/15/1990");
+                }
+                setIsLoading(false);
+                return;
+            }
 
             const { data: profile } = await supabase
                 .from("user_profiles")
