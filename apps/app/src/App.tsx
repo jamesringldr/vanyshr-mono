@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Navigate, Route, Routes } from "react-router";
 import { supabase } from "./lib/supabase";
-import { isProductionApp } from "./lib/env";
+import { allowLocalRouteBypass, isProductionApp } from "./lib/env";
 
 // Auth pages
 import { AuthMagicLink } from "./pages/auth/magic-link";
@@ -31,9 +31,8 @@ import { LoadingPreProfilePage } from "./pages/scan/loading-pre-profile";
 import { ScanningStartedPage } from "./pages/scan/scanning-started";
 import { QuickScanErrorPage } from "./pages/quickscan-error";
 // Dashboard pages
-import { FinancialDashboard } from "./pages/dashboard/financial";
-import { Transactions } from "./pages/dashboard/activity";
 import { DashboardHome } from "./views/Dashboard/DashboardHome";
+import { Transactions } from "./pages/dashboard/activity";
 import { DarkWebPage } from "./pages/dashboard/dark-web";
 import { ExposuresPage } from "./pages/dashboard/exposures";
 import { TodoPage } from "./pages/dashboard/todo";
@@ -68,13 +67,17 @@ function RequireAuth({
     children: ReactNode;
     productionOnly?: boolean;
 }) {
-    if (productionOnly && !isProductionApp()) {
-        return <>{children}</>;
-    }
-    const [isReady, setIsReady] = useState(false);
-    const [isAuthed, setIsAuthed] = useState(false);
+    // Local / preview: skip login so any URL renders its UI shell.
+    // productionOnly: dashboard stays open off app.vanyshr.com (existing behavior).
+    const skipAuth =
+        allowLocalRouteBypass() || (productionOnly && !isProductionApp());
+
+    const [isReady, setIsReady] = useState(skipAuth);
+    const [isAuthed, setIsAuthed] = useState(skipAuth);
 
     useEffect(() => {
+        if (skipAuth) return;
+
         let isMounted = true;
 
         const initializeSession = async () => {
@@ -102,8 +105,9 @@ function RequireAuth({
             isMounted = false;
             subscription.unsubscribe();
         };
-    }, []);
+    }, [skipAuth]);
 
+    if (skipAuth) return <>{children}</>;
     if (!isReady) return null;
     if (!isAuthed) return <Navigate to="/login" replace />;
     return <>{children}</>;
@@ -114,8 +118,8 @@ export default function App() {
         <Routes>
             {/* Dashboard — DevOnly until ready for users */}
             <Route path="/" element={<Navigate to="/quick-scan" replace />} />
-            <Route path="/dashboard" element={<DevOnly><RequireAuth productionOnly><FinancialDashboard /></RequireAuth></DevOnly>} />
-            <Route path="/dashboard/home" element={<DevOnly><RequireAuth productionOnly><DashboardHome /></RequireAuth></DevOnly>} />
+            <Route path="/dashboard" element={<DevOnly><RequireAuth productionOnly><DashboardHome /></RequireAuth></DevOnly>} />
+            <Route path="/dashboard/home" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard/dark-web" element={<DevOnly><RequireAuth productionOnly><DarkWebPage /></RequireAuth></DevOnly>} />
             <Route path="/dashboard/exposures" element={<DevOnly><RequireAuth productionOnly><ExposuresPage /></RequireAuth></DevOnly>} />
             <Route path="/dashboard/tasks" element={<DevOnly><RequireAuth productionOnly><TodoPage /></RequireAuth></DevOnly>} />
@@ -155,7 +159,7 @@ export default function App() {
             {/* Referral */}
             <Route path="/referral" element={<ReferralSlider />} />
             <Route path="/invite" element={<Invite />} />
-            <Route path="/invite/loading/:scanId" element={<InviteLoading />} />
+            <Route path="/invite/loading/:scanId?" element={<InviteLoading />} />
 
             {/* Other */}
             <Route path="/pricing" element={<Pricing />} />
