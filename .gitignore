@@ -34,6 +34,7 @@ pnpm-debug.log*
 # Testing
 coverage/
 *.lcov
+.coverage
 
 # OS
 Thumbs.db
