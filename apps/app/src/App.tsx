@@ -34,6 +34,7 @@ import { PilotEntryPage } from "./pages/pilot-scan/entry";
 import { PilotSplashPage } from "./pages/pilot-scan/splash";
 import { PilotStartPage } from "./pages/pilot-scan/start";
 import { PilotLoadingPage } from "./pages/pilot-scan/loading";
+import { PilotRiskSummaryPage } from "./pages/pilot-scan/risk-summary";
 
 // Dashboard pages
 import { DashboardHome } from "./views/Dashboard/DashboardHome";
@@ -162,6 +163,7 @@ export default function App() {
             <Route path="/pilot-scan" element={<PilotEntryPage />} />
             <Route path="/pilot-scan/splash" element={<PilotSplashPage />} />
             <Route path="/pilot-scan/loading" element={<PilotLoadingPage />} />
+            <Route path="/pilot-scan/risk-summary" element={<PilotRiskSummaryPage />} />
             <Route path="/pilot-scan/start" element={<PilotStartPage />} />
 
             {/* Settings */}

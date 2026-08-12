@@ -117,14 +117,14 @@ export function PilotLoadingPage() {
       setCurrent(STEPS.length - 1);
       setAllDone(true);
       const t = window.setTimeout(() => {
-        navigate("/pilot-scan/start", { replace: true });
+        navigate("/pilot-scan/risk-summary", { replace: true });
       }, 800);
       return () => window.clearTimeout(t);
     }
 
     if (allDone) {
       const t = window.setTimeout(() => {
-        navigate("/pilot-scan/start", { replace: true });
+        navigate("/pilot-scan/risk-summary", { replace: true });
       }, DONE_HOLD_MS);
       return () => window.clearTimeout(t);
     }
