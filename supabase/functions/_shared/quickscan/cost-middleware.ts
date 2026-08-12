@@ -84,8 +84,13 @@ export async function trackCost(
         phase1_cost_usd: phase === 1 ? costUsd : 0,
         phase2_cost_usd: phase === 2 ? costUsd : 0,
         total_cost_usd: costUsd,
-        status: "success",
-        ...metadata,
+        status: (metadata.status as string) || "success",
+        error_message: (metadata.error_message as string | undefined) ?? (metadata.error as string | undefined) ?? null,
+        dedup_groups: typeof metadata.dedup_groups === "number" ? metadata.dedup_groups : 0,
+        profiles_found: typeof metadata.profiles_found === "number" ? metadata.profiles_found : 0,
+        emails_found: typeof metadata.emails_found === "number" ? metadata.emails_found : 0,
+        services_found: typeof metadata.services_found === "number" ? metadata.services_found : 0,
+        breaches_found: typeof metadata.breaches_found === "number" ? metadata.breaches_found : 0,
       });
 
     if (error) {

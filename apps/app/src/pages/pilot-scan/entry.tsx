@@ -1,11 +1,11 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { motion, useReducedMotion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 import PrimaryLogo from "@vanyshr/ui/assets/PrimaryLogo.png";
 import PrimaryLogoDark from "@vanyshr/ui/assets/PrimaryLogo-DarkMode.png";
 import PrimaryIconOutline from "@vanyshr/ui/assets/PrimaryIcon-outline.png";
-import { QuickScanForm } from "@vanyshr/ui/components/application";
+import { QuickScanForm, type ProfileMatch } from "@vanyshr/ui/components/application";
 import { cx } from "@/utils/cx";
 import { supabase } from "@/lib/supabase";
 
@@ -31,7 +31,8 @@ const DRAWER_EASE = [0.2, 0, 0, 1] as const;
 
 /**
  * Pilot-scan entry — /pilot-scan (invite-style landing).
- * "See My Data" opens the form drawer; Scan Now → splash → loading.
+ * "See My Data" opens the form drawer; Scan Now goes to splash immediately,
+ * then the status loader runs Phase 1 → profile select → staged enrichment → risk summary.
  * Optional `?id=` still hydrates welcome name from invite RPC.
  */
 export function PilotEntryPage() {
@@ -93,17 +94,77 @@ export function PilotEntryPage() {
     };
   }, [scanIdParam]);
 
-  function handlePilotSubmit(fields: {
-    firstName: string;
-    lastName: string;
-    zipCode: string;
-    city: string;
-    state: string;
-  }) {
-    sessionStorage.setItem("pilotScanFields", JSON.stringify(fields));
-    setIsDrawerOpen(false);
-    navigate("/pilot-scan/splash");
-  }
+  const handlePilotSubmit = useCallback(
+    (fields: {
+      firstName: string;
+      lastName: string;
+      zipCode: string;
+      city: string;
+      state: string;
+    }) => {
+      const sessionId =
+        typeof crypto !== "undefined" && "randomUUID" in crypto
+          ? crypto.randomUUID()
+          : `pilot-${Date.now()}`;
+      sessionStorage.setItem("pilotScanFields", JSON.stringify(fields));
+      sessionStorage.setItem("searchParams", JSON.stringify(fields));
+      sessionStorage.setItem("pilotSessionId", sessionId);
+      sessionStorage.removeItem("pilotDedupGroupId");
+      sessionStorage.removeItem("pilotPhase1Groups");
+      sessionStorage.removeItem("pilotEmails");
+      sessionStorage.removeItem("pilotHolehe");
+      sessionStorage.removeItem("pilotLeakcheck");
+      sessionStorage.removeItem("pilotConsolidatedProfile");
+      sessionStorage.removeItem("pilotEnrichment");
+      setIsDrawerOpen(false);
+      navigate("/pilot-scan/splash");
+    },
+    [navigate],
+  );
+
+  const handleSelectProfile = useCallback(
+    (
+      profile: ProfileMatch,
+      fields: {
+        firstName: string;
+        lastName: string;
+        zipCode: string;
+        city: string;
+        state: string;
+      },
+      scanId: string | null,
+    ) => {
+      // Legacy/fallback — primary pilot path uses onPilotSubmit → splash → loading
+      sessionStorage.setItem("selectedProfile", JSON.stringify(profile));
+      sessionStorage.setItem("pilotScanFields", JSON.stringify(fields));
+      sessionStorage.setItem("searchParams", JSON.stringify(fields));
+      if (scanId) {
+        sessionStorage.setItem("pendingScanId", scanId);
+      }
+      setIsDrawerOpen(false);
+      navigate("/pilot-scan/splash");
+    },
+    [navigate],
+  );
+
+  const handleTotalFailure = useCallback(
+    (
+      fields: {
+        firstName: string;
+        lastName: string;
+        zipCode: string;
+        city: string;
+        state: string;
+      },
+      originalScanId: string | null,
+    ) => {
+      sessionStorage.setItem("pilotScanFields", JSON.stringify(fields));
+      navigate("/quickscan-error", {
+        state: { searchParams: fields, originalScanId },
+      });
+    },
+    [navigate],
+  );
 
   return (
     <>
@@ -250,7 +311,19 @@ export function PilotEntryPage() {
                 <div className="overflow-y-auto px-1 pb-10">
                   <QuickScanForm
                     startAtPrivacy
+                    searchMode="pilot"
+                    supabaseClient={supabase}
                     onPilotSubmit={handlePilotSubmit}
+                    onProfileSelect={handleSelectProfile}
+                    onTotalFailure={handleTotalFailure}
+                    onPhoneLookup={async (phone: string) => {
+                      const { data, error } = await supabase.functions.invoke(
+                        "phone-lookup",
+                        { body: { phone } },
+                      );
+                      if (error) return { error: "fetch_failed" };
+                      return data;
+                    }}
                     onClose={() => setIsDrawerOpen(false)}
                     className="!bg-transparent"
                   />

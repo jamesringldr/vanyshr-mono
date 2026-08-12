@@ -21,16 +21,23 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { getCorsHeaders } from '../_shared/cors.ts'
 import { Phase1Orchestrator } from '../_shared/quickscan/phase1-orchestrator.ts'
-import { Phase2Orchestrator } from '../_shared/quickscan/phase2-orchestrator.ts'
+import { Phase2Orchestrator, type Phase2Stage } from '../_shared/quickscan/phase2-orchestrator.ts'
 import { checkRateLimit, trackCost, estimateCost, checkBurstProtection } from '../_shared/quickscan/cost-middleware.ts'
-import { type QuickScanInput, type DedupGroup } from '../_shared/quickscan/quickscan-phase1-phase2-models.ts'
+import { type QuickScanInput, type DedupGroup, type DedupMember, type BreachRecord } from '../_shared/quickscan/quickscan-phase1-phase2-models.ts'
 
 interface PilotScanRequest {
   firstName?: string;
+  lastName?: string;
   last_name?: string;
   zipcode?: string;
+  zipCode?: string;
   sessionId?: string;
   dedupGroupId?: string;
+  /** Phase 2 stage for UI step sync (omit = full Phase 2) */
+  enrichStage?: "profile" | "holehe" | "leakcheck" | "finalize";
+  emails?: string[];
+  holehe_services?: string[];
+  leakcheck_breaches?: unknown[];
 }
 
 // ZIP to STATE mapping (abbreviated version - full version in run-quick-scan)
@@ -56,25 +63,36 @@ function zipcodeToState(zipcode: string): string {
   return stateMap[zipPrefix] || '';
 }
 
-// Zipcode to City lookup (simplified - would need full database in production)
-function zipcodeToCity(zipcode: string): { city: string; state: string } {
-  // Simplified mapping for major cities/zips
-  const majorZips: Record<string, { city: string; state: string }> = {
-    '10001': { city: 'New York', state: 'NY' },
-    '90210': { city: 'Beverly Hills', state: 'CA' },
-    '60601': { city: 'Chicago', state: 'IL' },
-    '75201': { city: 'Dallas', state: 'TX' },
-    '98101': { city: 'Seattle', state: 'WA' },
-    '65251': { city: 'Cameron', state: 'MO' }, // Test case
-  };
+// Hardcoded fallbacks when zip_lookup has no row
+const MAJOR_ZIPS: Record<string, { city: string; state: string }> = {
+  '10001': { city: 'New York', state: 'NY' },
+  '90210': { city: 'Beverly Hills', state: 'CA' },
+  '60601': { city: 'Chicago', state: 'IL' },
+  '75201': { city: 'Dallas', state: 'TX' },
+  '98101': { city: 'Seattle', state: 'WA' },
+  '65251': { city: 'Cameron', state: 'MO' }, // Pilot test case
+};
 
-  if (majorZips[zipcode]) {
-    return majorZips[zipcode];
+async function zipcodeToCity(
+  supabaseClient: { from: (t: string) => any },
+  zipcode: string,
+): Promise<{ city: string; state: string }> {
+  const zip = zipcode.replace(/\D/g, '').slice(0, 5);
+  try {
+    const { data } = await supabaseClient
+      .from('zip_lookup')
+      .select('city, state_code')
+      .eq('zip', zip)
+      .maybeSingle();
+    if (data?.city && data?.state_code) {
+      return { city: data.city as string, state: data.state_code as string };
+    }
+  } catch (err) {
+    console.warn('zip_lookup query failed:', (err as Error).message);
   }
 
-  // Fallback: use state from zipcode, city as empty (will be handled by scraper)
-  const state = zipcodeToState(zipcode);
-  return { city: '', state };
+  if (MAJOR_ZIPS[zip]) return MAJOR_ZIPS[zip];
+  return { city: '', state: zipcodeToState(zip) };
 }
 
 serve(async (req) => {
@@ -97,24 +115,41 @@ serve(async (req) => {
       }
     );
 
-    // Parse request
-    const requestBody = await req.json();
-    const { firstName, last_name, zipcode, sessionId, dedupGroupId } = requestBody as PilotScanRequest;
+    // Parse request — accept both camelCase and snake_case from clients
+    const requestBody = await req.json() as PilotScanRequest & { ping?: boolean };
+
+    // Warm-up ping from the client — no-op success
+    if (requestBody.ping) {
+      return new Response(JSON.stringify({ ok: true, ping: true }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const firstName = requestBody.firstName?.trim();
+    const lastName = (requestBody.lastName ?? requestBody.last_name)?.trim();
+    const zipcode = (requestBody.zipcode ?? requestBody.zipCode)?.trim();
+    const sessionId = requestBody.sessionId || 'anonymous';
+    const dedupGroupId = requestBody.dedupGroupId;
 
     // Determine if this is Phase 1 or Phase 2
     if (dedupGroupId) {
-      // Phase 2: Enrichment
+      // Phase 2: Enrichment (full or staged)
       return await handlePhase2(supabaseClient, corsHeaders, {
         dedupGroupId,
-        sessionId: sessionId || 'anonymous',
+        sessionId,
+        enrichStage: requestBody.enrichStage,
+        emails: requestBody.emails,
+        holehe_services: requestBody.holehe_services,
+        leakcheck_breaches: requestBody.leakcheck_breaches as BreachRecord[] | undefined,
       });
-    } else if (firstName && (last_name || last_name) && zipcode) {
+    } else if (firstName && lastName && zipcode) {
       // Phase 1: Search
       return await handlePhase1(supabaseClient, corsHeaders, {
         firstName,
-        lastName: last_name || '',
+        lastName,
         zipcode,
-        sessionId: sessionId || 'anonymous',
+        sessionId,
       });
     } else {
       return new Response(
@@ -149,8 +184,8 @@ async function handlePhase1(
 
     console.log(`🔍 Pilot-Scan Phase 1: ${firstName} ${lastName}, ZIP ${zipcode}`);
 
-    // Step 1: Lookup city/state from zipcode
-    const { city, state } = zipcodeToCity(zipcode);
+    // Step 1: Lookup city/state from zipcode (DB first, then fallbacks)
+    const { city, state } = await zipcodeToCity(supabaseClient, zipcode);
     console.log(`📍 Zipcode lookup: ${zipcode} → ${city}, ${state}`);
 
     // Step 2: Check rate limits
@@ -171,16 +206,49 @@ async function handlePhase1(
       );
     }
 
-    // Step 4: Run Phase 1
+    // Step 4: Create quick_scans row (FK target for dedup groups)
+    // source/status must match quick_scans CHECK constraints
+    const { data: scanRow, error: scanError } = await supabaseClient
+      .from('quick_scans')
+      .insert({
+        session_id: sessionId,
+        search_input: { firstName, lastName, zipcode, city, state },
+        status: 'scanning',
+        source: 'invite',
+      })
+      .select('id')
+      .single();
+
+    if (scanError || !scanRow?.id) {
+      console.error('Failed to create quick_scans row:', scanError);
+      return new Response(
+        JSON.stringify({ error: 'Failed to start scan', details: scanError?.message }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    const quickScanId = scanRow.id as string;
+
+    // Step 5: Run Phase 1
     const orchestrator = new Phase1Orchestrator();
-    const input: QuickScanInput = { first_name: firstName, last_name: lastName, city, state };
-    const result = await orchestrator.runPhase1(input, { timeout: 45000 });
+    const input: QuickScanInput = {
+      first_name: firstName,
+      last_name: lastName,
+      city,
+      state,
+      zip: zipcode,
+    };
+    const result = await orchestrator.runPhase1(input, { timeout: 150000 });
 
     if (!result.success) {
       console.error(`Phase 1 failed: ${result.error}`);
-      await trackCost(supabaseClient, null, sessionId, 1, null, estimateCost(1), {
+      await supabaseClient
+        .from('quick_scans')
+        .update({ status: 'failed', error_message: result.error ?? 'Search failed' })
+        .eq('id', quickScanId);
+
+      await trackCost(supabaseClient, null, sessionId, 1, quickScanId, estimateCost(1), {
         status: 'failed',
-        error: result.error,
+        error_message: result.error,
       });
 
       return new Response(
@@ -189,21 +257,51 @@ async function handlePhase1(
       );
     }
 
-    // Step 5: Store dedup groups
-    const dedupGroupIds = await orchestrator.storeResults(supabaseClient, `pilot-${sessionId}`, result);
+    // Step 6: Store dedup groups
+    const dedupGroupIds = await orchestrator.storeResults(
+      supabaseClient,
+      quickScanId,
+      result,
+      sessionId,
+    );
 
-    // Step 6: Track cost
-    await trackCost(supabaseClient, null, sessionId, 1, null, estimateCost(1), {
+    // Step 7: Track cost + mark scan ready for selection
+    await trackCost(supabaseClient, null, sessionId, 1, quickScanId, estimateCost(1), {
       status: 'success',
       dedup_groups: dedupGroupIds.length,
+      profiles_found: result.metadata.profiles_found,
     });
+
+    const nextStatus =
+      dedupGroupIds.length === 0
+        ? 'no_matches'
+        : dedupGroupIds.length === 1
+          ? 'matches_found'
+          : 'selection_required';
+
+    await supabaseClient
+      .from('quick_scans')
+      .update({
+        status: nextStatus,
+        profile_matches: result.dedup_groups.map((g, idx) => ({
+          id: dedupGroupIds[idx] || g.dedup_id,
+          name: g.members[0]?.summary.full_name || '',
+          age: g.members[0]?.summary.age != null ? String(g.members[0].summary.age) : undefined,
+          city_state: g.members[0]?.summary.address || '',
+          source: g.members.map((m) => m.summary.broker).join(','),
+        })),
+        dedup_group_id: dedupGroupIds[0] ?? null,
+        data_sources: result.metadata.brokers_scraped,
+      })
+      .eq('id', quickScanId);
 
     console.log(`✅ Phase 1 complete: ${result.dedup_groups.length} groups`);
 
-    // Step 7: Return summary for modal selection
+    // Step 8: Return summary for modal selection
     return new Response(
       JSON.stringify({
         success: true,
+        quick_scan_id: quickScanId,
         dedup_groups: result.dedup_groups.map((g, idx) => ({
           id: dedupGroupIds[idx] || null,
           name: g.members[0]?.summary.full_name || '',
@@ -234,7 +332,7 @@ async function handlePhase1(
 }
 
 /**
- * Handle Phase 2: Full profile enrichment
+ * Handle Phase 2: Full profile enrichment (all-at-once or staged for UI sync)
  */
 async function handlePhase2(
   supabaseClient: any,
@@ -242,12 +340,19 @@ async function handlePhase2(
   params: {
     dedupGroupId: string;
     sessionId: string;
+    enrichStage?: Phase2Stage;
+    emails?: string[];
+    holehe_services?: string[];
+    leakcheck_breaches?: BreachRecord[];
   }
 ) {
   try {
-    const { dedupGroupId, sessionId } = params;
+    const { dedupGroupId, sessionId, enrichStage } = params;
 
-    console.log(`🔍 Pilot-Scan Phase 2: Enriching group ${dedupGroupId}`);
+    console.log(
+      `🔍 Pilot-Scan Phase 2: Enriching group ${dedupGroupId}` +
+        (enrichStage ? ` [stage=${enrichStage}]` : " [full]"),
+    );
 
     // Load dedup group
     const { data: dedupGroupData, error: dedupError } = await supabaseClient
@@ -264,25 +369,114 @@ async function handlePhase2(
       );
     }
 
-    // Reconstruct broker profiles
     const brokerProfiles = reconstructBrokerProfiles(dedupGroupData.full_data);
+    const members = (dedupGroupData.full_data?.members || []) as DedupMember[];
+    const dedupGroup: DedupGroup = {
+      dedup_id: dedupGroupData.dedup_id,
+      members,
+      age_conflict: Boolean(dedupGroupData.age_conflict),
+      age_note: dedupGroupData.age_note ?? undefined,
+    };
 
-    // Run Phase 2
     const orchestrator = new Phase2Orchestrator();
+
+    // Staged path — one UI loader step per stage
+    if (enrichStage) {
+      const stageResult = await orchestrator.runStage(
+        enrichStage,
+        dedupGroup,
+        brokerProfiles,
+        {
+          emails: params.emails,
+          holehe_services: params.holehe_services,
+          leakcheck_breaches: params.leakcheck_breaches,
+        },
+      );
+
+      if (!stageResult.success) {
+        return new Response(
+          JSON.stringify({ error: stageResult.error || `Stage ${enrichStage} failed` }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Finalize also persists
+      if (enrichStage === "finalize" && stageResult.consolidated_profile) {
+        const fullResult = {
+          success: true as const,
+          consolidated_profile: stageResult.consolidated_profile,
+          enrichment_data: stageResult.enrichment_data,
+          metadata: {
+            total_phase2_ms: stageResult.timing_ms || 0,
+            email_extract_ms: 0,
+            holehe_ms: 0,
+            leakcheck_ms: 0,
+            consolidate_ms: stageResult.timing_ms || 0,
+            emails_found: (stageResult.emails || []).length,
+            services_found: (stageResult.holehe_services || []).length,
+            breaches_found: (stageResult.leakcheck_breaches || []).length,
+            phase2_cost_usd: 0.007,
+          },
+        };
+
+        const enrichmentId = await orchestrator.storeResults(
+          supabaseClient,
+          dedupGroupData.quick_scan_id,
+          dedupGroupId,
+          fullResult,
+          sessionId,
+        );
+
+        await trackCost(supabaseClient, null, sessionId, 2, dedupGroupData.quick_scan_id, 0.007, {
+          status: 'success',
+          emails_found: fullResult.metadata.emails_found,
+          services_found: fullResult.metadata.services_found,
+          breaches_found: fullResult.metadata.breaches_found,
+        });
+
+        if (enrichmentId) {
+          await supabaseClient
+            .from('quick_scans')
+            .update({
+              status: 'completed',
+              enrichment_id: enrichmentId,
+              profile_data: stageResult.consolidated_profile,
+              completed_at: new Date().toISOString(),
+            })
+            .eq('id', dedupGroupData.quick_scan_id);
+        }
+      }
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          stage: enrichStage,
+          emails: stageResult.emails,
+          holehe_services: stageResult.holehe_services,
+          leakcheck_breaches: stageResult.leakcheck_breaches,
+          consolidated_profile: stageResult.consolidated_profile,
+          enrichment: stageResult.enrichment_data,
+          timing_ms: stageResult.timing_ms,
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Full Phase 2 (back-compat)
     const result = await orchestrator.runPhase2(
-      dedupGroupData as unknown as DedupGroup,
+      dedupGroup,
       brokerProfiles,
       {
         timeout: 45000,
-        includeLeakcheck: !!Deno.env.get('LEAKCHECK_API_KEY'),
+        includeLeakcheck: true,
       }
     );
 
     if (!result.success) {
       console.error(`Phase 2 failed: ${result.error}`);
-      await trackCost(supabaseClient, null, sessionId, 2, null, estimateCost(2), {
+      await trackCost(supabaseClient, null, sessionId, 2, dedupGroupData.quick_scan_id, estimateCost(2), {
         status: 'failed',
-        error: result.error,
+        error_message: result.error,
       });
 
       return new Response(
@@ -291,22 +485,33 @@ async function handlePhase2(
       );
     }
 
-    // Store results
     const enrichmentId = await orchestrator.storeResults(
       supabaseClient,
-      `pilot-${sessionId}`,
+      dedupGroupData.quick_scan_id,
       dedupGroupId,
-      result
+      result,
+      sessionId,
     );
 
-    // Track cost
     if (result.metadata) {
-      await trackCost(supabaseClient, null, sessionId, 2, null, result.metadata.phase2_cost_usd, {
+      await trackCost(supabaseClient, null, sessionId, 2, dedupGroupData.quick_scan_id, result.metadata.phase2_cost_usd, {
         status: 'success',
         emails_found: result.metadata.emails_found,
         services_found: result.metadata.services_found,
         breaches_found: result.metadata.breaches_found,
       });
+    }
+
+    if (enrichmentId) {
+      await supabaseClient
+        .from('quick_scans')
+        .update({
+          status: 'completed',
+          enrichment_id: enrichmentId,
+          profile_data: result.consolidated_profile,
+          completed_at: new Date().toISOString(),
+        })
+        .eq('id', dedupGroupData.quick_scan_id);
     }
 
     console.log(`✅ Phase 2 complete: profile enriched`);

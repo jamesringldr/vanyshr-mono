@@ -2,10 +2,10 @@
  * Phase 1 Orchestrator
  * Parallel 4-broker search with deduplication
  *
- * Orchestrates the following flow:
- * 1. Search all 4 brokers in parallel (FPS, NPD, AnyWho, Zaba)
- * 2. Deduplicate results using weighted scoring algorithm
- * 3. Generate dedup groups and rank by confidence
+ * Pilot path:
+ * 1. Context.dev HTML scrape for FPS / NPD / AnyWho
+ * 2. Zaba via serv-01 residential service (ZABA_SERVICE_*)
+ * 3. Deduplicate with DedupEngine
  * 4. Store results in database
  */
 
@@ -14,10 +14,14 @@ import {
   QuickScanInput,
   BrokerName,
   ScrapeResult,
-  SummaryResult,
   DedupGroup,
-  SequenceOutput,
 } from "./quickscan-phase1-phase2-models.ts";
+import {
+  searchAnyWhoViaContextDev,
+  searchFpsViaContextDev,
+  searchNpdViaContextDev,
+} from "./context-dev-brokers.ts";
+import { searchZabaViaService } from "./zaba-service-client.ts";
 
 /**
  * Phase 1 search results
@@ -32,7 +36,8 @@ export interface Phase1SearchResult {
     profiles_found: number;
     brokers_scraped: string[];
     phase_timings?: Record<string, number>;
-    used_scraper_lab?: boolean;
+    used_context_dev?: boolean;
+    used_zaba_service?: boolean;
   };
   error?: string;
 }
@@ -50,32 +55,94 @@ export class Phase1Orchestrator {
 
   /**
    * Run Phase 1: Parallel 4-broker search with deduplication
-   * @param userInput User search parameters
-   * @param options Orchestration options
-   * @returns Phase1SearchResult with dedup groups
    */
   async runPhase1(userInput: QuickScanInput, options: Phase1Options = {}): Promise<Phase1SearchResult> {
     const startTime = Date.now();
-    const { useScraperLab = true, timeout = 60000 } = options;
+    const { timeout = 150000 } = options;
+    const perBrokerTimeout = Math.min(90000, Math.max(30000, Math.floor(timeout * 0.7)));
 
-    console.log(`🔍 Phase 1 starting: ${userInput.first_name} ${userInput.last_name}, ${userInput.city}, ${userInput.state}`);
+    console.log(
+      `🔍 Phase 1 starting (Context.dev + Zaba service): ${userInput.first_name} ${userInput.last_name}, ${userInput.city}, ${userInput.state}`,
+    );
 
     try {
-      // Try using scraper-lab if available and enabled
-      if (useScraperLab) {
-        const scraperLabResult = await this.tryScraperLab(userInput, timeout);
-        if (scraperLabResult) {
-          return scraperLabResult;
-        }
+      const [fps, npd, anywho, zaba] = await Promise.all([
+        searchFpsViaContextDev(userInput, perBrokerTimeout),
+        searchNpdViaContextDev(userInput, perBrokerTimeout),
+        searchAnyWhoViaContextDev(userInput, perBrokerTimeout),
+        // Edge Functions can't reach Tailscale serv-01; fail fast if unreachable
+        searchZabaViaService(userInput, { timeoutMs: Math.min(20000, timeout) }),
+      ]);
+
+      const rawResults: Record<string, ScrapeResult> = {
+        [BrokerName.FPS]: fps,
+        [BrokerName.NPD]: npd,
+        [BrokerName.ANYWHO]: anywho,
+        [BrokerName.ZABA]: zaba,
+      };
+
+      const profilesFound = Object.values(rawResults).reduce(
+        (sum, r) => sum + r.summaries.length,
+        0,
+      );
+      const brokersOk = Object.values(rawResults).filter((r) => r.status !== "failed").length;
+
+      if (profilesFound === 0 && brokersOk === 0) {
+        const errors = Object.values(rawResults)
+          .map((r) => r.error)
+          .filter(Boolean)
+          .join("; ");
+        return {
+          success: false,
+          dedup_groups: [],
+          raw_results: rawResults,
+          metadata: {
+            total_time_ms: Date.now() - startTime,
+            phase: "summary",
+            profiles_found: 0,
+            brokers_scraped: Object.keys(rawResults),
+            used_context_dev: true,
+            used_zaba_service: true,
+            phase_timings: {
+              fps: fps.timing_ms,
+              npd: npd.timing_ms,
+              anywho: anywho.timing_ms,
+              zaba: zaba.timing_ms,
+            },
+          },
+          error: errors || "All brokers failed",
+        };
       }
 
-      // Fall back to native Edge Function scrapers
-      console.log("⚠️  Scraper-lab not available, falling back to native scrapers");
-      return await this.nativeSearch(userInput, timeout);
+      const dedupGroups = this.dedupEngine.deduplicate(rawResults);
+      const timingMs = Date.now() - startTime;
+
+      console.log(
+        `✓ Phase 1 complete: ${profilesFound} summaries → ${dedupGroups.length} groups in ${timingMs}ms`,
+      );
+
+      return {
+        success: true,
+        dedup_groups: dedupGroups,
+        raw_results: rawResults,
+        metadata: {
+          total_time_ms: timingMs,
+          phase: "summary",
+          profiles_found: profilesFound,
+          brokers_scraped: Object.keys(rawResults),
+          used_context_dev: true,
+          used_zaba_service: true,
+          phase_timings: {
+            fps: fps.timing_ms,
+            npd: npd.timing_ms,
+            anywho: anywho.timing_ms,
+            zaba: zaba.timing_ms,
+          },
+        },
+      };
     } catch (error) {
       const timingMs = Date.now() - startTime;
       const errorMsg = (error as Error).message;
-
       console.error(`✗ Phase 1 failed: ${errorMsg}`);
 
       return {
@@ -94,117 +161,13 @@ export class Phase1Orchestrator {
   }
 
   /**
-   * Try using scraper-lab bridge for 4-broker parallel search
-   * @param userInput User search parameters
-   * @param timeout Overall timeout
-   * @returns Phase1SearchResult or null if scraper-lab not available
-   */
-  private async tryScraperLab(userInput: QuickScanInput, timeout: number): Promise<Phase1SearchResult | null> {
-    const scraperLabUrl = Deno.env.get("SCRAPER_LAB_URL");
-    const scraperLabToken = Deno.env.get("SCRAPER_LAB_TOKEN");
-
-    if (!scraperLabUrl) {
-      return null; // Scraper-lab not configured
-    }
-
-    try {
-      console.log("🔗 Calling scraper-lab bridge for 4-broker parallel search...");
-      const startTime = Date.now();
-
-      const response = await fetch(`${scraperLabUrl}/api/quickscan`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(scraperLabToken && { Authorization: `Bearer ${scraperLabToken}` }),
-        },
-        body: JSON.stringify({
-          first_name: userInput.first_name,
-          last_name: userInput.last_name,
-          city: userInput.city,
-          state: userInput.state,
-        }),
-        signal: AbortSignal.timeout(timeout),
-      });
-
-      if (!response.ok) {
-        console.warn(`Scraper-lab returned ${response.status}, trying native search`);
-        return null;
-      }
-
-      const data = await response.json() as SequenceOutput;
-      const timingMs = Date.now() - startTime;
-
-      console.log(`✓ Scraper-lab Phase 1 complete: ${data.dedup_groups.length} groups in ${timingMs}ms`);
-
-      return {
-        success: true,
-        dedup_groups: data.dedup_groups,
-        raw_results: data.raw_results,
-        metadata: {
-          total_time_ms: timingMs,
-          phase: "summary",
-          profiles_found: data.dedup_groups.length,
-          brokers_scraped: Object.keys(data.raw_results),
-          used_scraper_lab: true,
-        },
-      };
-    } catch (error) {
-      console.warn(`Scraper-lab call failed: ${(error as Error).message}`);
-      return null; // Fall back to native search
-    }
-  }
-
-  /**
-   * Native search using Edge Function scrapers
-   * Falls back to built-in scrapers if scraper-lab not available
-   *
-   * @param userInput User search parameters
-   * @param timeout Overall timeout
-   * @returns Phase1SearchResult
-   */
-  private async nativeSearch(userInput: QuickScanInput, timeout: number): Promise<Phase1SearchResult> {
-    const startTime = Date.now();
-
-    // For now, implement single-broker fallback (AnyWho + optional FPS service)
-    // Full 4-broker native support would require porting NPD scraper
-    console.log("🔍 Searching with native Edge Function scrapers...");
-
-    const searchResults: Record<string, ScrapeResult> = {};
-
-    // In production, this would call the existing searchProfilesMulti function
-    // For now, returning placeholder result
-    // TODO: Implement native 4-broker search when NPD scraper is ported
-
-    const timingMs = Date.now() - startTime;
-
-    // If no results found from native search, we can still return the structure
-    // The caller can decide whether to retry or show "no matches" message
-    return {
-      success: false,
-      dedup_groups: [],
-      raw_results: searchResults,
-      metadata: {
-        total_time_ms: timingMs,
-        phase: "summary",
-        profiles_found: 0,
-        brokers_scraped: [],
-        used_scraper_lab: false,
-      },
-      error: "Native 4-broker search not yet implemented. Please configure SCRAPER_LAB_URL.",
-    };
-  }
-
-  /**
    * Store Phase 1 results in database
-   * @param supabaseClient Supabase client
-   * @param quickScanId Reference to quick_scans table
-   * @param result Phase 1 search result
-   * @returns Array of stored dedup group IDs
    */
   async storeResults(
     supabaseClient: any,
     quickScanId: string,
-    result: Phase1SearchResult
+    result: Phase1SearchResult,
+    sessionId?: string,
   ): Promise<string[]> {
     const dedupGroupIds: string[] = [];
 
@@ -214,12 +177,12 @@ export class Phase1Orchestrator {
 
     console.log(`💾 Storing ${result.dedup_groups.length} dedup groups...`);
 
-    // Store each dedup group
     for (let rank = 0; rank < result.dedup_groups.length; rank++) {
       const group = result.dedup_groups[rank];
 
       const { data, error } = await supabaseClient.from("quickscan_dedup_groups").insert({
         quick_scan_id: quickScanId,
+        session_id: sessionId ?? null,
         dedup_id: group.dedup_id,
         rank: rank + 1,
         primary_name: group.members[0]?.summary.full_name || "",
@@ -252,18 +215,12 @@ export class Phase1Orchestrator {
     return dedupGroupIds;
   }
 
-  /**
-   * Get average confidence for a group
-   */
   private getAverageConfidence(group: DedupGroup): number {
     if (group.members.length === 0) return 0;
     const sum = group.members.reduce((total, m) => total + m.match_score, 0);
     return Math.round((sum / group.members.length) * 100) / 100;
   }
 
-  /**
-   * Format dedup group for JSONB storage
-   */
   private formatGroupData(group: DedupGroup): Record<string, unknown> {
     return {
       dedup_id: group.dedup_id,
@@ -289,6 +246,5 @@ export class Phase1Orchestrator {
  * Phase 1 orchestration options
  */
 export interface Phase1Options {
-  useScraperLab?: boolean; // Try scraper-lab first (default: true)
-  timeout?: number; // Overall timeout in ms (default: 60000)
+  timeout?: number; // Overall timeout in ms (default: 150000)
 }

@@ -49,16 +49,142 @@ export interface Phase2EnrichmentResult {
   error?: string;
 }
 
+export type Phase2Stage = "profile" | "holehe" | "leakcheck" | "finalize";
+
+export interface Phase2StageResult {
+  success: boolean;
+  stage: Phase2Stage;
+  emails?: string[];
+  holehe_services?: string[];
+  leakcheck_breaches?: BreachRecord[];
+  consolidated_profile?: ConsolidatedProfile;
+  enrichment_data?: {
+    holehe_services: string[];
+    leakcheck_breaches: BreachRecord[];
+  };
+  timing_ms?: number;
+  error?: string;
+}
+
 /**
  * Phase 2 orchestrator
  */
 export class Phase2Orchestrator {
   /**
-   * Run Phase 2: Full profile enrichment
-   * @param dedupGroup Dedup group from Phase 1
-   * @param rawProfiles Raw broker profile data
-   * @param options Enrichment options
-   * @returns Phase2EnrichmentResult with consolidated profile
+   * Run a single enrichment stage (for UI step sync).
+   * Stages: profile → holehe → leakcheck → finalize
+   */
+  async runStage(
+    stage: Phase2Stage,
+    dedupGroup: DedupGroup,
+    rawProfiles: Record<string, unknown>,
+    prior: {
+      emails?: string[];
+      holehe_services?: string[];
+      leakcheck_breaches?: BreachRecord[];
+    } = {},
+  ): Promise<Phase2StageResult> {
+    const start = Date.now();
+    try {
+      if (stage === "profile") {
+        console.log("📧 Stage profile: extracting emails / building profile base...");
+        const emailResult = extractEmailsFromBrokers(rawProfiles);
+        const emails = emailResult.emails || [];
+        console.log(`✓ Profile stage: ${emails.length} emails`);
+        return {
+          success: true,
+          stage,
+          emails,
+          timing_ms: Date.now() - start,
+        };
+      }
+
+      if (stage === "holehe") {
+        const emails = prior.emails || [];
+        console.log(`🌐 Stage holehe: checking ${emails.length} emails...`);
+        let services: string[] = [];
+        if (emails.length > 0) {
+          const results = await enrichEmailsWithHolehe(emails, 30000);
+          const aggregated = aggregateHoleheResults(results);
+          if (aggregated.success) services = aggregated.services;
+        }
+        console.log(`✓ Holehe stage: ${services.length} services`);
+        return {
+          success: true,
+          stage,
+          emails,
+          holehe_services: services,
+          timing_ms: Date.now() - start,
+        };
+      }
+
+      if (stage === "leakcheck") {
+        const emails = prior.emails || [];
+        console.log(`🔴 Stage leakcheck: checking ${emails.length} emails...`);
+        let breaches: BreachRecord[] = [];
+        if (emails.length > 0) {
+          const apiKey = Deno.env.get("LEAKCHECK_API_KEY");
+          const results = await enrichEmailsWithLeakcheck(emails, apiKey, 30000);
+          const aggregated = aggregateLeakcheckResults(results);
+          if (aggregated.success) breaches = aggregated.breaches;
+        }
+        console.log(`✓ Leakcheck stage: ${breaches.length} breaches`);
+        return {
+          success: true,
+          stage,
+          emails,
+          leakcheck_breaches: breaches,
+          timing_ms: Date.now() - start,
+        };
+      }
+
+      // finalize
+      console.log("🔗 Stage finalize: consolidating profile...");
+      const emails = prior.emails || [];
+      const holeheServices = prior.holehe_services || [];
+      const leakcheckBreaches = prior.leakcheck_breaches || [];
+      const personId = this.generatePersonId(dedupGroup);
+      let consolidatedProfile = consolidateProfiles(
+        rawProfiles,
+        personId,
+        this.getGroupConfidence(dedupGroup),
+      );
+      consolidatedProfile = addEnrichmentData(
+        consolidatedProfile,
+        holeheServices,
+        leakcheckBreaches,
+      );
+      // Ensure extracted emails are present
+      if (emails.length > 0) {
+        const merged = Array.from(new Set([...consolidatedProfile.emails, ...emails]));
+        consolidatedProfile = { ...consolidatedProfile, emails: merged };
+      }
+      console.log("✓ Finalize stage complete");
+      return {
+        success: true,
+        stage,
+        emails,
+        holehe_services: holeheServices,
+        leakcheck_breaches: leakcheckBreaches,
+        consolidated_profile: consolidatedProfile,
+        enrichment_data: {
+          holehe_services: holeheServices,
+          leakcheck_breaches: leakcheckBreaches,
+        },
+        timing_ms: Date.now() - start,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        stage,
+        error: (error as Error).message,
+        timing_ms: Date.now() - start,
+      };
+    }
+  }
+
+  /**
+   * Run Phase 2: Full profile enrichment (all stages, sequential for compatibility)
    */
   async runPhase2(
     dedupGroup: DedupGroup,
@@ -66,133 +192,44 @@ export class Phase2Orchestrator {
     options: Phase2Options = {}
   ): Promise<Phase2EnrichmentResult> {
     const startTime = Date.now();
-    const { timeout = 60000, includeLeakcheck = true } = options;
+    const { includeLeakcheck = true } = options;
 
     console.log(`🔍 Phase 2 starting for ${dedupGroup.members[0]?.summary.full_name || "unknown"}...`);
 
     try {
-      // Step 1: Extract emails
-      const emailStartTime = Date.now();
-      console.log("📧 Step 1: Extracting emails from profiles...");
-      const emailResult = extractEmailsFromBrokers(rawProfiles);
-      const emailMs = Date.now() - emailStartTime;
+      const profile = await this.runStage("profile", dedupGroup, rawProfiles);
+      const emails = profile.emails || [];
+      const emailMs = profile.timing_ms || 0;
 
-      if (!emailResult.success) {
-        console.warn(`⚠️  Email extraction failed: ${emailResult.error}`);
-      } else {
-        console.log(`✓ Extracted ${emailResult.count} emails`);
-      }
+      const holehe = await this.runStage("holehe", dedupGroup, rawProfiles, { emails });
+      const holeheServices = holehe.holehe_services || [];
+      const holeheMs = holehe.timing_ms || 0;
 
-      // Step 2: Enrich with Holehe and Leakcheck in parallel
-      const enrichStartTime = Date.now();
-      let holeheServices: string[] = [];
       let leakcheckBreaches: BreachRecord[] = [];
-      let holeheMs = 0;
       let leakcheckMs = 0;
-
-      const enrichmentPromises: Promise<void>[] = [];
-
-      // Holehe enrichment (always enabled)
-      enrichmentPromises.push(
-        (async () => {
-          try {
-            console.log("🌐 Step 2a: Enriching with Holehe (online services)...");
-            const holeheStart = Date.now();
-
-            if (emailResult.emails.length > 0) {
-              const results = await enrichEmailsWithHolehe(emailResult.emails, 30000);
-              const aggregated = aggregateHoleheResults(results);
-
-              if (aggregated.success) {
-                holeheServices = aggregated.services;
-                console.log(`✓ Holehe found ${aggregated.total_services} services`);
-              } else {
-                console.warn(`⚠️  Holehe enrichment partially failed`);
-              }
-            } else {
-              console.log("⚠️  No emails to enrich with Holehe");
-            }
-
-            holeheMs = Date.now() - holeheStart;
-          } catch (error) {
-            console.error(`✗ Holehe enrichment error: ${(error as Error).message}`);
-            holeheMs = Date.now() - enrichStartTime;
-          }
-        })()
-      );
-
-      // Leakcheck enrichment (optional)
       if (includeLeakcheck) {
-        enrichmentPromises.push(
-          (async () => {
-            try {
-              console.log("🔴 Step 2b: Enriching with Leakcheck (data breaches)...");
-              const leakcheckStart = Date.now();
-              const apiKey = Deno.env.get("LEAKCHECK_API_KEY");
-
-              if (emailResult.emails.length > 0) {
-                const results = await enrichEmailsWithLeakcheck(emailResult.emails, apiKey, 30000);
-                const aggregated = aggregateLeakcheckResults(results);
-
-                if (aggregated.success) {
-                  leakcheckBreaches = aggregated.breaches;
-                  console.log(`✓ Leakcheck found ${aggregated.total_unique_breaches} breaches`);
-                } else if (!apiKey) {
-                  console.log("⚠️  Leakcheck API key not configured, skipping breach detection");
-                } else {
-                  console.warn(`⚠️  Leakcheck enrichment partially failed`);
-                }
-              } else {
-                console.log("⚠️  No emails to check with Leakcheck");
-              }
-
-              leakcheckMs = Date.now() - leakcheckStart;
-            } catch (error) {
-              console.error(`✗ Leakcheck enrichment error: ${(error as Error).message}`);
-              leakcheckMs = Date.now() - enrichStartTime;
-            }
-          })()
-        );
+        const leak = await this.runStage("leakcheck", dedupGroup, rawProfiles, { emails });
+        leakcheckBreaches = leak.leakcheck_breaches || [];
+        leakcheckMs = leak.timing_ms || 0;
       }
 
-      // Wait for all enrichment to complete (with timeout)
-      await Promise.race([
-        Promise.all(enrichmentPromises),
-        new Promise<void>((_, reject) =>
-          setTimeout(() => reject(new Error("Enrichment timeout")), timeout)
-        ),
-      ]).catch((error) => {
-        console.warn(`⚠️  Enrichment timeout/error: ${error.message}`);
+      const finalize = await this.runStage("finalize", dedupGroup, rawProfiles, {
+        emails,
+        holehe_services: holeheServices,
+        leakcheck_breaches: leakcheckBreaches,
       });
 
-      // Step 3: Consolidate profiles
-      const consolidateStartTime = Date.now();
-      console.log("🔗 Step 3: Consolidating profiles from all brokers...");
+      if (!finalize.success || !finalize.consolidated_profile) {
+        throw new Error(finalize.error || "Finalize failed");
+      }
 
-      // Generate person ID
-      const personId = this.generatePersonId(dedupGroup);
-
-      // Consolidate profiles
-      let consolidatedProfile = consolidateProfiles(
-        rawProfiles,
-        personId,
-        this.getGroupConfidence(dedupGroup)
-      );
-
-      // Add enrichment data
-      consolidatedProfile = addEnrichmentData(consolidatedProfile, holeheServices, leakcheckBreaches);
-
-      const consolidateMs = Date.now() - consolidateStartTime;
-      console.log(`✓ Consolidated profile created`);
-
+      const consolidateMs = finalize.timing_ms || 0;
       const totalPhase2Ms = Date.now() - startTime;
+      const phase2CostUsd = 0.007;
 
-      // Calculate costs
-      const phase2CostUsd = 0.007; // Base cost for Phase 2
-
-      const result: Phase2EnrichmentResult = {
+      return {
         success: true,
-        consolidated_profile: consolidatedProfile,
+        consolidated_profile: finalize.consolidated_profile,
         enrichment_data: {
           holehe_services: holeheServices,
           leakcheck_breaches: leakcheckBreaches,
@@ -203,24 +240,16 @@ export class Phase2Orchestrator {
           holehe_ms: holeheMs,
           leakcheck_ms: leakcheckMs,
           consolidate_ms: consolidateMs,
-          emails_found: emailResult.count,
+          emails_found: emails.length,
           services_found: holeheServices.length,
           breaches_found: leakcheckBreaches.length,
           phase2_cost_usd: phase2CostUsd,
         },
       };
-
-      console.log(
-        `✓ Phase 2 complete in ${totalPhase2Ms}ms: ${consolidatedProfile.emails.length} emails, ${holeheServices.length} services, ${leakcheckBreaches.length} breaches`
-      );
-
-      return result;
     } catch (error) {
       const timingMs = Date.now() - startTime;
       const errorMsg = (error as Error).message;
-
       console.error(`✗ Phase 2 failed: ${errorMsg}`);
-
       return {
         success: false,
         error: errorMsg,
@@ -251,7 +280,8 @@ export class Phase2Orchestrator {
     supabaseClient: any,
     quickScanId: string,
     dedupGroupId: string,
-    result: Phase2EnrichmentResult
+    result: Phase2EnrichmentResult,
+    sessionId?: string,
   ): Promise<string | null> {
     if (!result.success || !result.consolidated_profile || !result.metadata) {
       console.error("Cannot store unsuccessful Phase 2 result");
@@ -266,12 +296,13 @@ export class Phase2Orchestrator {
         .insert({
           quick_scan_id: quickScanId,
           dedup_group_id: dedupGroupId,
+          session_id: sessionId ?? null,
           emails_found: result.consolidated_profile.emails,
           emails_extracted_at: new Date().toISOString(),
-          holehe_status: result.enrichment_data?.holehe_services.length ? "success" : "no_results",
+          holehe_status: "success",
           services_found: result.enrichment_data?.holehe_services || [],
           holehe_checked_at: new Date().toISOString(),
-          leakcheck_status: result.enrichment_data?.leakcheck_breaches.length ? "success" : "no_results",
+          leakcheck_status: "success",
           breaches: result.enrichment_data?.leakcheck_breaches || [],
           leakcheck_checked_at: new Date().toISOString(),
           consolidated_profile: result.consolidated_profile,

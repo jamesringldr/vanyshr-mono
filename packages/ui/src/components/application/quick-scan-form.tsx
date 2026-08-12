@@ -48,6 +48,36 @@ function mapZabaServiceProfiles(data: {
   }));
 }
 
+type PilotDedupGroup = {
+  id: string | null;
+  name: string;
+  age?: number;
+  city: string;
+  state: string;
+  sources?: string[];
+  confidence?: number;
+  members?: Array<Record<string, unknown>>;
+};
+
+/** Map pilot-scan Phase 1 dedup groups → ProfileMatch for selection modals */
+function mapPilotDedupGroups(groups: PilotDedupGroup[]): ProfileMatch[] {
+  return groups.map((g, i) => ({
+    id: String(g.id || `pilot-group-${i}`),
+    name: g.name || "",
+    age: g.age != null ? String(g.age) : undefined,
+    city_state: [g.city, g.state].filter(Boolean).join(", ") || undefined,
+    source: (g.sources || []).join(",") || "pilot",
+    match_score: g.confidence,
+    fullProfile: {
+      sources: g.sources || [],
+      members: g.members || [],
+      confidence: g.confidence,
+      city: g.city,
+      state: g.state,
+    },
+  }));
+}
+
 /**
  * Call residential zaba-scraper on serv01 (same pattern as FPS).
  * Not via universal-search — Edge has no Tailscale path.
@@ -108,7 +138,7 @@ export interface QuickScanFormProps {
   /** Hide the "Are you exposed?" header — start at "Your Privacy is Paramount". */
   startAtPrivacy?: boolean;
   /**
-   * UI-only / pilot path: when provided, form submit skips live scraping and
+   * UI-only path: when provided, form submit skips live scraping and
    * calls this with the entered fields instead.
    */
   onPilotSubmit?: (fields: {
@@ -118,6 +148,11 @@ export interface QuickScanFormProps {
     city: string;
     state: string;
   }) => void;
+  /**
+   * `legacy` (default) — universal-search + Zaba fallback.
+   * `pilot` — Phase 1/2 via `pilot-scan` edge function (new scraper stack).
+   */
+  searchMode?: "legacy" | "pilot";
   className?: string;
 }
 
@@ -188,8 +223,11 @@ export function QuickScanForm({
   onPhoneLookup,
   startAtPrivacy = false,
   onPilotSubmit,
+  searchMode = "legacy",
   className,
 }: QuickScanFormProps) {
+  const isPilotMode = searchMode === "pilot";
+
   // Form state
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -198,7 +236,7 @@ export function QuickScanForm({
   // Scan state
   const [view, setView] = useState<"form" | "scanning">("form");
   const [status, setStatus] = useState<"idle" | "looking_up_zip" | "searching" | "complete" | "error">("idle");
-  const [, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [matches, setMatches] = useState<ProfileMatch[]>([]);
   const [locationInfo, setLocationInfo] = useState<{ city: string; state: string } | null>(null);
   const [scanStepIndex, setScanStepIndex] = useState(0);
@@ -206,6 +244,11 @@ export function QuickScanForm({
   // DB scan tracking
   const [scanId, setScanId] = useState<string | null>(null);
   const [zabaSearchDone, setZabaSearchDone] = useState(false);
+  const [pilotSessionId] = useState(() =>
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : `pilot-${Date.now()}`,
+  );
 
   // Modal states
   const [showSingleModal, setShowSingleModal] = useState(false);
@@ -257,11 +300,12 @@ export function QuickScanForm({
     };
   }, [zipCode]);
 
-  // Warm up universal-search on mount so it's hot by the time the user submits
+  // Warm up search edge function on mount so it's hot by submit time
   useEffect(() => {
     if (!supabaseClient || onPilotSubmit) return;
-    supabaseClient.functions.invoke("universal-search", { body: { ping: true } }).catch(() => {});
-  }, [supabaseClient, onPilotSubmit]);
+    const fn = isPilotMode ? "pilot-scan" : "universal-search";
+    supabaseClient.functions.invoke(fn, { body: { ping: true } }).catch(() => {});
+  }, [supabaseClient, onPilotSubmit, isPilotMode]);
 
   // Form is only submittable once zip is confirmed valid
   const isFormValid = firstName.trim().length >= 2 && lastName.trim().length >= 2 && zipStatus === "valid" && zipLocation !== null;
@@ -313,6 +357,68 @@ export function QuickScanForm({
       state: zipLocation.state,
     };
 
+    // ── Pilot path: Phase 1 via pilot-scan (new scraper stack) ──
+    if (isPilotMode) {
+      let phase1Data: { success?: boolean; dedup_groups?: PilotDedupGroup[]; error?: string; quick_scan_id?: string } | null = null;
+      let lastPilotError = "";
+
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+          const { data, error: searchError } = await supabaseClient.functions.invoke(
+            "pilot-scan",
+            {
+              body: {
+                firstName: searchParams.firstName,
+                lastName: searchParams.lastName,
+                zipCode: searchParams.zipCode,
+                zipcode: searchParams.zipCode,
+                sessionId: pilotSessionId,
+              },
+            },
+          );
+
+          if (searchError) throw new Error(searchError.message || "Failed to search");
+          if (data?.error) throw new Error(data.error);
+
+          phase1Data = data;
+          break;
+        } catch (err) {
+          console.error(`Pilot scan attempt ${attempt + 1} error:`, err);
+          lastPilotError = err instanceof Error ? err.message : "Failed to search";
+        }
+      }
+
+      if (!phase1Data?.success) {
+        setStatus("error");
+        setView("form");
+        setError(lastPilotError || "Search failed. Please try again in a moment.");
+        // Keep the user in the pilot drawer — don't bounce to legacy /quickscan-error
+        return;
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 1200));
+
+      const groups = phase1Data.dedup_groups || [];
+      const profiles = mapPilotDedupGroups(groups);
+      setMatches(profiles);
+      setScanId(
+        (phase1Data as { quick_scan_id?: string }).quick_scan_id ||
+          pilotSessionId,
+      );
+      setStatus("complete");
+      setView("form");
+
+      if (profiles.length === 0) {
+        setShowNoResultsModal(true);
+      } else if (profiles.length === 1) {
+        setShowSingleModal(true);
+      } else {
+        setShowMultipleModal(true);
+      }
+      return;
+    }
+
+    // ── Legacy path: universal-search + Zaba fallback ──
     let lastScanId: string | null = null;
     let searchData: any = null;
 
@@ -376,11 +482,27 @@ export function QuickScanForm({
       setMatches(searchData.profiles);
       setShowMultipleModal(true);
     }
-  }, [firstName, lastName, zipCode, zipLocation, isFormValid, supabaseClient, onTotalFailure, onPilotSubmit, onProfileSelect]);
+  }, [firstName, lastName, zipCode, zipLocation, isFormValid, supabaseClient, onTotalFailure, onPilotSubmit, onProfileSelect, isPilotMode, pilotSessionId]);
 
   const handleSelectProfile = useCallback(async (profile: QSProfileSummary) => {
     const originalProfile = matches.find(m => m.id === profile.id);
     if (!originalProfile) return;
+
+    // ── Pilot path: go straight into pilot splash/loading; enrich on loading page ──
+    if (isPilotMode) {
+      setShowSingleModal(false);
+      setShowMultipleModal(false);
+      sessionStorage.setItem("pilotDedupGroupId", originalProfile.id);
+      sessionStorage.setItem("pilotSessionId", pilotSessionId);
+      onProfileSelect?.(originalProfile, {
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        zipCode,
+        city: locationInfo?.city || "",
+        state: locationInfo?.state || "",
+      }, pilotSessionId);
+      return;
+    }
 
     if (!zabaSearchDone && originalProfile.source !== "AnyWho") {
       // Profile already from Zaba path: fetch rich matches from serv01 (not edge).
@@ -412,12 +534,20 @@ export function QuickScanForm({
       city: locationInfo?.city || "",
       state: locationInfo?.state || "",
     }, scanId);
-  }, [firstName, lastName, zipCode, locationInfo, onProfileSelect, matches, scanId, zabaSearchDone, supabaseClient]);
+  }, [firstName, lastName, zipCode, locationInfo, onProfileSelect, matches, scanId, zabaSearchDone, supabaseClient, isPilotMode, pilotSessionId]);
 
-  // Called when user rejects all AnyWho results — fall through to residential Zaba on serv01
+  // Called when user rejects all results
   const handleNoneOfThese = useCallback(async () => {
     setShowSingleModal(false);
     setShowMultipleModal(false);
+
+    // Pilot Phase 1 already searched all brokers — no secondary fallback
+    if (isPilotMode) {
+      setView("form");
+      setShowNoResultsModal(true);
+      return;
+    }
+
     setView("scanning");
     setScanStepIndex(1);
 
@@ -451,11 +581,39 @@ export function QuickScanForm({
       setView("form");
       setShowNoResultsModal(true);
     }
-  }, [firstName, lastName, locationInfo]);
+  }, [firstName, lastName, locationInfo, isPilotMode]);
 
   const isLoading = status === "searching";
 
   if (view === "scanning") {
+    // Pilot flow: keep Vanyshr pilot loading aesthetic (not legacy QuickScan steps)
+    if (isPilotMode) {
+      return (
+        <div
+          className={cx(
+            "flex min-h-[420px] w-full flex-col items-center justify-center gap-6 bg-[#022136] p-8",
+            className,
+          )}
+          role="status"
+          aria-live="polite"
+          aria-busy="true"
+        >
+          <div className="relative flex h-28 w-28 items-center justify-center">
+            <div className="absolute inset-0 animate-pulse rounded-full bg-[#00BFFF]/15" />
+            <div className="relative h-14 w-14 animate-spin rounded-full border-2 border-[#00BFFF]/30 border-t-[#00BFFF]" />
+          </div>
+          <div className="max-w-xs text-center">
+            <p className="text-sm text-[#B8C4CC]">Just a moment...</p>
+            <p className="mt-1 text-xl font-bold tracking-tight text-white">
+              {scanStepIndex === 0
+                ? "Scanning people-search sites for your info"
+                : "Building your exposure report"}
+            </p>
+          </div>
+        </div>
+      );
+    }
+
     const topCopy = STEP_TOP_COPY[scanStepIndex] ?? STEP_TOP_COPY[0];
     const step = SCAN_STEPS[scanStepIndex] ?? SCAN_STEPS[0];
     return (
@@ -589,6 +747,11 @@ export function QuickScanForm({
           </div>
 
           <div className="flex flex-col gap-3 mt-2">
+            {error && (
+              <p className="rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-center text-xs font-medium text-red-300">
+                {error}
+              </p>
+            )}
             <p className="text-[#00BFFF] text-xs text-center font-bold">
               No Credit Card or Sign Up Required to See Results
             </p>
