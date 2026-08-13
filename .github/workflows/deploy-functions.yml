@@ -3,6 +3,10 @@ name: Deploy Functions
 on:
   push:
     branches: [main]
+    paths:
+      - "supabase/functions/**"
+      - "packages/backend/**"
+      - "workers/**"
 jobs:
   deploy:
     runs-on: ubuntu-latest

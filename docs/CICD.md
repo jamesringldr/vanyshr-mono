@@ -91,6 +91,12 @@ style: update dashboard card spacing
 
 Preview deployments are created automatically on every push. Check the Vercel dashboard or GitHub PR for the preview URL.
 
+## Supabase Functions Deployment
+
+`.github/workflows/deploy-functions.yml` deploys `packages/backend/functions` on push to
+`main`, scoped to changes under `supabase/functions/**`, `packages/backend/**`, or
+`workers/**` — a UI-only push can't trigger it and vice versa.
+
 ## Environment Variables
 
 - Local: `apps/app/.env.local` (never committed)

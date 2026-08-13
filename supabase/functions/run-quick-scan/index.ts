@@ -10,10 +10,21 @@ import {
 } from "../_shared/scrapers/index.ts";
 
 import { getCorsHeaders } from '../_shared/cors.ts'
+import { Phase1Orchestrator } from '../_shared/quickscan/phase1-orchestrator.ts'
+import { Phase2Orchestrator } from '../_shared/quickscan/phase2-orchestrator.ts'
+import { checkRateLimit, trackCost, estimateCost, checkBurstProtection } from '../_shared/quickscan/cost-middleware.ts'
+import { type QuickScanInput, type DedupGroup } from '../_shared/quickscan/quickscan-phase1-phase2-models.ts'
 
 interface ScanRequest {
   scan_id: string;
-  selected_profile?: ProfileMatch; // Profile selected by user for full scrape
+  phase?: '1' | '2' | 1 | 2;
+  first_name?: string;
+  last_name?: string;
+  city?: string;
+  state?: string;
+  session_id: string;
+  dedup_group_id?: string;
+  selected_profile?: ProfileMatch; // Profile selected by user for full scrape (legacy)
 }
 
 // Convert zipcode to state name
@@ -104,158 +115,365 @@ serve(async (req) => {
 
     // Parse request body
     const requestBody = await req.json();
-    const { scan_id, selected_profile } = requestBody as ScanRequest;
+    const { scan_id, phase = '1', session_id, first_name, last_name, city, state, dedup_group_id, selected_profile } = requestBody as ScanRequest;
 
-    if (!scan_id) {
+    if (!scan_id || !session_id) {
       return new Response(
-        JSON.stringify({ error: 'scan_id is required' }),
+        JSON.stringify({ error: 'scan_id and session_id are required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log(`🔍 Starting quick scan for scan_id: ${scan_id}`);
+    // Normalize phase to string
+    const phaseStr = String(phase);
 
-    // Get scan details from quick_scans table
-    const { data: scanData, error: scanError } = await supabaseClient
+    console.log(`🔍 Starting quick scan for scan_id: ${scan_id}, phase: ${phaseStr}`);
+
+    // Route based on phase
+    if (phaseStr === '1') {
+      return await handlePhase1(supabaseClient, corsHeaders, {
+        scan_id,
+        first_name: first_name || '',
+        last_name: last_name || '',
+        city: city || '',
+        state: state || '',
+        session_id,
+        requestBody
+      });
+    } else if (phaseStr === '2') {
+      return await handlePhase2(supabaseClient, corsHeaders, {
+        scan_id,
+        session_id,
+        dedup_group_id: dedup_group_id || '',
+        requestBody
+      });
+    } else if (selected_profile && selected_profile.detail_link) {
+      // Legacy Phase 2 handler for backwards compatibility
+      return await handleLegacyPhase2(supabaseClient, corsHeaders, {
+        scan_id,
+        selected_profile,
+        requestBody
+      });
+    } else {
+      return new Response(
+        JSON.stringify({ error: 'Invalid phase or incomplete request' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+  } catch (error) {
+    console.error('Edge function error:', error);
+    return new Response(
+      JSON.stringify({ error: 'Internal server error', details: (error as Error).message }),
+      { status: 500, headers: corsHeaders }
+    );
+  }
+})
+
+/**
+ * Handle Phase 1: Parallel broker search + deduplication
+ */
+async function handlePhase1(
+  supabaseClient: any,
+  corsHeaders: Record<string, string>,
+  params: {
+    scan_id: string;
+    first_name: string;
+    last_name: string;
+    city: string;
+    state: string;
+    session_id: string;
+    requestBody: any;
+  }
+) {
+  try {
+    const { scan_id, first_name, last_name, city, state, session_id } = params;
+
+    // Extract user_id if available
+    const { data: scanData } = await supabaseClient
       .from('quick_scans')
-      .select('*')
+      .select('id')
       .eq('id', scan_id)
       .single();
 
-    if (scanError || !scanData) {
-      console.error('Quick scan not found:', scanError);
+    // Check rate limits
+    const rateLimitCheck = await checkRateLimit(supabaseClient, null, session_id);
+    if (!rateLimitCheck.allowed) {
       return new Response(
-        JSON.stringify({ error: 'Scan not found', details: scanError?.message }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: rateLimitCheck.reason || 'Rate limit exceeded' }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const { first_name, last_name, email, zip } = scanData.search_input || {};
-    console.log(`🔍 Starting scan for: ${first_name} ${last_name} (${email})`);
-
-    // Phase 2: User selected a profile - scrape full details
-    if (selected_profile && selected_profile.detail_link) {
-      console.log(`🔍 User selected profile: ${selected_profile.name} from ${selected_profile.source}`);
-
-      // Determine scraper from source name
-      const scraperName = selected_profile.source?.toLowerCase().replace(/\s+/g, '') || 'anywho';
-
-      // Scrape full profile data
-      const fullProfile = await scrapeFullProfile(scraperName, selected_profile.detail_link);
-
-      if (fullProfile) {
-        // Update quick_scans with the full JSONB profile data
-        const { error: updateError } = await supabaseClient
-          .from('quick_scans')
-          .update({
-            status: 'completed',
-            profile_data: fullProfile,
-            selected_match_id: selected_profile.id,
-          })
-          .eq('id', scan_id);
-
-        if (updateError) {
-          console.error('Error updating quick_scans with profile data:', updateError);
-          return new Response(
-            JSON.stringify({ error: 'Failed to save profile data', details: updateError.message }),
-            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
-        }
-
-        console.log(`✅ Full profile saved to quick_scans for ${selected_profile.name}`);
-
-        return new Response(
-          JSON.stringify({
-            success: true,
-            message: 'Profile scraped and saved successfully',
-            scan_id,
-            profile_data: fullProfile,
-          }),
-          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      } else {
-        return new Response(
-          JSON.stringify({ error: 'Failed to scrape profile details' }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
+    // Check burst protection
+    const burstCheck = await checkBurstProtection(supabaseClient, session_id);
+    if (!burstCheck.allowed) {
+      return new Response(
+        JSON.stringify({ error: burstCheck.reason || 'Too many searches' }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
-    // Phase 1: Initial search - get candidate profiles from all name scrapers
-    console.log(`🔍 Starting multi-scraper search for: ${first_name} ${last_name}`);
+    // Run Phase 1
+    const orchestrator = new Phase1Orchestrator();
+    const input: QuickScanInput = { first_name, last_name, city, state };
+    const result = await orchestrator.runPhase1(input, { timeout: 45000 });
 
-    // Get state from zip for better filtering
-    const state = zip ? zipcodeToState(zip) : undefined;
+    if (!result.success) {
+      console.error(`Phase 1 failed: ${result.error}`);
 
-    const searchInput: SearchInput = {
-      first_name,
-      last_name,
-      state: state || undefined,
-    };
+      // Track failed search cost
+      await trackCost(supabaseClient, null, session_id, 1, scan_id, estimateCost(1), {
+        status: 'failed',
+        error: result.error,
+      });
 
-    // Edge-only path: AnyWho. Residential Zaba/FPS are initiated on serv01
-    // (same as FPS service) — not from this Supabase Edge function.
-    const scraperNames = ['anywho'];
+      return new Response(
+        JSON.stringify({ error: result.error || 'Search failed' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
-    console.log(`🔍 Searching sequentially (stop on results): ${scraperNames.join(', ')}`);
+    // Store dedup groups in database
+    const dedupGroupIds = await orchestrator.storeResults(supabaseClient, scan_id, result);
 
-    // Search across scrapers sequentially, stopping if results are found
-    const { matches, runs } = await searchProfilesMulti(scraperNames, searchInput, {
-      sequential: true,
-      stopOnResults: true
+    // Track successful search cost
+    await trackCost(supabaseClient, null, session_id, 1, scan_id, estimateCost(1), {
+      status: 'success',
+      dedup_groups: dedupGroupIds.length,
     });
 
-    console.log(`🔍 Found ${matches.length} total matches across ${runs.length} scrapers`);
-
-    // Update quick_scans with candidate matches
-    const { error: updateError } = await supabaseClient
-      .from('quick_scans')
-      .update({
-        status: matches.length > 0 ? 'matches_found' : 'no_matches',
-        candidate_matches: matches,
-        scraper_runs: runs,
-      })
-      .eq('id', scan_id);
-
-    if (updateError) {
-      console.error('Error updating quick_scans with matches:', updateError);
+    // Update quick_scans table with primary dedup_group_id
+    if (dedupGroupIds.length > 0) {
+      await supabaseClient
+        .from('quick_scans')
+        .update({
+          status: 'matches_found',
+          dedup_group_id: dedupGroupIds[0],
+        })
+        .eq('id', scan_id);
     }
 
-    // Return matches for user selection
-    if (matches.length === 0) {
-      return new Response(
-        JSON.stringify({
-          success: true,
-          multiple_profiles: false,
-          profiles: [],
-          message: 'No profiles found matching your search',
-          scraper_runs: runs,
-        }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    if (matches.length === 1) {
-      console.log(`🔍 Single match found, returning for confirmation`);
-    }
+    console.log(`✅ Phase 1 complete: ${result.dedup_groups.length} groups`);
 
     return new Response(
       JSON.stringify({
         success: true,
-        multiple_profiles: matches.length > 1,
-        profiles: matches,
-        count: matches.length,
-        scraper_runs: runs,
+        dedup_groups: result.dedup_groups.map((g, idx) => ({
+          id: dedupGroupIds[idx] || null,
+          dedup_id: g.dedup_id,
+          rank: idx + 1,
+          name: g.members[0]?.summary.full_name || '',
+          age: g.members[0]?.summary.age,
+          city: g.members[0]?.summary.address.split(',')[0]?.trim() || '',
+          state: g.members[0]?.summary.address.split(',')[1]?.trim() || '',
+          sources: g.members.map((m) => m.summary.broker),
+          confidence: Math.round((g.members.reduce((s, m) => s + m.match_score, 0) / g.members.length) * 10) / 10,
+          members: g.members.map((m) => ({
+            broker: m.summary.broker,
+            summary: m.summary,
+            match_score: m.match_score,
+          })),
+        })),
+        metadata: result.metadata,
+        cost_estimate: estimateCost(1),
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
-
   } catch (error) {
-    console.error('Edge function error:', error);
-
+    console.error('Phase 1 handler error:', error);
     return new Response(
-      JSON.stringify({ error: 'Internal server error', details: (error as Error).message }),
+      JSON.stringify({ error: 'Phase 1 processing failed', details: (error as Error).message }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
-})
+}
+
+/**
+ * Handle Phase 2: Full profile enrichment
+ */
+async function handlePhase2(
+  supabaseClient: any,
+  corsHeaders: Record<string, string>,
+  params: {
+    scan_id: string;
+    session_id: string;
+    dedup_group_id: string;
+    requestBody: any;
+  }
+) {
+  try {
+    const { scan_id, session_id, dedup_group_id } = params;
+
+    // Load dedup group from database
+    const { data: dedupGroupData, error: dedupError } = await supabaseClient
+      .from('quickscan_dedup_groups')
+      .select('*')
+      .eq('id', dedup_group_id)
+      .single();
+
+    if (dedupError || !dedupGroupData) {
+      console.error('Dedup group not found:', dedupError);
+      return new Response(
+        JSON.stringify({ error: 'Dedup group not found' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Reconstruct broker profiles from dedup group data
+    const brokerProfiles = reconstructBrokerProfiles(dedupGroupData.full_data);
+
+    // Run Phase 2
+    const orchestrator = new Phase2Orchestrator();
+    const result = await orchestrator.runPhase2(
+      dedupGroupData as unknown as DedupGroup,
+      brokerProfiles,
+      {
+        timeout: 45000,
+        includeLeakcheck: !!Deno.env.get('LEAKCHECK_API_KEY'),
+      }
+    );
+
+    if (!result.success) {
+      console.error(`Phase 2 failed: ${result.error}`);
+
+      // Track failed enrichment cost
+      await trackCost(supabaseClient, null, session_id, 2, scan_id, estimateCost(2), {
+        status: 'failed',
+        error: result.error,
+      });
+
+      return new Response(
+        JSON.stringify({ error: result.error || 'Enrichment failed' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Store enrichment results
+    const enrichmentId = await orchestrator.storeResults(
+      supabaseClient,
+      scan_id,
+      dedup_group_id,
+      result
+    );
+
+    // Track successful enrichment cost
+    if (result.metadata) {
+      await trackCost(supabaseClient, null, session_id, 2, scan_id, result.metadata.phase2_cost_usd, {
+        status: 'success',
+        emails_found: result.metadata.emails_found,
+        services_found: result.metadata.services_found,
+        breaches_found: result.metadata.breaches_found,
+      });
+    }
+
+    // Update quick_scans table
+    await supabaseClient
+      .from('quick_scans')
+      .update({
+        status: 'completed',
+        enrichment_id: enrichmentId,
+        profile_data: result.consolidated_profile,
+      })
+      .eq('id', scan_id);
+
+    console.log(`✅ Phase 2 complete: profile enriched with ${result.enrichment_data?.holehe_services.length || 0} services`);
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        consolidated_profile: result.consolidated_profile,
+        enrichment: result.enrichment_data,
+        metadata: result.metadata,
+      }),
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  } catch (error) {
+    console.error('Phase 2 handler error:', error);
+    return new Response(
+      JSON.stringify({ error: 'Phase 2 processing failed', details: (error as Error).message }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+}
+
+/**
+ * Legacy Phase 2 handler for backwards compatibility
+ */
+async function handleLegacyPhase2(
+  supabaseClient: any,
+  corsHeaders: Record<string, string>,
+  params: {
+    scan_id: string;
+    selected_profile: ProfileMatch;
+    requestBody: any;
+  }
+) {
+  try {
+    const { scan_id, selected_profile } = params;
+    console.log(`🔍 User selected profile: ${selected_profile.name} from ${selected_profile.source}`);
+
+    // Determine scraper from source name
+    const scraperName = selected_profile.source?.toLowerCase().replace(/\s+/g, '') || 'anywho';
+
+    // Scrape full profile data
+    const fullProfile = await scrapeFullProfile(scraperName, selected_profile.detail_link);
+
+    if (fullProfile) {
+      // Update quick_scans with the full JSONB profile data
+      const { error: updateError } = await supabaseClient
+        .from('quick_scans')
+        .update({
+          status: 'completed',
+          profile_data: fullProfile,
+          selected_match_id: selected_profile.id,
+        })
+        .eq('id', scan_id);
+
+      if (updateError) {
+        console.error('Error updating quick_scans with profile data:', updateError);
+        return new Response(
+          JSON.stringify({ error: 'Failed to save profile data', details: updateError.message }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      console.log(`✅ Full profile saved to quick_scans for ${selected_profile.name}`);
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: 'Profile scraped and saved successfully',
+          scan_id,
+          profile_data: fullProfile,
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    } else {
+      return new Response(
+        JSON.stringify({ error: 'Failed to scrape profile details' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+  } catch (error) {
+    console.error('Legacy Phase 2 handler error:', error);
+    return new Response(
+      JSON.stringify({ error: 'Legacy Phase 2 processing failed', details: (error as Error).message }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+}
+
+/**
+ * Reconstruct broker profiles from dedup group full_data JSONB
+ */
+function reconstructBrokerProfiles(fullData: Record<string, any>): Record<string, unknown> {
+  const profiles: Record<string, unknown> = {};
+
+  if (fullData.members && Array.isArray(fullData.members)) {
+    for (const member of fullData.members) {
+      profiles[member.broker] = member.summary;
+    }
+  }
+
+  return profiles;
+}

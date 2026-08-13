@@ -11,6 +11,16 @@
 - If on `main`, stop and switch to `staging` before making changes
 - If asked to commit, always confirm which branch we're on first
 
+### Pre-commit branch gate (enforced by git hook, not just convention)
+Every git repo on this machine is gated by a global `~/.githooks/pre-commit`
+hook (`git config --global core.hooksPath ~/.githooks` — see `~/.claude/CLAUDE.md`
+for the full rationale). It blocks every commit until the current branch is
+confirmed, regardless of how the commit is invoked (terminal, IDE, Claude Code).
+Interactive terminals get a `y/N` prompt; non-interactive commits (Claude Code's
+Bash tool has no TTY) require `GITDADDY_CONFIRM=<branch>` set to the current
+branch name, obtained by confirming with the user first — see the `gitdaddy`
+skill. This is machine-global, not repo-specific — nothing to set up per clone.
+
 ### Commit message format
 ```
 <type>: <short description>
