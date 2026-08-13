@@ -16,11 +16,15 @@ CREATE TABLE IF NOT EXISTS public.quickscan_cost_tracking (
     -- Reference to quick_scan
     quick_scan_id UUID REFERENCES public.quick_scans(id) ON DELETE SET NULL,
 
-    -- Reference to dedup group (if Phase 1)
-    dedup_group_id UUID REFERENCES public.quickscan_dedup_groups(id) ON DELETE SET NULL,
+    -- Reference to dedup group (if Phase 1). The foreign key is added in
+    -- 20260812_quickscan_update_fks.sql, not here: migrations apply in
+    -- filename order, and this file sorts before the tables it points at
+    -- ("cost_tracking" < "dedup_groups" < "enrichment"), so an inline
+    -- REFERENCES fails on a database built from this history.
+    dedup_group_id UUID,
 
-    -- Reference to enrichment (if Phase 2)
-    enrichment_id UUID REFERENCES public.quickscan_enrichment(id) ON DELETE SET NULL,
+    -- Reference to enrichment (if Phase 2). Same reason.
+    enrichment_id UUID,
 
     -- Phase tracking
     phase INT NOT NULL CHECK (phase IN (1, 2)),
