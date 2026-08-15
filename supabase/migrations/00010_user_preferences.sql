@@ -71,28 +71,59 @@ GRANT ALL ON user_preferences TO service_role;
 -- SECTION 3: BACKFILL FROM user_profiles
 -- Migrate existing data for users who already completed these steps via the
 -- old write path (user_profiles.removal_aggression / notification_tier).
+--
+-- Guarded on the source columns existing. user_profiles.notification_tier is
+-- only added later, by 20260304144344_user_tables_setup.sql, which also drops
+-- it again once this table owns the value -- so on a database built from this
+-- history the column is absent here and the statement below would fail with
+-- "column notification_tier does not exist", taking the whole migration with
+-- it. There is also nothing to migrate on a fresh database: the legacy write
+-- path never ran, so no rows carry those values.
+--
+-- Databases that already applied this migration are unaffected; it does not
+-- re-run, and where the legacy columns are present the backfill is unchanged.
 -- ============================================================================
 
-INSERT INTO user_preferences (
-    user_id,
-    removal_strategy,
-    notification_tier,
-    notification_settings
-)
-SELECT
-    id,
-    removal_aggression,
-    notification_tier,
-    COALESCE(notification_settings, '{}')
-FROM user_profiles
-WHERE removal_aggression IS NOT NULL
-   OR notification_tier  IS NOT NULL
-ON CONFLICT (user_id) DO UPDATE
-    SET
-        removal_strategy      = EXCLUDED.removal_strategy,
-        notification_tier     = EXCLUDED.notification_tier,
-        notification_settings = EXCLUDED.notification_settings,
-        updated_at            = NOW();
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+         WHERE table_schema = 'public'
+           AND table_name   = 'user_profiles'
+           AND column_name  = 'notification_tier'
+    ) AND EXISTS (
+        SELECT 1 FROM information_schema.columns
+         WHERE table_schema = 'public'
+           AND table_name   = 'user_profiles'
+           AND column_name  = 'removal_aggression'
+    ) THEN
+        EXECUTE $backfill$
+            INSERT INTO user_preferences (
+                user_id,
+                removal_strategy,
+                notification_tier,
+                notification_settings
+            )
+            SELECT
+                id,
+                removal_aggression,
+                notification_tier,
+                COALESCE(notification_settings, '{}')
+            FROM user_profiles
+            WHERE removal_aggression IS NOT NULL
+               OR notification_tier  IS NOT NULL
+            ON CONFLICT (user_id) DO UPDATE
+                SET
+                    removal_strategy      = EXCLUDED.removal_strategy,
+                    notification_tier     = EXCLUDED.notification_tier,
+                    notification_settings = EXCLUDED.notification_settings,
+                    updated_at            = NOW()
+        $backfill$;
+        RAISE NOTICE 'user_preferences: backfilled from legacy user_profiles columns';
+    ELSE
+        RAISE NOTICE 'user_preferences: no legacy columns on user_profiles, nothing to backfill';
+    END IF;
+END $$;
 
 
 -- ============================================================================
