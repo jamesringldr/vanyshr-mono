@@ -6,6 +6,13 @@ import { InlineLoader } from "generative-loaders";
 import "generative-loaders/styles.css";
 import PrimaryIcon from "@vanyshr/ui/assets/PrimaryIcon-Nooutline.png";
 import { cx } from "@/utils/cx";
+import { supabase } from "@/lib/supabase";
+import {
+  QSResultMultipleModal,
+  QSResultSingleModal,
+  type QSProfileSummary,
+} from "@vanyshr/ui/components/application";
+import { groupToSummary, selectGroup, type ScanResult } from "./scan-result";
 
 const EASE_OUT = [0.2, 0, 0, 1] as const;
 const STEP_MS = 2200;
@@ -98,9 +105,7 @@ function StepIndicator({ status }: { status: StepStatus }) {
 }
 
 /**
- * Pilot-scan loading — UI-only step narrative.
- * Structure from Mobbin study-plan loader; Vanyshr branding + copy.
- * Hero motion: soft floating logo.
+ * Pilot-scan loading — step narrative while Phase 1 hits scraper-lab.
  */
 export function PilotLoadingPage() {
   const navigate = useNavigate();
@@ -109,6 +114,80 @@ export function PilotLoadingPage() {
   const prefersReducedMotion = useReducedMotion();
   const [current, setCurrent] = useState(0);
   const [allDone, setAllDone] = useState(false);
+  const [scanSettled, setScanSettled] = useState(holdMode);
+  const [picker, setPicker] = useState<"none" | "single" | "multiple" | "empty">("none");
+  const [profiles, setProfiles] = useState<QSProfileSummary[]>([]);
+  const [searchName, setSearchName] = useState("");
+  const [region, setRegion] = useState("");
+
+  useEffect(() => {
+    if (holdMode) return;
+
+    let cancelled = false;
+
+    async function runScan() {
+      const raw = sessionStorage.getItem("pilotScanFields");
+      if (!raw) {
+        sessionStorage.setItem("pilotScanError", "Missing scan fields");
+        sessionStorage.removeItem("pilotScanResult");
+        if (!cancelled) setScanSettled(true);
+        return;
+      }
+
+      const fields = JSON.parse(raw) as {
+        firstName: string;
+        lastName: string;
+        zipCode: string;
+        city: string;
+        state: string;
+      };
+      const sessionId =
+        sessionStorage.getItem("pendingScanId") ?? crypto.randomUUID();
+
+      const { data, error } = await supabase.functions.invoke("pilot-scan", {
+        body: {
+          firstName: fields.firstName,
+          lastName: fields.lastName,
+          last_name: fields.lastName,
+          zipcode: fields.zipCode,
+          zipCode: fields.zipCode,
+          city: fields.city,
+          state: fields.state,
+          sessionId,
+        },
+      });
+
+      if (cancelled) return;
+
+      if (error || data?.error) {
+        sessionStorage.setItem(
+          "pilotScanError",
+          error?.message || data?.error || "Scan failed",
+        );
+        sessionStorage.removeItem("pilotScanResult");
+        setPicker("none");
+      } else {
+        const result = data as ScanResult;
+        sessionStorage.setItem("pilotScanResult", JSON.stringify(result));
+        sessionStorage.removeItem("pilotScanError");
+        const groups = result.dedup_groups ?? [];
+        setSearchName(
+          `${fields.firstName} ${fields.lastName}`.trim() || groups[0]?.name || "",
+        );
+        setRegion(fields.state || "");
+        setProfiles(groups.map((g, i) => groupToSummary(g, i)));
+        if (groups.length === 0) setPicker("empty");
+        else if (groups.length === 1) setPicker("single");
+        else setPicker("multiple");
+      }
+      setScanSettled(true);
+    }
+
+    runScan();
+    return () => {
+      cancelled = true;
+    };
+  }, [holdMode]);
 
   useEffect(() => {
     if (holdMode) return;
@@ -116,18 +195,10 @@ export function PilotLoadingPage() {
     if (prefersReducedMotion) {
       setCurrent(STEPS.length - 1);
       setAllDone(true);
-      const t = window.setTimeout(() => {
-        navigate("/pilot-scan/risk-summary", { replace: true });
-      }, 800);
-      return () => window.clearTimeout(t);
+      return;
     }
 
-    if (allDone) {
-      const t = window.setTimeout(() => {
-        navigate("/pilot-scan/risk-summary", { replace: true });
-      }, DONE_HOLD_MS);
-      return () => window.clearTimeout(t);
-    }
+    if (allDone) return;
 
     const t = window.setTimeout(() => {
       setCurrent((prev) => {
@@ -140,7 +211,37 @@ export function PilotLoadingPage() {
     }, STEP_MS);
 
     return () => window.clearTimeout(t);
-  }, [current, allDone, navigate, prefersReducedMotion, holdMode]);
+  }, [current, allDone, prefersReducedMotion, holdMode]);
+
+  useEffect(() => {
+    if (holdMode) return;
+    if (!allDone || !scanSettled) return;
+    if (picker === "single" || picker === "multiple") return;
+    const t = window.setTimeout(() => {
+      navigate("/pilot-scan/risk-summary", { replace: true });
+    }, prefersReducedMotion ? 800 : DONE_HOLD_MS);
+    return () => window.clearTimeout(t);
+  }, [allDone, scanSettled, picker, holdMode, navigate, prefersReducedMotion]);
+
+  function goToSummary() {
+    navigate("/pilot-scan/risk-summary", { replace: true });
+  }
+
+  function handlePick(profile: QSProfileSummary) {
+    const raw = sessionStorage.getItem("pilotScanResult");
+    if (raw) {
+      try {
+        const result = JSON.parse(raw) as ScanResult;
+        sessionStorage.setItem(
+          "pilotScanResult",
+          JSON.stringify(selectGroup(result, profile.id)),
+        );
+      } catch {
+        /* keep stored result */
+      }
+    }
+    goToSummary();
+  }
 
   const activeStep = STEPS[Math.min(current, STEPS.length - 1)]!;
 
@@ -219,6 +320,28 @@ export function PilotLoadingPage() {
           })}
         </ol>
       </div>
+
+      <QSResultSingleModal
+        isOpen={allDone && scanSettled && picker === "single" && Boolean(profiles[0])}
+        onOpenChange={(open) => {
+          if (!open) goToSummary();
+        }}
+        profile={profiles[0] ?? { id: "none", fullName: searchName || "Unknown" }}
+        region={region}
+        onThisIsMe={handlePick}
+        onThisIsNotMe={goToSummary}
+      />
+      <QSResultMultipleModal
+        isOpen={allDone && scanSettled && picker === "multiple"}
+        onOpenChange={(open) => {
+          if (!open) goToSummary();
+        }}
+        searchName={searchName}
+        region={region}
+        profiles={profiles}
+        onProfileSelect={handlePick}
+        onNoneOfThese={goToSummary}
+      />
     </div>
   );
 }

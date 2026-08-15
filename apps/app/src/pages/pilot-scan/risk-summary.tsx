@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import {
@@ -8,108 +8,60 @@ import {
   Fingerprint,
   KeyRound,
   Users,
+  Home,
+  UserRoundSearch,
   ArrowRight,
   X,
   type LucideIcon,
 } from "lucide-react";
 import { cx } from "@/utils/cx";
+import { buildAreas, loadScanResult, type Finding } from "./scan-result";
 
 const DRAWER_EASE = [0.2, 0, 0, 1] as const;
 const LEVEL_BARS = 4;
 
-type RiskPoint = {
-  id: string;
-  label: string;
-  Icon: LucideIcon;
-  /** Angle in degrees; 0 = right, -90 = top */
-  angleDeg: number;
-  score: number;
-  summary: string;
-  detail: string;
+const AREA_META: Record<
+  string,
+  { Icon: LucideIcon; angleDeg?: number; onHex?: boolean }
+> = {
+  critical: { Icon: AlertTriangle, angleDeg: -90, onHex: true },
+  scam: { Icon: ShieldAlert, angleDeg: -30, onHex: true },
+  family: { Icon: Users, angleDeg: 30, onHex: true },
+  identity: { Icon: Fingerprint, angleDeg: 90, onHex: true },
+  accounts: { Icon: KeyRound, angleDeg: 150, onHex: true },
+  spam: { Icon: MailWarning, angleDeg: 210, onHex: true },
+  property: { Icon: Home },
+  other: { Icon: UserRoundSearch },
 };
 
-/**
- * Clockwise from top — Mobbin Life Map hex layout.
- * Static placeholder copy/scores until real scan data is wired.
- */
-const RISK_POINTS: RiskPoint[] = [
-  {
-    id: "critical",
-    label: "Critical",
-    Icon: AlertTriangle,
-    angleDeg: -90,
-    score: 0.82,
-    summary: "4 high-severity finds",
-    detail:
-      "These are the most urgent exposures from your scan — records that typically include sensitive personal details and should be addressed first.",
-  },
-  {
-    id: "scam",
-    label: "Scam",
-    Icon: ShieldAlert,
-    angleDeg: -30,
-    score: 0.55,
-    summary: "2 scam-risk signals",
-    detail:
-      "Signals that scammers can use to target you — recycled breach data, phishing-friendly fields, and lookalike listing patterns.",
-  },
-  {
-    id: "family",
-    label: "Family",
-    Icon: Users,
-    angleDeg: 30,
-    score: 0.38,
-    summary: "1 related household hit",
-    detail:
-      "Exposures that may also affect people connected to you — relatives or household members appearing in the same public records.",
-  },
-  {
-    id: "identity",
-    label: "Identity Theft",
-    Icon: Fingerprint,
-    angleDeg: 90,
-    score: 0.7,
-    summary: "3 identity risk items",
-    detail:
-      "Data points that raise identity-theft risk — combinations of name, location, and other identifiers that make impersonation easier.",
-  },
-  {
-    id: "accounts",
-    label: "Accounts",
-    Icon: KeyRound,
-    angleDeg: 150,
-    score: 0.48,
-    summary: "2 account exposures",
-    detail:
-      "Places where your accounts or login-adjacent info may be exposed across people-search sites and broker listings.",
-  },
-  {
-    id: "spam",
-    label: "Spam",
-    Icon: MailWarning,
-    angleDeg: 210,
-    score: 0.62,
-    summary: "5 spam vectors",
-    detail:
-      "Contact channels and listings that commonly feed spam and unwanted outreach — phones, emails, and recycled marketing data.",
-  },
-];
-
-/** List order for the “Your Areas” section (not chart order). */
-const AREA_LIST = [
-  RISK_POINTS[0], // Critical
-  RISK_POINTS[1], // Scam
-  RISK_POINTS[5], // Spam
-  RISK_POINTS[3], // Identity Theft
-  RISK_POINTS[4], // Accounts
-  RISK_POINTS[2], // Family
-] as RiskPoint[];
+const HEX_ORDER = ["critical", "scam", "family", "identity", "accounts", "spam"] as const;
+const LIST_ORDER = [
+  "critical",
+  "scam",
+  "spam",
+  "identity",
+  "accounts",
+  "family",
+  "property",
+  "other",
+] as const;
 
 const VIEW = 320;
 const CENTER = VIEW / 2;
 const GRID_RADII = [0.35, 0.55, 0.75, 1];
 const AXIS_RADIUS = 112;
 const LABEL_RADIUS = 148;
+
+type AreaView = {
+  id: string;
+  label: string;
+  summary: string;
+  detail: string;
+  score: number;
+  items: Finding[];
+  Icon: LucideIcon;
+  angleDeg?: number;
+};
 
 function polar(radius: number, angleDeg: number) {
   const rad = (angleDeg * Math.PI) / 180;
@@ -119,18 +71,22 @@ function polar(radius: number, angleDeg: number) {
   };
 }
 
-function hexPoints(radius: number) {
-  return RISK_POINTS.map((p) => {
-    const { x, y } = polar(radius, p.angleDeg);
-    return `${x},${y}`;
-  }).join(" ");
+function hexPoints(radius: number, hexAreas: AreaView[]) {
+  return hexAreas
+    .map((p) => {
+      const { x, y } = polar(radius, p.angleDeg ?? 0);
+      return `${x},${y}`;
+    })
+    .join(" ");
 }
 
-function scorePolygon() {
-  return RISK_POINTS.map((p) => {
-    const { x, y } = polar(AXIS_RADIUS * p.score, p.angleDeg);
-    return `${x},${y}`;
-  }).join(" ");
+function scorePolygon(hexAreas: AreaView[]) {
+  return hexAreas
+    .map((p) => {
+      const { x, y } = polar(AXIS_RADIUS * p.score, p.angleDeg ?? 0);
+      return `${x},${y}`;
+    })
+    .join(" ");
 }
 
 function levelFromScore(score: number) {
@@ -146,10 +102,7 @@ function LevelBars({ level }: { level: number }) {
         return (
           <span
             key={i}
-            className={cx(
-              "w-1.5 rounded-sm",
-              on ? "bg-[#00BFFF]" : "bg-[#2A4A68]",
-            )}
+            className={cx("w-1.5 rounded-sm", on ? "bg-[#00BFFF]" : "bg-[#2A4A68]")}
             style={{ height }}
           />
         );
@@ -158,15 +111,58 @@ function LevelBars({ level }: { level: number }) {
   );
 }
 
+function isHttpUrl(value: string) {
+  return /^https?:\/\//i.test(value);
+}
+
 /**
- * Pilot Risk Summary — Mobbin Life Map structure (hex + area list).
- * Vanyshr branding; static shell. Area rows open a detail drawer.
+ * Pilot Risk Summary — hex + area list, filled from live Phase 1 groups.
  */
 export function PilotRiskSummaryPage() {
   const navigate = useNavigate();
   const prefersReducedMotion = useReducedMotion();
-  const [activeArea, setActiveArea] = useState<RiskPoint | null>(null);
+  const [{ result, error }] = useState(() => loadScanResult());
+  const { group, areas } = useMemo(() => buildAreas(result), [result]);
+  const [activeArea, setActiveArea] = useState<AreaView | null>(null);
+
+  const byId = useMemo(() => {
+    const map = new Map(areas.map((a) => [a.id, a]));
+    return map;
+  }, [areas]);
+
+  const hexAreas: AreaView[] = HEX_ORDER.map((id) => {
+    const built = byId.get(id);
+    const meta = AREA_META[id];
+    return {
+      id,
+      label: built?.label ?? id,
+      summary: built?.summary ?? "",
+      detail: built?.detail ?? "",
+      score: built?.score ?? 0.1,
+      items: built?.items ?? [],
+      Icon: meta.Icon,
+      angleDeg: meta.angleDeg,
+    };
+  });
+
+  const listAreas: AreaView[] = LIST_ORDER.flatMap((id) => {
+    const built = byId.get(id);
+    if (!built) return [];
+    if (id === "other" && built.items.length === 0) return [];
+    return [
+      {
+        ...built,
+        Icon: AREA_META[id].Icon,
+        angleDeg: AREA_META[id].angleDeg,
+      },
+    ];
+  });
+
   const ActiveIcon = activeArea?.Icon;
+  const groupCount = result?.dedup_groups?.length ?? 0;
+  const brokers = group?.sources?.length
+    ? group.sources.join(", ").toUpperCase()
+    : (result?.metadata?.brokers_scraped ?? []).join(", ").toUpperCase();
 
   return (
     <>
@@ -175,7 +171,6 @@ export function PilotRiskSummaryPage() {
         role="main"
         aria-label="Risk summary"
       >
-        {/* Header */}
         <div className="flex w-full max-w-sm flex-col items-center text-center">
           <span className="inline-flex items-center gap-1.5 rounded-full border border-[#00BFFF]/35 bg-[#00BFFF]/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#00BFFF]">
             Your exposure
@@ -183,10 +178,20 @@ export function PilotRiskSummaryPage() {
           <h1 className="mt-4 text-3xl font-bold tracking-tight text-white sm:text-4xl">
             Risk Summary
           </h1>
-          <p className="mt-2 text-sm text-[#B8C4CC]">Based on your scan results</p>
+          {error && !result ? (
+            <p className="mt-2 text-sm text-[#FF8A00]">{error}</p>
+          ) : group ? (
+            <p className="mt-2 text-sm text-[#B8C4CC]">
+              {group.name}
+              {group.age ? ` · ${group.age}` : ""}
+              {groupCount > 1 ? ` · ${groupCount} people found` : ""}
+              {brokers ? ` · ${brokers}` : ""}
+            </p>
+          ) : (
+            <p className="mt-2 text-sm text-[#B8C4CC]">No scan data in this session</p>
+          )}
         </div>
 
-        {/* Hex radar */}
         <div className="relative mt-8 flex w-full max-w-md items-center justify-center">
           <div className="relative aspect-square w-full max-w-[340px]">
             <svg
@@ -198,15 +203,15 @@ export function PilotRiskSummaryPage() {
               {GRID_RADII.map((t) => (
                 <polygon
                   key={t}
-                  points={hexPoints(AXIS_RADIUS * t)}
+                  points={hexPoints(AXIS_RADIUS * t, hexAreas)}
                   fill="none"
                   stroke="rgba(184, 196, 204, 0.18)"
                   strokeWidth={1}
                 />
               ))}
 
-              {RISK_POINTS.map((p) => {
-                const end = polar(AXIS_RADIUS, p.angleDeg);
+              {hexAreas.map((p) => {
+                const end = polar(AXIS_RADIUS, p.angleDeg ?? 0);
                 return (
                   <line
                     key={`axis-${p.id}`}
@@ -221,15 +226,15 @@ export function PilotRiskSummaryPage() {
               })}
 
               <polygon
-                points={scorePolygon()}
+                points={scorePolygon(hexAreas)}
                 fill="rgba(0, 191, 255, 0.22)"
                 stroke="#00BFFF"
                 strokeWidth={1.5}
                 strokeLinejoin="round"
               />
 
-              {RISK_POINTS.map((p) => {
-                const pt = polar(AXIS_RADIUS * p.score, p.angleDeg);
+              {hexAreas.map((p) => {
+                const pt = polar(AXIS_RADIUS * p.score, p.angleDeg ?? 0);
                 return (
                   <circle
                     key={`dot-${p.id}`}
@@ -244,8 +249,8 @@ export function PilotRiskSummaryPage() {
               <circle cx={CENTER} cy={CENTER} r={5} fill="#00BFFF" />
             </svg>
 
-            {RISK_POINTS.map((p) => {
-              const pt = polar(LABEL_RADIUS, p.angleDeg);
+            {hexAreas.map((p) => {
+              const pt = polar(LABEL_RADIUS, p.angleDeg ?? 0);
               const left = (pt.x / VIEW) * 100;
               const top = (pt.y / VIEW) * 100;
               const Icon = p.Icon;
@@ -267,17 +272,16 @@ export function PilotRiskSummaryPage() {
           </div>
         </div>
 
-        {/* Your Areas list */}
         <section className="mt-10 w-full max-w-sm" aria-label="Your areas">
           <div className="mb-3 px-0.5">
             <h2 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#7A92A8]">
               Your areas
             </h2>
-            <p className="mt-0.5 text-xs text-[#7A92A8]">(tap to learn more)</p>
+            <p className="mt-0.5 text-xs text-[#7A92A8]">(tap to see what we found)</p>
           </div>
 
           <ul className="flex flex-col gap-2.5">
-            {AREA_LIST.map((area) => {
+            {listAreas.map((area) => {
               const Icon = area.Icon;
               const level = levelFromScore(area.score);
               return (
@@ -306,7 +310,6 @@ export function PilotRiskSummaryPage() {
           </ul>
         </section>
 
-        {/* Continue */}
         <div className="mt-10 flex w-full max-w-sm justify-center">
           <button
             type="button"
@@ -319,7 +322,6 @@ export function PilotRiskSummaryPage() {
         </div>
       </div>
 
-      {/* Area detail drawer */}
       <AnimatePresence>
         {activeArea && (
           <>
@@ -352,7 +354,7 @@ export function PilotRiskSummaryPage() {
               }}
               className="fixed bottom-0 left-0 right-0 z-50 flex justify-center"
             >
-              <div className="relative w-full max-w-md overflow-hidden rounded-t-[28px] bg-[#1A2E42] px-6 pb-10 pt-3 shadow-[0_0_40px_rgba(0,191,255,0.2)]">
+              <div className="relative max-h-[88vh] w-full max-w-md overflow-y-auto rounded-t-[28px] bg-[#1A2E42] px-6 pb-10 pt-3 shadow-[0_0_40px_rgba(0,191,255,0.2)]">
                 <div className="flex justify-center pb-3">
                   <div className="h-1.5 w-12 rounded-full bg-[#2A4A68]" />
                 </div>
@@ -384,10 +386,37 @@ export function PilotRiskSummaryPage() {
                   {activeArea.detail}
                 </p>
 
-                <p className="mt-4 text-xs leading-relaxed text-[#7A92A8]">
-                  Placeholder detail for the pilot UI — real findings will land here once
-                  scan data is wired.
-                </p>
+                {activeArea.items.length === 0 ? (
+                  <p className="mt-5 text-sm text-[#7A92A8]">
+                    Nothing in this category from the current scan.
+                  </p>
+                ) : (
+                  <ul className="mt-5 flex flex-col gap-2">
+                    {activeArea.items.map((item, i) => (
+                      <li
+                        key={`${item.label}-${item.value}-${i}`}
+                        className="rounded-xl bg-[#022136]/55 px-3.5 py-3"
+                      >
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#7A92A8]">
+                          {item.label}
+                          {item.source ? ` · ${item.source}` : ""}
+                        </p>
+                        {isHttpUrl(item.value) ? (
+                          <a
+                            href={item.value}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="mt-1 block break-all text-sm text-[#00BFFF] underline-offset-2 hover:underline"
+                          >
+                            {item.value}
+                          </a>
+                        ) : (
+                          <p className="mt-1 text-sm leading-snug text-white">{item.value}</p>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
             </motion.div>
           </>

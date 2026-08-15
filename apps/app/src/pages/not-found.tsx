@@ -127,7 +127,7 @@ export function NotFound() {
 
                 {/* Secondary: QuickScan */}
                 <button
-                    onClick={() => navigate("/quick-scan")}
+                    onClick={() => navigate("/pilot-scan")}
                     className="cursor-pointer font-bold transition-colors duration-150"
                     style={{
                         width: "100%",
