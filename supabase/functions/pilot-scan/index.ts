@@ -27,8 +27,12 @@ import { type QuickScanInput, type DedupGroup } from '../_shared/quickscan/quick
 
 interface PilotScanRequest {
   firstName?: string;
+  lastName?: string;
   last_name?: string;
   zipcode?: string;
+  zipCode?: string;
+  city?: string;
+  state?: string;
   sessionId?: string;
   dedupGroupId?: string;
 }
@@ -65,7 +69,8 @@ function zipcodeToCity(zipcode: string): { city: string; state: string } {
     '60601': { city: 'Chicago', state: 'IL' },
     '75201': { city: 'Dallas', state: 'TX' },
     '98101': { city: 'Seattle', state: 'WA' },
-    '65251': { city: 'Cameron', state: 'MO' }, // Test case
+    '65251': { city: 'Cameron', state: 'MO' },
+    '64429': { city: 'Cameron', state: 'MO' },
   };
 
   if (majorZips[zipcode]) {
@@ -99,7 +104,20 @@ serve(async (req) => {
 
     // Parse request
     const requestBody = await req.json();
-    const { firstName, last_name, zipcode, sessionId, dedupGroupId } = requestBody as PilotScanRequest;
+    const {
+      firstName,
+      lastName,
+      last_name,
+      zipcode,
+      zipCode,
+      city,
+      state,
+      sessionId,
+      dedupGroupId,
+    } = requestBody as PilotScanRequest;
+
+    const resolvedLast = lastName || last_name;
+    const resolvedZip = zipcode || zipCode;
 
     // Determine if this is Phase 1 or Phase 2
     if (dedupGroupId) {
@@ -108,12 +126,14 @@ serve(async (req) => {
         dedupGroupId,
         sessionId: sessionId || 'anonymous',
       });
-    } else if (firstName && (last_name || last_name) && zipcode) {
+    } else if (firstName && resolvedLast && resolvedZip) {
       // Phase 1: Search
       return await handlePhase1(supabaseClient, corsHeaders, {
         firstName,
-        lastName: last_name || '',
-        zipcode,
+        lastName: resolvedLast,
+        zipcode: resolvedZip,
+        city,
+        state,
         sessionId: sessionId || 'anonymous',
       });
     } else {
@@ -141,6 +161,8 @@ async function handlePhase1(
     firstName: string;
     lastName: string;
     zipcode: string;
+    city?: string;
+    state?: string;
     sessionId: string;
   }
 ) {
@@ -149,9 +171,10 @@ async function handlePhase1(
 
     console.log(`🔍 Pilot-Scan Phase 1: ${firstName} ${lastName}, ZIP ${zipcode}`);
 
-    // Step 1: Lookup city/state from zipcode
-    const { city, state } = zipcodeToCity(zipcode);
-    console.log(`📍 Zipcode lookup: ${zipcode} → ${city}, ${state}`);
+    const lookedUp = zipcodeToCity(zipcode);
+    const city = params.city || lookedUp.city;
+    const state = params.state || lookedUp.state;
+    console.log(`📍 Location: ${zipcode} → ${city}, ${state}`);
 
     // Step 2: Check rate limits
     const rateLimitCheck = await checkRateLimit(supabaseClient, null, sessionId);

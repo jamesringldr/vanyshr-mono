@@ -20,7 +20,6 @@ import { OnboardingAddresses } from "./pages/onboarding/addresses";
 import { OnboardingEmails } from "./pages/onboarding/emails";
 
 // Scan pages
-import { QuickScan } from "./pages/scan/quick-scan";
 import { QSScanning } from "./pages/scan/scanning";
 import { QSCompiling } from "./pages/scan/compiling";
 import { PreProfile } from "./pages/scan/pre-profile";
@@ -123,7 +122,7 @@ export default function App() {
     return (
         <Routes>
             {/* Dashboard — DevOnly until ready for users */}
-            <Route path="/" element={<Navigate to="/quick-scan" replace />} />
+            <Route path="/" element={<Navigate to="/pilot-scan" replace />} />
             <Route path="/dashboard" element={<DevOnly><RequireAuth productionOnly><DashboardHome /></RequireAuth></DevOnly>} />
             <Route path="/dashboard/home" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard/dark-web" element={<DevOnly><RequireAuth productionOnly><DarkWebPage /></RequireAuth></DevOnly>} />
@@ -152,14 +151,14 @@ export default function App() {
             <Route path="/onboarding/removal-strategy" element={<RequireAuth><OnboardingRemovalStrategyPage /></RequireAuth>} />
             <Route path="/onboarding/notifications" element={<RequireAuth><OnboardingNotifications /></RequireAuth>} />
 
-            {/* Quick Scan */}
-            <Route path="/quick-scan" element={<QuickScan />} />
+            {/* Quick Scan — entry inactivated; page files kept */}
+            <Route path="/quick-scan" element={<Navigate to="/pilot-scan" replace />} />
             <Route path="/quickscan-error" element={<QuickScanErrorPage />} />
             <Route path="/quick-scan/scanning" element={<QSScanning />} />
             <Route path="/quick-scan/compiling" element={<QSCompiling />} />
             <Route path="/quick-scan/pre-profile/:scanId?" element={<PreProfile />} />
 
-            {/* Pilot Scan — UI shell only (no DB / scrapers yet) */}
+            {/* Pilot Scan */}
             <Route path="/pilot-scan" element={<PilotEntryPage />} />
             <Route path="/pilot-scan/splash" element={<PilotSplashPage />} />
             <Route path="/pilot-scan/loading" element={<PilotLoadingPage />} />
