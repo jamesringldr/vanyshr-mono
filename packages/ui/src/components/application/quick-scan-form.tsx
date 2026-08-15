@@ -494,7 +494,7 @@ export function QuickScanForm({
   return (
     <div className={cx("w-full bg-[#2D3847] rounded-xl overflow-hidden", className)}>
 
-      <div className="p-6 pt-8 flex flex-col gap-6">
+      <div className={cx("flex flex-col gap-6 p-6", startAtPrivacy ? "pt-4" : "pt-8")}>
         {/* Header Section */}
         {!startAtPrivacy && (
           <div className="flex flex-col gap-2 text-center">
@@ -510,6 +510,20 @@ export function QuickScanForm({
                 90 seconds to see your risks
               </span>
             </div>
+          </div>
+        )}
+
+        {startAtPrivacy && (
+          <div className="flex flex-col items-center gap-4 text-center">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-[#2A4A68] bg-[#022136] px-3 py-1 text-xs font-medium text-[#00BFFF]">
+              <Zap className="h-3 w-3 fill-[#00BFFF]" />
+              Real results in ~3 minutes
+            </span>
+            <h2 className="text-[28px] font-bold leading-[1.15] tracking-tight text-white">
+              Is your data exposed?
+              <br />
+              Run a Quickscan
+            </h2>
           </div>
         )}
 
