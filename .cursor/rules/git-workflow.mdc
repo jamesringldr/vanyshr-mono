@@ -12,15 +12,21 @@ do git things. On every turn, read his intent; when a trigger below fires, take
 the git action yourself and **tell him after.** You ask first only at the
 **production gate** and when something is genuinely ambiguous.
 
+**One branch checked out per worktree, always.** A checkout is scoped to the
+directory, not to a task or chat window — two unrelated pieces of work sharing
+one checkout collide by construction. `staging` is a pre-prod validation gate,
+not a workbench — everything on it must be individually ready to ship; test an
+in-progress `dev/<slug>` on its own preview URL, never by merging to `staging`.
+
 ## Intent → action
 
 | When James… | You (then notify) |
 |---|---|
-| starts new, unrelated work | create `dev/<slug>` off `staging`, checkout (a genuinely parallel task can go in its own git worktree so it can't tangle with in-flight work) |
-| says "let me test this locally" | run `git branch`/`git status` **first** — confirm he's on the branch he thinks and the tree matches intent; warn if he'd be testing stale or wrong-branch code |
+| starts new, unrelated work — including a 2nd/3rd thing alongside something already in flight | Before creating any worktree, unconditionally: (1) `git worktree list` — every time; (2) if anything besides your current worktree is open, present the **full list as a numbered choice** — most-plausible match for this request ranked first and marked `(Recommended)`, each other open worktree after it, then `New worktree name...` for a manual entry, then a final `Chat about this` (ask questions before deciding). E.g. `1. dev/scraper-router-fps (Recommended) — ../vanyshr-scraper-router-fps`, `2. dev/dashboard-ui — ../vanyshr-dashboard-ui`, `3. New worktree name...`, `4. Chat about this`. Wait for a reply — don't guess. Skip this entirely if nothing else is open. (3) Only create new once the choice confirms it's genuinely distinct (a new name was given), or `cd` into whichever existing one was picked instead of creating anything. Then check whether the *current* worktree has unrelated in-flight work of its own (dirty tree, or a `dev/<slug>` mid-task) — if so, don't reuse the checkout: create a **new worktree** (`git worktree add ../vanyshr-<slug> -b dev/<slug> staging`) and **`cd` into it** before touching files (a silent no-op if skipped — edits would still land in the original directory). If clean/idle, plain `dev/<slug>` off `staging` in place is fine. |
+| says "let me test this locally" | run `git branch`/`git status` **first** — confirm he's on the branch he thinks and the tree matches intent; warn if he'd be testing stale or wrong-branch code. Point at that branch's own preview URL — don't merge to `staging` for this. |
 | says "that works" / "looks good" | commit to the current `dev/<slug>` with a `<type>: <desc>` message |
-| says "this one's done" | merge `dev/<slug>` → `staging`; offer to delete the branch |
-| says "let me test the whole thing" | ensure it's on `staging`; point him at the Vercel preview URL |
+| says "this one's done" | merge `dev/<slug>` → `staging` **only if it's actually ready to ship**; offer to delete the branch/worktree |
+| says "let me test the whole thing" | validates the set of already-ready things on `staging` — not a way to pull in something still WIP. Point him at the Vercel preview URL. If something not-ready is found on `staging`, `git revert` that merge (never reset) to unblock what's actually ready. |
 | says "ship it" / "go live" | **PRODUCTION GATE** (below) — never skip |
 | anything ambiguous | ask, don't guess |
 

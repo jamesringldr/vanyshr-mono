@@ -99,12 +99,25 @@ async function runZabaResidentialSearch(params: {
 }
 
 export interface QuickScanFormProps {
-  supabaseClient: any;
-  onProfileSelect: (profile: ProfileMatch, searchParams: { firstName: string; lastName: string; zipCode: string; city: string; state: string }, scanId: string | null) => void;
+  supabaseClient?: any;
+  onProfileSelect?: (profile: ProfileMatch, searchParams: { firstName: string; lastName: string; zipCode: string; city: string; state: string }, scanId: string | null) => void;
   onTotalFailure?: (searchParams: { firstName: string; lastName: string; zipCode: string; city: string; state: string }, originalScanId: string | null) => void;
   onClose?: () => void;
   /** Called when user submits a phone number. Should invoke the phone-lookup edge function. */
   onPhoneLookup?: (phone: string) => Promise<ZabaPhoneResult | { error: string }>;
+  /** Hide the "Are you exposed?" header — start at "Your Privacy is Paramount". */
+  startAtPrivacy?: boolean;
+  /**
+   * UI-only / pilot path: when provided, form submit skips live scraping and
+   * calls this with the entered fields instead.
+   */
+  onPilotSubmit?: (fields: {
+    firstName: string;
+    lastName: string;
+    zipCode: string;
+    city: string;
+    state: string;
+  }) => void;
   className?: string;
 }
 
@@ -167,7 +180,16 @@ function SquareLoader() {
   );
 }
 
-export function QuickScanForm({ supabaseClient, onProfileSelect, onTotalFailure, onClose: _onClose, onPhoneLookup, className }: QuickScanFormProps) {
+export function QuickScanForm({
+  supabaseClient,
+  onProfileSelect,
+  onTotalFailure,
+  onClose: _onClose,
+  onPhoneLookup,
+  startAtPrivacy = false,
+  onPilotSubmit,
+  className,
+}: QuickScanFormProps) {
   // Form state
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -237,8 +259,9 @@ export function QuickScanForm({ supabaseClient, onProfileSelect, onTotalFailure,
 
   // Warm up universal-search on mount so it's hot by the time the user submits
   useEffect(() => {
+    if (!supabaseClient || onPilotSubmit) return;
     supabaseClient.functions.invoke("universal-search", { body: { ping: true } }).catch(() => {});
-  }, [supabaseClient]);
+  }, [supabaseClient, onPilotSubmit]);
 
   // Form is only submittable once zip is confirmed valid
   const isFormValid = firstName.trim().length >= 2 && lastName.trim().length >= 2 && zipStatus === "valid" && zipLocation !== null;
@@ -259,6 +282,19 @@ export function QuickScanForm({ supabaseClient, onProfileSelect, onTotalFailure,
   const handleScan = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isFormValid || !zipLocation) return;
+
+    if (onPilotSubmit) {
+      onPilotSubmit({
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        zipCode,
+        city: zipLocation.city,
+        state: zipLocation.state,
+      });
+      return;
+    }
+
+    if (!supabaseClient || !onProfileSelect) return;
 
     setError(null);
     setMatches([]);
@@ -340,7 +376,7 @@ export function QuickScanForm({ supabaseClient, onProfileSelect, onTotalFailure,
       setMatches(searchData.profiles);
       setShowMultipleModal(true);
     }
-  }, [firstName, lastName, zipCode, zipLocation, isFormValid, supabaseClient, onTotalFailure]);
+  }, [firstName, lastName, zipCode, zipLocation, isFormValid, supabaseClient, onTotalFailure, onPilotSubmit, onProfileSelect]);
 
   const handleSelectProfile = useCallback(async (profile: QSProfileSummary) => {
     const originalProfile = matches.find(m => m.id === profile.id);
@@ -369,7 +405,7 @@ export function QuickScanForm({ supabaseClient, onProfileSelect, onTotalFailure,
       sessionStorage.removeItem("zabaMatches");
     }
 
-    onProfileSelect(originalProfile, {
+    onProfileSelect?.(originalProfile, {
       firstName: firstName.trim(),
       lastName: lastName.trim(),
       zipCode,
@@ -460,20 +496,22 @@ export function QuickScanForm({ supabaseClient, onProfileSelect, onTotalFailure,
 
       <div className="p-6 pt-8 flex flex-col gap-6">
         {/* Header Section */}
-        <div className="flex flex-col gap-2 text-center">
-          <h1 className="text-4xl font-bold text-white leading-[1.1] tracking-tighter">
-            Are you exposed?
-          </h1>
-          <p className="text-sm font-light text-[#B8C4CC] leading-snug">
-            Run a QuickScan to see what<br />personal info is public.
-          </p>
-          <div className="flex justify-center mt-1">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#022136] border border-[#2A4A68] text-[#00BFFF] text-xs font-medium">
-              <Zap className="w-3 h-3 fill-[#00BFFF]" />
-              90 seconds to see your risks
-            </span>
+        {!startAtPrivacy && (
+          <div className="flex flex-col gap-2 text-center">
+            <h1 className="text-4xl font-bold text-white leading-[1.1] tracking-tighter">
+              Are you exposed?
+            </h1>
+            <p className="text-sm font-light text-[#B8C4CC] leading-snug">
+              Run a QuickScan to see what<br />personal info is public.
+            </p>
+            <div className="flex justify-center mt-1">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#022136] border border-[#2A4A68] text-[#00BFFF] text-xs font-medium">
+                <Zap className="w-3 h-3 fill-[#00BFFF]" />
+                90 seconds to see your risks
+              </span>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Privacy Section */}
         <div className="w-full flex flex-col gap-2">
