@@ -12,9 +12,7 @@
 import { DedupEngine } from "./DedupEngine.ts";
 import {
   QuickScanInput,
-  BrokerName,
   ScrapeResult,
-  SummaryResult,
   DedupGroup,
   SequenceOutput,
 } from "./quickscan-phase1-phase2-models.ts";
@@ -61,7 +59,9 @@ export class Phase1Orchestrator {
     console.log(`🔍 Phase 1 starting: ${userInput.first_name} ${userInput.last_name}, ${userInput.city}, ${userInput.state}`);
 
     try {
-      // Try using scraper-lab if available and enabled
+      // Try scraper-lab if configured. null = not configured (fall through).
+      // A returned result — success or failure — is the answer; don't hide
+      // lab timeouts/4xx/shape errors behind the native stub.
       if (useScraperLab) {
         const scraperLabResult = await this.tryScraperLab(userInput, timeout);
         if (scraperLabResult) {
@@ -69,8 +69,7 @@ export class Phase1Orchestrator {
         }
       }
 
-      // Fall back to native Edge Function scrapers
-      console.log("⚠️  Scraper-lab not available, falling back to native scrapers");
+      console.log("⚠️  Scraper-lab not configured, falling back to native scrapers");
       return await this.nativeSearch(userInput, timeout);
     } catch (error) {
       const timingMs = Date.now() - startTime;
@@ -94,22 +93,35 @@ export class Phase1Orchestrator {
   }
 
   /**
-   * Try using scraper-lab bridge for 4-broker parallel search
-   * @param userInput User search parameters
-   * @param timeout Overall timeout
-   * @returns Phase1SearchResult or null if scraper-lab not available
+   * Call scraper-lab POST /api/quickscan.
+   * @returns null if SCRAPER_LAB_URL is unset (not configured).
+   *          Otherwise a Phase1SearchResult — success or a surfaced lab error.
    */
   private async tryScraperLab(userInput: QuickScanInput, timeout: number): Promise<Phase1SearchResult | null> {
-    const scraperLabUrl = Deno.env.get("SCRAPER_LAB_URL");
+    const scraperLabUrl = Deno.env.get("SCRAPER_LAB_URL")?.replace(/\/$/, "");
     const scraperLabToken = Deno.env.get("SCRAPER_LAB_TOKEN");
 
     if (!scraperLabUrl) {
-      return null; // Scraper-lab not configured
+      return null;
     }
+
+    const startTime = Date.now();
+    const fail = (error: string): Phase1SearchResult => ({
+      success: false,
+      dedup_groups: [],
+      raw_results: {},
+      metadata: {
+        total_time_ms: Date.now() - startTime,
+        phase: "summary",
+        profiles_found: 0,
+        brokers_scraped: [],
+        used_scraper_lab: true,
+      },
+      error,
+    });
 
     try {
       console.log("🔗 Calling scraper-lab bridge for 4-broker parallel search...");
-      const startTime = Date.now();
 
       const response = await fetch(`${scraperLabUrl}/api/quickscan`, {
         method: "POST",
@@ -127,13 +139,17 @@ export class Phase1Orchestrator {
       });
 
       if (!response.ok) {
-        console.warn(`Scraper-lab returned ${response.status}, trying native search`);
-        return null;
+        const body = await response.text().catch(() => "");
+        const snippet = body.slice(0, 200);
+        return fail(`Scraper-lab HTTP ${response.status}${snippet ? `: ${snippet}` : ""}`);
       }
 
       const data = await response.json() as SequenceOutput;
-      const timingMs = Date.now() - startTime;
+      if (!data || !Array.isArray(data.dedup_groups) || !data.raw_results) {
+        return fail("Scraper-lab response missing dedup_groups or raw_results");
+      }
 
+      const timingMs = Date.now() - startTime;
       console.log(`✓ Scraper-lab Phase 1 complete: ${data.dedup_groups.length} groups in ${timingMs}ms`);
 
       return {
@@ -149,8 +165,7 @@ export class Phase1Orchestrator {
         },
       };
     } catch (error) {
-      console.warn(`Scraper-lab call failed: ${(error as Error).message}`);
-      return null; // Fall back to native search
+      return fail(`Scraper-lab call failed: ${(error as Error).message}`);
     }
   }
 
