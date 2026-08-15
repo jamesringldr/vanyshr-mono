@@ -1,6 +1,9 @@
 const ALLOWED_ORIGINS = [
   'https://app.vanyshr.com',
   'http://localhost:5173',
+  'http://127.0.0.1:5173',
+  'http://localhost:4173',
+  'http://127.0.0.1:4173',
 ]
 
 function isAllowedOrigin(origin: string): boolean {
@@ -16,5 +19,6 @@ export function getCorsHeaders(req: Request): Record<string, string> {
   return {
     'Access-Control-Allow-Origin': allowedOrigin,
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
   }
 }
