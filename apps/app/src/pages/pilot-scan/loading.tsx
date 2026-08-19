@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { Check } from "lucide-react";
@@ -36,7 +36,7 @@ type LoadingStep = {
 const STEPS: LoadingStep[] = [
   {
     id: "criteria",
-    label: "Building search criteria",
+    label: "Building Search Criteria",
     eyebrow: "Just a moment...",
     headline: "We're mapping how to find your data",
   },
@@ -60,9 +60,9 @@ const STEPS: LoadingStep[] = [
   },
   {
     id: "results",
-    label: "Organizing your results",
+    label: "Building your Risk Report",
     eyebrow: "Almost done...",
-    headline: "Pulling everything together into your report",
+    headline: "Assembling your exposure into a risk report",
   },
 ];
 
@@ -115,10 +115,15 @@ export function PilotLoadingPage() {
   const [current, setCurrent] = useState(0);
   const [allDone, setAllDone] = useState(false);
   const [scanSettled, setScanSettled] = useState(holdMode);
+  const [confirmed, setConfirmed] = useState(false);
+  const confirmedRef = useRef(false);
   const [picker, setPicker] = useState<"none" | "single" | "multiple" | "empty">("none");
   const [profiles, setProfiles] = useState<QSProfileSummary[]>([]);
   const [searchName, setSearchName] = useState("");
   const [region, setRegion] = useState("");
+  const needsConfirm = picker === "single" || picker === "multiple";
+  const criteriaUnlocked =
+    confirmed || (scanSettled && !needsConfirm);
 
   useEffect(() => {
     if (holdMode) return;
@@ -191,14 +196,21 @@ export function PilotLoadingPage() {
 
   useEffect(() => {
     if (holdMode) return;
+    if (current !== 0) return;
+    if (!criteriaUnlocked) return;
+    setCurrent(1);
+  }, [criteriaUnlocked, current, holdMode]);
+
+  useEffect(() => {
+    if (holdMode) return;
+    if (current < 1) return;
+    if (allDone) return;
 
     if (prefersReducedMotion) {
       setCurrent(STEPS.length - 1);
       setAllDone(true);
       return;
     }
-
-    if (allDone) return;
 
     const t = window.setTimeout(() => {
       setCurrent((prev) => {
@@ -216,12 +228,20 @@ export function PilotLoadingPage() {
   useEffect(() => {
     if (holdMode) return;
     if (!allDone || !scanSettled) return;
-    if (picker === "single" || picker === "multiple") return;
+    if (needsConfirm && !confirmed) return;
     const t = window.setTimeout(() => {
       navigate("/pilot-scan/risk-summary", { replace: true });
     }, prefersReducedMotion ? 800 : DONE_HOLD_MS);
     return () => window.clearTimeout(t);
-  }, [allDone, scanSettled, picker, holdMode, navigate, prefersReducedMotion]);
+  }, [
+    allDone,
+    scanSettled,
+    needsConfirm,
+    confirmed,
+    holdMode,
+    navigate,
+    prefersReducedMotion,
+  ]);
 
   function goToSummary() {
     navigate("/pilot-scan/risk-summary", { replace: true });
@@ -240,25 +260,30 @@ export function PilotLoadingPage() {
         /* keep stored result */
       }
     }
-    goToSummary();
+    confirmedRef.current = true;
+    setConfirmed(true);
   }
 
   const activeStep = STEPS[Math.min(current, STEPS.length - 1)]!;
 
   return (
     <div
-      className="relative flex min-h-screen w-full flex-col items-center justify-center overflow-hidden bg-[#022136] px-6 py-12 font-ubuntu"
+      className="relative flex min-h-screen w-full flex-col items-center justify-center overflow-x-hidden bg-[#022136] px-6 py-12 font-ubuntu"
       role="main"
       aria-label="Scan in progress"
       aria-busy={!allDone}
     >
       <div className="relative z-10 flex w-full max-w-sm flex-col items-center">
-        {/* Logo — soft float */}
-        <div className="relative mb-10 flex h-[168px] w-[168px] items-center justify-center">
+        {/* Logo — glow lives on a sibling so the float transform cannot clip it */}
+        <div className="relative mb-6 flex h-[240px] w-[240px] items-center justify-center overflow-visible">
+          <div
+            className="pointer-events-none absolute left-1/2 top-1/2 h-[200px] w-[200px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#00BFFF]/40 blur-[48px]"
+            aria-hidden
+          />
           <motion.img
             src={PrimaryIcon}
             alt=""
-            className="relative z-10 h-[88px] w-[88px] object-contain drop-shadow-[0_0_28px_rgba(0,191,255,0.45)]"
+            className="relative z-10 h-[88px] w-[88px] object-contain"
             animate={
               prefersReducedMotion
                 ? undefined
@@ -322,9 +347,9 @@ export function PilotLoadingPage() {
       </div>
 
       <QSResultSingleModal
-        isOpen={allDone && scanSettled && picker === "single" && Boolean(profiles[0])}
+        isOpen={!confirmed && scanSettled && picker === "single" && Boolean(profiles[0])}
         onOpenChange={(open) => {
-          if (!open) goToSummary();
+          if (!open && !confirmedRef.current) goToSummary();
         }}
         profile={profiles[0] ?? { id: "none", fullName: searchName || "Unknown" }}
         region={region}
@@ -332,9 +357,9 @@ export function PilotLoadingPage() {
         onThisIsNotMe={goToSummary}
       />
       <QSResultMultipleModal
-        isOpen={allDone && scanSettled && picker === "multiple"}
+        isOpen={!confirmed && scanSettled && picker === "multiple"}
         onOpenChange={(open) => {
-          if (!open) goToSummary();
+          if (!open && !confirmedRef.current) goToSummary();
         }}
         searchName={searchName}
         region={region}
