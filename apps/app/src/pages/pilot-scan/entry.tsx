@@ -11,15 +11,17 @@ import {
   Users,
   Mail,
   Loader2,
-  KeyRound,
   Briefcase,
   Calendar,
-  AlertTriangle,
-  ShieldAlert,
-  MailWarning,
-  Fingerprint,
-  type LucideIcon,
 } from "lucide-react";
+import {
+  AlertTriangleFilled,
+  ShieldFilled,
+  MailFilled,
+  Fingerprint,
+  KeyFilled,
+  Users as UsersFilled,
+} from "@appica/icons-react";
 import PrimaryIcon from "@vanyshr/ui/assets/PrimaryIcon-Nooutline.png";
 import { QuickScanForm } from "@vanyshr/ui/components/application";
 import { cx } from "@/utils/cx";
@@ -998,12 +1000,12 @@ function ScanSlide({
 type ReportBeat = "hex" | "preview";
 
 const HEX_MINI = [
-  { id: "critical", angle: -90, score: 0.82, Icon: AlertTriangle },
-  { id: "scam", angle: -30, score: 0.55, Icon: ShieldAlert },
-  { id: "family", angle: 30, score: 0.38, Icon: Users },
+  { id: "critical", angle: -90, score: 0.82, Icon: AlertTriangleFilled },
+  { id: "scam", angle: -30, score: 0.55, Icon: ShieldFilled },
+  { id: "family", angle: 30, score: 0.38, Icon: UsersFilled },
   { id: "identity", angle: 90, score: 0.7, Icon: Fingerprint },
-  { id: "accounts", angle: 150, score: 0.48, Icon: KeyRound },
-  { id: "spam", angle: 210, score: 0.62, Icon: MailWarning },
+  { id: "accounts", angle: 150, score: 0.48, Icon: KeyFilled },
+  { id: "spam", angle: 210, score: 0.62, Icon: MailFilled },
 ] as const;
 
 const HEX_VIEW = 200;
@@ -1112,7 +1114,7 @@ function HexPreview({ reduced, play }: { reduced: boolean; play: boolean }) {
       </svg>
       {HEX_MINI.map((item) => {
         const pt = hexPolar(HEX_LABEL, item.angle);
-        const Icon = item.Icon as LucideIcon;
+        const Icon = item.Icon;
         return (
           <div
             key={`lb-${item.id}`}
@@ -1123,7 +1125,7 @@ function HexPreview({ reduced, play }: { reduced: boolean; play: boolean }) {
             }}
           >
             <span className="flex h-11 w-11 items-center justify-center rounded-full border-2 border-white/35 bg-[#022136] text-white shadow-[0_0_10px_rgba(255,255,255,0.2)]">
-              <Icon className="h-5 w-5" strokeWidth={2.75} />
+              <Icon size={20} />
             </span>
           </div>
         );
