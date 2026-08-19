@@ -75,7 +75,7 @@ export async function trackCost(
     console.log(`💰 Tracking cost: $${costUsd.toFixed(4)} for Phase ${phase}`);
 
     const { error } = await supabaseClient
-      .from("quickscan_cost_tracking")
+      .schema("quickscan").from("quickscan_cost_tracking")
       .insert({
         user_id: userId,
         session_id: sessionId,
@@ -263,7 +263,7 @@ export async function checkBurstProtection(supabaseClient: any, sessionId: strin
     const cutoffTime = new Date(Date.now() - windowSeconds * 1000).toISOString();
 
     const { data, error } = await supabaseClient
-      .from("quickscan_cost_tracking")
+      .schema("quickscan").from("quickscan_cost_tracking")
       .select("id")
       .eq("session_id", sessionId)
       .eq("phase", 1)

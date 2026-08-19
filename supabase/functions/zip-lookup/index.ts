@@ -61,7 +61,7 @@ serve(async (req) => {
     let scanId: string | null = null
     if (firstName && lastName) {
       const { data: scanRow, error: scanInsertError } = await supabaseClient
-        .from('quick_scans')
+        .schema('quickscan').from('quick_scans')
         .insert({
           session_id: crypto.randomUUID(),
           status: 'initiated',
@@ -87,7 +87,7 @@ serve(async (req) => {
     const failScan = async (reason: string) => {
       if (!scanId) return
       await supabaseClient
-        .from('quick_scans')
+        .schema('quickscan').from('quick_scans')
         .update({ status: 'zip_lookup_failed', error_message: reason })
         .eq('id', scanId)
     }

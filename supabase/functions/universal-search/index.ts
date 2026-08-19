@@ -90,7 +90,7 @@ serve(async (req) => {
     if (activeScanId) {
       // Row already created by zip-lookup — update status to scanning
       const { error: updateError } = await supabaseClient
-        .from('quick_scans')
+        .schema('quickscan').from('quick_scans')
         .update({ status: 'scanning' })
         .eq('id', activeScanId);
       if (updateError) console.error('Error updating quick_scans to scanning:', updateError);
@@ -98,7 +98,7 @@ serve(async (req) => {
     } else {
       // Fallback: no scan_id provided (e.g. called directly without zip-lookup)
       const { data: insertData, error: insertError } = await supabaseClient
-        .from('quick_scans')
+        .schema('quickscan').from('quick_scans')
         .insert({
           session_id: crypto.randomUUID(),
           status: 'scanning',
@@ -136,7 +136,7 @@ serve(async (req) => {
       );
       if (activeScanId) {
         await supabaseClient
-          .from('quick_scans')
+          .schema('quickscan').from('quick_scans')
           .update({
             status: 'no_matches',
             candidate_matches: [],
@@ -216,7 +216,7 @@ serve(async (req) => {
 
     if (activeScanId) {
       const { error: updateError } = await supabaseClient
-        .from('quick_scans')
+        .schema('quickscan').from('quick_scans')
         .update({
           status: finalStatus,
           candidate_matches: matches,
@@ -249,7 +249,7 @@ serve(async (req) => {
     if (activeScanId && supabaseClient) {
       try {
         await supabaseClient
-          .from('quick_scans')
+          .schema('quickscan').from('quick_scans')
           .update({ status: 'failed', error_message: (error as Error).message })
           .eq('id', activeScanId);
       } catch { /* ignore secondary failure */ }

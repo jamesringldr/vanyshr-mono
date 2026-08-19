@@ -83,7 +83,7 @@ async function ensurePendingUserProfile(
   const trimmedEmail = email?.trim() || undefined;
 
   const { data: scanRow, error: scanError } = await supabaseClient
-    .from("quick_scans")
+    .schema("quickscan").from("quick_scans")
     .select("converted_to_user_id")
     .eq("id", scanId)
     .maybeSingle();
@@ -103,7 +103,7 @@ async function ensurePendingUserProfile(
         return { error: updateError.message };
       }
       await supabaseClient
-        .from("quick_scans")
+        .schema("quickscan").from("quick_scans")
         .update({ email: trimmedEmail })
         .eq("id", scanId);
     }
@@ -248,7 +248,7 @@ async function handleBatchParse(
     };
 
     const { error: upsertError } = await supabaseClient
-      .from("quick_scans")
+      .schema("quickscan").from("quick_scans")
       .upsert(row, { onConflict: "id" });
 
     if (upsertError) {
@@ -380,7 +380,7 @@ serve(async (req) => {
 
       if (!activeScanId && save_to_db) {
         const { data: insertData, error: insertError } = await supabaseClient
-          .from("quick_scans")
+          .schema("quickscan").from("quick_scans")
           .insert({
             session_id: crypto.randomUUID(),
             status: matches.length > 0 ? "selection_required" : "no_matches",
@@ -406,7 +406,7 @@ serve(async (req) => {
         }
       } else if (activeScanId && save_to_db) {
         const { error: updateError } = await supabaseClient
-          .from("quick_scans")
+          .schema("quickscan").from("quick_scans")
           .update({
             status: matches.length > 0 ? "selection_required" : "no_matches",
             candidate_matches: matches,
@@ -446,7 +446,7 @@ serve(async (req) => {
     if (!activeScanId && save_to_db) {
       const input = search_input ?? {};
       const { data: insertData, error: insertError } = await supabaseClient
-        .from("quick_scans")
+        .schema("quickscan").from("quick_scans")
         .insert({
           session_id: crypto.randomUUID(),
           status: "completed",
@@ -473,7 +473,7 @@ serve(async (req) => {
       }
     } else if (activeScanId && save_to_db) {
       const { error: updateError } = await supabaseClient
-        .from("quick_scans")
+        .schema("quickscan").from("quick_scans")
         .update({
           status: "completed",
           profile_data: profileData,

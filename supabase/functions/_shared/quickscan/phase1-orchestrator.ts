@@ -268,7 +268,7 @@ export class Phase1Orchestrator {
     for (let rank = 0; rank < result.dedup_groups.length; rank++) {
       const group = result.dedup_groups[rank];
 
-      const { data, error } = await supabaseClient.from("quickscan_dedup_groups").insert({
+      const { data, error } = await supabaseClient.schema("quickscan").from("quickscan_dedup_groups").insert({
         quick_scan_id: quickScanId,
         dedup_id: group.dedup_id,
         rank: rank + 1,
