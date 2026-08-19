@@ -688,8 +688,10 @@ async function scrapeOne(
 export async function scrapeAllBrokers(
   input: QuickScanInput,
   timeoutMs = 25000,
+  brokers?: BrokerName[],
 ): Promise<Record<string, ScrapeResult>> {
-  const results = await Promise.all(BROKERS.map((spec) => scrapeOne(spec, input, timeoutMs)));
+  const specs = brokers ? BROKERS.filter((b) => brokers.includes(b.broker)) : BROKERS;
+  const results = await Promise.all(specs.map((spec) => scrapeOne(spec, input, timeoutMs)));
   const out: Record<string, ScrapeResult> = {};
   for (const r of results) out[r.broker] = r;
   return out;

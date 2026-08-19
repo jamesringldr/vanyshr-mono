@@ -23,7 +23,7 @@ import { getCorsHeaders } from '../_shared/cors.ts'
 import { Phase1Orchestrator } from '../_shared/quickscan/phase1-orchestrator.ts'
 import { Phase2Orchestrator } from '../_shared/quickscan/phase2-orchestrator.ts'
 import { checkRateLimit, trackCost, estimateCost, checkBurstProtection } from '../_shared/quickscan/cost-middleware.ts'
-import { type QuickScanInput, type DedupGroup } from '../_shared/quickscan/quickscan-phase1-phase2-models.ts'
+import { BrokerName, type QuickScanInput, type DedupGroup } from '../_shared/quickscan/quickscan-phase1-phase2-models.ts'
 
 interface PilotScanRequest {
   firstName?: string;
@@ -35,6 +35,10 @@ interface PilotScanRequest {
   state?: string;
   sessionId?: string;
   dedupGroupId?: string;
+  /** Subset of brokers to search — used for the fast (Zaba)/slow (FPS+NPD+AnyWho) two-tier split. Omit for all 4. */
+  brokers?: string[];
+  /** Phase 2: the merged dedup group the user picked, sent inline so Phase 2 doesn't need a DB round trip yet. */
+  selectedGroup?: DedupGroup;
 }
 
 // ZIP to STATE mapping (abbreviated version - full version in run-quick-scan)
@@ -114,20 +118,32 @@ serve(async (req) => {
       state,
       sessionId,
       dedupGroupId,
+      brokers,
+      selectedGroup,
     } = requestBody as PilotScanRequest;
 
     const resolvedLast = lastName || last_name;
     const resolvedZip = zipcode || zipCode;
 
     // Determine if this is Phase 1 or Phase 2
-    if (dedupGroupId) {
-      // Phase 2: Enrichment
+    if (selectedGroup) {
+      // Phase 2: Enrichment — group came from the client (already merged fast+slow tiers),
+      // no DB round trip needed.
+      return await handlePhase2WithGroup(supabaseClient, corsHeaders, {
+        selectedGroup,
+        sessionId: sessionId || 'anonymous',
+      });
+    } else if (dedupGroupId) {
+      // Phase 2: Enrichment — legacy path, loads the group from the DB by id
       return await handlePhase2(supabaseClient, corsHeaders, {
         dedupGroupId,
         sessionId: sessionId || 'anonymous',
       });
     } else if (firstName && resolvedLast && resolvedZip) {
       // Phase 1: Search
+      const brokerFilter = brokers
+        ?.map((b) => b.toLowerCase())
+        .filter((b): b is BrokerName => (Object.values(BrokerName) as string[]).includes(b));
       return await handlePhase1(supabaseClient, corsHeaders, {
         firstName,
         lastName: resolvedLast,
@@ -135,10 +151,11 @@ serve(async (req) => {
         city,
         state,
         sessionId: sessionId || 'anonymous',
+        brokers: brokerFilter?.length ? brokerFilter : undefined,
       });
     } else {
       return new Response(
-        JSON.stringify({ error: 'Invalid request: provide (firstName, lastName, zipcode) for Phase 1 or (dedupGroupId) for Phase 2' }),
+        JSON.stringify({ error: 'Invalid request: provide (firstName, lastName, zipcode) for Phase 1 or (dedupGroupId/selectedGroup) for Phase 2' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -164,12 +181,13 @@ async function handlePhase1(
     city?: string;
     state?: string;
     sessionId: string;
+    brokers?: BrokerName[];
   }
 ) {
   try {
-    const { firstName, lastName, zipcode, sessionId } = params;
+    const { firstName, lastName, zipcode, sessionId, brokers } = params;
 
-    console.log(`🔍 Pilot-Scan Phase 1: ${firstName} ${lastName}, ZIP ${zipcode}`);
+    console.log(`🔍 Pilot-Scan Phase 1: ${firstName} ${lastName}, ZIP ${zipcode}${brokers ? ` [${brokers.join(",")}]` : ""}`);
 
     const lookedUp = zipcodeToCity(zipcode);
     const city = params.city || lookedUp.city;
@@ -197,7 +215,7 @@ async function handlePhase1(
     // Step 4: Run Phase 1
     const orchestrator = new Phase1Orchestrator();
     const input: QuickScanInput = { first_name: firstName, last_name: lastName, city, state };
-    const result = await orchestrator.runPhase1(input, { timeout: 45000 });
+    const result = await orchestrator.runPhase1(input, { timeout: 45000, brokers });
 
     if (!result.success) {
       console.error(`Phase 1 failed: ${result.error}`);
@@ -301,17 +319,14 @@ async function handlePhase2(
       );
     }
 
-    // Reconstruct broker profiles
-    const brokerProfiles = reconstructBrokerProfiles(dedupGroupData.full_data);
-
-    // Run Phase 2
+    // Run Phase 2 — scrapes each member's broker detail page directly (see detail-scrapers.ts)
     const orchestrator = new Phase2Orchestrator();
     const result = await orchestrator.runPhase2(
-      dedupGroupData as unknown as DedupGroup,
-      brokerProfiles,
+      dedupGroupData.full_data as unknown as DedupGroup,
       {
         timeout: 45000,
         includeLeakcheck: !!Deno.env.get('LEAKCHECK_API_KEY'),
+        detailTimeoutMs: 20000,
       }
     );
 
@@ -367,16 +382,69 @@ async function handlePhase2(
 }
 
 /**
- * Reconstruct broker profiles from dedup group JSONB
+ * Handle Phase 2 with the dedup group sent inline by the client (the merged
+ * fast+slow Phase 1 result the user picked from) — no DB round trip.
+ * Storage of the consolidated profile is deferred; the caller gets it directly
+ * in the response and is responsible for holding onto it for now.
  */
-function reconstructBrokerProfiles(fullData: Record<string, any>): Record<string, unknown> {
-  const profiles: Record<string, unknown> = {};
-
-  if (fullData.members && Array.isArray(fullData.members)) {
-    for (const member of fullData.members) {
-      profiles[member.broker] = member.summary;
-    }
+async function handlePhase2WithGroup(
+  supabaseClient: any,
+  corsHeaders: Record<string, string>,
+  params: {
+    selectedGroup: DedupGroup;
+    sessionId: string;
   }
+) {
+  try {
+    const { selectedGroup, sessionId } = params;
 
-  return profiles;
+    console.log(`🔍 Pilot-Scan Phase 2 (inline group): Enriching ${selectedGroup.members[0]?.summary.full_name || 'unknown'}`);
+
+    const orchestrator = new Phase2Orchestrator();
+    const result = await orchestrator.runPhase2(selectedGroup, {
+      timeout: 45000,
+      includeLeakcheck: !!Deno.env.get('LEAKCHECK_API_KEY'),
+      detailTimeoutMs: 20000,
+    });
+
+    if (!result.success) {
+      console.error(`Phase 2 failed: ${result.error}`);
+      await trackCost(supabaseClient, null, sessionId, 2, null, estimateCost(2), {
+        status: 'failed',
+        error: result.error,
+      });
+
+      return new Response(
+        JSON.stringify({ error: result.error || 'Enrichment failed' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (result.metadata) {
+      await trackCost(supabaseClient, null, sessionId, 2, null, result.metadata.phase2_cost_usd, {
+        status: 'success',
+        emails_found: result.metadata.emails_found,
+        services_found: result.metadata.services_found,
+        breaches_found: result.metadata.breaches_found,
+      });
+    }
+
+    console.log(`✅ Phase 2 complete: profile enriched`);
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        consolidated_profile: result.consolidated_profile,
+        enrichment: result.enrichment_data,
+        metadata: result.metadata,
+      }),
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  } catch (error) {
+    console.error('Phase 2 (inline group) handler error:', error);
+    return new Response(
+      JSON.stringify({ error: 'Phase 2 processing failed', details: (error as Error).message }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
 }

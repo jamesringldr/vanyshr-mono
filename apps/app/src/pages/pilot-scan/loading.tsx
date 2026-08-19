@@ -12,7 +12,13 @@ import {
   QSResultSingleModal,
   type QSProfileSummary,
 } from "@vanyshr/ui/components/application";
-import { groupToSummary, selectGroup, type ScanResult } from "./scan-result";
+import {
+  groupToSummary,
+  selectGroup,
+  mergeScanResults,
+  scanGroupToPhase2Payload,
+  type ScanResult,
+} from "./scan-result";
 
 const EASE_OUT = [0.2, 0, 0, 1] as const;
 const STEP_MS = 2200;
@@ -105,7 +111,12 @@ function StepIndicator({ status }: { status: StepStatus }) {
 }
 
 /**
- * Pilot-scan loading — step narrative while Phase 1 hits scraper-lab.
+ * Pilot-scan loading — step narrative while Phase 1 runs via context.dev.
+ *
+ * Two-tier fast/slow: Zaba is requested on its own and shown as soon as it
+ * lands; FPS/NPD/AnyWho run in parallel and are folded into the same list a
+ * beat later (mergeScanResults). On selection, Phase 2 (the real broker
+ * detail-page scrape) runs before navigating on — see handlePick.
  */
 export function PilotLoadingPage() {
   const navigate = useNavigate();
@@ -121,6 +132,13 @@ export function PilotLoadingPage() {
   const [profiles, setProfiles] = useState<QSProfileSummary[]>([]);
   const [searchName, setSearchName] = useState("");
   const [region, setRegion] = useState("");
+  const [slowSettled, setSlowSettled] = useState(holdMode);
+  // Flips the instant a profile is tapped, closing the modal right away —
+  // `confirmed` no longer does that by itself since it now waits on Phase 2.
+  const [picking, setPicking] = useState(false);
+  const mergedResultRef = useRef<ScanResult | null>(null);
+  const slowSettledPromiseRef = useRef<Promise<void>>(Promise.resolve());
+  const sessionIdRef = useRef<string>("");
   const needsConfirm = picker === "single" || picker === "multiple";
   const criteriaUnlocked =
     confirmed || (scanSettled && !needsConfirm);
@@ -130,65 +148,107 @@ export function PilotLoadingPage() {
 
     let cancelled = false;
 
-    async function runScan() {
-      const raw = sessionStorage.getItem("pilotScanFields");
-      if (!raw) {
-        sessionStorage.setItem("pilotScanError", "Missing scan fields");
-        sessionStorage.removeItem("pilotScanResult");
-        if (!cancelled) setScanSettled(true);
-        return;
-      }
-
-      const fields = JSON.parse(raw) as {
-        firstName: string;
-        lastName: string;
-        zipCode: string;
-        city: string;
-        state: string;
-      };
-      const sessionId =
-        sessionStorage.getItem("pendingScanId") ?? crypto.randomUUID();
-
-      const { data, error } = await supabase.functions.invoke("pilot-scan", {
-        body: {
-          firstName: fields.firstName,
-          lastName: fields.lastName,
-          last_name: fields.lastName,
-          zipcode: fields.zipCode,
-          zipCode: fields.zipCode,
-          city: fields.city,
-          state: fields.state,
-          sessionId,
-        },
-      });
-
-      if (cancelled) return;
-
-      if (error || data?.error) {
-        sessionStorage.setItem(
-          "pilotScanError",
-          error?.message || data?.error || "Scan failed",
-        );
-        sessionStorage.removeItem("pilotScanResult");
-        setPicker("none");
-      } else {
-        const result = data as ScanResult;
-        sessionStorage.setItem("pilotScanResult", JSON.stringify(result));
-        sessionStorage.removeItem("pilotScanError");
-        const groups = result.dedup_groups ?? [];
-        setSearchName(
-          `${fields.firstName} ${fields.lastName}`.trim() || groups[0]?.name || "",
-        );
-        setRegion(fields.state || "");
-        setProfiles(groups.map((g, i) => groupToSummary(g, i)));
-        if (groups.length === 0) setPicker("empty");
-        else if (groups.length === 1) setPicker("single");
-        else setPicker("multiple");
-      }
+    const raw = sessionStorage.getItem("pilotScanFields");
+    if (!raw) {
+      sessionStorage.setItem("pilotScanError", "Missing scan fields");
+      sessionStorage.removeItem("pilotScanResult");
       setScanSettled(true);
+      setSlowSettled(true);
+      return;
     }
 
-    runScan();
+    const fields = JSON.parse(raw) as {
+      firstName: string;
+      lastName: string;
+      zipCode: string;
+      city: string;
+      state: string;
+    };
+    const sessionId = sessionStorage.getItem("pendingScanId") ?? crypto.randomUUID();
+    sessionIdRef.current = sessionId;
+
+    const requestBody = (brokers: string[]) => ({
+      firstName: fields.firstName,
+      lastName: fields.lastName,
+      last_name: fields.lastName,
+      zipcode: fields.zipCode,
+      zipCode: fields.zipCode,
+      city: fields.city,
+      state: fields.state,
+      sessionId,
+      brokers,
+    });
+
+    function showMerged(merged: ScanResult) {
+      mergedResultRef.current = merged;
+      sessionStorage.setItem("pilotScanResult", JSON.stringify(merged));
+      sessionStorage.removeItem("pilotScanError");
+      const groups = merged.dedup_groups ?? [];
+      setSearchName(`${fields.firstName} ${fields.lastName}`.trim() || groups[0]?.name || "");
+      setRegion(fields.state || "");
+      setProfiles(groups.map((g, i) => groupToSummary(g, i)));
+      if (groups.length === 0) setPicker("empty");
+      else if (groups.length === 1) setPicker("single");
+      else setPicker("multiple");
+    }
+
+    let fastOk = false;
+    let fastData: ScanResult | null = null;
+    let slowOk = false;
+    let slowData: ScanResult | null = null;
+    let resolveSlowSettled: () => void = () => {};
+    slowSettledPromiseRef.current = new Promise((resolve) => {
+      resolveSlowSettled = resolve;
+    });
+
+    // Fast tier: Zaba alone, shown the moment it lands.
+    supabase.functions
+      .invoke("pilot-scan", { body: requestBody(["zaba"]) })
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (!error && !data?.error) {
+          fastOk = true;
+          fastData = data as ScanResult;
+          if ((fastData.dedup_groups ?? []).length > 0) showMerged(mergeScanResults(fastData, null));
+        }
+      })
+      .catch(() => {});
+
+    // Slow tier: FPS/NPD/AnyWho in parallel, folded into the same list once they land.
+    supabase.functions
+      .invoke("pilot-scan", { body: requestBody(["fps", "npd", "anywho"]) })
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (!error && !data?.error) {
+          slowOk = true;
+          slowData = data as ScanResult;
+        }
+        if (!fastOk && !slowOk) {
+          sessionStorage.setItem(
+            "pilotScanError",
+            error?.message || data?.error || "Scan failed",
+          );
+          sessionStorage.removeItem("pilotScanResult");
+          setPicker("none");
+        } else {
+          showMerged(mergeScanResults(fastData, slowData));
+        }
+      })
+      .catch(() => {
+        if (cancelled) return;
+        if (!fastOk) {
+          sessionStorage.setItem("pilotScanError", "Scan failed");
+          sessionStorage.removeItem("pilotScanResult");
+          setPicker("none");
+        }
+      })
+      .finally(() => {
+        if (cancelled) return;
+        setSlowSettled(true);
+        setScanSettled(true);
+        resolveSlowSettled();
+      });
+
     return () => {
       cancelled = true;
     };
@@ -247,20 +307,44 @@ export function PilotLoadingPage() {
     navigate("/pilot-scan/risk-summary", { replace: true });
   }
 
-  function handlePick(profile: QSProfileSummary) {
-    const raw = sessionStorage.getItem("pilotScanResult");
-    if (raw) {
+  async function handlePick(profile: QSProfileSummary) {
+    confirmedRef.current = true;
+    setPicking(true); // close the modal right away — Phase 2 runs behind the loading screen
+
+    // Phase 2 needs whichever FPS/NPD/AnyWho profile_urls exist for this
+    // person, not just Zaba's — wait for the slow tier if it hasn't landed yet.
+    if (!slowSettled) {
+      await slowSettledPromiseRef.current;
+    }
+
+    const merged = mergedResultRef.current;
+    const groups = merged?.dedup_groups ?? [];
+    const group = groups.find((g, i) => (g.id || `group-${i}`) === profile.id);
+
+    if (merged) {
+      sessionStorage.setItem("pilotScanResult", JSON.stringify(selectGroup(merged, profile.id)));
+    }
+
+    if (group) {
       try {
-        const result = JSON.parse(raw) as ScanResult;
-        sessionStorage.setItem(
-          "pilotScanResult",
-          JSON.stringify(selectGroup(result, profile.id)),
-        );
-      } catch {
-        /* keep stored result */
+        const { data, error } = await supabase.functions.invoke("pilot-scan", {
+          body: {
+            selectedGroup: scanGroupToPhase2Payload(group),
+            sessionId: sessionIdRef.current || crypto.randomUUID(),
+          },
+        });
+        if (error || data?.error) {
+          console.warn("Phase 2 enrichment failed:", error?.message || data?.error);
+          sessionStorage.removeItem("pilotPhase2Result");
+        } else {
+          sessionStorage.setItem("pilotPhase2Result", JSON.stringify(data));
+        }
+      } catch (err) {
+        console.warn("Phase 2 enrichment error:", err);
+        sessionStorage.removeItem("pilotPhase2Result");
       }
     }
-    confirmedRef.current = true;
+
     setConfirmed(true);
   }
 
@@ -347,7 +431,7 @@ export function PilotLoadingPage() {
       </div>
 
       <QSResultSingleModal
-        isOpen={!confirmed && scanSettled && picker === "single" && Boolean(profiles[0])}
+        isOpen={!picking && !confirmed && picker === "single" && Boolean(profiles[0])}
         onOpenChange={(open) => {
           if (!open && !confirmedRef.current) goToSummary();
         }}
@@ -357,7 +441,7 @@ export function PilotLoadingPage() {
         onThisIsNotMe={goToSummary}
       />
       <QSResultMultipleModal
-        isOpen={!confirmed && scanSettled && picker === "multiple"}
+        isOpen={!picking && !confirmed && picker === "multiple"}
         onOpenChange={(open) => {
           if (!open && !confirmedRef.current) goToSummary();
         }}

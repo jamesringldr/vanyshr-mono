@@ -133,6 +133,39 @@ export function groupToSummary(group: ScanGroup, index: number) {
   };
 }
 
+/**
+ * Reshape a picked ScanGroup back into the DedupGroup shape the pilot-scan
+ * edge function's Phase 2 (selectedGroup) expects — { summary, match_score }
+ * per member, carrying each broker's profile_url through for the detail-page
+ * scrape. Kept as a plain object (not a shared type import) to match how this
+ * file already mirrors the backend response shape independently.
+ */
+export function scanGroupToPhase2Payload(group: ScanGroup) {
+  return {
+    dedup_id: group.id || `group-${Date.now()}`,
+    age_conflict: !!group.age_conflict,
+    age_note: group.age_note,
+    members: (group.members ?? []).map((m) => ({
+      match_score: m.match_score ?? 0,
+      summary: {
+        broker: m.broker || "",
+        full_name: m.name || "",
+        address: m.address || "",
+        age_range: m.age_range || (m.age != null ? String(m.age) : ""),
+        age: typeof m.age === "number" ? m.age : m.age ? parseInt(String(m.age), 10) : undefined,
+        location: m.location || m.address || "",
+        profile_url: m.profile_url || "",
+        result_id: m.result_id,
+        phone: m.phone,
+        email: m.email,
+        aliases: m.aliases,
+        relatives: m.relatives,
+        previous_addresses: m.previous_addresses,
+      },
+    })),
+  };
+}
+
 export function selectGroup(result: ScanResult, groupId: string): ScanResult {
   const groups = [...(result.dedup_groups ?? [])];
   const idx = groups.findIndex((g, i) => (g.id || `group-${i}`) === groupId);
@@ -144,6 +177,52 @@ export function selectGroup(result: ScanResult, groupId: string): ScanResult {
 export function primaryGroup(result: ScanResult | null): ScanGroup | null {
   const groups = result?.dedup_groups ?? [];
   return groups[0] ?? null;
+}
+
+function normName(name?: string): string {
+  return (name || "").toLowerCase().trim().replace(/[^a-z\s]/g, "");
+}
+
+function groupMatchKey(group: ScanGroup): { first: string; last: string; state: string } {
+  const name = normName(group.name || group.members?.[0]?.name);
+  const parts = name.split(/\s+/).filter(Boolean);
+  return {
+    first: parts[0] || "",
+    last: parts[parts.length - 1] || "",
+    state: (group.state || "").toLowerCase(),
+  };
+}
+
+/**
+ * Fold the slow-tier batch (FPS/NPD/AnyWho) into the fast-tier batch (Zaba) the
+ * user is already looking at — matching groups by normalized name + state so
+ * the same person's cards merge instead of duplicating. Used for the two-tier
+ * fast/slow Phase 1 split in loading.tsx; not a re-run of the server's
+ * phone/address dedupe, just a display-level fold of two already-deduped batches.
+ */
+export function mergeScanResults(fast: ScanResult | null, slow: ScanResult | null): ScanResult {
+  const fastGroups = fast?.dedup_groups ?? [];
+  const slowGroups = slow?.dedup_groups ?? [];
+  if (!slowGroups.length) return fast ?? { success: true, dedup_groups: [] };
+  if (!fastGroups.length) return slow ?? { success: true, dedup_groups: [] };
+
+  const merged: ScanGroup[] = fastGroups.map((g) => ({ ...g, members: [...(g.members ?? [])] }));
+
+  for (const slowGroup of slowGroups) {
+    const key = groupMatchKey(slowGroup);
+    const match = merged.find((g) => {
+      const gk = groupMatchKey(g);
+      return gk.first === key.first && gk.last === key.last && (!key.state || !gk.state || gk.state === key.state);
+    });
+    if (match) {
+      match.members = [...(match.members ?? []), ...(slowGroup.members ?? [])];
+      match.sources = [...new Set([...(match.sources ?? []), ...(slowGroup.sources ?? [])])];
+    } else {
+      merged.push(slowGroup);
+    }
+  }
+
+  return { success: true, dedup_groups: merged, metadata: slow.metadata ?? fast?.metadata };
 }
 
 export function buildAreas(result: ScanResult | null) {
