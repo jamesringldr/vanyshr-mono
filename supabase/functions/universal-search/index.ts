@@ -88,7 +88,7 @@ serve(async (req) => {
     activeScanId = scan_id ?? null;
 
     if (activeScanId) {
-      // Row already created by zip-lookup — update status to scanning
+      // Caller supplied an existing scan row — update status to scanning
       const { error: updateError } = await supabaseClient
         .schema('quickscan').from('quick_scans')
         .update({ status: 'scanning' })
@@ -96,7 +96,8 @@ serve(async (req) => {
       if (updateError) console.error('Error updating quick_scans to scanning:', updateError);
       else console.log(`✅ quick_scans ${activeScanId} → scanning`);
     } else {
-      // Fallback: no scan_id provided (e.g. called directly without zip-lookup)
+      // No scan_id provided — create the row here. This is now the only path:
+      // zip-lookup, which used to pre-create it, was removed as dead code.
       const { data: insertData, error: insertError } = await supabaseClient
         .schema('quickscan').from('quick_scans')
         .insert({
