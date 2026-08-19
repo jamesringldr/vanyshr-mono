@@ -2,18 +2,18 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import {
-  AlertTriangle,
-  ShieldAlert,
-  MailWarning,
+  AlertTriangleFilled,
+  ShieldFilled,
+  MailFilled,
   Fingerprint,
-  KeyRound,
+  KeyFilled,
   Users,
-  Home,
-  UserRoundSearch,
-  ArrowRight,
+  HomeFilled,
+  UserSearch,
+  ArrowBigRightFilled,
   X,
-  type LucideIcon,
-} from "lucide-react";
+  type IconComponent,
+} from "@appica/icons-react";
 import { cx } from "@/utils/cx";
 import { buildAreas, loadScanResult, type Finding } from "./scan-result";
 
@@ -22,16 +22,16 @@ const LEVEL_BARS = 4;
 
 const AREA_META: Record<
   string,
-  { Icon: LucideIcon; angleDeg?: number; onHex?: boolean }
+  { Icon: IconComponent; angleDeg?: number; onHex?: boolean }
 > = {
-  critical: { Icon: AlertTriangle, angleDeg: -90, onHex: true },
-  scam: { Icon: ShieldAlert, angleDeg: -30, onHex: true },
+  critical: { Icon: AlertTriangleFilled, angleDeg: -90, onHex: true },
+  scam: { Icon: ShieldFilled, angleDeg: -30, onHex: true },
   family: { Icon: Users, angleDeg: 30, onHex: true },
   identity: { Icon: Fingerprint, angleDeg: 90, onHex: true },
-  accounts: { Icon: KeyRound, angleDeg: 150, onHex: true },
-  spam: { Icon: MailWarning, angleDeg: 210, onHex: true },
-  property: { Icon: Home },
-  other: { Icon: UserRoundSearch },
+  accounts: { Icon: KeyFilled, angleDeg: 150, onHex: true },
+  spam: { Icon: MailFilled, angleDeg: 210, onHex: true },
+  property: { Icon: HomeFilled },
+  other: { Icon: UserSearch },
 };
 
 const HEX_ORDER = ["critical", "scam", "family", "identity", "accounts", "spam"] as const;
@@ -59,7 +59,7 @@ type AreaView = {
   detail: string;
   score: number;
   items: Finding[];
-  Icon: LucideIcon;
+  Icon: IconComponent;
   angleDeg?: number;
 };
 
@@ -115,6 +115,30 @@ function isHttpUrl(value: string) {
   return /^https?:\/\//i.test(value);
 }
 
+function formatDeviceStamp(date: Date) {
+  const mm = String(date.getMonth() + 1).padStart(2, "0");
+  const dd = String(date.getDate()).padStart(2, "0");
+  const yyyy = date.getFullYear();
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  const hour24 = date.getHours();
+  const hour12 = hour24 % 12 || 12;
+  const ampm = hour24 >= 12 ? "pm" : "am";
+  return `${mm}/${dd}/${yyyy} ${hour12}:${minutes} ${ampm}`;
+}
+
+function scanPersonName(groupName?: string) {
+  const fromGroup = groupName?.trim();
+  if (fromGroup) return fromGroup;
+  try {
+    const raw = sessionStorage.getItem("pilotScanFields");
+    if (!raw) return "";
+    const fields = JSON.parse(raw) as { firstName?: string; lastName?: string };
+    return `${fields.firstName ?? ""} ${fields.lastName ?? ""}`.trim();
+  } catch {
+    return "";
+  }
+}
+
 /**
  * Pilot Risk Summary — hex + area list, filled from live Phase 1 groups.
  */
@@ -124,6 +148,8 @@ export function PilotRiskSummaryPage() {
   const [{ result, error }] = useState(() => loadScanResult());
   const { group, areas } = useMemo(() => buildAreas(result), [result]);
   const [activeArea, setActiveArea] = useState<AreaView | null>(null);
+  const [stamp] = useState(() => formatDeviceStamp(new Date()));
+  const personName = scanPersonName(group?.name);
 
   const byId = useMemo(() => {
     const map = new Map(areas.map((a) => [a.id, a]));
@@ -159,10 +185,6 @@ export function PilotRiskSummaryPage() {
   });
 
   const ActiveIcon = activeArea?.Icon;
-  const groupCount = result?.dedup_groups?.length ?? 0;
-  const brokers = group?.sources?.length
-    ? group.sources.join(", ").toUpperCase()
-    : (result?.metadata?.brokers_scraped ?? []).join(", ").toUpperCase();
 
   return (
     <>
@@ -180,12 +202,9 @@ export function PilotRiskSummaryPage() {
           </h1>
           {error && !result ? (
             <p className="mt-2 text-sm text-[#FF8A00]">{error}</p>
-          ) : group ? (
+          ) : personName || result ? (
             <p className="mt-2 text-sm text-[#B8C4CC]">
-              {group.name}
-              {group.age ? ` · ${group.age}` : ""}
-              {groupCount > 1 ? ` · ${groupCount} people found` : ""}
-              {brokers ? ` · ${brokers}` : ""}
+              {personName ? `${personName} - ${stamp}` : stamp}
             </p>
           ) : (
             <p className="mt-2 text-sm text-[#B8C4CC]">No scan data in this session</p>
@@ -261,7 +280,7 @@ export function PilotRiskSummaryPage() {
                   style={{ left: `${left}%`, top: `${top}%` }}
                 >
                   <span className="flex h-8 w-8 items-center justify-center rounded-full border border-white/15 bg-[#022136]/80 text-white">
-                    <Icon className="h-4 w-4" strokeWidth={1.75} aria-hidden />
+                    <Icon size={16} />
                   </span>
                   <span className="max-w-[88px] text-center text-[11px] font-medium leading-tight text-white sm:text-xs">
                     {p.label}
@@ -292,7 +311,7 @@ export function PilotRiskSummaryPage() {
                     className="flex w-full items-center gap-3 rounded-2xl bg-[#1A2E42] px-4 py-3.5 text-left outline-none transition hover:bg-[#20364C] focus-visible:ring-2 focus-visible:ring-[#00BFFF]"
                   >
                     <span className="flex h-9 w-9 shrink-0 items-center justify-center text-white">
-                      <Icon className="h-5 w-5" strokeWidth={1.75} aria-hidden />
+                      <Icon size={20} />
                     </span>
                     <span className="min-w-0 flex-1">
                       <span className="block text-[15px] font-semibold text-white">
@@ -317,7 +336,7 @@ export function PilotRiskSummaryPage() {
             className="flex h-14 w-14 items-center justify-center rounded-full bg-white text-[#022136] outline-none transition hover:bg-[#E8F7FF] focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2 focus-visible:ring-offset-[#022136]"
             aria-label="Continue"
           >
-            <ArrowRight className="h-6 w-6" strokeWidth={2.25} />
+            <ArrowBigRightFilled size={24} />
           </button>
         </div>
       </div>
@@ -364,13 +383,13 @@ export function PilotRiskSummaryPage() {
                   onClick={() => setActiveArea(null)}
                   className="absolute right-4 top-3 rounded-full p-1.5 text-[#7A92A8] transition hover:text-white"
                 >
-                  <X className="h-5 w-5" />
+                  <X size={20} />
                 </button>
 
                 <div className="mt-2 flex items-start gap-3">
                   <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[#00BFFF]/30 bg-[#00BFFF]/10 text-[#00BFFF]">
                     {ActiveIcon ? (
-                      <ActiveIcon className="h-5 w-5" strokeWidth={1.75} aria-hidden />
+                      <ActiveIcon size={20} />
                     ) : null}
                   </span>
                   <div className="min-w-0 flex-1 pt-0.5">
