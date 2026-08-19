@@ -222,7 +222,10 @@ export function mergeScanResults(fast: ScanResult | null, slow: ScanResult | nul
     }
   }
 
-  return { success: true, dedup_groups: merged, metadata: slow.metadata ?? fast?.metadata };
+  // `slow` is non-null whenever slowGroups is non-empty (the early return above
+  // covers the empty case), but that is not something the compiler can prove —
+  // so guard it rather than assert it.
+  return { success: true, dedup_groups: merged, metadata: slow?.metadata ?? fast?.metadata };
 }
 
 export function buildAreas(result: ScanResult | null) {
