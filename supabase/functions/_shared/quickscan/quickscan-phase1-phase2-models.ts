@@ -45,6 +45,13 @@ export interface SummaryResult {
   age?: number; // Parsed integer
   location: string;
   profile_url: string; // Link to profile detail page
+  result_id?: string;
+  phone?: string;
+  email?: string;
+  aliases?: string;
+  relatives?: string;
+  /** Semicolon-separated former addresses — commas are part of the address. */
+  previous_addresses?: string;
 }
 
 /**

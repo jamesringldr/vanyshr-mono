@@ -16,6 +16,8 @@ import {
   DedupGroup,
   SequenceOutput,
 } from "./quickscan-phase1-phase2-models.ts";
+import { contextDevEnabled } from "./context-dev-client.ts";
+import { scrapeAllBrokers } from "./html-scrapers.ts";
 
 /**
  * Phase 1 search results
@@ -59,18 +61,16 @@ export class Phase1Orchestrator {
     console.log(`🔍 Phase 1 starting: ${userInput.first_name} ${userInput.last_name}, ${userInput.city}, ${userInput.state}`);
 
     try {
-      // Try scraper-lab if configured. null = not configured (fall through).
-      // A returned result — success or failure — is the answer; don't hide
-      // lab timeouts/4xx/shape errors behind the native stub.
+      // context.dev HTML is the live path. Lab/Funnel is fallback only.
+      const native = await this.nativeSearch(userInput, timeout);
+      if (native.success) return native;
+
       if (useScraperLab) {
-        const scraperLabResult = await this.tryScraperLab(userInput, timeout);
-        if (scraperLabResult) {
-          return scraperLabResult;
-        }
+        const lab = await this.tryScraperLab(userInput, timeout);
+        if (lab?.success) return lab;
       }
 
-      console.log("⚠️  Scraper-lab not configured, falling back to native scrapers");
-      return await this.nativeSearch(userInput, timeout);
+      return native;
     } catch (error) {
       const timingMs = Date.now() - startTime;
       const errorMsg = (error as Error).message;
@@ -180,32 +180,60 @@ export class Phase1Orchestrator {
   private async nativeSearch(userInput: QuickScanInput, timeout: number): Promise<Phase1SearchResult> {
     const startTime = Date.now();
 
-    // For now, implement single-broker fallback (AnyWho + optional FPS service)
-    // Full 4-broker native support would require porting NPD scraper
-    console.log("🔍 Searching with native Edge Function scrapers...");
+    if (!contextDevEnabled()) {
+      return {
+        success: false,
+        dedup_groups: [],
+        raw_results: {},
+        metadata: {
+          total_time_ms: Date.now() - startTime,
+          phase: "summary",
+          profiles_found: 0,
+          brokers_scraped: [],
+          used_scraper_lab: false,
+          used_context_dev: false,
+        },
+        error: "CONTEXT_DEV_API_KEY is not set",
+      };
+    }
 
-    const searchResults: Record<string, ScrapeResult> = {};
-
-    // In production, this would call the existing searchProfilesMulti function
-    // For now, returning placeholder result
-    // TODO: Implement native 4-broker search when NPD scraper is ported
-
+    console.log("🔍 Phase 1 via context.dev HTML (FPS/NPD/AnyWho/Zaba)");
+    const perBrokerTimeout = Math.min(25000, Math.max(8000, timeout - 5000));
+    const raw_results = await scrapeAllBrokers(userInput, perBrokerTimeout);
+    const completed = Object.values(raw_results).filter((r) => r.status !== "failed");
     const timingMs = Date.now() - startTime;
 
-    // If no results found from native search, we can still return the structure
-    // The caller can decide whether to retry or show "no matches" message
+    if (completed.length === 0) {
+      const errors = Object.values(raw_results).map((r) => r.error).filter(Boolean).join("; ");
+      return {
+        success: false,
+        dedup_groups: [],
+        raw_results,
+        metadata: {
+          total_time_ms: timingMs,
+          phase: "summary",
+          profiles_found: 0,
+          brokers_scraped: Object.keys(raw_results),
+          used_scraper_lab: false,
+          used_context_dev: true,
+        },
+        error: errors || "All brokers failed",
+      };
+    }
+
+    const dedup_groups = this.dedupEngine.deduplicate(raw_results);
     return {
-      success: false,
-      dedup_groups: [],
-      raw_results: searchResults,
+      success: true,
+      dedup_groups,
+      raw_results,
       metadata: {
         total_time_ms: timingMs,
         phase: "summary",
-        profiles_found: 0,
-        brokers_scraped: [],
+        profiles_found: dedup_groups.length,
+        brokers_scraped: Object.keys(raw_results),
         used_scraper_lab: false,
+        used_context_dev: true,
       },
-      error: "Native 4-broker search not yet implemented. Please configure SCRAPER_LAB_URL.",
     };
   }
 
@@ -291,6 +319,12 @@ export class Phase1Orchestrator {
           age: m.summary.age,
           location: m.summary.location,
           profile_url: m.summary.profile_url,
+          phone: m.summary.phone,
+          email: m.summary.email,
+          aliases: m.summary.aliases,
+          relatives: m.summary.relatives,
+          previous_addresses: m.summary.previous_addresses,
+          result_id: m.summary.result_id,
         },
         match_score: m.match_score,
       })),
@@ -304,6 +338,6 @@ export class Phase1Orchestrator {
  * Phase 1 orchestration options
  */
 export interface Phase1Options {
-  useScraperLab?: boolean; // Try scraper-lab first (default: true)
+  useScraperLab?: boolean; // Fallback if context.dev fails (default: true)
   timeout?: number; // Overall timeout in ms (default: 60000)
 }
