@@ -13,6 +13,7 @@ import {
   Loader2,
   KeyRound,
   Briefcase,
+  Calendar,
   AlertTriangle,
   ShieldAlert,
   MailWarning,
@@ -365,10 +366,7 @@ export function PilotEntryPage() {
             return (
             <section
               key={isClone ? `${item.id}-loop` : item.id}
-              className={cx(
-                "flex w-full shrink-0 snap-center flex-col items-center px-6 pt-[72px]",
-                item.id === "report" ? "pb-6" : "pb-[248px]",
-              )}
+              className="flex w-full shrink-0 snap-center flex-col items-stretch px-6 pt-[72px] pb-[248px]"
               aria-roledescription="slide"
               aria-label={`Slide ${i + 1} of ${SLIDES.length}`}
             >
@@ -414,16 +412,20 @@ export function PilotEntryPage() {
             <button
               type="button"
               onClick={() => setIsDrawerOpen(true)}
-              className="mt-5 flex h-12 w-full items-center justify-center rounded-2xl bg-[#00BFFF] text-[15px] font-semibold text-[#022136]"
+              className="mt-5 flex h-12 w-full items-center justify-center rounded-2xl bg-[#00BFFF] text-[17px] font-semibold text-white"
             >
-              Scan Now
+              Run QuickScan
             </button>
-            <p className="mt-3 text-center text-[13px] font-medium text-white">
-              See real data.
-            </p>
-            <p className="mt-1 text-center text-[12px] text-[#B8C4CC]">
-              No Credit Card — No SignUp
-            </p>
+            <ul className="mt-3 flex justify-center gap-4 text-[12px] font-medium text-[#B8C4CC]">
+              <li className="flex items-center gap-1.5">
+                <span className="h-1 w-1 rounded-full bg-[#00BFFF]" />
+                No Paywall
+              </li>
+              <li className="flex items-center gap-1.5">
+                <span className="h-1 w-1 rounded-full bg-[#00BFFF]" />
+                No Sign Up
+              </li>
+            </ul>
           </div>
         </div>
         </motion.div>
@@ -576,11 +578,11 @@ export function PilotEntryPage() {
 
 const DETAIL_CARDS = [
   {
-    id: "phones",
-    label: "Phones",
-    detail: "(***) •••-••••",
-    Icon: Phone,
-    className: "left-1 top-[72px] z-10 w-[118px] -rotate-[8deg]",
+    id: "ssn",
+    label: "SSN",
+    detail: "•••-••-••••",
+    Icon: Fingerprint,
+    className: "left-0 top-0 z-10 w-[118px] -rotate-[6deg]",
   },
   {
     id: "emails",
@@ -588,6 +590,20 @@ const DETAIL_CARDS = [
     detail: "j••••@gmail.com",
     Icon: Mail,
     className: "right-0 top-0 z-10 w-[118px] rotate-[7deg]",
+  },
+  {
+    id: "phones",
+    label: "Phones",
+    detail: "(***) •••-••••",
+    Icon: Phone,
+    className: "left-1 top-[88px] z-10 w-[118px] -rotate-[8deg]",
+  },
+  {
+    id: "dob",
+    label: "DOB",
+    detail: "••/••/••••",
+    Icon: Calendar,
+    className: "right-1 top-[88px] z-10 w-[118px] rotate-[8deg]",
   },
   {
     id: "addresses",
@@ -680,33 +696,8 @@ function ListedSlide({
 
   return (
     <>
-      <div className="relative min-h-[108px] w-full">
-        <AnimatePresence mode="wait">
-          <motion.h1
-            key={vanyshCopy ? "vanysh" : "expose"}
-            className="text-center text-[30px] font-bold leading-[1.15] tracking-tight text-white sm:text-[34px]"
-            initial={reduced ? false : { opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={reduced ? undefined : { opacity: 0, y: -8 }}
-            transition={{ duration: TITLE_SWAP_MS / 1000, ease: REVEAL_EASE }}
-          >
-            {vanyshCopy ? (
-              <>We help you Vanysh</>
-            ) : (
-              <>
-                Data brokers expose
-                <br />
-                your personal data to
-                <br />
-                scammers and spammers
-              </>
-            )}
-          </motion.h1>
-        </AnimatePresence>
-      </div>
-
-      <div className="relative mt-8 flex w-full flex-1 items-center justify-center">
-        <div className="relative h-[280px] w-full max-w-[320px]">
+      <div className="relative mt-2 flex w-full flex-1 items-center justify-center">
+        <div className="relative h-[300px] w-full max-w-[320px]">
           <motion.div
             className="absolute left-[48px] top-[28px] h-[220px] w-[230px] rounded-[20px] border border-white/10 bg-[#24384C] px-4 py-4 shadow-[0_16px_36px_rgba(0,0,0,0.32)]"
             initial={false}
@@ -775,6 +766,31 @@ function ListedSlide({
             );
           })}
         </div>
+      </div>
+
+      <div className="relative min-h-[108px] w-full text-left">
+        <AnimatePresence mode="wait">
+          <motion.h1
+            key={vanyshCopy ? "vanysh" : "expose"}
+            className="text-[30px] font-bold leading-[1.15] tracking-tight text-white sm:text-[34px]"
+            initial={reduced ? false : { opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={reduced ? undefined : { opacity: 0, y: -8 }}
+            transition={{ duration: TITLE_SWAP_MS / 1000, ease: REVEAL_EASE }}
+          >
+            {vanyshCopy ? (
+              <>We help you Vanysh</>
+            ) : (
+              <>
+                Data brokers expose
+                <br />
+                your personal data to
+                <br />
+                scammers and spammers
+              </>
+            )}
+          </motion.h1>
+        </AnimatePresence>
       </div>
     </>
   );
@@ -864,34 +880,7 @@ function ScanSlide({
 
   return (
     <>
-      <div className="relative min-h-[108px] w-full">
-        <AnimatePresence mode="wait">
-          <motion.h1
-            key={removeCopy ? "remove" : "find"}
-            className="text-center text-[30px] font-bold leading-[1.15] tracking-tight text-white sm:text-[34px]"
-            initial={reduced ? false : { opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={reduced ? undefined : { opacity: 0, y: -8 }}
-            transition={{ duration: TITLE_SWAP_MS / 1000, ease: REVEAL_EASE }}
-          >
-            {removeCopy ? (
-              <>
-                and automate full
-                <br />
-                removal from each source
-              </>
-            ) : (
-              <>
-                Our agents find exactly
-                <br />
-                where your data is exposed...
-              </>
-            )}
-          </motion.h1>
-        </AnimatePresence>
-      </div>
-
-      <div className="relative mt-6 flex w-full flex-1 items-start justify-center">
+      <div className="relative mt-2 flex w-full flex-1 items-center justify-center">
         <div className="relative w-full max-w-[300px] overflow-hidden rounded-[20px] border border-white/10 bg-[#24384C] px-4 py-4 shadow-[0_16px_36px_rgba(0,0,0,0.32)]">
           <div className="flex items-center gap-2">
             <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#00BFFF]/15">
@@ -974,6 +963,33 @@ function ScanSlide({
             </motion.div>
           </div>
         </div>
+      </div>
+
+      <div className="relative min-h-[108px] w-full text-left">
+        <AnimatePresence mode="wait">
+          <motion.h1
+            key={removeCopy ? "remove" : "find"}
+            className="text-[30px] font-bold leading-[1.15] tracking-tight text-white sm:text-[34px]"
+            initial={reduced ? false : { opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={reduced ? undefined : { opacity: 0, y: -8 }}
+            transition={{ duration: TITLE_SWAP_MS / 1000, ease: REVEAL_EASE }}
+          >
+            {removeCopy ? (
+              <>
+                and automate full
+                <br />
+                removal from each source
+              </>
+            ) : (
+              <>
+                Our agents find exactly
+                <br />
+                where your data is exposed...
+              </>
+            )}
+          </motion.h1>
+        </AnimatePresence>
       </div>
     </>
   );
@@ -1282,13 +1298,23 @@ function ReportSlide({
 
   return (
     <>
-      <div className="w-full text-center">
+      <div className="relative mt-2 flex w-full flex-1 items-center justify-center">
+        <AnimatePresence mode="wait">
+          {beat === "hex" ? (
+            <HexPreview reduced={reduced} play={active} />
+          ) : (
+            <PreProfilePreview />
+          )}
+        </AnimatePresence>
+      </div>
+
+      <div className="w-full text-left">
         <h1 className="text-[30px] font-bold leading-[1.15] tracking-tight text-white sm:text-[34px]">
           Start Vanyshing
           <br />
           Run a QuickScan
         </h1>
-        <div className="relative mt-2 min-h-[68px]">
+        <div className="relative mt-2 min-h-[28px]">
           <AnimatePresence mode="wait">
             <motion.p
               key={beat}
@@ -1301,27 +1327,7 @@ function ReportSlide({
               {beat === "hex" ? "Get a Risk Report" : "See your real exposed data"}
             </motion.p>
           </AnimatePresence>
-          <ul className="mt-2 flex justify-center gap-4 text-[12px] font-medium text-[#B8C4CC]">
-            <li className="flex items-center gap-1.5">
-              <span className="h-1 w-1 rounded-full bg-[#00BFFF]" />
-              No Paywall
-            </li>
-            <li className="flex items-center gap-1.5">
-              <span className="h-1 w-1 rounded-full bg-[#00BFFF]" />
-              No Sign Up
-            </li>
-          </ul>
         </div>
-      </div>
-
-      <div className="relative mt-[5px] flex w-full justify-center">
-        <AnimatePresence mode="wait">
-          {beat === "hex" ? (
-            <HexPreview reduced={reduced} play={active} />
-          ) : (
-            <PreProfilePreview />
-          )}
-        </AnimatePresence>
       </div>
     </>
   );
