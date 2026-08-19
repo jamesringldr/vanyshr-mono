@@ -1,6 +1,23 @@
 # Vanyshr Database Schema
 **Project:** Vanyshr Production (`skhejbzrfptrusskuqoy`, us-west-2)
-**Last updated:** 2026-03-18
+**Last updated:** 2026-08-19
+
+---
+
+## Schema layout
+
+| Schema | Holds | Access |
+|--------|-------|--------|
+| `public` | Authenticated subscribers and everything downstream of them | RLS via `get_current_user_profile_id()` |
+| `quickscan` | **Everything pre-conversion** — anonymous scans and people who started signup but never authenticated | service_role only; `anon`/`authenticated` have no `USAGE` |
+| `brokers` | Data broker registry and stats | service_role |
+| `testing` | Scraper test harness fixtures and results | service_role / `testing_writer` |
+
+> **The `public` / `quickscan` split is a privacy boundary, not just organisation.**
+> Scans harvest real PII for people who never sign up. Keeping it in its own
+> schema means the retention job is scoped to `quickscan` and *structurally
+> cannot* reach subscriber data, and one grant governs client access instead of
+> N table policies. See `docs/` migration notes in `20260819120000`.
 
 ---
 
@@ -8,7 +25,7 @@
 
 | Table | Schema | Description |
 |-------|--------|-------------|
-| `user_profiles` | public | Core user record, decoupled from auth |
+| `user_profiles` | public | Core user record, decoupled from auth. **Authenticated users only** — pre-auth rows live in `quickscan.pending_profiles` |
 | `user_preferences` | public | Per-user removal strategy and notification settings |
 | `user_phones` | public | Phone numbers per user (E.164 stored) |
 | `user_emails` | public | Email addresses per user |
@@ -16,8 +33,13 @@
 | `user_aliases` | public | Name aliases per user |
 | `user_onboarding_progress` | public | Step-by-step onboarding tracking |
 | `family_members` | public | Additional people monitored under one account |
-| `quick_scans` | public | Ephemeral pre-auth scan data (30-min TTL) |
-| `scan_retry_requests` | public | Queued retry requests for failed scans |
+| `quick_scans` | **quickscan** | Ephemeral pre-auth scan data (30-min TTL) |
+| `quickscan_dedup_groups` | **quickscan** | Phase 1 dedup results |
+| `quickscan_enrichment` | **quickscan** | Phase 2 enrichment results |
+| `quickscan_cost_tracking` | **quickscan** | Per-scan API cost tracking |
+| `pending_profiles` | **quickscan** | Signup started, never authenticated (7-day TTL) |
+| `pending_phones` / `pending_emails` / `pending_addresses` / `pending_aliases` | **quickscan** | Harvested PII for a pending profile; cascade-deleted with it |
+| `scan_retry_requests` | **quickscan** | Queued retry requests for failed scans |
 | `scan_history` | public | Audit log of full scans post-signup |
 | `exposures` | public | Data broker listings found for a user |
 | `removal_requests` | public | Opt-out requests per exposure |
@@ -512,6 +534,9 @@ Individual Vanyshr removal outcome records — feeds into `broker_stats` aggrega
 - **Source tracking:** `user_phones`, `user_emails`, `user_addresses`, `user_aliases` all track `source` as `anywho` | `zabasearch` | `both` | `quick_scan` | `user_input` | `scan_discovery`. `both` means the same record was found by both scrapers.
 - **quick_scans TTL:** 30-minute expiry via `expires_at`. Status `pending_signup` means user clicked CTA but hasn't completed auth yet.
 - **Brokers schema:** `brokers`, `broker_categories`, and `broker_category_map` live in a separate `brokers` Postgres schema (not `public`).
+- **Pre-conversion lifecycle:** every `quickscan` table carries `purge_after`. Anonymous scan → `expires_at` (~30 min); signup initiated → +7 days; authenticated → promoted into `public.user_*` and the source rows deleted.
+- **Retention job:** `quickscan.purge_expired()` deletes rows past `purge_after` and returns per-table counts. **Not scheduled** — enable `pg_cron` and schedule it before launch (snippet in `20260819120003` §5).
+- **Migration filenames:** must use a unique 14-digit `YYYYMMDDHHMMSS` prefix. Supabase derives the version from that prefix, and duplicates silently break `db push` — this happened with four files sharing `20260812` and took months to surface.
 
 ---
 
@@ -521,19 +546,46 @@ Individual Vanyshr removal outcome records — feeds into `broker_stats` aggrega
 |----------|-------------|
 | `get_current_user_profile_id()` | Resolves the `user_profiles.id` for the current auth session. Used in all RLS policies. |
 | `normalize_phone_e164(text)` | Strips non-digits, normalizes 10- and 11-digit US numbers to `+1XXXXXXXXXX`. `IMMUTABLE`. |
-| `create_pending_profile(p_scan_id UUID, p_email TEXT DEFAULT NULL, p_source TEXT DEFAULT 'quickscan')` | Creates a `user_profiles` row from a `quick_scans` record with `signup_status = 'pending_user'` and `source` (`invite` \| `quickscan`). Seeds phones, addresses, and aliases from `quick_scans.profile_data`; seeds `user_preferences`; calls `initialize_onboarding_steps`. service_role only. |
+| `create_pending_profile(p_scan_id UUID, p_email TEXT DEFAULT NULL, p_source TEXT DEFAULT 'quickscan')` | Creates a **`quickscan.pending_profiles`** row from a `quickscan.quick_scans` record with `signup_status = 'pending_user'` and `source` (`invite` \| `quickscan`). Seeds `pending_phones`/`_emails`/`_addresses`/`_aliases` from `profile_data`, and extends the scan's `purge_after` to +7 days. Does **not** seed `user_preferences` or onboarding — those happen at promotion. service_role only. <br>⚠️ Only the 3-arg signature exists; the 2-arg overload was dropped in `20260819120005` because having both made 2-arg calls ambiguous *and* let production bypass the partition. |
+| `promote_pending_profile(p_pending_id UUID, p_auth_user_id UUID, p_email TEXT)` | The conversion moment: copies a pending profile and all its PII from `quickscan` into `public.user_*` (reusing the same UUID), seeds `user_preferences` + onboarding, inserts the auth email as primary/confirmed, then deletes the source rows. Idempotent — safe when the auth trigger and Edge Function race. service_role only. |
+| `get_quick_scan_profile(p_scan_id UUID)` | `SECURITY DEFINER` read of `profile_data` + `converted_to_user_id` for one scan id. Replaces the direct anon-key `SELECT` on `quick_scans`, which is no longer reachable now that `anon` has no `USAGE` on `quickscan`. Granted to `anon` + `authenticated`. |
+| `quickscan.purge_expired()` | Retention job. Deletes rows past `purge_after` from every `quickscan` table and returns per-table counts. Scoped to the schema — cannot touch `public.user_*`. **Not scheduled.** service_role only. |
 | `get_invite_profile(p_profile_id UUID)` | Legacy: profile-id invite lookup. Prefer `get_invite_scan`. |
 | `get_invite_scan(p_scan_id UUID)` | Returns `{ success, first_name?, last_name?, city?, state?, email?, scan_id, profile_id? }` for `/invite?id=<quick_scans.id>`. Requires `quick_scans.source = 'invite'`. Granted to `anon` + `authenticated`. |
 | `confirm_invite_scan(p_scan_id UUID, p_first_name, p_last_name, p_city, p_state)` | Saves confirmed name/location to `quick_scans.search_input` and linked `user_profiles`. Granted to `anon` + `authenticated`. |
 | `initialize_onboarding_steps(user_id UUID)` | Seeds `user_onboarding_progress` rows for a new user. Called by `create_pending_profile`. |
 | `fan_out_broadcast_update(...)` | `SECURITY DEFINER` — inserts a `user_updates` row for every active user. Used for admin broadcasts. *(Available after pending migration is applied.)* |
-| `validate_access_code(p_code TEXT, p_profile_id UUID)` | Validates a beta access code (active, not expired). Atomically claims a use via `UPDATE ... WHERE use_count < max_uses RETURNING id` (prevents double-spend on limited codes), then advances profile `signup_status` → `accessed_pending_signup`. Compensates (decrements `use_count`) if the profile update fails. Returns `{ success: false }` on any failure. Returns `{ success, profile_id }`. service_role only. |
-| `join_waitlist(p_profile_id UUID, p_email TEXT)` | Sets profile `signup_status` → `waitlisted`, writes email to `user_profiles.email` and upserts into `user_emails`. Returns `{ success, profile_id }`. service_role only. |
-| `purge_orphaned_beta_profiles(p_older_than_days INTEGER DEFAULT 7)` | Deletes `pending_user` and `accessed_pending_signup` profiles older than the threshold (no `auth_user_id`). Unlocks associated `quick_scans` first. Returns deleted count. Wire to a scheduled cron job. service_role only. |
+| `validate_access_code(p_code TEXT, p_profile_id UUID)` | Validates a beta access code (active, not expired). Atomically claims a use via `UPDATE ... WHERE use_count < max_uses RETURNING id` (prevents double-spend on limited codes), then advances **`quickscan.pending_profiles`** `signup_status` → `accessed_pending_signup`. Compensates (decrements `use_count`) if the profile update fails. Returns `{ success: false }` on any failure. Returns `{ success, profile_id }`. service_role only. |
+| `join_waitlist(p_profile_id UUID, p_email TEXT)` | Sets **`quickscan.pending_profiles`** `signup_status` → `waitlisted`, writes the email onto that row and upserts into `quickscan.pending_emails`. Returns `{ success, profile_id }`. service_role only. |
+| ~~`purge_orphaned_beta_profiles(...)`~~ | **Dropped** in `20260819120003`. It deleted pre-auth rows out of `public.user_profiles`; there are no longer any such rows there. Superseded by `quickscan.purge_expired()`. |
 
 ---
 
-## Pending Migrations
+## Migration History
+
+> As of 2026-08-19 the local migrations directory and the remote
+> `supabase_migrations.schema_migrations` table are fully reconciled —
+> `supabase db push` reports "Remote database is up to date" with zero
+> mismatches. Everything below is applied; there is nothing pending.
+>
+> Eight files were renamed on 2026-08-19 to unique 14-digit versions
+> (`20260729_…` → `20260729000000_…`, the four `20260812_…` → `20260812000001-4`,
+> `20260813_…`/`20260814_…` → `…000000`). Four had shared the prefix `20260812`,
+> which made the history table unreconcilable and blocked `db push`.
+
+### Pre-conversion partition (2026-08-19)
+
+| Migration | Description |
+|-----------|-------------|
+| `20260819120000_quickscan_schema.sql` | Creates the `quickscan` schema (service_role-only grants); moves `quick_scans`, `quickscan_dedup_groups`, `quickscan_enrichment`, `quickscan_cost_tracking`, `scan_retry_requests` into it; adds `purge_after` + backfills deadlines; drops the `user_profiles → quick_scans` FK so provenance survives a purge. |
+| `20260819120001_quickscan_pending_profiles.sql` | Adds `pending_profiles` + `pending_phones`/`_emails`/`_addresses`/`_aliases` (7-day deadline, cascade delete). |
+| `20260819120002_quickscan_lifecycle_functions.sql` | Retargets `create_pending_profile()`; adds `promote_pending_profile()`; `link_auth_to_profile()` becomes a wrapper over promotion; adds `get_quick_scan_profile()` RPC to replace the anon-key read of `quick_scans`. |
+| `20260819120003_quickscan_purge_and_backfill.sql` | Retargets `validate_access_code()`/`join_waitlist()` to pending profiles; evacuates all `auth_user_id IS NULL` rows out of `public.user_*`; drops `purge_orphaned_beta_profiles()`; adds `quickscan.purge_expired()`. |
+| `20260819120004_auth_trigger_promotion.sql` | **Required.** `handle_new_auth_user()` now promotes from `quickscan` instead of assuming the pre-auth row is in `public.user_profiles` — without it every conversion silently loses its harvested PII. |
+| `20260819120005_fix_create_pending_profile_overload.sql` | `create_pending_profile` had two overloads; production calls the 3-arg one, which `120002` had not retargeted, so the partition was being bypassed. 3-arg is now canonical; 2-arg dropped. |
+| `20260819120006_enrichment_coverage_columns.sql` | Applies `20260813000000`'s coverage columns to `quickscan.quickscan_enrichment` for databases where the schema move landed first. No-op on a fresh install. |
+
+### Earlier migrations
 
 | Migration | Status | Description |
 |-----------|--------|-------------|
@@ -543,10 +595,10 @@ Individual Vanyshr removal outcome records — feeds into `broker_stats` aggrega
 | `20260320_fix_pending_profile_status.sql` | ✅ Applied | Drops dead 1-arg `create_pending_profile(UUID)` overload (accidentally created by 20260318); updates canonical 2-arg version to write `signup_status = 'pending_user'` instead of `'pending_auth'`. |
 | `20260320_fix_validate_access_code.sql` | ✅ Applied | Fixes `validate_access_code()`: reorders ops (profile UPDATE before `use_count` increment) and adds `IF NOT FOUND` guard — wrong-state profiles now return `{ success: false }` without consuming a code use. |
 | `20260320_fix_validate_access_code_atomic.sql` | ✅ Applied | Makes `validate_access_code()` fully atomic: collapses `use_count` check+increment into a single `UPDATE ... WHERE use_count < max_uses RETURNING id`; adds compensation decrement if profile update fails. Supersedes `20260320_fix_validate_access_code.sql`. |
-| `20260729_scrape_results.sql` | ✅ Applied | Creates `scrape_results` table — logs real scraper executions (fps/anywho/zabasearch) for integration testing + debugging; tracks input, summary/full results, errors, and performance. 4 indexes for scrape_id/target+mode/status/target lookups. |
-| `20260807_scrape_results_allow_npd.sql` | ✅ Applied | Extends `scrape_results` constraints: adds `npd` as a valid `target`, adds `both` as a valid `scrape_type`. |
+| `20260729000000_scrape_results.sql` | ✅ Applied | Creates `scrape_results` table — logs real scraper executions (fps/anywho/zabasearch) for integration testing + debugging; tracks input, summary/full results, errors, and performance. 4 indexes for scrape_id/target+mode/status/target lookups. |
+| `20260807000000_scrape_results_allow_npd.sql` | ✅ Applied | Extends `scrape_results` constraints: adds `npd` as a valid `target`, adds `both` as a valid `scrape_type`. |
 
-### `user_updates` (pending)
+### `user_updates`
 PK: `id` | RLS: ✅ | FK: `user_id → user_profiles.id`
 
 | Column | Type | Notes |
@@ -565,7 +617,7 @@ PK: `id` | RLS: ✅ | FK: `user_id → user_profiles.id`
 
 > Index: `idx_user_updates_user_status` on `(user_id, status, created_at DESC)`.
 
-### `scrape_results` (pending)
+### `scrape_results`
 PK: `id` | RLS: ❌ (internal/ops table, not user-linked)
 
 | Column | Type | Notes |
