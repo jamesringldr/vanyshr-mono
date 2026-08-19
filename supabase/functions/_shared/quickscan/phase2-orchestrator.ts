@@ -24,6 +24,7 @@ import {
   aggregateLeakcheckResults,
 } from "./leakcheck-enricher.ts";
 import { consolidateProfiles, addEnrichmentData } from "./profile-consolidator.ts";
+import { scrapeBrokerDetails } from "./detail-scrapers.ts";
 
 /**
  * Phase 2 enrichment result
@@ -37,6 +38,7 @@ export interface Phase2EnrichmentResult {
   };
   metadata?: {
     total_phase2_ms: number;
+    detail_scrape_ms?: number;
     email_extract_ms: number;
     holehe_ms: number;
     leakcheck_ms: number;
@@ -55,22 +57,31 @@ export interface Phase2EnrichmentResult {
 export class Phase2Orchestrator {
   /**
    * Run Phase 2: Full profile enrichment
-   * @param dedupGroup Dedup group from Phase 1
-   * @param rawProfiles Raw broker profile data
+   * @param dedupGroup Dedup group from Phase 1 — each member's summary.profile_url
+   *   is the broker detail page this step scrapes for the real full profile.
    * @param options Enrichment options
    * @returns Phase2EnrichmentResult with consolidated profile
    */
   async runPhase2(
     dedupGroup: DedupGroup,
-    rawProfiles: Record<string, unknown>,
     options: Phase2Options = {}
   ): Promise<Phase2EnrichmentResult> {
     const startTime = Date.now();
-    const { timeout = 60000, includeLeakcheck = true } = options;
+    const { timeout = 60000, includeLeakcheck = true, detailTimeoutMs = 20000 } = options;
 
     console.log(`🔍 Phase 2 starting for ${dedupGroup.members[0]?.summary.full_name || "unknown"}...`);
 
     try {
+      // Step 0: Scrape each broker's detail page (profile_url) — this is the
+      // actual "full profile" fetch. Each broker gets its own detailTimeoutMs;
+      // a slow/blocked one falls back to its Phase 1 summary data instead of
+      // blocking the rest.
+      const detailStartTime = Date.now();
+      console.log(`🔎 Step 0: Scraping ${dedupGroup.members.length} broker detail page(s)...`);
+      const rawProfiles = await scrapeBrokerDetails(dedupGroup.members, detailTimeoutMs);
+      const detailMs = Date.now() - detailStartTime;
+      console.log(`✓ Detail scrape done in ${detailMs}ms: ${Object.keys(rawProfiles).join(", ")}`);
+
       // Step 1: Extract emails
       const emailStartTime = Date.now();
       console.log("📧 Step 1: Extracting emails from profiles...");
@@ -199,6 +210,7 @@ export class Phase2Orchestrator {
         },
         metadata: {
           total_phase2_ms: totalPhase2Ms,
+          detail_scrape_ms: detailMs,
           email_extract_ms: emailMs,
           holehe_ms: holeheMs,
           leakcheck_ms: leakcheckMs,
@@ -343,4 +355,5 @@ export class Phase2Orchestrator {
 export interface Phase2Options {
   timeout?: number; // Overall timeout in ms (default: 60000)
   includeLeakcheck?: boolean; // Include Leakcheck enrichment (default: true if key configured)
+  detailTimeoutMs?: number; // Per-broker timeout for the detail-page scrape (default: 20000)
 }

@@ -15,6 +15,7 @@ import {
   ScrapeResult,
   DedupGroup,
   SequenceOutput,
+  BrokerName,
 } from "./quickscan-phase1-phase2-models.ts";
 import { contextDevEnabled } from "./context-dev-client.ts";
 import { scrapeAllBrokers } from "./html-scrapers.ts";
@@ -56,18 +57,24 @@ export class Phase1Orchestrator {
    */
   async runPhase1(userInput: QuickScanInput, options: Phase1Options = {}): Promise<Phase1SearchResult> {
     const startTime = Date.now();
-    const { useScraperLab = true, timeout = 60000 } = options;
+    const { useScraperLab = false, timeout = 60000, brokers } = options;
 
-    console.log(`🔍 Phase 1 starting: ${userInput.first_name} ${userInput.last_name}, ${userInput.city}, ${userInput.state}`);
+    console.log(`🔍 Phase 1 starting: ${userInput.first_name} ${userInput.last_name}, ${userInput.city}, ${userInput.state}${brokers ? ` [${brokers.join(",")}]` : ""}`);
 
     try {
       // context.dev HTML is the live path. Lab/Funnel is fallback only.
-      const native = await this.nativeSearch(userInput, timeout);
+      const native = await this.nativeSearch(userInput, timeout, brokers);
       if (native.success) return native;
 
       if (useScraperLab) {
+        console.warn(
+          `⚠️ context.dev failed (${native.error}) — falling back to scraper-lab/serv01 for ${userInput.first_name} ${userInput.last_name}`,
+        );
         const lab = await this.tryScraperLab(userInput, timeout);
-        if (lab?.success) return lab;
+        if (lab?.success) {
+          console.warn(`⚠️ SERV01 FALLBACK USED — Phase 1 result came from scraper-lab, not context.dev`);
+          return lab;
+        }
       }
 
       return native;
@@ -177,7 +184,7 @@ export class Phase1Orchestrator {
    * @param timeout Overall timeout
    * @returns Phase1SearchResult
    */
-  private async nativeSearch(userInput: QuickScanInput, timeout: number): Promise<Phase1SearchResult> {
+  private async nativeSearch(userInput: QuickScanInput, timeout: number, brokers?: BrokerName[]): Promise<Phase1SearchResult> {
     const startTime = Date.now();
 
     if (!contextDevEnabled()) {
@@ -197,9 +204,9 @@ export class Phase1Orchestrator {
       };
     }
 
-    console.log("🔍 Phase 1 via context.dev HTML (FPS/NPD/AnyWho/Zaba)");
+    console.log(`🔍 Phase 1 via context.dev HTML (${brokers?.join("/") ?? "FPS/NPD/AnyWho/Zaba"})`);
     const perBrokerTimeout = Math.min(25000, Math.max(8000, timeout - 5000));
-    const raw_results = await scrapeAllBrokers(userInput, perBrokerTimeout);
+    const raw_results = await scrapeAllBrokers(userInput, perBrokerTimeout, brokers);
     const completed = Object.values(raw_results).filter((r) => r.status !== "failed");
     const timingMs = Date.now() - startTime;
 
@@ -338,6 +345,7 @@ export class Phase1Orchestrator {
  * Phase 1 orchestration options
  */
 export interface Phase1Options {
-  useScraperLab?: boolean; // Fallback if context.dev fails (default: true)
+  useScraperLab?: boolean; // Fallback if context.dev fails — serv01, opt-in only (default: false)
   timeout?: number; // Overall timeout in ms (default: 60000)
+  brokers?: BrokerName[]; // Subset to search (default: all 4) — used for the fast/slow two-tier split
 }
