@@ -41,7 +41,18 @@ interface PilotScanRequest {
   selectedGroup?: DedupGroup;
 }
 
-// ZIP to STATE mapping (abbreviated version - full version in run-quick-scan)
+// ZIP to STATE mapping — a coarse last resort, NOT a geocoder.
+//
+// The authoritative resolution happens client-side in QuickScanForm, which
+// calls zippopotam.us as the user types and blocks submission until the zip
+// resolves (see 79db6c1). Every request originating from the UI therefore
+// arrives with city and state already populated, and those values win.
+//
+// This map only covers ~50 three-digit prefixes and yields state alone — it
+// can never produce a city. It exists so a caller that omits state still gets
+// a usable one; a missing CITY is treated as a hard error, because all four
+// broker URL builders interpolate city unconditionally and an empty value
+// silently produces four malformed URLs at once. See handlePhase1.
 function zipcodeToState(zipcode: string): string {
   const zip = zipcode.replace(/\D/g, '');
 
@@ -64,27 +75,10 @@ function zipcodeToState(zipcode: string): string {
   return stateMap[zipPrefix] || '';
 }
 
-// Zipcode to City lookup (simplified - would need full database in production)
-function zipcodeToCity(zipcode: string): { city: string; state: string } {
-  // Simplified mapping for major cities/zips
-  const majorZips: Record<string, { city: string; state: string }> = {
-    '10001': { city: 'New York', state: 'NY' },
-    '90210': { city: 'Beverly Hills', state: 'CA' },
-    '60601': { city: 'Chicago', state: 'IL' },
-    '75201': { city: 'Dallas', state: 'TX' },
-    '98101': { city: 'Seattle', state: 'WA' },
-    '65251': { city: 'Cameron', state: 'MO' },
-    '64429': { city: 'Cameron', state: 'MO' },
-  };
-
-  if (majorZips[zipcode]) {
-    return majorZips[zipcode];
-  }
-
-  // Fallback: use state from zipcode, city as empty (will be handled by scraper)
-  const state = zipcodeToState(zipcode);
-  return { city: '', state };
-}
+// The seven-entry hardcoded zip→city map that used to live here was removed.
+// It "resolved" 0.002% of US zips and returned `city: ''` for the rest, which
+// read as success while producing broken scrape URLs for every broker. Callers
+// must supply a real city; see the guard in handlePhase1.
 
 serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
@@ -189,9 +183,32 @@ async function handlePhase1(
 
     console.log(`🔍 Pilot-Scan Phase 1: ${firstName} ${lastName}, ZIP ${zipcode}${brokers ? ` [${brokers.join(",")}]` : ""}`);
 
-    const lookedUp = zipcodeToCity(zipcode);
-    const city = params.city || lookedUp.city;
-    const state = params.state || lookedUp.state;
+    // City is resolved client-side (zippopotam.us) before submit and arrives on
+    // the request. State falls back to a coarse prefix map; city has no fallback
+    // by design.
+    const city = (params.city || '').trim();
+    const state = (params.state || zipcodeToState(zipcode) || '').trim();
+
+    // Fail loudly rather than scraping with an empty city. buildFpsUrl,
+    // buildNpdUrl, buildAnywhoUrl and buildZabaUrl all interpolate city straight
+    // into the path, so an empty value yields four malformed URLs and a
+    // "no results" that looks like a clean scan instead of a broken one.
+    if (!city || !state) {
+      const missing = [!city && 'city', !state && 'state'].filter(Boolean).join(' and ');
+      console.error(
+        `✗ Pilot-Scan Phase 1 aborted: could not resolve ${missing} for ZIP ${zipcode}. ` +
+        `city/state must be supplied by the caller (the UI resolves them via zippopotam.us ` +
+        `before enabling submit); there is no server-side city lookup.`,
+      );
+      return new Response(
+        JSON.stringify({
+          error: `Could not resolve ${missing} for ZIP ${zipcode}`,
+          code: 'location_unresolved',
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
+
     console.log(`📍 Location: ${zipcode} → ${city}, ${state}`);
 
     // Step 2: Check rate limits

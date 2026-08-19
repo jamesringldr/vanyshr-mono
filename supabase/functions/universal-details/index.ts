@@ -64,7 +64,7 @@ serve(async (req) => {
       // Update quick_scans with merged JSONB data if scan_id provided
       if (scan_id) {
         const { error: updateError } = await supabaseClient
-          .from("quick_scans")
+          .schema("quickscan").from("quick_scans")
           .update({
             status: "completed",
             profile_data: mergedProfile,
@@ -135,7 +135,7 @@ serve(async (req) => {
     // Update quick_scans with JSONB data if scan_id provided
     if (scan_id) {
       const { error: updateError } = await supabaseClient
-        .from("quick_scans")
+        .schema("quickscan").from("quick_scans")
         .update({
           status: "completed",
           profile_data: profileData,

@@ -274,7 +274,7 @@ export class Phase2Orchestrator {
 
     try {
       const { data, error } = await supabaseClient
-        .from("quickscan_enrichment")
+        .schema("quickscan").from("quickscan_enrichment")
         .insert({
           quick_scan_id: quickScanId,
           dedup_group_id: dedupGroupId,

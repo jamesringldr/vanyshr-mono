@@ -110,7 +110,7 @@ serve(async (req) => {
     );
 
     const { data: scan, error: scanError } = await supabaseClient
-      .from("quick_scans")
+      .schema("quickscan").from("quick_scans")
       .select("id, source, profile_data, search_input, converted_to_user_id")
       .eq("id", scan_id)
       .maybeSingle();
@@ -145,7 +145,7 @@ serve(async (req) => {
     }
 
     const { error: updateScanError } = await supabaseClient
-      .from("quick_scans")
+      .schema("quickscan").from("quick_scans")
       .update({ email: normalizedEmail })
       .eq("id", scan_id);
 

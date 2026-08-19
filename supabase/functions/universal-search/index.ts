@@ -88,17 +88,18 @@ serve(async (req) => {
     activeScanId = scan_id ?? null;
 
     if (activeScanId) {
-      // Row already created by zip-lookup — update status to scanning
+      // Caller supplied an existing scan row — update status to scanning
       const { error: updateError } = await supabaseClient
-        .from('quick_scans')
+        .schema('quickscan').from('quick_scans')
         .update({ status: 'scanning' })
         .eq('id', activeScanId);
       if (updateError) console.error('Error updating quick_scans to scanning:', updateError);
       else console.log(`✅ quick_scans ${activeScanId} → scanning`);
     } else {
-      // Fallback: no scan_id provided (e.g. called directly without zip-lookup)
+      // No scan_id provided — create the row here. This is now the only path:
+      // zip-lookup, which used to pre-create it, was removed as dead code.
       const { data: insertData, error: insertError } = await supabaseClient
-        .from('quick_scans')
+        .schema('quickscan').from('quick_scans')
         .insert({
           session_id: crypto.randomUUID(),
           status: 'scanning',
@@ -136,7 +137,7 @@ serve(async (req) => {
       );
       if (activeScanId) {
         await supabaseClient
-          .from('quick_scans')
+          .schema('quickscan').from('quick_scans')
           .update({
             status: 'no_matches',
             candidate_matches: [],
@@ -216,7 +217,7 @@ serve(async (req) => {
 
     if (activeScanId) {
       const { error: updateError } = await supabaseClient
-        .from('quick_scans')
+        .schema('quickscan').from('quick_scans')
         .update({
           status: finalStatus,
           candidate_matches: matches,
@@ -249,7 +250,7 @@ serve(async (req) => {
     if (activeScanId && supabaseClient) {
       try {
         await supabaseClient
-          .from('quick_scans')
+          .schema('quickscan').from('quick_scans')
           .update({ status: 'failed', error_message: (error as Error).message })
           .eq('id', activeScanId);
       } catch { /* ignore secondary failure */ }

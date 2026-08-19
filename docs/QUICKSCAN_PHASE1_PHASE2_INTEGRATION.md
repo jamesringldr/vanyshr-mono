@@ -10,14 +10,15 @@
 Integration of production-ready QuickScan system from `vanyshr-scraper-lab` into `Vanyshr-mono` production application.
 
 **Phase 1:** Two-phase people search with 4-broker parallel scraping + deduplication
-- Input: {firstName, lastName, city, state}
+- Input: {firstName, lastName, city, state} — run as two tiers (fast: Zaba alone, slow: FPS+NPD+AnyWho) that merge client-side as they land
 - Output: Deduplicated profiles ranked by confidence
 - Time: ~8s | Cost: $0.002-0.003
 
-**Phase 2:** Full profile enrichment with email extraction + Holehe (online services) + Leakcheck (data breaches)
-- Input: {dedup_group_id}
+**Phase 2:** Scrapes each broker's real detail page (`profile_url` from Phase 1), then full profile enrichment with email extraction + Holehe (online services) + Leakcheck (data breaches)
+- Input: {dedup_group_id} (DB lookup) or an inline `selectedGroup` (no DB round trip — current pilot-scan path)
 - Output: Consolidated profile with enrichment data
-- Time: ~1.6s | Cost: $0.005-0.008
+- Detail-page scrape: 20s timeout per broker (Zaba/FPS/AnyWho/NPD), degrades to Phase 1 summary data per-broker on timeout/failure
+- Time: ~1.6s enrichment + detail-scrape time | Cost: $0.005-0.008
 
 ## Deliverables
 
