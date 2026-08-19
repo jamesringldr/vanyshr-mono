@@ -23,6 +23,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- `pilot-scan` Phase 1 now runs as two tiers (fast Zaba-only call shown immediately, slow FPS+NPD+AnyWho call merged in client-side) instead of one blocking 4-broker call
+- `pilot-scan` Phase 2 now actually scrapes each broker's detail page (`detail-scrapers.ts`, new) instead of re-processing Phase 1 summary data — 20s per-broker timeout, degrades to summary data per broker on failure
+- `phase1-orchestrator` scraper-lab/serv01 fallback is now opt-in (default off) — context.dev is the only Phase 1 path unless explicitly enabled
+- `scraper-lab-client` drops the city-filter retry (a sequential double-job on every metro-name mismatch) in favor of a single state-only search
 - Admin manual scan accepts optional email and creates or updates a pending `user_profiles` row via `create_pending_profile`
 - Pre-profile reuses existing `pendingProfileId` / `converted_to_user_id` so signup skips duplicate profile creation
 - `universal-search` can delegate name searches to a home `scraper-lab` worker when `SCRAPER_LAB_URL` and `SCRAPER_LAB_TOKEN` are set
