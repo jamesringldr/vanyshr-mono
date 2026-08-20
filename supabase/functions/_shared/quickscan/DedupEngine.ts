@@ -18,6 +18,63 @@ import {
   DedupThresholds,
   MatchScoreBreakdown,
 } from "./quickscan-phase1-phase2-models.ts";
+import { compareParsedAddresses, parseAddress } from "./address-parser.ts";
+
+/**
+ * Common English given-name diminutives, mapped to a canonical form.
+ *
+ * Brokers publish whatever the source record held, so the same person appears
+ * as James on one site and Jim on another. Without this the pair only matches
+ * by accident through the fuzzy ratio, and scores below the merge threshold
+ * whenever the surname is short.
+ *
+ * Bidirectional by construction: both spellings map to the same canonical
+ * value, so lookup order never matters.
+ */
+const NAME_CANON: Record<string, string> = {
+  jim: "james", jimmy: "james", jamie: "james", james: "james",
+  bob: "robert", bobby: "robert", rob: "robert", robbie: "robert", robert: "robert",
+  bill: "william", billy: "william", will: "william", willie: "william", william: "william",
+  dick: "richard", rick: "richard", ricky: "richard", rich: "richard", richard: "richard",
+  mike: "michael", mikey: "michael", michael: "michael",
+  chris: "christopher", christopher: "christopher",
+  dave: "david", david: "david",
+  dan: "daniel", danny: "daniel", daniel: "daniel",
+  joe: "joseph", joey: "joseph", joseph: "joseph",
+  tom: "thomas", tommy: "thomas", thomas: "thomas",
+  tony: "anthony", anthony: "anthony",
+  steve: "steven", steven: "steven", stephen: "steven",
+  matt: "matthew", matthew: "matthew",
+  andy: "andrew", drew: "andrew", andrew: "andrew",
+  ed: "edward", eddie: "edward", edward: "edward",
+  ken: "kenneth", kenny: "kenneth", kenneth: "kenneth",
+  charlie: "charles", chuck: "charles", charles: "charles",
+  ron: "ronald", ronnie: "ronald", ronald: "ronald",
+  don: "donald", donnie: "donald", donald: "donald",
+  greg: "gregory", gregory: "gregory",
+  jeff: "jeffrey", jeffrey: "jeffrey",
+  ben: "benjamin", benji: "benjamin", benjamin: "benjamin",
+  sam: "samuel", sammy: "samuel", samuel: "samuel",
+  nick: "nicholas", nicholas: "nicholas",
+  pat: "patrick", patrick: "patrick",
+  liz: "elizabeth", beth: "elizabeth", betty: "elizabeth", eliza: "elizabeth", elizabeth: "elizabeth",
+  kate: "katherine", katie: "katherine", kathy: "katherine", kat: "katherine", katherine: "katherine", catherine: "katherine",
+  sue: "susan", susie: "susan", susan: "susan",
+  peggy: "margaret", meg: "margaret", maggie: "margaret", margaret: "margaret",
+  jen: "jennifer", jenny: "jennifer", jennifer: "jennifer",
+  becky: "rebecca", rebecca: "rebecca",
+  cindy: "cynthia", cynthia: "cynthia",
+  debbie: "deborah", deb: "deborah", deborah: "deborah",
+  patty: "patricia", tricia: "patricia", patricia: "patricia",
+  nancy: "nancy", barb: "barbara", barbara: "barbara",
+  sandy: "sandra", sandra: "sandra",
+};
+
+/** Canonical given name, so Jim and James compare equal. */
+function canonicalGivenName(name: string): string {
+  const key = name.toLowerCase().trim();
+  return NAME_CANON[key] ?? key;
+}
 
 /**
  * Deduplication and scoring engine
@@ -160,16 +217,21 @@ export class DedupEngine {
       const firstName2 = parts2[0];
       const lastName2 = parts2[parts2.length - 1];
 
-      // First AND last match
-      if (firstName1 === firstName2 && lastName1 === lastName2) {
-        return 0.95;
+      // First AND last match. Given names are canonicalised so Jim/James and
+      // Bob/Robert count as the same person rather than relying on the fuzzy
+      // ratio to rescue them.
+      const given1 = canonicalGivenName(firstName1);
+      const given2 = canonicalGivenName(firstName2);
+
+      if (given1 === given2 && lastName1 === lastName2) {
+        return firstName1 === firstName2 ? 0.95 : 0.92;
       }
 
       // First + last initial match
-      if (firstName1 === firstName2 && lastName2.startsWith(lastName1[0])) {
+      if (given1 === given2 && lastName2.startsWith(lastName1[0])) {
         return 0.7;
       }
-      if (firstName2 === firstName1 && lastName1.startsWith(lastName2[0])) {
+      if (given2 === given1 && lastName1.startsWith(lastName2[0])) {
         return 0.7;
       }
 
@@ -194,46 +256,26 @@ export class DedupEngine {
    * Compare two locations (0-1 scale)
    */
   private compareLocations(summary1: SummaryResult, summary2: SummaryResult): number {
-    const addr1 = summary1.address.toLowerCase().trim();
-    const addr2 = summary2.address.toLowerCase().trim();
+    const addr1 = (summary1.address || "").trim();
+    const addr2 = (summary2.address || "").trim();
 
-    // Exact match
-    if (addr1 === addr2) {
-      return 1.0;
-    }
+    if (!addr1 || !addr2) return 0.5; // Unknown, not different.
 
-    // Both have addresses
-    if (addr1 && addr2) {
-      // Parse city, state from "City, State" format
-      const parseLocation = (addr: string) => {
-        const parts = addr.split(",").map((p) => p.trim());
-        return {
-          city: parts[0] || "",
-          state: parts.length > 1 ? parts[parts.length - 1] : "",
-        };
-      };
+    if (addr1.toLowerCase() === addr2.toLowerCase()) return 1.0;
 
-      const loc1 = parseLocation(addr1);
-      const loc2 = parseLocation(addr2);
+    // Score on parsed COMPONENTS rather than the raw string. The brokers
+    // disagree about punctuation and abbreviation for the very same address --
+    // "413 Lovers LN Cameron, Missouri 64429" vs "413 Lovers Ln, Cameron MO
+    // 64429" -- so any comparison of the raw text understates the match.
+    const parsed1 = parseAddress(addr1);
+    const parsed2 = parseAddress(addr2);
+    const componentScore = compareParsedAddresses(parsed1, parsed2);
 
-      // Both city and state match
-      if (loc1.city.toLowerCase() === loc2.city.toLowerCase() && loc1.state.toLowerCase() === loc2.state.toLowerCase()) {
-        return 1.0;
-      }
+    if (componentScore > 0) return componentScore;
 
-      // City match only (state might be abbreviated differently)
-      if (loc1.city.toLowerCase() === loc2.city.toLowerCase()) {
-        return 0.8;
-      }
-
-      // State match only
-      if (loc1.state.toLowerCase() === loc2.state.toLowerCase()) {
-        return 0.4;
-      }
-    }
-
-    // Fuzzy location match
-    const ratio = this.sequenceMatchRatio(addr1, addr2);
+    // Nothing structured lined up; fall back to raw similarity so an
+    // unparseable-but-identical string is not scored as a mismatch.
+    const ratio = this.sequenceMatchRatio(addr1.toLowerCase(), addr2.toLowerCase());
     return ratio > 0.7 ? 0.7 : ratio > 0.5 ? 0.5 : 0.0;
   }
 
@@ -412,8 +454,8 @@ export class DedupEngine {
       name: group.members[0]?.summary.full_name || "",
       age: age || undefined,
       age_note: group.age_conflict ? group.age_note : null,
-      city: group.members[0]?.summary.address.split(",")[0]?.trim() || "",
-      state: group.members[0]?.summary.address.split(",")[1]?.trim() || "",
+      city: parseAddress(group.members[0]?.summary.address).city,
+      state: parseAddress(group.members[0]?.summary.address).state,
       sources: group.members.map((m) => m.summary.broker),
       confidence: Math.round(this.getAverageConfidence(group) * 10) / 10,
       members: group.members.map((m) => ({

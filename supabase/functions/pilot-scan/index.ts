@@ -24,6 +24,7 @@ import { Phase1Orchestrator } from '../_shared/quickscan/phase1-orchestrator.ts'
 import { Phase2Orchestrator } from '../_shared/quickscan/phase2-orchestrator.ts'
 import { checkRateLimit, trackCost, estimateCost, checkBurstProtection } from '../_shared/quickscan/cost-middleware.ts'
 import { BrokerName, type QuickScanInput, type DedupGroup } from '../_shared/quickscan/quickscan-phase1-phase2-models.ts'
+import { parseAddress } from '../_shared/quickscan/address-parser.ts'
 
 interface PilotScanRequest {
   firstName?: string;
@@ -333,8 +334,13 @@ async function handlePhase1(
           id: null,
           name: g.members[0]?.summary.full_name || '',
           age: g.members[0]?.summary.age,
-          city: g.members[0]?.summary.address.split(',')[0]?.trim() || '',
-          state: g.members[0]?.summary.address.split(',')[1]?.trim() || '',
+          // Parsed, not split on commas. The client merges the fast and slow
+          // tiers by matching name + state, so a mis-parsed state splits one
+          // person into two cards -- brokers format addresses four different
+          // ways and split(',') produced "Missouri 64429" for one tier and
+          // "Cameron MO 64429" for the other.
+          city: parseAddress(g.members[0]?.summary.address).city,
+          state: parseAddress(g.members[0]?.summary.address).state,
           sources: g.members.map((m) => m.summary.broker),
           confidence: Math.round((g.members.reduce((s, m) => s + m.match_score, 0) / g.members.length) * 10) / 10,
           age_conflict: g.age_conflict,
@@ -609,7 +615,7 @@ async function storeSelectedGroup(
 ): Promise<string | null> {
   const members = group.members ?? [];
   const primary = members[0]?.summary;
-  const addressParts = (primary?.address || '').split(',');
+  const parsedAddress = parseAddress(primary?.address);
   const avgConfidence = members.length
     ? Math.round((members.reduce((sum, m) => sum + (m.match_score ?? 0), 0) / members.length) * 100) / 100
     : 0;
@@ -624,8 +630,8 @@ async function storeSelectedGroup(
       rank: 1,
       primary_name: primary?.full_name || '',
       primary_age: primary?.age ?? null,
-      primary_city: addressParts[0]?.trim() || '',
-      primary_state: addressParts[1]?.trim() || '',
+      primary_city: parsedAddress.city,
+      primary_state: parsedAddress.state,
       average_confidence: avgConfidence,
       age_conflict: !!group.age_conflict,
       age_note: group.age_note ?? null,
