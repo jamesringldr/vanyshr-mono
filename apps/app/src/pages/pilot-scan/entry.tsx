@@ -175,6 +175,12 @@ export function PilotEntryPage() {
     city: string;
     state: string;
   }) {
+    // Clear old scan results to force a fresh scan, not cached results
+    sessionStorage.removeItem("pilotScanResult");
+    sessionStorage.removeItem("pilotScanError");
+    sessionStorage.removeItem("pilotPhase2Result");
+    sessionStorage.removeItem("pilotConfirmedEmails");
+
     sessionStorage.setItem("pilotScanFields", JSON.stringify(fields));
     setIsDrawerOpen(false);
     navigate("/pilot-scan/splash");
