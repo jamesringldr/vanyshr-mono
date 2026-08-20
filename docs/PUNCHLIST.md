@@ -31,6 +31,8 @@ scans still persist nothing in production until the code ships.
 | FK `pending_profiles.source_quick_scan_id → quick_scans` | `ON DELETE SET NULL` — a purged scan must not delete the signup record |
 | `quickscan.record_phase1_tier(...)` | Atomic create-or-join + per-tier merge. service_role only |
 | `public.get_pilot_scan_result(uuid)` | Read-back, anon-callable, honours `purge_after` |
+| cron `cleanup-stuck-scanning-scans` repointed | **§3.5 done** — first successful run 2026-08-20 16:11 after ~20h of failures |
+| `get_pilot_scan_result` fallback removed | `consolidated_profile` no longer coalesces onto the differently-shaped `profile_data` |
 
 Verified live: browser key **can** call the read RPC, **cannot** call the ingest
 RPC or read `quickscan` tables directly (`42501`). Data counts unchanged
@@ -40,7 +42,7 @@ RPC or read `quickscan` tables directly (`42501`). Data counts unchanged
 
 ## 1. P0 — blockers. Conversion is silently broken until these land.
 
-### 1.1 `profile_data` shape mismatch breaks signup ⛔ **backend**
+### 1.1 `profile_data` shape mismatch breaks signup ✅ **DONE**
 
 `finalizeScan()` (`supabase/functions/pilot-scan/index.ts:674`) writes the
 Phase 2 `ConsolidatedProfile` into `quick_scans.profile_data`. But
@@ -86,8 +88,18 @@ Source fields: `phone_numbers[]`, `emails[]`, `primary_address` (→ `is_current
 true`) + `previous_addresses[]`, and aliases from the dedup group members'
 `summary.aliases` (comma/semicolon-delimited — reuse `splitList` semantics).
 
-**Verify:** call `create_pending_profile(<scan_id>, 'x@y.com')` on a scan written
-by the new path and assert each `pending_*` table is non-empty.
+**Status: implemented.** `toLegacyProfileData()` in
+`supabase/functions/pilot-scan/index.ts` adapts the profile before writing, and
+both `finalizeScan` call sites pass the dedup group through (aliases come from
+the broker summaries, which the consolidator drops). Migration
+`20260820120004` removes the now-invalid `profile_data` fallback from
+`get_pilot_scan_result`, so `consolidated_profile` is never returned in two
+different shapes.
+
+**Still to verify end-to-end (needs a real scan):** call
+`create_pending_profile(<scan_id>, 'x@y.com')` against a scan written by the new
+path and assert each `pending_*` table is non-empty. This could not be tested
+without live Phase 2 output.
 
 ### 1.2 Ship the code ⛔ **both**
 
@@ -242,27 +254,72 @@ security, no email round trip, but more moving parts.
   `public.data_breaches` (8 rows) look like the intended targets — **unverified**
   (`SCHEMA_REVIEW.md §14`).
 
+### 3.3b Zero-breach enrichment violated a CHECK constraint ✅ **DONE (new find)**
+
+Found while doing 3.4. `Phase2Orchestrator.storeResults()` wrote
+`leakcheck_status: breaches.length ? 'success' : 'no_results'`, but
+`quickscan_enrichment_leakcheck_status_check` permits only
+`pending | success | failed | no_auth | timeout` — **`no_results` is not in the
+set**. Since most people have zero breaches, this violated the constraint on the
+*common* path and would have failed the entire enrichment insert.
+
+It was latent only because Phase 2 never stored anything before (§2). Fixing §2
+without this would have made Phase 2 persistence appear to work for anyone with
+a breach and silently fail for everyone else — the worst kind of partial success.
+
+Proved against production in a rolled-back transaction: the old value is
+`REJECTED by check constraint`, the new one inserts fine. Now tracks a real
+`leakcheck_status` through the enrichment branches (`no_auth` when the API key
+is missing, `failed` on error, `success` when the check ran — including a clean
+zero-breach result).
+
 ### 3.3 Decide the 16 existing NULL-`purge_after` scans 🟡
 
 Deliberately untouched by the migration — sweeping them in as a side effect of a
 DDL change would have made 16 real people's pre-auth PII purge-eligible without
 anyone deciding to. Needs an explicit call once 3.2 lands.
 
-### 3.4 Wire the enrichment coverage columns 🟡
+### 3.4 Wire the enrichment coverage columns 🟠 **3 of 4 done**
 
-`services_checked`, `services_unavailable`, `fields_exposed`, `breach_count`
-exist but `Phase2Orchestrator.storeResults()` writes none of them
-(`SCHEMA_REVIEW.md §12`). **2.1 depends on these** to distinguish "clean" from
-"couldn't check". Either populate them or drop them.
+`Phase2Orchestrator.storeResults()` now writes three of the four:
 
-### 3.5 Fix the dead cron job 🟡 *unrelated to this branch, still bleeding*
+| Column | Status |
+|---|---|
+| `breach_count` | ✅ breaches length |
+| `fields_exposed` | ✅ `exposedFields()` — PII categories actually found |
+| `services_checked` | ✅ plumbed through `HoleheResult.services_checked`; the count was previously discarded inside `extractServices()` |
+| `services_unavailable` | ⚠️ **left NULL deliberately — not derivable** |
 
-`cron.job` #1 has failed **every minute since 2026-08-19 20:18** — 1,165 failures
-as of 2026-08-20 15:42 UTC and climbing by 60/hour while you read this.
-Unqualified `quick_scans` reference; the partition moved the table to the
-`quickscan` schema and the job's search path no longer resolves it. One-word fix
-to `quickscan.quick_scans` (`SCHEMA_REVIEW.md §3`). Independent of everything
-else on this list — it can be fixed in isolation at any time.
+**Why `services_unavailable` stays NULL.** The hosted Holehe API returns
+`services: Record<string, boolean \| {username,url}>`. A `false` is a *verdict*
+("no account there"), not "could not check" — per-service unavailability is
+simply not in the response. Writing a number would defeat the column's only
+purpose. Populating it honestly needs either a different Holehe deployment that
+reports per-service errors, or dropping the column.
+
+**What the UI should use instead (for 2.1):**
+
+```
+holehe_status = 'success'      -> accounts found
+holehe_status = 'no_results'   -> services WERE checked, none matched ("clean")
+holehe_status = 'unavailable'  -> nothing was checked; say nothing about accounts
+```
+
+`services_checked > 0` is the corroborating signal. Never render "no exposed
+accounts" on `unavailable`.
+
+### 3.5 Fix the dead cron job ✅ **DONE**
+
+Fixed by `20260820120003`. The job `cleanup-stuck-scanning-scans` had failed
+every minute since 2026-08-19 20:18 (~1,200 runs) because it referenced
+`quick_scans` unqualified and the partition moved the table. Repointed at
+`quickscan.quick_scans` via `cron.schedule()` (upserts by job NAME, so it is
+idempotent and does not hardcode `jobid=1`).
+
+**Verified:** first successful run at 2026-08-20 16:11:00, `UPDATE 0` — the
+reaper is running again and finding nothing stuck, which is correct. The ~1,200
+historical failure rows are left as an audit trail; the existing
+`cleanup-old-cron-run-details` job prunes them after 30 days.
 
 ### 3.6 Schedule `purge_expired()` — **last** 🟡
 
@@ -349,7 +406,9 @@ Build the front end against this. `SECURITY DEFINER`, granted to `anon` and
     "age_conflict": false, "age_note": null
   },
 
-  "consolidated_profile": { … },      // enrichment's copy, falling back to profile_data
+  "consolidated_profile": { … },      // enrichment ONLY; null if no enrichment stored.
+                                      // quick_scans.profile_data is the differently-shaped
+                                      // signup copy and is NOT exposed here.
   "enrichment": {
     "emails_found": ["…"],
     "services_found": ["github","spotify"],   // Holehe
@@ -357,9 +416,9 @@ Build the front end against this. `SECURITY DEFINER`, granted to `anon` and
                     "exposures": 700000000, "url": "…" } ],
     "breach_count": 1,
     "holehe_status": "success", "leakcheck_status": "success",
-    "services_checked": null,                 // ⚠️ see 3.4 — nothing writes these yet
-    "services_unavailable": null,
-    "fields_exposed": []
+    "services_checked": 42,                   // verdicts received (see 3.4)
+    "services_unavailable": null,             // ⚠️ always null — not derivable, see 3.4
+    "fields_exposed": ["name","address","phone"]
   }
 }
 ```
@@ -398,13 +457,14 @@ toolchain — verified by diffing error sets against a stashed baseline.
 
 ## 7. Suggested order
 
-1. **1.1** `profile_data` adapter — everything downstream of signup is dead without it
-2. **1.2** ship to staging, validate on the preview URL
-3. **2.1** render Phase 2 data — the biggest visible payoff, and the loading screen already promises it
-4. **2.2 / 2.3** skeleton + expired screen
-5. **3.4** coverage columns — 2.1 needs them to tell "clean" from "unchecked"
-6. **2.4** conversion screen — turns the funnel on
-7. **3.2 / 3.3** promote fixes + the 16 NULL rows
-8. **4.1 → 3.1 → 2.5** decide the user class, then build the gate, then the UI
-9. **3.5** cron fix (independent — grab it any time; it is failing right now)
-10. **3.6** schedule the purge, once and only once 3.2/3.3 are settled
+~~1.1~~ ✅ · ~~3.4~~ ✅ (3 of 4) · ~~3.3b~~ ✅ · ~~3.5~~ ✅ — done, committed, DB applied.
+
+1. **1.2** ship to staging, validate on the preview URL — **the gating step**;
+   nothing above is live in the app until this happens
+2. **2.1** render Phase 2 data — biggest visible payoff, and now unblocked
+   (read 3.4 for the `holehe_status` mapping before writing the copy)
+3. **2.2 / 2.3** skeleton + expired screen
+4. **2.4** conversion screen — turns the funnel on
+5. **3.2 / 3.3** promote fixes + the 16 NULL rows
+6. **4.1 → 3.1 → 2.5** decide the user class, then build the gate, then the UI
+7. **3.6** schedule the purge, once and only once 3.2/3.3 are settled

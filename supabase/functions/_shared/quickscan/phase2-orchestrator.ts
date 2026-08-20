@@ -35,6 +35,17 @@ export interface Phase2EnrichmentResult {
   enrichment_data?: {
     holehe_services: string[];
     leakcheck_breaches: BreachRecord[];
+    /**
+     * Verdicts Holehe returned, summed across the emails checked. Distinguishes
+     * "checked, nothing found" from "never checked" -- an empty
+     * holehe_services means nothing on its own.
+     */
+    holehe_services_checked: number;
+    /**
+     * Constrained to quickscan_enrichment_leakcheck_status_check:
+     * pending | success | failed | no_auth | timeout. Notably NOT 'no_results'.
+     */
+    leakcheck_status: string;
   };
   metadata?: {
     total_phase2_ms: number;
@@ -54,6 +65,50 @@ export interface Phase2EnrichmentResult {
 /**
  * Phase 2 orchestrator
  */
+/**
+ * Map a Phase 2 result onto quickscan_enrichment.holehe_status.
+ *
+ * The three outcomes are genuinely different and must not collapse:
+ *   success      -- accounts were found
+ *   no_results   -- services WERE checked and none matched (a real "you're clean")
+ *   unavailable  -- nothing was checked; we know nothing either way
+ *
+ * Collapsing the last two into "no accounts found" tells a user they are clean
+ * when we never looked, which is the worst direction to be wrong in.
+ * Constrained to quickscan_enrichment_holehe_status_check.
+ */
+function holeheStatus(result: Phase2EnrichmentResult): string {
+  const found = result.enrichment_data?.holehe_services.length ?? 0;
+  const checked = result.enrichment_data?.holehe_services_checked ?? 0;
+  if (found > 0) return "success";
+  if (checked > 0) return "no_results";
+  return "unavailable";
+}
+
+/**
+ * Which categories of PII the consolidated profile actually turned up, for
+ * quickscan_enrichment.fields_exposed.
+ *
+ * A category is listed only when it has at least one value, so the array
+ * doubles as the "what did we find on you" summary the risk report renders.
+ */
+function exposedFields(profile?: ConsolidatedProfile): string[] {
+  if (!profile) return [];
+  const fields: string[] = [];
+  if (profile.full_name) fields.push("name");
+  if (profile.age != null) fields.push("age");
+  if (profile.primary_address) fields.push("address");
+  if (profile.previous_addresses?.length) fields.push("previous_addresses");
+  if (profile.phone_numbers?.length) fields.push("phone");
+  if (profile.emails?.length) fields.push("email");
+  if (profile.relatives?.length) fields.push("relatives");
+  if (profile.associates?.length) fields.push("associates");
+  if (profile.properties?.length) fields.push("property");
+  if (profile.services_found?.length) fields.push("online_accounts");
+  if (profile.breaches?.length) fields.push("breaches");
+  return fields;
+}
+
 export class Phase2Orchestrator {
   /**
    * Run Phase 2: Full profile enrichment
@@ -97,7 +152,10 @@ export class Phase2Orchestrator {
       // Step 2: Enrich with Holehe and Leakcheck in parallel
       const enrichStartTime = Date.now();
       let holeheServices: string[] = [];
+      let holeheServicesChecked = 0;
       let leakcheckBreaches: BreachRecord[] = [];
+      // 'pending' == never ran, which is also the column default.
+      let leakcheckStatus = "pending";
       let holeheMs = 0;
       let leakcheckMs = 0;
 
@@ -114,9 +172,14 @@ export class Phase2Orchestrator {
               const results = await enrichEmailsWithHolehe(emailResult.emails, 30000);
               const aggregated = aggregateHoleheResults(results);
 
+              // Recorded whether or not the aggregate succeeded: a partial
+              // failure still checked some services, and that coverage is
+              // exactly what the caller needs to interpret an empty result.
+              holeheServicesChecked = aggregated.services_checked;
+
               if (aggregated.success) {
                 holeheServices = aggregated.services;
-                console.log(`✓ Holehe found ${aggregated.total_services} services`);
+                console.log(`✓ Holehe found ${aggregated.total_services} of ${aggregated.services_checked} checked`);
               } else {
                 console.warn(`⚠️  Holehe enrichment partially failed`);
               }
@@ -147,10 +210,15 @@ export class Phase2Orchestrator {
 
                 if (aggregated.success) {
                   leakcheckBreaches = aggregated.breaches;
+                  // 'success' means the CHECK ran, not that breaches exist.
+                  // Zero breaches is a successful clean result.
+                  leakcheckStatus = "success";
                   console.log(`✓ Leakcheck found ${aggregated.total_unique_breaches} breaches`);
                 } else if (!apiKey) {
+                  leakcheckStatus = "no_auth";
                   console.log("⚠️  Leakcheck API key not configured, skipping breach detection");
                 } else {
+                  leakcheckStatus = "failed";
                   console.warn(`⚠️  Leakcheck enrichment partially failed`);
                 }
               } else {
@@ -159,6 +227,7 @@ export class Phase2Orchestrator {
 
               leakcheckMs = Date.now() - leakcheckStart;
             } catch (error) {
+              leakcheckStatus = "failed";
               console.error(`✗ Leakcheck enrichment error: ${(error as Error).message}`);
               leakcheckMs = Date.now() - enrichStartTime;
             }
@@ -207,6 +276,8 @@ export class Phase2Orchestrator {
         enrichment_data: {
           holehe_services: holeheServices,
           leakcheck_breaches: leakcheckBreaches,
+          holehe_services_checked: holeheServicesChecked,
+          leakcheck_status: leakcheckStatus,
         },
         metadata: {
           total_phase2_ms: totalPhase2Ms,
@@ -280,11 +351,26 @@ export class Phase2Orchestrator {
           dedup_group_id: dedupGroupId,
           emails_found: result.consolidated_profile.emails,
           emails_extracted_at: new Date().toISOString(),
-          holehe_status: result.enrichment_data?.holehe_services.length ? "success" : "no_results",
+          holehe_status: holeheStatus(result),
           services_found: result.enrichment_data?.holehe_services || [],
+          services_checked: result.enrichment_data?.holehe_services_checked ?? 0,
+          // Left NULL deliberately. The hosted Holehe API models each service
+          // as `boolean | {username,url}`, so a `false` is a VERDICT ("no
+          // account"), not "could not check". Per-service unavailability simply
+          // is not in the response, and inventing a number here would defeat
+          // the column's only purpose. Use holehe_status + services_checked to
+          // judge coverage. See docs/PUNCHLIST.md §3.4.
+          services_unavailable: null,
           holehe_checked_at: new Date().toISOString(),
-          leakcheck_status: result.enrichment_data?.leakcheck_breaches.length ? "success" : "no_results",
+          // Was `... ? "success" : "no_results"`, but 'no_results' is NOT in
+          // quickscan_enrichment_leakcheck_status_check (pending | success |
+          // failed | no_auth | timeout). Since most people have zero breaches,
+          // that violated the constraint on the COMMON path and failed the
+          // whole enrichment insert. Zero breaches is now 'success'.
+          leakcheck_status: result.enrichment_data?.leakcheck_status ?? "pending",
           breaches: result.enrichment_data?.leakcheck_breaches || [],
+          breach_count: result.enrichment_data?.leakcheck_breaches.length ?? 0,
+          fields_exposed: exposedFields(result.consolidated_profile),
           leakcheck_checked_at: new Date().toISOString(),
           consolidated_profile: result.consolidated_profile,
           phase1_cost_usd: 0.0025, // From Phase 1

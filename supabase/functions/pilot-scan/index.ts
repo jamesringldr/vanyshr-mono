@@ -443,7 +443,7 @@ async function handlePhase2(
     );
 
     if (enrichmentId) {
-      await finalizeScan(supabaseClient, dedupGroupData.quick_scan_id, dedupGroupId, enrichmentId, result);
+      await finalizeScan(supabaseClient, dedupGroupData.quick_scan_id, dedupGroupId, enrichmentId, result, dedupGroupData.full_data as DedupGroup);
     } else {
       console.error(`✗ Phase 2 (legacy path) enrichment storage failed for group ${dedupGroupId}`);
     }
@@ -550,7 +550,7 @@ async function handlePhase2WithGroup(
         }
       }
 
-      await finalizeScan(supabaseClient, quickScanId, dedupGroupId, enrichmentId, result);
+      await finalizeScan(supabaseClient, quickScanId, dedupGroupId, enrichmentId, result, selectedGroup);
     } else {
       console.warn(
         `⚠ Phase 2 not persisted: no quick_scan_id for session ${sessionId}. ` +
@@ -647,9 +647,83 @@ async function storeSelectedGroup(
 }
 
 /**
+ * Map a Phase 2 ConsolidatedProfile into the shape `quick_scans.profile_data`
+ * is actually read with.
+ *
+ * This exists because profile_data is a CONTRACT, not free-form storage.
+ * public.create_pending_profile() reads it to populate pending_phones /
+ * pending_emails / pending_addresses / pending_aliases at signup, and it
+ * expects the older per-item object shape:
+ *
+ *     phones:    [{ number, is_primary }]
+ *     emails:    [{ email, is_primary }]
+ *     addresses: [{ street, city, state, zip, full_address, is_current }]
+ *     aliases:   ["Ada L", ...]            // plain strings
+ *
+ * ConsolidatedProfile instead carries `phone_numbers: string[]`,
+ * `emails: string[]`, and ContactInfo objects keyed `formatted` rather than
+ * `full_address`. Writing it raw parses to nothing on every one of those four
+ * loops, so a converted user lands with an empty profile. Adapting here rather
+ * than changing the reader keeps the legacy /scan writer working — it still
+ * emits this shape — and costs nothing, because the rich object is stored
+ * losslessly on quickscan_enrichment.consolidated_profile regardless.
+ *
+ * Aliases come from the dedup group, not the consolidated profile: the
+ * consolidator drops them, but each broker summary carries a delimited string.
+ */
+function toLegacyProfileData(
+  profile: Record<string, unknown> | null | undefined,
+  group: DedupGroup | null | undefined,
+): Record<string, unknown> | null {
+  if (!profile) return null;
+
+  const phoneNumbers = Array.isArray(profile.phone_numbers) ? profile.phone_numbers : [];
+  const emails = Array.isArray(profile.emails) ? profile.emails : [];
+  const previous = Array.isArray(profile.previous_addresses) ? profile.previous_addresses : [];
+  const primary = profile.primary_address as Record<string, unknown> | undefined;
+
+  const toAddress = (a: Record<string, unknown> | undefined, isCurrent: boolean) => ({
+    street: a?.street ?? null,
+    city: a?.city ?? null,
+    state: a?.state ?? null,
+    zip: a?.zip ?? null,
+    // create_pending_profile reads `full_address`; ContactInfo calls it `formatted`.
+    full_address: a?.formatted ?? null,
+    is_current: isCurrent,
+  });
+
+  // Split the broker summaries' delimited alias strings, matching the
+  // client-side splitList: commas, semicolons, pipes, or a standalone "and".
+  const aliases: string[] = [];
+  const seen = new Set<string>();
+  for (const member of group?.members ?? []) {
+    const raw = member.summary?.aliases;
+    if (typeof raw !== 'string') continue;
+    for (const part of raw.split(/[,;|]|(?:\s+and\s+)/i)) {
+      const alias = part.trim();
+      if (alias.length <= 1) continue;
+      const key = alias.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      aliases.push(alias);
+    }
+  }
+
+  return {
+    phones: phoneNumbers.map((number, i) => ({ number, is_primary: i === 0 })),
+    emails: emails.map((email, i) => ({ email, is_primary: i === 0 })),
+    addresses: [
+      ...(primary ? [toAddress(primary, true)] : []),
+      ...previous.map((a) => toAddress(a as Record<string, unknown>, false)),
+    ],
+    aliases,
+  };
+}
+
+/**
  * Close out the scan row: record which group and enrichment it resolved to,
- * and park the consolidated profile on profile_data so the read-back RPC has a
- * single place to look.
+ * and write the signup-facing copy of the profile to profile_data (adapted to
+ * the shape create_pending_profile reads — see toLegacyProfileData).
  *
  * Status only advances to 'completed' when the enrichment actually stored;
  * otherwise the scan stays 'processing' and reads as the incomplete record it
@@ -661,6 +735,7 @@ async function finalizeScan(
   dedupGroupId: string | null,
   enrichmentId: string | null,
   result: { consolidated_profile?: unknown },
+  group: DedupGroup | null,
 ): Promise<void> {
   const complete = !!enrichmentId;
 
@@ -671,7 +746,11 @@ async function finalizeScan(
       dedup_group_id: dedupGroupId,
       enrichment_id: enrichmentId,
       selected_match_id: dedupGroupId,
-      profile_data: result.consolidated_profile ?? null,
+      // Legacy shape, NOT the raw ConsolidatedProfile — see toLegacyProfileData.
+      profile_data: toLegacyProfileData(
+        result.consolidated_profile as Record<string, unknown> | null | undefined,
+        group,
+      ),
       status: complete ? 'completed' : 'processing',
       completed_at: complete ? new Date().toISOString() : null,
       updated_at: new Date().toISOString(),

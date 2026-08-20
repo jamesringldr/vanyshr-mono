@@ -56,6 +56,12 @@ export interface HoleheResult {
   email: string;
   services: string[];
   count: number;
+  /**
+   * How many services the API returned a verdict for — found or not. Needed to
+   * tell "we checked and you are clean" apart from "we could not check", which
+   * an empty `services` array alone cannot express. 0 when the call failed.
+   */
+  services_checked: number;
   timing_ms: number;
   error?: string;
 }
@@ -77,6 +83,7 @@ export async function enrichWithHolehe(email: string, timeout: number = 30000): 
         email: email,
         services: [],
         count: 0,
+        services_checked: 0,
         timing_ms: Date.now() - startTime,
         error: "Invalid email format",
       };
@@ -93,6 +100,7 @@ export async function enrichWithHolehe(email: string, timeout: number = 30000): 
         email: email,
         services: [],
         count: 0,
+        services_checked: 0,
         timing_ms: Date.now() - startTime,
         error: "No response from Holehe API",
       };
@@ -108,6 +116,8 @@ export async function enrichWithHolehe(email: string, timeout: number = 30000): 
       email: email,
       services: services,
       count: services.length,
+      // Every key the API answered for, not just the hits.
+      services_checked: countCheckedServices(response),
       timing_ms: Date.now() - startTime,
     };
   } catch (error) {
@@ -121,6 +131,7 @@ export async function enrichWithHolehe(email: string, timeout: number = 30000): 
       email: email,
       services: [],
       count: 0,
+      services_checked: 0,
       timing_ms: timingMs,
       error: errorMsg,
     };
@@ -163,6 +174,19 @@ async function callHoleheAPI(email: string, timeout: number): Promise<HoleheResp
     }
     throw error;
   }
+}
+
+/**
+ * Count the services the API actually returned a verdict for.
+ *
+ * extractServices() keeps only the hits, which loses the denominator. Without
+ * it, zero services found is indistinguishable from zero services checked --
+ * and reporting "no exposed accounts" when nothing was checked is the worst
+ * available failure direction.
+ */
+function countCheckedServices(response: HoleheResponse): number {
+  if (!response.services || typeof response.services !== "object") return 0;
+  return Object.keys(response.services).length;
 }
 
 /**
@@ -276,6 +300,9 @@ export function aggregateHoleheResults(results: HoleheResult[]) {
     emails_checked: results.length,
     emails_found_services: successCount,
     total_services: allServices.length,
+    // Summed across emails, so it is a coverage signal rather than a distinct
+    // service count -- read it as "verdicts received", not "unique services".
+    services_checked: results.reduce((sum, r) => sum + r.services_checked, 0),
     services: allServices,
     total_timing_ms: totalTiming,
     average_timing_ms: Math.round(totalTiming / results.length),
