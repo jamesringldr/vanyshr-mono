@@ -15,7 +15,8 @@ import {
   type IconComponent,
 } from "@appica/icons-react";
 import { cx } from "@/utils/cx";
-import { buildAreas, loadScanResult, type Finding } from "./scan-result";
+import { buildAreas, type Finding } from "./scan-result";
+import { usePilotScanResult } from "./use-pilot-scan-result";
 
 const DRAWER_EASE = [0.2, 0, 0, 1] as const;
 const LEVEL_BARS = 4;
@@ -145,7 +146,9 @@ function scanPersonName(groupName?: string) {
 export function PilotRiskSummaryPage() {
   const navigate = useNavigate();
   const prefersReducedMotion = useReducedMotion();
-  const [{ result, error }] = useState(() => loadScanResult());
+  // Database-first with a sessionStorage fallback, so a refresh or a return
+  // visit from an emailed link renders the same report the scan produced.
+  const { result, error } = usePilotScanResult();
   const { group, areas } = useMemo(() => buildAreas(result), [result]);
   const [activeArea, setActiveArea] = useState<AreaView | null>(null);
   const [stamp] = useState(() => formatDeviceStamp(new Date()));

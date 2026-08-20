@@ -167,7 +167,10 @@ export function PilotLoadingPage() {
     const sessionId = sessionStorage.getItem("pendingScanId") ?? crypto.randomUUID();
     sessionIdRef.current = sessionId;
 
-    const requestBody = (brokers: string[]) => ({
+    // `tier` names which half of the split this request is. Both requests share
+    // one sessionId and therefore one quick_scans row, so the backend files each
+    // tier's results under its own key instead of one overwriting the other.
+    const requestBody = (brokers: string[], tier: "fast" | "slow") => ({
       firstName: fields.firstName,
       lastName: fields.lastName,
       last_name: fields.lastName,
@@ -177,6 +180,7 @@ export function PilotLoadingPage() {
       state: fields.state,
       sessionId,
       brokers,
+      tier,
     });
 
     function showMerged(merged: ScanResult) {
@@ -203,7 +207,7 @@ export function PilotLoadingPage() {
 
     // Fast tier: Zaba alone, shown the moment it lands.
     supabase.functions
-      .invoke("pilot-scan", { body: requestBody(["zaba"]) })
+      .invoke("pilot-scan", { body: requestBody(["zaba"], "fast") })
       .then(({ data, error }) => {
         if (cancelled) return;
         if (!error && !data?.error) {
@@ -216,7 +220,7 @@ export function PilotLoadingPage() {
 
     // Slow tier: FPS/NPD/AnyWho in parallel, folded into the same list once they land.
     supabase.functions
-      .invoke("pilot-scan", { body: requestBody(["fps", "npd", "anywho"]) })
+      .invoke("pilot-scan", { body: requestBody(["fps", "npd", "anywho"], "slow") })
       .then(({ data, error }) => {
         if (cancelled) return;
         if (!error && !data?.error) {
@@ -331,6 +335,9 @@ export function PilotLoadingPage() {
           body: {
             selectedGroup: scanGroupToPhase2Payload(group),
             sessionId: sessionIdRef.current || crypto.randomUUID(),
+            // Without this the backend has no uuid to hang the selected group
+            // and its enrichment off, and Phase 2 silently stores nothing.
+            quickScanId: merged?.quick_scan_id ?? null,
           },
         });
         if (error || data?.error) {
