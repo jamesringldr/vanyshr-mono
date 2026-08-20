@@ -96,10 +96,10 @@ the broker summaries, which the consolidator drops). Migration
 `get_pilot_scan_result`, so `consolidated_profile` is never returned in two
 different shapes.
 
-**Still to verify end-to-end (needs a real scan):** call
-`create_pending_profile(<scan_id>, 'x@y.com')` against a scan written by the new
-path and assert each `pending_*` table is non-empty. This could not be tested
-without live Phase 2 output.
+**Verified end-to-end** (production, rolled-back transaction): a scan carrying
+the adapted `profile_data` drives `create_pending_profile` to produce 1 phone,
+1 email, 1 address and 2 aliases, and those survive promotion into
+`public.user_*`. The shape is correct.
 
 ### 1.2 Ship the code ⛔ **both**
 
@@ -239,20 +239,56 @@ Proposed `public.get_pilot_scan_result_verified(p_scan_id uuid, p_email text)`:
 Worth considering instead: a single-use signed token in the emailed link. Higher
 security, no email round trip, but more moving parts.
 
-### 3.2 `promote_pending_profile` — bound retention, promote enrichment 🔴
+### 3.2 `promote_pending_profile` — bound retention, promote enrichment 🟠 **DONE for breaches; services + listings BLOCKED**
 
 `SCHEMA_REVIEW.md §4`. Two defects in one function:
 
-- It sets `purge_after = NULL` on conversion, believing that retires the row.
-  Because `purge_expired()` filters on `purge_after IS NOT NULL`, it makes the
-  row **immortal** — with the full pre-auth scrape in `search_input` and
-  `profile_data`. 16 rows are in this state today. Fix: an explicit bounded
-  deadline (`NOW() + INTERVAL '30 days'`).
-- It never touches `quickscan_enrichment`. Now that Phase 2 actually stores
-  breaches and services, they die at the moment the user becomes a customer
-  unless a promotion branch is added. `public.exposures` (0 rows) and
-  `public.data_breaches` (8 rows) look like the intended targets — **unverified**
-  (`SCHEMA_REVIEW.md §14`).
+- It set `purge_after = NULL` on conversion, believing that retired the row.
+  Because `purge_expired()` filters on `purge_after IS NOT NULL`, that made the
+  row **immortal** — with the full pre-auth scrape still in `search_input` and
+  `profile_data`. ✅ Now `NOW() + INTERVAL '30 days'`.
+- It never touched `quickscan_enrichment`, so enrichment died at the moment the
+  user became a customer. ✅ **Breaches are now promoted** into
+  `public.data_breaches`, idempotently via its existing
+  `UNIQUE (user_id, breach_name, matched_email)`. Provider dates are parsed
+  defensively (`YYYY-MM-DD` exact, `YYYY-MM` widened to the 1st, anything else
+  → NULL) so one unparseable date cannot abort somebody's signup.
+
+**Applied in `20260820120005`. Verified end-to-end against production** in a
+rolled-back transaction: full signup → promotion yielded 3 breaches, 1 phone,
+1 address, 2 aliases, and left the scan at **30 days** instead of NULL.
+
+⚠️ The **16 existing NULL-`purge_after` rows are untouched** — this fixes new
+conversions only. They remain §3.3, deliberately.
+
+#### The `SCHEMA_REVIEW.md §14` mapping — resolved, and it was half wrong
+
+§14 guessed `public.exposures` / `public.data_breaches` were the enrichment
+destinations. Checked directly:
+
+| Enrichment output | Destination | Status |
+|---|---|---|
+| Leakcheck breaches | `public.data_breaches` | ✅ good fit, now promoted |
+| Holehe services | *(none exists)* | ⛔ **no table models online accounts** |
+| Phase 1 broker listings | `public.exposures` | ⛔ **blocked, see below** |
+
+- **Holehe services have no home.** No `%account%` / `%service%` / `%social%`
+  table exists anywhere in `public`. `exposures` is emphatically not it:
+  `exposures.broker_id` is `NOT NULL` referencing `brokers.brokers`, and the
+  table carries a removal workflow (`removal_requested_at`,
+  `verified_removed_at`). It models data-broker listings. An online account is
+  not a broker, and putting services there would corrupt what the removal
+  pipeline means.
+
+- **`brokers.brokers` has ZERO rows.** Because `exposures.broker_id` is
+  `NOT NULL`, **no `exposures` row can be created at all** right now — not by
+  promotion, not by anything else. Promoting Phase 1 broker listings is a
+  genuinely good idea and is exactly what that table is for, but it is blocked
+  until `brokers.brokers` is seeded (fps / npd / anywho / zaba at minimum).
+
+**Follow-up (not done here):** seed `brokers.brokers`, then decide whether
+online accounts get their own table or stay report-only data that never leaves
+`quickscan_enrichment`.
 
 ### 3.3b Zero-breach enrichment violated a CHECK constraint ✅ **DONE (new find)**
 
@@ -457,7 +493,7 @@ toolchain — verified by diffing error sets against a stashed baseline.
 
 ## 7. Suggested order
 
-~~1.1~~ ✅ · ~~3.4~~ ✅ (3 of 4) · ~~3.3b~~ ✅ · ~~3.5~~ ✅ — done, committed, DB applied.
+~~1.1~~ ✅ · ~~3.4~~ ✅ (3 of 4) · ~~3.3b~~ ✅ · ~~3.5~~ ✅ · ~~3.2~~ ✅ (breaches only) — done, committed, DB applied.
 
 1. **1.2** ship to staging, validate on the preview URL — **the gating step**;
    nothing above is live in the app until this happens
@@ -465,6 +501,8 @@ toolchain — verified by diffing error sets against a stashed baseline.
    (read 3.4 for the `holehe_status` mapping before writing the copy)
 3. **2.2 / 2.3** skeleton + expired screen
 4. **2.4** conversion screen — turns the funnel on
-5. **3.2 / 3.3** promote fixes + the 16 NULL rows
+5. **3.3** the 16 NULL-`purge_after` rows — **your decision**, nothing else blocks on it
 6. **4.1 → 3.1 → 2.5** decide the user class, then build the gate, then the UI
-7. **3.6** schedule the purge, once and only once 3.2/3.3 are settled
+7. Seed `brokers.brokers`, then revisit promoting broker listings into
+   `public.exposures` (blocked today — see 3.2)
+8. **3.6** schedule the purge, once and only once 3.3 is settled
