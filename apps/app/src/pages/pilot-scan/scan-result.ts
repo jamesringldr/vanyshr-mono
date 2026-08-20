@@ -32,6 +32,12 @@ export type ScanGroup = {
 
 export type ScanResult = {
   success?: boolean;
+  /**
+   * The quick_scans row both Phase 1 tiers converged on. Echoed back to the
+   * edge function on the Phase 2 call so the selected group and its enrichment
+   * hang off the same scan, and used to read results back from the database.
+   */
+  quick_scan_id?: string | null;
   dedup_groups?: ScanGroup[];
   metadata?: {
     total_time_ms?: number;
@@ -166,6 +172,81 @@ export function scanGroupToPhase2Payload(group: ScanGroup) {
   };
 }
 
+/** One member as stored in quickscan_dedup_groups.full_data. */
+type StoredMember = {
+  match_score?: number;
+  summary?: {
+    broker?: string;
+    full_name?: string;
+    address?: string;
+    age_range?: string;
+    age?: number;
+    location?: string;
+    profile_url?: string;
+    result_id?: string;
+    phone?: string;
+    email?: string;
+    aliases?: string;
+    relatives?: string;
+    previous_addresses?: string;
+  };
+};
+
+/** The `selected_group` object returned by public.get_pilot_scan_result. */
+export type StoredGroup = {
+  full_data?: { dedup_id?: string; members?: StoredMember[] };
+  primary_name?: string;
+  primary_age?: number | null;
+  primary_city?: string;
+  primary_state?: string;
+  sources?: string[];
+  average_confidence?: number;
+  age_conflict?: boolean;
+  age_note?: string | null;
+};
+
+/**
+ * Inverse of scanGroupToPhase2Payload: turn the stored dedup group back into
+ * the ScanGroup shape the results pages render from.
+ *
+ * The scalar columns (primary_name, primary_city, …) are preferred over
+ * re-deriving them from full_data, because they are what the backend committed
+ * at write time — re-splitting `address` on the client would risk drifting from
+ * the row the rest of the system reasons about.
+ */
+export function storedGroupToScanGroup(stored: StoredGroup): ScanGroup {
+  const members = stored.full_data?.members ?? [];
+  return {
+    // Null keeps identity positional, matching how live Phase 1 results behave
+    // so both paths flow through the same selection logic downstream.
+    id: null,
+    name: stored.primary_name || members[0]?.summary?.full_name || "",
+    age: stored.primary_age ?? members[0]?.summary?.age,
+    city: stored.primary_city || "",
+    state: stored.primary_state || "",
+    sources: stored.sources ?? [],
+    confidence: stored.average_confidence,
+    age_conflict: !!stored.age_conflict,
+    age_note: stored.age_note ?? undefined,
+    members: members.map((m) => ({
+      broker: m.summary?.broker,
+      name: m.summary?.full_name,
+      address: m.summary?.address,
+      age: m.summary?.age,
+      age_range: m.summary?.age_range,
+      location: m.summary?.location,
+      profile_url: m.summary?.profile_url,
+      phone: m.summary?.phone,
+      email: m.summary?.email,
+      aliases: m.summary?.aliases,
+      relatives: m.summary?.relatives,
+      previous_addresses: m.summary?.previous_addresses,
+      result_id: m.summary?.result_id,
+      match_score: m.match_score,
+    })),
+  };
+}
+
 export function selectGroup(result: ScanResult, groupId: string): ScanResult {
   const groups = [...(result.dedup_groups ?? [])];
   const idx = groups.findIndex((g, i) => (g.id || `group-${i}`) === groupId);
@@ -203,8 +284,11 @@ function groupMatchKey(group: ScanGroup): { first: string; last: string; state: 
 export function mergeScanResults(fast: ScanResult | null, slow: ScanResult | null): ScanResult {
   const fastGroups = fast?.dedup_groups ?? [];
   const slowGroups = slow?.dedup_groups ?? [];
-  if (!slowGroups.length) return fast ?? { success: true, dedup_groups: [] };
-  if (!fastGroups.length) return slow ?? { success: true, dedup_groups: [] };
+  // Both tiers upsert the same quick_scans row, so either one carries the id.
+  // Taking whichever is present keeps it even when one tier fails outright.
+  const quickScanId = fast?.quick_scan_id ?? slow?.quick_scan_id ?? null;
+  if (!slowGroups.length) return { ...(fast ?? { success: true, dedup_groups: [] }), quick_scan_id: quickScanId };
+  if (!fastGroups.length) return { ...(slow ?? { success: true, dedup_groups: [] }), quick_scan_id: quickScanId };
 
   const merged: ScanGroup[] = fastGroups.map((g) => ({ ...g, members: [...(g.members ?? [])] }));
 
@@ -225,7 +309,12 @@ export function mergeScanResults(fast: ScanResult | null, slow: ScanResult | nul
   // `slow` is non-null whenever slowGroups is non-empty (the early return above
   // covers the empty case), but that is not something the compiler can prove —
   // so guard it rather than assert it.
-  return { success: true, dedup_groups: merged, metadata: slow?.metadata ?? fast?.metadata };
+  return {
+    success: true,
+    quick_scan_id: quickScanId,
+    dedup_groups: merged,
+    metadata: slow?.metadata ?? fast?.metadata,
+  };
 }
 
 export function buildAreas(result: ScanResult | null) {

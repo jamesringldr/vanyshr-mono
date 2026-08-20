@@ -35,8 +35,19 @@ interface PilotScanRequest {
   state?: string;
   sessionId?: string;
   dedupGroupId?: string;
+  /** The quick_scans UUID Phase 1 returned. Echoed back so Phase 2 can hang the
+   *  selected group and its enrichment off the same scan row. */
+  quickScanId?: string;
   /** Subset of brokers to search — used for the fast (Zaba)/slow (FPS+NPD+AnyWho) two-tier split. Omit for all 4. */
   brokers?: string[];
+  /**
+   * Which half of the two-tier split this request is. Both tiers share one
+   * sessionId and therefore one quick_scans row, so their results are stored
+   * under separate candidate_matches keys rather than overwriting each other.
+   * Derived from `brokers` when the caller omits it, so older clients still
+   * land in the right bucket.
+   */
+  tier?: string;
   /** Phase 2: the merged dedup group the user picked, sent inline so Phase 2 doesn't need a DB round trip yet. */
   selectedGroup?: DedupGroup;
 }
@@ -80,6 +91,24 @@ function zipcodeToState(zipcode: string): string {
 // read as success while producing broken scrape URLs for every broker. Callers
 // must supply a real city; see the guard in handlePhase1.
 
+/**
+ * Name the half of the two-tier split a Phase 1 request belongs to.
+ *
+ * Both tiers carry the same sessionId and therefore write into the same
+ * quick_scans row; `record_phase1_tier` keys candidate_matches by this string
+ * so neither overwrites the other. The client sends it explicitly — the
+ * broker-list fallback exists only so a client deployed before that change
+ * still lands in two distinct buckets rather than colliding on one.
+ */
+function resolveTier(tier: string | undefined, brokers?: BrokerName[]): string {
+  const explicit = (tier || '').trim().toLowerCase();
+  if (explicit) return explicit;
+  if (!brokers?.length) return 'all';
+  // Sorted broker names: self-describing, and provably distinct between the
+  // fast (zaba) and slow (fps/npd/anywho) requests.
+  return [...brokers].map((b) => String(b).toLowerCase()).sort().join('+');
+}
+
 serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
 
@@ -112,7 +141,9 @@ serve(async (req) => {
       state,
       sessionId,
       dedupGroupId,
+      quickScanId,
       brokers,
+      tier,
       selectedGroup,
     } = requestBody as PilotScanRequest;
 
@@ -126,6 +157,7 @@ serve(async (req) => {
       return await handlePhase2WithGroup(supabaseClient, corsHeaders, {
         selectedGroup,
         sessionId: sessionId || 'anonymous',
+        quickScanId,
       });
     } else if (dedupGroupId) {
       // Phase 2: Enrichment — legacy path, loads the group from the DB by id
@@ -146,6 +178,7 @@ serve(async (req) => {
         state,
         sessionId: sessionId || 'anonymous',
         brokers: brokerFilter?.length ? brokerFilter : undefined,
+        tier,
       });
     } else {
       return new Response(
@@ -176,10 +209,12 @@ async function handlePhase1(
     state?: string;
     sessionId: string;
     brokers?: BrokerName[];
+    tier?: string;
   }
 ) {
   try {
     const { firstName, lastName, zipcode, sessionId, brokers } = params;
+    const tier = resolveTier(params.tier, brokers);
 
     console.log(`🔍 Pilot-Scan Phase 1: ${firstName} ${lastName}, ZIP ${zipcode}${brokers ? ` [${brokers.join(",")}]` : ""}`);
 
@@ -247,13 +282,42 @@ async function handlePhase1(
       );
     }
 
-    // Step 5: Store dedup groups
-    const dedupGroupIds = await orchestrator.storeResults(supabaseClient, `pilot-${sessionId}`, result);
+    // Step 5: Persist the scan row and this tier's results.
+    //
+    // This replaces the old orchestrator.storeResults(..., `pilot-${sessionId}`, ...)
+    // call, which could never have worked: it passed a TEXT id into
+    // quickscan_dedup_groups.quick_scan_id (uuid NOT NULL), threw on the cast
+    // every time, and had the error swallowed by a `continue` — so Phase 1
+    // reported success while storing nothing. See docs/SCHEMA_REVIEW.md §2.
+    //
+    // Dedup groups are deliberately NOT written here. The user picks from a
+    // client-side MERGE of both tiers, so a per-tier group row would be a
+    // partial record of something nobody was ever shown. Phase 2 writes the
+    // one group that was actually selected; the raw per-tier output is kept
+    // as JSONB on candidate_matches for funnel analysis.
+    let quickScanId: string | null = null;
+    const { data: scanIdData, error: scanIdError } = await supabaseClient
+      .schema('quickscan')
+      .rpc('record_phase1_tier', {
+        p_session_id: sessionId,
+        p_search_input: { first_name: firstName, last_name: lastName, zip_code: zipcode, city, state },
+        p_tier: tier,
+        p_groups: result.dedup_groups,
+      });
 
-    // Step 6: Track cost
-    await trackCost(supabaseClient, null, sessionId, 1, null, estimateCost(1), {
+    if (scanIdError) {
+      // Storage failure must be loud but must not cost the user their scan —
+      // the results are already in hand and still get returned below.
+      console.error(`✗ Phase 1 persistence failed (tier=${tier}, session=${sessionId}): ${scanIdError.message}`);
+    } else {
+      quickScanId = scanIdData as string;
+      console.log(`💾 Phase 1 tier '${tier}' stored on scan ${quickScanId}`);
+    }
+
+    // Step 6: Track cost — now against a real scan id rather than NULL
+    await trackCost(supabaseClient, null, sessionId, 1, quickScanId, estimateCost(1), {
       status: 'success',
-      dedup_groups: dedupGroupIds.length,
+      dedup_groups: result.dedup_groups.length,
     });
 
     console.log(`✅ Phase 1 complete: ${result.dedup_groups.length} groups`);
@@ -262,8 +326,11 @@ async function handlePhase1(
     return new Response(
       JSON.stringify({
         success: true,
-        dedup_groups: result.dedup_groups.map((g, idx) => ({
-          id: dedupGroupIds[idx] || null,
+        quick_scan_id: quickScanId,
+        dedup_groups: result.dedup_groups.map((g) => ({
+          // Left null on purpose: no dedup_groups row exists yet, and the
+          // client identifies groups positionally within its merged list.
+          id: null,
           name: g.members[0]?.summary.full_name || '',
           age: g.members[0]?.summary.age,
           city: g.members[0]?.summary.address.split(',')[0]?.trim() || '',
@@ -360,17 +427,30 @@ async function handlePhase2(
       );
     }
 
-    // Store results
+    // Store results.
+    //
+    // Uses the scan id carried on the dedup group row rather than the
+    // `pilot-${sessionId}` string this previously passed: that is a TEXT value
+    // going into quickscan_enrichment.quick_scan_id (uuid NOT NULL), so it
+    // threw on the cast every time and storeResults returned null — the same
+    // failure this file's Phase 1 path had (docs/SCHEMA_REVIEW.md §2). The
+    // group was loaded from the database above, so a real uuid is already here.
     const enrichmentId = await orchestrator.storeResults(
       supabaseClient,
-      `pilot-${sessionId}`,
+      dedupGroupData.quick_scan_id,
       dedupGroupId,
       result
     );
 
+    if (enrichmentId) {
+      await finalizeScan(supabaseClient, dedupGroupData.quick_scan_id, dedupGroupId, enrichmentId, result, dedupGroupData.full_data as DedupGroup);
+    } else {
+      console.error(`✗ Phase 2 (legacy path) enrichment storage failed for group ${dedupGroupId}`);
+    }
+
     // Track cost
     if (result.metadata) {
-      await trackCost(supabaseClient, null, sessionId, 2, null, result.metadata.phase2_cost_usd, {
+      await trackCost(supabaseClient, null, sessionId, 2, dedupGroupData.quick_scan_id, result.metadata.phase2_cost_usd, {
         status: 'success',
         emails_found: result.metadata.emails_found,
         services_found: result.metadata.services_found,
@@ -400,9 +480,18 @@ async function handlePhase2(
 
 /**
  * Handle Phase 2 with the dedup group sent inline by the client (the merged
- * fast+slow Phase 1 result the user picked from) — no DB round trip.
- * Storage of the consolidated profile is deferred; the caller gets it directly
- * in the response and is responsible for holding onto it for now.
+ * fast+slow Phase 1 result the user picked from) — no DB round trip needed to
+ * READ the group.
+ *
+ * This is the group the user actually chose, merged across both tiers, which
+ * is why it is the only one written to quickscan_dedup_groups: a per-tier row
+ * would record a half of something nobody was shown. The enrichment then hangs
+ * off that row, and quick_scans gets back-pointers to both.
+ *
+ * Persistence is best-effort by design. Every write below is allowed to fail
+ * without failing the request — the user already paid for this scrape and gets
+ * their result either way. Failures are logged loudly rather than swallowed,
+ * which is the bug this whole path is fixing (docs/SCHEMA_REVIEW.md §2).
  */
 async function handlePhase2WithGroup(
   supabaseClient: any,
@@ -410,10 +499,11 @@ async function handlePhase2WithGroup(
   params: {
     selectedGroup: DedupGroup;
     sessionId: string;
+    quickScanId?: string;
   }
 ) {
   try {
-    const { selectedGroup, sessionId } = params;
+    const { selectedGroup, sessionId, quickScanId } = params;
 
     console.log(`🔍 Pilot-Scan Phase 2 (inline group): Enriching ${selectedGroup.members[0]?.summary.full_name || 'unknown'}`);
 
@@ -437,8 +527,39 @@ async function handlePhase2WithGroup(
       );
     }
 
+    // Persist: selected group -> enrichment -> back-pointers on the scan.
+    // Skipped entirely when Phase 1 never produced a scan id (its own write
+    // failed, or a client predating the quick_scan_id round trip), because
+    // both quickscan_dedup_groups.quick_scan_id and
+    // quickscan_enrichment.quick_scan_id are uuid NOT NULL.
+    let dedupGroupId: string | null = null;
+    let enrichmentId: string | null = null;
+
+    if (quickScanId) {
+      dedupGroupId = await storeSelectedGroup(supabaseClient, quickScanId, sessionId, selectedGroup);
+
+      if (dedupGroupId) {
+        enrichmentId = await new Phase2Orchestrator().storeResults(
+          supabaseClient,
+          quickScanId,
+          dedupGroupId,
+          result,
+        );
+        if (!enrichmentId) {
+          console.error(`✗ Phase 2 enrichment storage failed (scan=${quickScanId}, group=${dedupGroupId})`);
+        }
+      }
+
+      await finalizeScan(supabaseClient, quickScanId, dedupGroupId, enrichmentId, result, selectedGroup);
+    } else {
+      console.warn(
+        `⚠ Phase 2 not persisted: no quick_scan_id for session ${sessionId}. ` +
+        `Phase 1 either failed to store or the client did not echo the id back.`,
+      );
+    }
+
     if (result.metadata) {
-      await trackCost(supabaseClient, null, sessionId, 2, null, result.metadata.phase2_cost_usd, {
+      await trackCost(supabaseClient, null, sessionId, 2, quickScanId ?? null, result.metadata.phase2_cost_usd, {
         status: 'success',
         emails_found: result.metadata.emails_found,
         services_found: result.metadata.services_found,
@@ -451,6 +572,9 @@ async function handlePhase2WithGroup(
     return new Response(
       JSON.stringify({
         success: true,
+        quick_scan_id: quickScanId ?? null,
+        dedup_group_id: dedupGroupId,
+        enrichment_id: enrichmentId,
         consolidated_profile: result.consolidated_profile,
         enrichment: result.enrichment_data,
         metadata: result.metadata,
@@ -463,5 +587,177 @@ async function handlePhase2WithGroup(
       JSON.stringify({ error: 'Phase 2 processing failed', details: (error as Error).message }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
+  }
+}
+
+/**
+ * Write the dedup group the user selected — the merged fast+slow record — and
+ * return its id.
+ *
+ * Mirrors the column derivation in Phase1Orchestrator.storeResults() so the two
+ * writers produce comparable rows. `rank: 1` because exactly one group is ever
+ * stored per scan on this path: the chosen one.
+ *
+ * Returns null on failure rather than throwing — the caller treats persistence
+ * as best-effort and must still return the user's result.
+ */
+async function storeSelectedGroup(
+  supabaseClient: any,
+  quickScanId: string,
+  sessionId: string,
+  group: DedupGroup,
+): Promise<string | null> {
+  const members = group.members ?? [];
+  const primary = members[0]?.summary;
+  const addressParts = (primary?.address || '').split(',');
+  const avgConfidence = members.length
+    ? Math.round((members.reduce((sum, m) => sum + (m.match_score ?? 0), 0) / members.length) * 100) / 100
+    : 0;
+
+  const { data, error } = await supabaseClient
+    .schema('quickscan')
+    .from('quickscan_dedup_groups')
+    .insert({
+      quick_scan_id: quickScanId,
+      session_id: sessionId,
+      dedup_id: group.dedup_id,
+      rank: 1,
+      primary_name: primary?.full_name || '',
+      primary_age: primary?.age ?? null,
+      primary_city: addressParts[0]?.trim() || '',
+      primary_state: addressParts[1]?.trim() || '',
+      average_confidence: avgConfidence,
+      age_conflict: !!group.age_conflict,
+      age_note: group.age_note ?? null,
+      sources: members.map((m) => m.summary?.broker).filter(Boolean),
+      members_count: members.length,
+      full_data: group,
+      phase1_cost_usd: 0.0025,
+      // purge_after intentionally omitted — the column default (now() + 7 days)
+      // is the single definition of the retention window.
+    })
+    .select('id');
+
+  if (error) {
+    console.error(`✗ Failed to store selected dedup group (scan=${quickScanId}): ${error.message}`);
+    return null;
+  }
+
+  return data?.[0]?.id ?? null;
+}
+
+/**
+ * Map a Phase 2 ConsolidatedProfile into the shape `quick_scans.profile_data`
+ * is actually read with.
+ *
+ * This exists because profile_data is a CONTRACT, not free-form storage.
+ * public.create_pending_profile() reads it to populate pending_phones /
+ * pending_emails / pending_addresses / pending_aliases at signup, and it
+ * expects the older per-item object shape:
+ *
+ *     phones:    [{ number, is_primary }]
+ *     emails:    [{ email, is_primary }]
+ *     addresses: [{ street, city, state, zip, full_address, is_current }]
+ *     aliases:   ["Ada L", ...]            // plain strings
+ *
+ * ConsolidatedProfile instead carries `phone_numbers: string[]`,
+ * `emails: string[]`, and ContactInfo objects keyed `formatted` rather than
+ * `full_address`. Writing it raw parses to nothing on every one of those four
+ * loops, so a converted user lands with an empty profile. Adapting here rather
+ * than changing the reader keeps the legacy /scan writer working — it still
+ * emits this shape — and costs nothing, because the rich object is stored
+ * losslessly on quickscan_enrichment.consolidated_profile regardless.
+ *
+ * Aliases come from the dedup group, not the consolidated profile: the
+ * consolidator drops them, but each broker summary carries a delimited string.
+ */
+function toLegacyProfileData(
+  profile: Record<string, unknown> | null | undefined,
+  group: DedupGroup | null | undefined,
+): Record<string, unknown> | null {
+  if (!profile) return null;
+
+  const phoneNumbers = Array.isArray(profile.phone_numbers) ? profile.phone_numbers : [];
+  const emails = Array.isArray(profile.emails) ? profile.emails : [];
+  const previous = Array.isArray(profile.previous_addresses) ? profile.previous_addresses : [];
+  const primary = profile.primary_address as Record<string, unknown> | undefined;
+
+  const toAddress = (a: Record<string, unknown> | undefined, isCurrent: boolean) => ({
+    street: a?.street ?? null,
+    city: a?.city ?? null,
+    state: a?.state ?? null,
+    zip: a?.zip ?? null,
+    // create_pending_profile reads `full_address`; ContactInfo calls it `formatted`.
+    full_address: a?.formatted ?? null,
+    is_current: isCurrent,
+  });
+
+  // Split the broker summaries' delimited alias strings, matching the
+  // client-side splitList: commas, semicolons, pipes, or a standalone "and".
+  const aliases: string[] = [];
+  const seen = new Set<string>();
+  for (const member of group?.members ?? []) {
+    const raw = member.summary?.aliases;
+    if (typeof raw !== 'string') continue;
+    for (const part of raw.split(/[,;|]|(?:\s+and\s+)/i)) {
+      const alias = part.trim();
+      if (alias.length <= 1) continue;
+      const key = alias.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      aliases.push(alias);
+    }
+  }
+
+  return {
+    phones: phoneNumbers.map((number, i) => ({ number, is_primary: i === 0 })),
+    emails: emails.map((email, i) => ({ email, is_primary: i === 0 })),
+    addresses: [
+      ...(primary ? [toAddress(primary, true)] : []),
+      ...previous.map((a) => toAddress(a as Record<string, unknown>, false)),
+    ],
+    aliases,
+  };
+}
+
+/**
+ * Close out the scan row: record which group and enrichment it resolved to,
+ * and write the signup-facing copy of the profile to profile_data (adapted to
+ * the shape create_pending_profile reads — see toLegacyProfileData).
+ *
+ * Status only advances to 'completed' when the enrichment actually stored;
+ * otherwise the scan stays 'processing' and reads as the incomplete record it
+ * is, rather than claiming a result it cannot produce.
+ */
+async function finalizeScan(
+  supabaseClient: any,
+  quickScanId: string,
+  dedupGroupId: string | null,
+  enrichmentId: string | null,
+  result: { consolidated_profile?: unknown },
+  group: DedupGroup | null,
+): Promise<void> {
+  const complete = !!enrichmentId;
+
+  const { error } = await supabaseClient
+    .schema('quickscan')
+    .from('quick_scans')
+    .update({
+      dedup_group_id: dedupGroupId,
+      enrichment_id: enrichmentId,
+      selected_match_id: dedupGroupId,
+      // Legacy shape, NOT the raw ConsolidatedProfile — see toLegacyProfileData.
+      profile_data: toLegacyProfileData(
+        result.consolidated_profile as Record<string, unknown> | null | undefined,
+        group,
+      ),
+      status: complete ? 'completed' : 'processing',
+      completed_at: complete ? new Date().toISOString() : null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', quickScanId);
+
+  if (error) {
+    console.error(`✗ Failed to finalize scan ${quickScanId}: ${error.message}`);
   }
 }
