@@ -156,8 +156,40 @@ export function parseFpsDetail(html: string): BrokerDetailProfile {
 // AnyWho — ported from AnyWhoScraper.parseDetailFromHtml
 // ---------------------------------------------------------------------------
 
+/**
+ * Restore the values AnyWho hides behind its CSS blur.
+ *
+ * AnyWho does NOT redact server-side. It splits a value across spans and moves
+ * one fragment into a `data-content` attribute on an EMPTY span, then renders it
+ * with `class="blur-sm before:content-[attr(data-content)]"`. The text is
+ * therefore absent from the DOM's text content but fully present in the markup:
+ *
+ *   <span><span>w</span><span data-content="elctola" class="blur-sm ..."></span><span>@aol.com</span></span>
+ *
+ * Read as text that is "w@aol.com"; substitute the attribute and it is
+ * "welctola@aol.com". The same split hides phone digits ("816263" + "0393") and
+ * street numbers ("7935" + " Holmes Rd").
+ *
+ * 53 elements were affected on a single saved profile, so this is routine, not
+ * an edge case. Without it every AnyWho email is truncated -- and AnyWho is the
+ * primary email source for the whole pipeline, since zaba masks the same
+ * addresses server-side and those masked values are NOT recoverable.
+ *
+ * Exported because the summary scraper very likely needs it too; whether AnyWho
+ * blurs its search-results pages the same way is unverified. See
+ * docs/SCAN_SEQUENCE.md §7b.
+ */
+export function deblurAnywhoHtml(html: string): string {
+  if (!html) return html;
+  // Empty span carrying the hidden fragment -> the fragment as plain text.
+  return html.replace(
+    /<span\s+[^>]*?data-content="([^"]*)"[^>]*>\s*<\/span>/g,
+    (_full, hidden: string) => hidden,
+  );
+}
+
 export function parseAnywhoDetail(html: string): BrokerDetailProfile {
-  const doc = parseDoc(html) as unknown as El;
+  const doc = parseDoc(deblurAnywhoHtml(html)) as unknown as El;
   if (!doc) return {};
 
   const nameEl = doc.querySelector("h1.text-display-sm") || doc.querySelector("h1");
@@ -177,23 +209,52 @@ export function parseAnywhoDetail(html: string): BrokerDetailProfile {
   const phonesSection = doc.querySelector("#phones");
   if (phonesSection) {
     for (const item of phonesSection.querySelectorAll(".show-more-item")) {
-      const blurSpan = item.querySelector("span[data-content]");
-      if (!blurSpan) continue;
-      const visibleSpan = (blurSpan as unknown as { previousElementSibling?: El }).previousElementSibling;
-      const visibleText = textOf(visibleSpan as El | undefined);
-      const hiddenDigits = blurSpan.getAttribute("data-content") || "";
-      const fullNumber = visibleText + hiddenDigits;
-      if (fullNumber.replace(/\D/g, "").length >= 10) phoneNumbers.push(fullNumber);
+      // Read the card's text directly. deblurAnywhoHtml() has already put the
+      // hidden fragment back inline, so the digits are contiguous here.
+      //
+      // This previously reached for `span[data-content]` and concatenated the
+      // attribute onto its previous sibling -- a per-field version of the same
+      // trick. That has to go: once the substitution runs there is no
+      // data-content span left to find, and the loop would `continue` past
+      // every card and return zero phones.
+      const digits = textOf(item).replace(/\D/g, "");
+      if (digits.length < 10) continue;
+      const ten = digits.length === 11 && digits.startsWith("1") ? digits.slice(1) : digits.slice(0, 10);
+      if (ten.length !== 10) continue;
+      const formatted = `${ten.slice(0, 3)}-${ten.slice(3, 6)}-${ten.slice(6)}`;
+      if (!phoneNumbers.includes(formatted)) phoneNumbers.push(formatted);
     }
   }
 
   const emails: string[] = [];
-  const emailPattern = /\b([a-zA-Z0-9*._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4})\b/g;
+  const emailPattern = /\b([a-zA-Z0-9*._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})\b/g;
   const emailsSection = doc.querySelector("#emails");
-  const emailSource = emailsSection ? textOf(emailsSection) : bodyText;
-  for (const match of emailSource.matchAll(emailPattern)) {
-    const email = match[1].toLowerCase();
-    if (!email.includes("anywho") && !email.includes("example")) emails.push(email);
+
+  const pushEmail = (raw: string) => {
+    const cleaned = raw.toLowerCase().trim();
+    if (!/^[a-z0-9*._%+-]+@[a-z0-9.-]+\.[a-z]{2,63}$/.test(cleaned)) return;
+    if (cleaned.includes("anywho") || cleaned.includes("example")) return;
+    if (!emails.includes(cleaned)) emails.push(cleaned);
+  };
+
+  if (emailsSection) {
+    // Per-card, and within the card the FIRST child div holds the address on
+    // its own. Reading the whole card instead runs the address straight into
+    // the provider label, because textOf() joins adjacent nodes with no
+    // separator: "monkey1631@aol.com" + "aol" reads as "...@aol.comaol",
+    // which is a plausible-looking but wrong address.
+    for (const card of emailsSection.querySelectorAll(".show-more-item")) {
+      const holder = card.querySelector("div") ?? card;
+      const value = textOf(holder as El).trim();
+      if (value.includes("@")) pushEmail(value);
+    }
+  }
+
+  // Fall back to a whole-page sweep only when the section yielded nothing --
+  // an unrecognised layout should degrade, not return empty.
+  if (emails.length === 0) {
+    const emailSource = emailsSection ? textOf(emailsSection) : bodyText;
+    for (const match of emailSource.matchAll(emailPattern)) pushEmail(match[1]);
   }
 
   let primaryAddress: DetailAddress | undefined;
