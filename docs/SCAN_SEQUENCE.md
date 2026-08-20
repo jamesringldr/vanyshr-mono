@@ -311,17 +311,71 @@ Merging a weak source into a strong one costs accuracy for no gain.
 
 | Field | Authority | Notes |
 |---|---|---|
-| Emails | **fps / npd / anywho** | zaba masks them at the source — never usable (§7) |
-| Property detail | **fps** | substantially richer than the others |
-| Financial — net worth, asset count | **anywho** | has a dedicated section for this |
-| Job history | **zaba** | structured `(title, employer)` records |
-| Education | **zaba** | degree, field, institution, year |
+| Emails | **anywho** (then npd) | 6 real addresses recovered; zaba masks the same ones at source (§7) |
+| Property detail | **fps** | beds / baths / sq ft / year built / est. value / county |
+| Financial — net worth, assets | **anywho** | `$304,558`, asset count, in a dedicated section |
+| Job history | **fps** | employer + location + title + start date + durations |
+| Education | **zaba** | fps has the section but it was empty; zaba carried real content |
+| Legal records | **anywho** | Legal Records (9) — not extracted today |
 | Relatives / phones / addresses / aliases | all four | merge, dedupe on the normalised key (§5) |
 | Age | all four | **resolved, not merged** — mode across brokers, conflicts surfaced (§5) |
+
+Verified 2026-08-20 against saved full-profile pages for one person across all
+three brokers. Two entries changed from the first draft: **job history moved
+zaba → fps** (fps adds location, start date and durations; zaba's Job History
+has title and employer only), and **emails resolved to anywho** as the primary.
 
 Zaba *does* publish Estimated Value, Estimated Equity, Last Sale Amount and Last
 Sale Date, but property is fps's strength and financial is anywho's — take those
 there and ignore zaba's versions rather than reconciling three partial views.
+
+### Per-broker obfuscation — and how to defeat it
+
+Each broker hides data differently. Two of the three are recoverable; the parsers
+handle none of it today.
+
+| Broker | Obfuscation | Recoverable? |
+|---|---|---|
+| **fps** | none — clean HTML | n/a |
+| **anywho** | CSS blur, value in a `data-content` attribute | **yes, fully** |
+| **zaba** | server-side masking (`xxxxx@aol.com`) + a cosmetic blur on top | **no** |
+
+**anywho — the fix is one preprocessing pass.** The blurred span is *empty* in the
+DOM and the hidden text sits in `data-content`; the field is span-split around it:
+
+```html
+<span><span>w</span><span data-content="elctola" class="blur-sm before:content-[attr(data-content)]"></span><span>@aol.com</span></span>
+```
+
+Substitute each attribute as its span's text before parsing and the value
+reassembles:
+
+```ts
+html.replace(/<span\s+data-content="([^"]*)"[^>]*>\s*<\/span>/g, "$1")
+```
+
+Then `welctola@aol.com` reads normally. Same trick recovers phone numbers
+(`816263` + hidden `0393`) and street numbers (hidden `7935` + ` Holmes Rd`).
+**53 elements on one page are affected**, so this is not an edge case — without
+it every anywho email, several phones and several street numbers are silently
+truncated.
+
+⚠️ **Unverified:** whether anywho applies the same blur to its SUMMARY pages. If
+it does, `parseAnywhoSummaries` is truncating data in production right now, and
+those summaries feed both the picker and the matching step. Check before
+building Phase 1.
+
+**zaba is not recoverable.** The `.blur` class there
+(`color:transparent;text-shadow:...`) sits on top of text that is *already*
+`xxxxx` in the source, and all seven JSON-LD blocks carry the same masked
+values. Nothing underneath.
+
+### Anywho: "Online Presence (100)" is a teaser, not data
+
+The section claims 100 social profiles and names Facebook, Twitter and
+Instagram — but the body is marketing copy ("Social media information may
+include: Online Aliases, Dating Profiles") with no actual profiles. Do not build
+against it. Same judgement as zaba's "Possible User IDs" below.
 
 ### Job history: parse `Job History`, NOT `Jobs`
 
