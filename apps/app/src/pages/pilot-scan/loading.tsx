@@ -19,6 +19,7 @@ import {
   scanGroupToPhase2Payload,
   type ScanResult,
 } from "./scan-result";
+import { EmailConfirmationModal } from "./email-confirmation";
 
 const EASE_OUT = [0.2, 0, 0, 1] as const;
 const STEP_MS = 2200;
@@ -136,6 +137,11 @@ export function PilotLoadingPage() {
   // Flips the instant a profile is tapped, closing the modal right away —
   // `confirmed` no longer does that by itself since it now waits on Phase 2.
   const [picking, setPicking] = useState(false);
+  // Email confirmation state
+  const [showEmailConfirmation, setShowEmailConfirmation] = useState(false);
+  const [confirmedEmails, setConfirmedEmails] = useState<string[]>([]);
+  const [emailCandidates, setEmailCandidates] = useState<string[]>([]);
+  const [pendingProfileId, setPendingProfileId] = useState<string | null>(null);
   const mergedResultRef = useRef<ScanResult | null>(null);
   const slowSettledPromiseRef = useRef<Promise<void>>(Promise.resolve());
   const sessionIdRef = useRef<string>("");
@@ -313,7 +319,7 @@ export function PilotLoadingPage() {
 
   async function handlePick(profile: QSProfileSummary) {
     confirmedRef.current = true;
-    setPicking(true); // close the modal right away — Phase 2 runs behind the loading screen
+    setPicking(true); // close the picker modal right away
 
     // Phase 2 needs whichever FPS/NPD/AnyWho profile_urls exist for this
     // person, not just Zaba's — wait for the slow tier if it hasn't landed yet.
@@ -329,6 +335,40 @@ export function PilotLoadingPage() {
       sessionStorage.setItem("pilotScanResult", JSON.stringify(selectGroup(merged, profile.id)));
     }
 
+    // Extract emails from all group members for email confirmation
+    const emails = new Set<string>();
+    group?.members?.forEach((member) => {
+      if (member.email) {
+        member.email.split(/[,;|]/).forEach((e) => {
+          const trimmed = e.trim();
+          if (trimmed && trimmed.includes("@")) {
+            emails.add(trimmed);
+          }
+        });
+      }
+    });
+
+    // Store profile data and show email confirmation
+    setPendingProfileId(profile.id);
+    setEmailCandidates(Array.from(emails));
+    setShowEmailConfirmation(true);
+  }
+
+  async function handleEmailsConfirmed(emails: string[]) {
+    setConfirmedEmails(emails);
+    sessionStorage.setItem("pilotConfirmedEmails", JSON.stringify(emails));
+    setShowEmailConfirmation(false);
+
+    // Now proceed with Phase 2 using the confirmed emails
+    if (!pendingProfileId) {
+      setConfirmed(true);
+      return;
+    }
+
+    const merged = mergedResultRef.current;
+    const groups = merged?.dedup_groups ?? [];
+    const group = groups.find((g, i) => (g.id || `group-${i}`) === pendingProfileId);
+
     if (group) {
       try {
         const { data, error } = await supabase.functions.invoke("pilot-scan", {
@@ -338,6 +378,8 @@ export function PilotLoadingPage() {
             // Without this the backend has no uuid to hang the selected group
             // and its enrichment off, and Phase 2 silently stores nothing.
             quickScanId: merged?.quick_scan_id ?? null,
+            // Pass confirmed emails to Phase 2 for leakcheck and holehe
+            confirmedEmails: emails,
           },
         });
         if (error || data?.error) {
@@ -438,7 +480,7 @@ export function PilotLoadingPage() {
       </div>
 
       <QSResultSingleModal
-        isOpen={!picking && !confirmed && picker === "single" && Boolean(profiles[0])}
+        isOpen={!picking && !confirmed && picker === "single" && Boolean(profiles[0]) && !showEmailConfirmation}
         onOpenChange={(open) => {
           if (!open && !confirmedRef.current) goToSummary();
         }}
@@ -448,7 +490,7 @@ export function PilotLoadingPage() {
         onThisIsNotMe={goToSummary}
       />
       <QSResultMultipleModal
-        isOpen={!picking && !confirmed && picker === "multiple"}
+        isOpen={!picking && !confirmed && picker === "multiple" && !showEmailConfirmation}
         onOpenChange={(open) => {
           if (!open && !confirmedRef.current) goToSummary();
         }}
@@ -457,6 +499,17 @@ export function PilotLoadingPage() {
         profiles={profiles}
         onProfileSelect={handlePick}
         onNoneOfThese={goToSummary}
+      />
+
+      {/* Email confirmation modal */}
+      <EmailConfirmationModal
+        isOpen={showEmailConfirmation}
+        initialEmails={emailCandidates}
+        onConfirm={handleEmailsConfirmed}
+        onCancel={() => {
+          setPicking(false);
+          setShowEmailConfirmation(false);
+        }}
       />
     </div>
   );
