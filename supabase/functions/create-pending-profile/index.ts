@@ -32,7 +32,7 @@ serve(async (req) => {
 
     if (!resolvedEmail) {
       const { data: scanRow } = await supabaseClient
-        .from("quick_scans")
+        .schema("quickscan").from("quick_scans")
         .select("email")
         .eq("id", scan_id)
         .maybeSingle();

@@ -10,7 +10,12 @@ enabled = true
 port = 54321
 # Schemas to expose in your API. Tables, views and stored procedures in this schema will get API
 # endpoints. `public` and `graphql_public` schemas are included by default.
-schemas = ["public", "graphql_public"]
+# `quickscan` holds pre-conversion PII. It is exposed so that service-role Edge
+# Functions can reach it via .schema("quickscan"), but anon/authenticated hold
+# no USAGE grant on it (see 20260819120000), so a client key gets permission
+# denied on every table. Production must mirror this in
+# Dashboard → Settings → API → Exposed schemas.
+schemas = ["public", "graphql_public", "quickscan"]
 # Extra schemas to add to the search_path of every request.
 extra_search_path = ["public", "extensions"]
 # The maximum number of rows returns from a view, table, or stored procedure. Limits payload size

@@ -146,36 +146,18 @@ export async function searchViaScraperLab(
   const pollSec = Number(Deno.env.get("SCRAPER_LAB_POLL_MAX_SEC") ?? "150");
   const pollIntervalMs = Number(Deno.env.get("SCRAPER_LAB_POLL_MS") ?? "2000");
 
+  // City/zip identify the user, not a filter — broker sites often list under a
+  // different metro name than the USPS mail city (e.g. 66210 → Overland Park, not
+  // Shawnee Mission). Search state-only in a single job instead of retrying with a
+  // city filter first — that retry doubled job time on every metro-name mismatch.
   const body = {
     first_name: input.first_name,
     last_name: input.last_name,
-    city: input.city,
     state: input.state,
     zip: input.zip,
     sources,
   };
 
-  const first = await runJob(base, token, body, pollSec, pollIntervalMs, sources);
-  if (first.matches.length > 0 || !input.city) {
-    return { matches: first.matches, runs: first.runs };
-  }
-
-  // No matches with a city filter — retry state-only.
-  // City/zip identify the user, not a filter — broker sites often list under a
-  // different metro name than the USPS mail city (e.g. 66210 → Overland Park, not Shawnee Mission).
-  console.log(`🏠 scraper-lab: 0 matches with city=${input.city}, retrying state-only`);
-  const second = await runJob(
-    base,
-    token,
-    { ...body, city: undefined },
-    pollSec,
-    pollIntervalMs,
-    sources,
-  );
-
-  const mergedRuns = [
-    ...first.runs.map((r) => ({ ...r, attempt: "with_city" })),
-    ...second.runs.map((r) => ({ ...r, attempt: "state_only" })),
-  ];
-  return { matches: second.matches, runs: mergedRuns };
+  const result = await runJob(base, token, body, pollSec, pollIntervalMs, sources);
+  return { matches: result.matches, runs: result.runs };
 }

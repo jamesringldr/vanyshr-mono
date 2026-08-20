@@ -586,11 +586,13 @@ export function PreProfile() {
             // Prefer saved profile_data when we have a scan id (manual admin upload, completed scans).
             // A stub selectedProfile from manual-scan must not skip this path.
             if (scanId) {
-                const { data: scanRow, error: scanError } = await supabase
-                    .from("quick_scans")
-                    .select("profile_data, converted_to_user_id")
-                    .eq("id", scanId)
-                    .maybeSingle();
+                // quick_scans moved to the `quickscan` schema, which the anon key
+                // has no USAGE grant on — this read goes through a SECURITY
+                // DEFINER RPC that returns only these two fields for one scan id.
+                const { data: scanResult, error: scanError } = await supabase
+                    .rpc("get_quick_scan_profile", { p_scan_id: scanId });
+
+                const scanRow = scanResult?.success ? scanResult : null;
 
                 if (!scanError && scanRow?.profile_data) {
                     const profileData = scanRow.profile_data as QuickScanProfileData;

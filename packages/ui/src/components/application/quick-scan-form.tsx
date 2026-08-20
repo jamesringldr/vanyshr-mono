@@ -360,9 +360,6 @@ export function QuickScanForm({
       return;
     }
 
-    // Let step 1 animation breathe before showing modal
-    await new Promise(resolve => setTimeout(resolve, 3000));
-
     setStatus("complete");
     setView("form");
 

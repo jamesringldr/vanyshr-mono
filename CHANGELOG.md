@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `quickscan.record_phase1_tier()` — atomic create-or-join for the scan row, so the fast and slow Phase 1 tiers converge on one `quick_scans` record instead of racing into two
+- `public.get_pilot_scan_result(uuid)` — read a stored pilot scan back (selected group, enrichment, consolidated profile); honours `purge_after`, returning `expired` rather than serving PII past its deadline
+- `usePilotScanResult()` hook — pilot results are read from the database, with sessionStorage as a fallback so a failed write degrades instead of blanking the page
+- `docs/SCHEMA_REVIEW.md` and `docs/PUNCHLIST.md` — production schema audit and the integration punchlist that came out of it
+- `UNIQUE (session_id)` on `quick_scans`, FK `pending_profiles.source_quick_scan_id → quick_scans` (`ON DELETE SET NULL`), and `purge_after` defaults on the pilot tables
+
 - `scrape_runner.py` — integration test script for running real scrapers (fps, anywho, zabasearch, quickscan) against live endpoints and logging results to `scrape_results` table
 - `tests/` — comprehensive test suite with conftest.py fixtures, test fixtures for anywho/fps/zabasearch, and scraper integration tests
 - `tests/log_scraper_results.py` — database logging for scraper test results
@@ -23,9 +29,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- `pilot-scan` Phase 1 now persists the scan and each tier's raw results; Phase 2 stores the group the user actually selected plus its enrichment, and back-links both onto the scan
+- `promote_pending_profile()` now carries breaches into `public.data_breaches` on conversion instead of discarding enrichment entirely
+- `Phase2Orchestrator` now records enrichment coverage (`services_checked`, `breach_count`, `fields_exposed`) and reports `holehe_status` as `success` / `no_results` / `unavailable`, so "we checked and found nothing" is distinguishable from "we could not check"
+- `pilot-scan` Phase 1 now runs as two tiers (fast Zaba-only call shown immediately, slow FPS+NPD+AnyWho call merged in client-side) instead of one blocking 4-broker call
+- `pilot-scan` Phase 2 now actually scrapes each broker's detail page (`detail-scrapers.ts`, new) instead of re-processing Phase 1 summary data — 20s per-broker timeout, degrades to summary data per broker on failure
+- `phase1-orchestrator` scraper-lab/serv01 fallback is now opt-in (default off) — context.dev is the only Phase 1 path unless explicitly enabled
+- `scraper-lab-client` drops the city-filter retry (a sequential double-job on every metro-name mismatch) in favor of a single state-only search
 - Admin manual scan accepts optional email and creates or updates a pending `user_profiles` row via `create_pending_profile`
 - Pre-profile reuses existing `pendingProfileId` / `converted_to_user_id` so signup skips duplicate profile creation
 - `universal-search` can delegate name searches to a home `scraper-lab` worker when `SCRAPER_LAB_URL` and `SCRAPER_LAB_TOKEN` are set
 - Pre-profile page loads saved `profile_data` when present (e.g. after manual admin upload) instead of being overridden by stub `selectedProfile` state
 - Pre-profile UI: two-column list previews with “N More…”, improved alias normalization, address parsing, and relative age handling
 - Zabasearch and AnyWho scrapers updated to align with shared parse/merge patterns used by admin HTML ingestion
+
+### Fixed
+
+- Pilot scans persisted nothing at all. Phase 1 passed a text id (`pilot-${sessionId}`) into a `uuid NOT NULL` column, so every insert threw on the cast and the error was swallowed — Phase 1 reported success while writing zero rows, and Phase 2 never stored anything. Every scraped profile and paid enrichment result was discarded when the tab closed.
+- Conversion made pre-auth PII permanent. `promote_pending_profile()` set `purge_after = NULL` believing that retired the scan; because `purge_expired()` skips NULLs it did the opposite and exempted the row from purging forever, while it still held the full pre-auth scrape. Now bounded to 30 days.
+- Signup harvested nothing from a pilot scan. `create_pending_profile()` reads `quick_scans.profile_data` in a specific shape; the Phase 2 profile used different keys and types, so phones, emails, addresses and aliases all parsed to empty.
+- Enrichment with zero breaches violated a check constraint. `leakcheck_status` was written as `no_results`, which is not an allowed value — since most people have no breaches, this would have failed the entire enrichment insert on the common path.
+- The scan-timeout cron job had failed every minute since the `quickscan` partition landed (~1,200 runs), because it referenced `quick_scans` unqualified. Scans whose edge function died mid-run were never marked failed.

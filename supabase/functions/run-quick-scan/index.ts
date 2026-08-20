@@ -190,7 +190,7 @@ async function handlePhase1(
 
     // Extract user_id if available
     const { data: scanData } = await supabaseClient
-      .from('quick_scans')
+      .schema('quickscan').from('quick_scans')
       .select('id')
       .eq('id', scan_id)
       .single();
@@ -245,7 +245,7 @@ async function handlePhase1(
     // Update quick_scans table with primary dedup_group_id
     if (dedupGroupIds.length > 0) {
       await supabaseClient
-        .from('quick_scans')
+        .schema('quickscan').from('quick_scans')
         .update({
           status: 'matches_found',
           dedup_group_id: dedupGroupIds[0],
@@ -368,7 +368,7 @@ async function handlePhase2(
 
     // Update quick_scans table
     await supabaseClient
-      .from('quick_scans')
+      .schema('quickscan').from('quick_scans')
       .update({
         status: 'completed',
         enrichment_id: enrichmentId,
@@ -421,7 +421,7 @@ async function handleLegacyPhase2(
     if (fullProfile) {
       // Update quick_scans with the full JSONB profile data
       const { error: updateError } = await supabaseClient
-        .from('quick_scans')
+        .schema('quickscan').from('quick_scans')
         .update({
           status: 'completed',
           profile_data: fullProfile,
