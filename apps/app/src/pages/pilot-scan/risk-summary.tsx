@@ -17,6 +17,8 @@ import {
 import { cx } from "@/utils/cx";
 import { buildAreas, type Finding } from "./scan-result";
 import { usePilotScanResult } from "./use-pilot-scan-result";
+import { RiskSummarySkeleton } from "./risk-summary-skeleton";
+import { PilotExpiredPage } from "./expired";
 
 const DRAWER_EASE = [0.2, 0, 0, 1] as const;
 const LEVEL_BARS = 4;
@@ -148,11 +150,21 @@ export function PilotRiskSummaryPage() {
   const prefersReducedMotion = useReducedMotion();
   // Database-first with a sessionStorage fallback, so a refresh or a return
   // visit from an emailed link renders the same report the scan produced.
-  const { result, error } = usePilotScanResult();
-  const { group, areas } = useMemo(() => buildAreas(result), [result]);
+  const { result, error, enrichment, hydrating } = usePilotScanResult();
+  const { group, areas } = useMemo(() => buildAreas(result, enrichment), [result, enrichment]);
   const [activeArea, setActiveArea] = useState<AreaView | null>(null);
   const [stamp] = useState(() => formatDeviceStamp(new Date()));
   const personName = scanPersonName(group?.name);
+
+  // Show expired screen if the scan result has passed its retention deadline
+  if (error === "expired") {
+    return <PilotExpiredPage />;
+  }
+
+  // Show skeleton while database read is in flight
+  if (hydrating) {
+    return <RiskSummarySkeleton />;
+  }
 
   const byId = useMemo(() => {
     const map = new Map(areas.map((a) => [a.id, a]));

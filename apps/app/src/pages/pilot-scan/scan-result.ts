@@ -53,6 +53,27 @@ export type Finding = {
   source?: string;
 };
 
+/**
+ * Phase 2 enrichment data returned by get_pilot_scan_result().
+ * All fields are optional; presence indicates the check was run.
+ */
+export type EnrichmentData = {
+  emails_found?: string[];
+  services_found?: string[];
+  breaches?: Array<{
+    name: string;
+    date?: string;
+    exposures?: number;
+    url?: string;
+  }>;
+  breach_count?: number;
+  holehe_status?: "success" | "no_results" | "unavailable" | "pending" | "failed" | "no_auth" | "timeout";
+  leakcheck_status?: "success" | "no_results" | "unavailable" | "pending" | "failed" | "no_auth" | "timeout";
+  services_checked?: number;
+  services_unavailable?: number | null;
+  fields_exposed?: string[];
+};
+
 export type AreaId =
   | "critical"
   | "scam"
@@ -317,7 +338,7 @@ export function mergeScanResults(fast: ScanResult | null, slow: ScanResult | nul
   };
 }
 
-export function buildAreas(result: ScanResult | null) {
+export function buildAreas(result: ScanResult | null, enrichment?: EnrichmentData | null) {
   const group = primaryGroup(result);
   const others = (result?.dedup_groups ?? []).slice(1);
   const members = group?.members ?? [];
@@ -329,6 +350,8 @@ export function buildAreas(result: ScanResult | null) {
   const addresses: Finding[] = [];
   const previous: Finding[] = [];
   const listings: Finding[] = [];
+  const holehe: Finding[] = [];
+  const breaches: Finding[] = [];
   const ages: Finding[] = [];
   const names: Finding[] = [];
 
@@ -366,6 +389,35 @@ export function buildAreas(result: ScanResult | null) {
     }
   }
 
+  // Phase 2: Holehe services (only if the check actually ran)
+  if (enrichment?.holehe_status === "success" || enrichment?.holehe_status === "no_results") {
+    const services = enrichment.services_found ?? [];
+    for (const service of services) {
+      holehe.push({
+        label: "Account found",
+        value: service.charAt(0).toUpperCase() + service.slice(1),
+      });
+    }
+  }
+
+  // Phase 2: Leakcheck breaches
+  if (enrichment?.breaches && enrichment.breaches.length > 0) {
+    for (const breach of enrichment.breaches) {
+      const parts = [];
+      if (breach.date) parts.push(breach.date);
+      if (breach.exposures) {
+        const millions = (breach.exposures / 1000000).toFixed(1);
+        parts.push(`${millions}M exposed`);
+      }
+      const value = parts.length > 0 ? parts.join(" · ") : breach.name;
+      breaches.push({
+        label: "Data breach",
+        value: breach.name && breach.name !== value ? `${breach.name} (${value})` : value,
+        ...(breach.url ? undefined : {}),
+      });
+    }
+  }
+
   const uniqAddresses = unique(addresses.map((a) => a.value));
   const ageConflict = Boolean(group?.age_conflict);
 
@@ -387,11 +439,20 @@ export function buildAreas(result: ScanResult | null) {
   }
   if (addresses[0]) criticalItems.push(addresses[0]);
 
-  const otherItems: Finding[] = others.map((g, i) => ({
-    label: `Other match ${i + 1}`,
-    value: [g.name, g.age ? `age ${g.age}` : "", g.city, g.state].filter(Boolean).join(" · "),
-    source: (g.sources ?? []).map(brokerLabel).join(", "),
-  }));
+  // Add the most recent breach to critical area (if any)
+  if (breaches.length > 0) {
+    criticalItems.push(breaches[0]);
+  }
+
+  const otherItems: Finding[] = [
+    ...others.map((g, i) => ({
+      label: `Other match ${i + 1}`,
+      value: [g.name, g.age ? `age ${g.age}` : "", g.city, g.state].filter(Boolean).join(" · "),
+      source: (g.sources ?? []).map(brokerLabel).join(", "),
+    })),
+    // Move broker listings to other area
+    ...listings,
+  ];
 
   function score(count: number, cap: number, extra = 0) {
     return Math.min(1, Math.max(0.08, count / cap + extra));
@@ -404,14 +465,19 @@ export function buildAreas(result: ScanResult | null) {
       {
         id: "critical" as const,
         label: "Critical",
-        summary: criticalItems.length
-          ? `${criticalItems.length} urgent exposure${criticalItems.length === 1 ? "" : "s"}`
-          : "No critical flags in this scan",
+        summary: (() => {
+          const parts = [];
+          if (breaches.length > 0) parts.push(`${breaches.length} breach${breaches.length === 1 ? "" : "es"}`);
+          if (group?.sources?.length) parts.push(`${group.sources.length} broker${group.sources.length === 1 ? "" : "s"}`);
+          if (ageConflict) parts.push("age conflict");
+          if (uniqAddresses.length > 1) parts.push("address conflict");
+          return parts.length > 0 ? parts.join(", ") : "No critical flags in this scan";
+        })(),
         detail:
-          "The details that make you easiest to find and impersonate — how many brokers have you, whether they agree on who you are, and your current address.",
+          "Data breaches, people-search listings, and the details that make you easiest to find and impersonate — how many brokers have you, whether they agree on who you are, and your current address.",
         score: score(
-          (group?.sources?.length ?? 0) + (ageConflict ? 2 : 0) + (uniqAddresses.length > 1 ? 1 : 0),
-          6,
+          (group?.sources?.length ?? 0) + (breaches.length ? 3 : 0) + (ageConflict ? 2 : 0) + (uniqAddresses.length > 1 ? 1 : 0),
+          10,
         ),
         items: criticalItems,
       },
@@ -465,13 +531,28 @@ export function buildAreas(result: ScanResult | null) {
       {
         id: "accounts" as const,
         label: "Accounts",
-        summary: listings.length
-          ? `${listings.length} public listing${listings.length === 1 ? "" : "s"}`
-          : "No listings captured",
+        summary: (() => {
+          // Show account discovery status: found, checked/none, or not checked
+          if (enrichment?.holehe_status === "success" && holehe.length > 0) {
+            return `${holehe.length} account${holehe.length === 1 ? "" : "s"} found`;
+          }
+          if (enrichment?.holehe_status === "no_results") {
+            return "None found on monitored services";
+          }
+          if (enrichment?.holehe_status === "unavailable" || !enrichment?.holehe_status) {
+            return "Account check unavailable";
+          }
+          return "Checking accounts…";
+        })(),
         detail:
-          "People-search profiles we found. These are public pages anyone can open — not your bank or email logins, but they often link to both.",
-        score: score(listings.length, 4),
-        items: listings,
+          "Accounts we found linked to your identity on popular services. These are places where attackers might try to reset passwords or access data.",
+        score: score(
+          enrichment?.holehe_status === "success" || enrichment?.holehe_status === "no_results"
+            ? holehe.length
+            : 0,
+          6,
+        ),
+        items: holehe,
       },
       {
         id: "family" as const,
