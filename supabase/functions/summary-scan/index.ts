@@ -85,6 +85,11 @@ serve(async (req) => {
     // row ids to stamp match_group_id onto.
     const stored = new Map<string, StoredRow>();
     const summaryCounts: Record<string, number> = {};
+    // Zaba candidates for the frontend's selection modal — the only target
+    // with full-profile-grade data at this point, so the only one worth
+    // returning here. Shaped like the old pilot-scan ScanMember the modal
+    // already knows how to render.
+    const zabaCandidates: Record<string, unknown>[] = [];
 
     for (const result of Object.values(rawResults) as ScrapeResult[]) {
       summaryCounts[result.broker] = result.summaries.length;
@@ -99,13 +104,39 @@ serve(async (req) => {
           ? await writeFullProfile(supabase, quickscanId, summary)
           : await writeSummary(supabase, quickscanId, summary);
         if (row) stored.set(candidateKey(summary), row);
+        if (row && summary.broker === BrokerName.ZABA) {
+          zabaCandidates.push({
+            broker: summary.broker,
+            name: summary.full_name,
+            address: summary.address,
+            age: summary.age,
+            age_range: summary.age_range,
+            phone: summary.phone,
+            aliases: summary.aliases,
+            relatives: summary.relatives,
+            previous_addresses: summary.previous_addresses,
+            // The frontend's pick action needs this to fold selection into
+            // full-profile-scan's request — see full-profile-scan/index.ts.
+            result_id: row.id,
+          });
+        }
       }
     }
+
+    // No results from any target at all — the "no_data" terminal outcome.
+    // Distinct from "rejected" (user turned down data that did come back),
+    // which is a later, UI-driven write once the fallback flow exists.
+    const totalCandidates = Object.values(summaryCounts).reduce((a, b) => a + b, 0);
 
     await supabase
       .schema("quickscan")
       .from("quickscans")
-      .update({ summary_result_counts: summaryCounts, status: "summary_scan_complete" })
+      .update({
+        summary_result_counts: summaryCounts,
+        status: "summary_scan_complete",
+        deepest_page: "select_profile",
+        ...(totalCandidates === 0 ? { match_outcome: "no_data" } : {}),
+      })
       .eq("id", quickscanId);
 
     // Cluster everything — no user pick exists yet. deduplicate() (unlike
@@ -166,6 +197,7 @@ serve(async (req) => {
         summary_result_counts: summaryCounts,
         candidates_stored: stored.size,
         match_groups: groupsStored,
+        zaba_candidates: zabaCandidates,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
