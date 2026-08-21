@@ -210,6 +210,13 @@ export function PilotLoadingPage() {
   const [region, setRegion] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [emailCandidates, setEmailCandidates] = useState<string[]>([]);
+  // The modal itself has no loading state — Confirm triggers real Holehe
+  // (subprocess, several seconds) + Leakcheck (paced ~7s/email) calls with
+  // nothing visible happening until they finish. Hide the modal the instant
+  // Confirm is clicked so the step list underneath (already showing
+  // "Finding exposed accounts" / "Scanning Dark Web" for this phase) reads
+  // as progress instead of a frozen button.
+  const [isConfirming, setIsConfirming] = useState(false);
 
   const zabaRef = useRef<ZabaCandidate[]>([]);
   const quickScanIdRef = useRef<string | null>(null);
@@ -314,6 +321,8 @@ export function PilotLoadingPage() {
   }
 
   async function handleEmailsConfirmed(emails: string[]) {
+    setIsConfirming(true);
+
     const quickscanId = quickScanIdRef.current;
     if (!quickscanId) {
       go("report");
@@ -465,7 +474,7 @@ export function PilotLoadingPage() {
 
       {phase === "emails" ? (
         <EmailConfirmationModal
-          isOpen
+          isOpen={!isConfirming}
           key={unique(emailCandidates).join("|") || "empty"}
           initialEmails={unique(emailCandidates)}
           onConfirm={handleEmailsConfirmed}
