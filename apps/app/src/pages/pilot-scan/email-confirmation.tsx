@@ -106,14 +106,26 @@ export function EmailConfirmationModal({
     setError(null);
   };
 
+  // Drives both the label and the styling: the action is always available,
+  // but it should read as "skip" rather than "confirm" when there is nothing
+  // to confirm.
+  const hasEmails = emails.some((e) => e.value.trim());
+
   const handleConfirm = () => {
-    const validEmails = emails.filter(
-      (e) => e.value.trim() && /\S+@\S+\.\S+/.test(e.value)
-    );
-    if (validEmails.length === 0) {
-      setError("Please add at least one valid email");
+    const filled = emails.filter((e) => e.value.trim());
+    const validEmails = filled.filter((e) => /\S+@\S+\.\S+/.test(e.value));
+
+    // Something was typed but none of it parses — that is a genuine mistake and
+    // worth blocking on. An EMPTY list is not: some scans legitimately turn up
+    // no email at all (Zabasearch masks its addresses at source, so a
+    // zaba-only identification has none), and Phase 2 extracts its own from
+    // the broker detail pages regardless. Blocking here strands the user with
+    // no way forward and no enrichment ever runs.
+    if (filled.length > 0 && validEmails.length === 0) {
+      setError("That does not look like a valid email address");
       return;
     }
+
     onConfirm(validEmails.map((e) => e.value));
   };
 
@@ -292,15 +304,14 @@ export function EmailConfirmationModal({
             <button
               type="button"
               onClick={handleConfirm}
-              disabled={emails.filter((e) => e.value.trim()).length === 0}
               className={cx(
                 "flex-1 rounded-lg py-2.5 font-semibold transition",
-                emails.filter((e) => e.value.trim()).length > 0
+                hasEmails
                   ? "bg-[#00BFFF] text-[#022136] hover:bg-[#00D4FF]"
-                  : "bg-[#2A4A68] text-[#7A92A8] cursor-not-allowed",
+                  : "bg-[#1B4A63] text-[#9FD9F5] hover:bg-[#1F5678]",
               )}
             >
-              Confirm emails
+              {hasEmails ? "Confirm emails" : "Continue without emails"}
             </button>
           </div>
         </motion.div>

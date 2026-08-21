@@ -371,17 +371,34 @@ export function PilotLoadingPage() {
     sessionStorage.setItem("pilotConfirmedEmails", JSON.stringify(emails));
     setShowEmailConfirmation(false);
 
-    // Now proceed with Phase 2 using the confirmed emails
-    if (!pendingProfileId) {
+    // Now proceed with Phase 2 using the confirmed emails.
+    //
+    // Both guards below used to fail SILENTLY: the flow moved on to the risk
+    // summary, Phase 2 was never invoked, and nothing was written to the
+    // database -- with no error anywhere. That is exactly what it looks like
+    // when a scan "works" but stores nothing, so they now say so out loud.
+    const merged = mergedResultRef.current;
+    const groups = merged?.dedup_groups ?? [];
+    const group = pendingProfileId
+      ? groups.find((g, i) => (g.id || `group-${i}`) === pendingProfileId)
+      : undefined;
+
+    if (!group) {
+      console.error(
+        "Phase 2 SKIPPED — no group to enrich, nothing will be stored for this scan.",
+        {
+          pendingProfileId,
+          groupCount: groups.length,
+          availableIds: groups.map((g, i) => g.id || `group-${i}`),
+          quickScanId: merged?.quick_scan_id ?? null,
+        },
+      );
+      sessionStorage.removeItem("pilotPhase2Result");
       setConfirmed(true);
       return;
     }
 
-    const merged = mergedResultRef.current;
-    const groups = merged?.dedup_groups ?? [];
-    const group = groups.find((g, i) => (g.id || `group-${i}`) === pendingProfileId);
-
-    if (group) {
+    {
       try {
         const { data, error } = await supabase.functions.invoke("pilot-scan", {
           body: {
