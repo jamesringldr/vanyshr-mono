@@ -1,19 +1,36 @@
 /**
- * Holehe Enricher
- * Enriches email addresses with online services using Holehe.
+ * Holehe Enricher — which online services an email address is registered with.
  *
- * Stock holehe ships 121 modules. We only keep the high-value consumer
- * names (see HIGH_VALUE_SERVICES). Niche hits (dominos.fr, forums, adult
- * sites, B2B CRMs) are dropped before they reach the hex.
+ * The previous version of this module called https://api.holehe.io, a
+ * hostname that does not resolve — account enrichment never worked. Holehe
+ * (github.com/megadose/holehe) is a CLI, not a hosted API, and Deno edge
+ * functions cannot shell out to a Python subprocess. It now runs as a small
+ * FastAPI service on serv02 (Docker, Tailscale Funnel for public reach —
+ * see workers/holehe/ in vanyshr-scraper-sequence for the source this was
+ * built from, and holehe_allowlist.py there for the server-side high-value
+ * allowlist: Vanyshr checks ~37 recognizable consumer sites, not holehe's
+ * full 121).
+ *
+ * The canonicalization/priority-ordering layer below (HIGH_VALUE_SERVICES,
+ * canonicalServiceName, isHighValueService) is separate, parallel work
+ * merged in from staging (dev/pilot-scan-schema) — display names and
+ * ordering for the pilot-scan accounts hex. Its allowed-service set is a
+ * strict superset of the server-side allowlist, so applying it here is
+ * pure filtering/display value, never drops a real hit.
+ *
+ * Enable with Supabase secrets HOLEHE_SERVICE_URL + HOLEHE_SERVICE_TOKEN.
  */
 
-/**
- * Holehe API response structure
- */
-interface HoleheResponse {
-  email: string;
-  exists: boolean;
-  services: Record<string, boolean | { username?: string; url?: string }>;
+function serviceEnabled(): boolean {
+  return Boolean(Deno.env.get("HOLEHE_SERVICE_URL") && Deno.env.get("HOLEHE_SERVICE_TOKEN"));
+}
+
+interface HoleheServiceResponse {
+  status: "success" | "invalid_email" | "timeout" | "error";
+  services_found?: string[];
+  services_checked?: number;
+  services_rate_limited?: number;
+  error?: string;
 }
 
 /**
@@ -109,12 +126,33 @@ function priorityIndex(raw: string): number {
   return HIGH_VALUE_SERVICES.indexOf(canonicalServiceName(raw));
 }
 
+function byPriority(a: string, b: string): number {
+  const aPriority = priorityIndex(a);
+  const bPriority = priorityIndex(b);
+  if (aPriority !== -1 && bPriority !== -1) return aPriority - bPriority;
+  if (aPriority !== -1) return -1;
+  if (bPriority !== -1) return 1;
+  return a.localeCompare(b);
+}
+
+/** Filter to the high-value set, canonicalize names, sort by display priority. */
+function canonicalize(services: string[]): string[] {
+  const names = new Set<string>();
+  for (const raw of services) {
+    if (isHighValueService(raw)) names.add(canonicalServiceName(raw));
+  }
+  return Array.from(names).sort(byPriority);
+}
+
+export type HoleheStatus = "success" | "invalid_email" | "unavailable" | "timeout" | "error";
+
 /**
  * Holehe enrichment result
  */
 export interface HoleheResult {
   success: boolean;
   email: string;
+  status: HoleheStatus;
   services: string[];
   count: number;
   /**
@@ -127,160 +165,82 @@ export interface HoleheResult {
   error?: string;
 }
 
+function holeheResult(email: string, status: HoleheStatus, timingMs: number, extra: Partial<HoleheResult> = {}): HoleheResult {
+  return {
+    success: status === "success",
+    email,
+    status,
+    services: [],
+    count: 0,
+    services_checked: 0,
+    timing_ms: timingMs,
+    ...extra,
+  };
+}
+
 /**
  * Enrich email with Holehe to find online services
- * @param email Email address to enrich
- * @param timeout Request timeout in milliseconds
+ * @param email Email address to check
+ * @param timeout Request timeout in milliseconds — the service call itself
+ *   runs the CLI and can take tens of seconds; budget accordingly.
  * @returns Holehe enrichment result
  */
-export async function enrichWithHolehe(email: string, timeout: number = 30000): Promise<HoleheResult> {
+export async function enrichWithHolehe(email: string, timeout: number = 90000): Promise<HoleheResult> {
   const startTime = Date.now();
+  const normalized = (email || "").trim().toLowerCase();
 
-  try {
-    // Validate email
-    if (!email || !email.includes("@")) {
-      return {
-        success: false,
-        email: email,
-        services: [],
-        count: 0,
-        services_checked: 0,
-        timing_ms: Date.now() - startTime,
-        error: "Invalid email format",
-      };
-    }
-
-    console.log(`🔍 Enriching ${email} with Holehe...`);
-
-    // Call Holehe API
-    const response = await callHoleheAPI(email, timeout);
-
-    if (!response) {
-      return {
-        success: false,
-        email: email,
-        services: [],
-        count: 0,
-        services_checked: 0,
-        timing_ms: Date.now() - startTime,
-        error: "No response from Holehe API",
-      };
-    }
-
-    // Extract services from response
-    const services = extractServices(response);
-
-    console.log(`✓ Holehe found ${services.length} services for ${email}`);
-
-    return {
-      success: true,
-      email: email,
-      services: services,
-      count: services.length,
-      // Every key the API answered for, not just the hits.
-      services_checked: countCheckedServices(response),
-      timing_ms: Date.now() - startTime,
-    };
-  } catch (error) {
-    const timingMs = Date.now() - startTime;
-    const errorMsg = (error as Error).message;
-
-    console.error(`✗ Holehe enrichment failed for ${email}:`, errorMsg);
-
-    return {
-      success: false,
-      email: email,
-      services: [],
-      count: 0,
-      services_checked: 0,
-      timing_ms: timingMs,
-      error: errorMsg,
-    };
+  if (!normalized || !normalized.includes("@")) {
+    return holeheResult(normalized, "invalid_email", Date.now() - startTime, { error: "Invalid email format" });
   }
-}
 
-/**
- * Call Holehe API
- * Uses hosted Holehe CLI at https://api.holehe.io/v1/email
- *
- * @param email Email to check
- * @param timeout Request timeout
- * @returns Holehe response or null on error
- */
-async function callHoleheAPI(email: string, timeout: number): Promise<HoleheResponse | null> {
+  if (!serviceEnabled()) {
+    return holeheResult(normalized, "unavailable", Date.now() - startTime, {
+      error: "HOLEHE_SERVICE_URL / HOLEHE_SERVICE_TOKEN not configured",
+    });
+  }
+
+  const base = (Deno.env.get("HOLEHE_SERVICE_URL") ?? "").replace(/\/$/, "");
+  const token = Deno.env.get("HOLEHE_SERVICE_TOKEN") ?? "";
+
   try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeout);
-
-    const response = await fetch(`https://api.holehe.io/v1/email?email=${encodeURIComponent(email)}`, {
-      method: "GET",
-      signal: controller.signal,
+    const response = await fetch(`${base}/v1/holehe/check`, {
+      method: "POST",
       headers: {
-        "User-Agent": "Vanyshr-QuickScan/1.0",
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
       },
+      body: JSON.stringify({ email: normalized }),
+      signal: AbortSignal.timeout(timeout),
     });
 
-    clearTimeout(timeoutId);
+    const timingMs = Date.now() - startTime;
 
     if (!response.ok) {
-      console.error(`Holehe API error: ${response.status} ${response.statusText}`);
-      return null;
+      return holeheResult(normalized, "error", timingMs, { error: `Holehe service HTTP ${response.status}` });
     }
 
-    const data = await response.json() as HoleheResponse;
-    return data;
+    const data = await response.json() as HoleheServiceResponse;
+
+    if (data.status !== "success") {
+      const status: HoleheStatus = data.status === "invalid_email" || data.status === "timeout" ? data.status : "error";
+      return holeheResult(normalized, status, timingMs, { error: data.error || data.status });
+    }
+
+    // The server already filters to its own high-value allowlist; canonicalize
+    // here too so display names/order match everywhere this result is read.
+    const services = canonicalize(data.services_found ?? []);
+    return holeheResult(normalized, "success", timingMs, {
+      services,
+      count: services.length,
+      services_checked: data.services_checked ?? 0,
+    });
   } catch (error) {
-    if ((error as Error).name === "AbortError") {
-      throw new Error("Holehe API timeout");
-    }
-    throw error;
+    const timingMs = Date.now() - startTime;
+    const timedOut = error instanceof DOMException && error.name === "TimeoutError";
+    return holeheResult(normalized, timedOut ? "timeout" : "error", timingMs, {
+      error: timedOut ? "Holehe service timeout" : (error as Error).message,
+    });
   }
-}
-
-/**
- * Count the services the API actually returned a verdict for.
- *
- * extractServices() keeps only the hits, which loses the denominator. Without
- * it, zero services found is indistinguishable from zero services checked --
- * and reporting "no exposed accounts" when nothing was checked is the worst
- * available failure direction.
- */
-export function countCheckedServices(response: HoleheResponse): number {
-  if (!response.services || typeof response.services !== "object") return 0;
-  return Object.keys(response.services).filter(isHighValueService).length;
-}
-
-/**
- * Extract services from Holehe response
- * Returns services in priority order (most relevant first)
- *
- * @param response Holehe API response
- * @returns Array of service names
- */
-export function extractServices(response: HoleheResponse): string[] {
-  if (!response.services || typeof response.services !== "object") {
-    return [];
-  }
-
-  const foundServices: string[] = [];
-
-  for (const [service, value] of Object.entries(response.services)) {
-    if (!isHighValueService(service)) continue;
-    if (value === true || (typeof value === "object" && value !== null)) {
-      foundServices.push(service);
-    }
-  }
-
-  foundServices.sort((a, b) => {
-    const aPriority = priorityIndex(a);
-    const bPriority = priorityIndex(b);
-    if (aPriority !== -1 && bPriority !== -1) return aPriority - bPriority;
-    if (aPriority !== -1) return -1;
-    if (bPriority !== -1) return 1;
-    return a.localeCompare(b);
-  });
-
-  return foundServices;
 }
 
 /**
@@ -289,10 +249,11 @@ export function extractServices(response: HoleheResponse): string[] {
  * @param timeout Per-email timeout
  * @returns Array of results (in parallel, up to 3 at a time)
  */
-export async function enrichMultipleEmails(emails: string[], timeout: number = 30000): Promise<HoleheResult[]> {
+export async function enrichMultipleEmails(emails: string[], timeout: number = 90000): Promise<HoleheResult[]> {
   const results: HoleheResult[] = [];
 
-  // Process in batches of 3 to avoid overwhelming the API
+  // Process in batches of 3 — each call runs a real subprocess on serv02, so
+  // this stays gentler on that box than firing every email at once.
   for (let i = 0; i < emails.length; i += 3) {
     const batch = emails.slice(i, i + 3);
     const batchResults = await Promise.all(batch.map((email) => enrichWithHolehe(email, timeout)));
@@ -305,7 +266,7 @@ export async function enrichMultipleEmails(emails: string[], timeout: number = 3
 /**
  * Deduplicate services from multiple enrichment results
  * @param results Array of enrichment results
- * @returns Deduplicated, sorted service names
+ * @returns Deduplicated, priority-sorted service names
  */
 export function deduplicateServices(results: HoleheResult[]): string[] {
   const serviceSet = new Set<string>();
@@ -318,17 +279,7 @@ export function deduplicateServices(results: HoleheResult[]): string[] {
     }
   }
 
-  const services = Array.from(serviceSet).filter(isHighValueService);
-  services.sort((a, b) => {
-    const aPriority = priorityIndex(a);
-    const bPriority = priorityIndex(b);
-    if (aPriority !== -1 && bPriority !== -1) return aPriority - bPriority;
-    if (aPriority !== -1) return -1;
-    if (bPriority !== -1) return 1;
-    return a.localeCompare(b);
-  });
-
-  return services;
+  return Array.from(serviceSet).sort(byPriority);
 }
 
 /**
@@ -351,6 +302,6 @@ export function aggregateHoleheResults(results: HoleheResult[]) {
     services_checked: results.reduce((sum, r) => sum + r.services_checked, 0),
     services: allServices,
     total_timing_ms: totalTiming,
-    average_timing_ms: Math.round(totalTiming / results.length),
+    average_timing_ms: results.length ? Math.round(totalTiming / results.length) : 0,
   };
 }

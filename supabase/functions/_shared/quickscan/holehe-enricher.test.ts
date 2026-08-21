@@ -1,13 +1,15 @@
 /**
  * Holehe enricher — high-value allowlist
  * Run: deno test supabase/functions/_shared/quickscan/holehe-enricher.test.ts
+ *
+ * extractServices()/countCheckedServices() from the earlier version of this
+ * test are gone — they parsed a raw HoleheResponse.services map, a shape
+ * that only existed because the old code called a REST API directly. The
+ * real integration is a hosted service (see holehe-enricher.ts) that
+ * returns already-parsed services_found/services_checked, so there's
+ * nothing left client-side to extract from a raw response.
  */
-import {
-  canonicalServiceName,
-  countCheckedServices,
-  extractServices,
-  isHighValueService,
-} from "./holehe-enricher.ts";
+import { canonicalServiceName, isHighValueService } from "./holehe-enricher.ts";
 
 function assert(cond: unknown, msg: string) {
   if (!cond) throw new Error(msg);
@@ -34,33 +36,4 @@ Deno.test("canonical names collapse aliases", () => {
   assert(canonicalServiceName("x.com") === "twitter", "x.com");
   assert(canonicalServiceName("en.gravatar.com") === "gravatar", "gravatar");
   assert(canonicalServiceName("any.do") === "anydo", "any.do");
-});
-
-Deno.test("extractServices returns only high-value hits, priority first", () => {
-  const services = extractServices({
-    email: "a@b.com",
-    exists: true,
-    services: {
-      "dominos.fr": true,
-      twitter: true,
-      github: true,
-      pornhub: true,
-      wordpress: { url: "https://wordpress.com" },
-    },
-  });
-  assert(JSON.stringify(services) === JSON.stringify(["github", "twitter", "wordpress"]), String(services));
-});
-
-Deno.test("countCheckedServices ignores niche keys", () => {
-  const n = countCheckedServices({
-    email: "a@b.com",
-    exists: false,
-    services: {
-      twitter: false,
-      "dominos.fr": false,
-      instagram: false,
-      pornhub: false,
-    },
-  });
-  assert(n === 2, `checked=${n}`);
 });
