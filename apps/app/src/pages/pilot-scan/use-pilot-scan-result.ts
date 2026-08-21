@@ -52,21 +52,18 @@ function storedScanId(): string | null {
 /**
  * Pilot scan results, database-first with a sessionStorage fallback.
  *
- * Renders immediately from sessionStorage so there is no blank frame and no
- * regression when the scan is still in the tab that produced it, then replaces
- * that with the stored record once the read returns. The fallback is what keeps
- * a failed write from turning into an empty results page — persistence in this
- * flow is best-effort by design (see supabase/functions/pilot-scan/index.ts).
- *
- * The database copy wins when both exist: it is the one that survives a
- * refresh, a new tab, or a return visit from an emailed link.
+ * Renders skeleton until the database read completes. On success, displays the
+ * stored record (which survives a refresh, new tab, or return visit from an
+ * emailed link). On failure (including `expired`, which is a correct answer not
+ * a fault), falls back to sessionStorage so a failed write doesn't blank the page.
+ * Persistence in this flow is best-effort by design (see supabase/functions/pilot-scan/index.ts).
  */
 export function usePilotScanResult(): PilotScanState {
   const [state, setState] = useState<PilotScanState>(() => {
-    const { result, error } = loadScanResult();
+    // Start with skeleton, no data yet — hydrating flag drives the UI
     return {
-      result,
-      error,
+      result: null,
+      error: null,
       enrichment: null,
       consolidatedProfile: null,
       hydrating: true,
@@ -77,7 +74,16 @@ export function usePilotScanResult(): PilotScanState {
   useEffect(() => {
     const scanId = storedScanId();
     if (!scanId) {
-      setState((prev) => ({ ...prev, hydrating: false }));
+      // No session ID: try fallback and stop hydrating
+      const { result, error } = loadScanResult();
+      setState({
+        result,
+        error,
+        enrichment: null,
+        consolidatedProfile: null,
+        hydrating: false,
+        source: "session",
+      });
       return;
     }
 
@@ -92,39 +98,44 @@ export function usePilotScanResult(): PilotScanState {
 
       const payload = data as PilotScanRpcResponse | null;
 
-      // Any failure — RPC error, not_found, expired — leaves the sessionStorage
-      // copy in place rather than blanking the page. `expired` in particular is
-      // a correct answer, not a fault: the scan is past its retention deadline.
+      // Any failure — RPC error, not_found, expired — falls back to sessionStorage
+      // rather than blanking the page. Store the error for the expired case.
       if (error || !payload?.success) {
         if (error) console.warn("Pilot scan read-back failed:", error.message);
-        setState((prev) => ({ ...prev, hydrating: false }));
+        const { result: fallback, error: fallbackError } = loadScanResult();
+        setState({
+          result: fallback,
+          error: fallbackError || payload?.error || null,
+          enrichment: null,
+          consolidatedProfile: null,
+          hydrating: false,
+          source: "session",
+        });
         return;
       }
 
-      setState((prev) => {
-        const group = payload.selected_group
-          ? storedGroupToScanGroup(payload.selected_group)
-          : null;
+      const group = payload.selected_group
+        ? storedGroupToScanGroup(payload.selected_group)
+        : null;
 
-        // Without a stored group there is nothing better than what is already
-        // on screen, so keep it and just attach the enrichment.
-        const result: ScanResult | null = group
-          ? {
-              success: true,
-              quick_scan_id: payload.scan_id ?? scanId,
-              dedup_groups: [group],
-              metadata: prev.result?.metadata,
-            }
-          : prev.result;
+      // Without a stored group there is nothing better than sessionStorage,
+      // but still attach the enrichment from the database read.
+      const result: ScanResult | null = group
+        ? {
+            success: true,
+            quick_scan_id: payload.scan_id ?? scanId,
+            dedup_groups: [group],
+            metadata: undefined,
+          }
+        : loadScanResult().result;
 
-        return {
-          result,
-          error: null,
-          enrichment: payload.enrichment ?? null,
-          consolidatedProfile: payload.consolidated_profile ?? null,
-          hydrating: false,
-          source: group ? "database" : prev.source,
-        };
+      setState({
+        result,
+        error: null,
+        enrichment: payload.enrichment ?? null,
+        consolidatedProfile: payload.consolidated_profile ?? null,
+        hydrating: false,
+        source: group ? "database" : "session",
       });
     })();
 

@@ -10,6 +10,7 @@
  */
 
 import { DedupEngine } from "./DedupEngine.ts";
+import { parseAddress } from "./address-parser.ts";
 import {
   QuickScanInput,
   ScrapeResult,
@@ -274,10 +275,10 @@ export class Phase1Orchestrator {
         rank: rank + 1,
         primary_name: group.members[0]?.summary.full_name || "",
         primary_age: group.members[0]?.summary.age,
-        primary_city:
-          group.members[0]?.summary.address.split(",")[0]?.trim() || "",
-        primary_state:
-          group.members[0]?.summary.address.split(",")[1]?.trim() || "",
+        // Parsed rather than comma-split; see address-parser.ts for why the
+        // naive split produced a street in the city column.
+        primary_city: parseAddress(group.members[0]?.summary.address).city,
+        primary_state: parseAddress(group.members[0]?.summary.address).state,
         average_confidence: this.getAverageConfidence(group),
         age_conflict: group.age_conflict,
         age_note: group.age_note,
