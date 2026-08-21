@@ -461,6 +461,103 @@ Recorded here so it is not re-litigated.
 
 ---
 
+## 7c. Promotion targets for the new fields
+
+**Status: proposed.** The table shapes below are provisional — the exact columns
+should follow what the onboarding `data_verification` screens actually ask a
+user to confirm. Build them when that UI is designed, not before.
+
+### There is no no-man's-land table, and there should not be one
+
+Signup → onboarding is already modelled, and not with a staging table.
+`promote_pending_profile` writes scan data straight into `public.user_*` tagged
+`source='quick_scan'`, `user_confirmed_status='unverified'`. The onboarding step
+`data_verification` (see `initialize_onboarding_steps`: `account_signup` →
+`data_verification` → `notification_settings` → `removal_aggression`) flips each
+row to `confirmed` or `rejected`.
+
+It is live: 108 unverified addresses and 110 unverified phones sit in `public`
+today against 4 and 3 confirmed.
+
+A status column beats a staging table here for four reasons, and the same
+reasoning applies to every new field below:
+
+1. **Confirmation is an UPDATE, not a migration.** No cross-schema copy, so no
+   partial-move failure mode.
+2. **Partial onboarding falls out for free.** Confirm 3 of 10 phones and the
+   rest stay `unverified`. A staging table forces all-or-nothing, or dual reads
+   at every call site.
+3. **Abandonment degrades gracefully.** The rows are already the customer's,
+   merely unconfirmed, and RLS on `public.user_*` already covers them.
+4. **`rejected` must persist.** "We found this, it is not me" has to be
+   remembered or the next scan re-imports it. Deleting the row loses that; a
+   staging table that is dropped on completion loses it too.
+
+### The established pattern to mirror
+
+Every `public.user_*` PII table has the same shape (`user_phones` is the
+reference):
+
+```sql
+id                    uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+user_id               uuid NOT NULL REFERENCES user_profiles(id) ON DELETE CASCADE,
+-- ... payload columns ...
+user_confirmed_status text DEFAULT 'unverified'
+                        CHECK (user_confirmed_status IN ('unverified','confirmed','rejected')),
+confirmed_at          timestamptz,
+source                text DEFAULT 'user_input' CHECK (source IN (...)),
+is_active             boolean DEFAULT true,      -- soft delete
+created_at            timestamptz DEFAULT now(),
+updated_at            timestamptz DEFAULT now()
+```
+
+Plus two RLS policies: `service_role` ALL `true`, and
+`user_id = get_current_user_profile_id()` for the owner.
+
+### ⚠️ The `source` CHECK needs widening first
+
+Existing values are `anywho | zabasearch | both | quick_scan | user_input |
+scan_discovery`. **`fps` and `npd` are not in the list.** Nothing breaks today
+because `promote_pending_profile` writes the generic `quick_scan`, but the
+moment per-broker provenance is recorded — which §7b's field-authority model
+implies — those inserts will fail the constraint. Widen it in the same migration
+that adds the tables.
+
+### Proposed tables
+
+| Table | Payload columns | Dedupe key | Source of truth |
+|---|---|---|---|
+| `user_jobs` | `title`, `employer`, `employer_normalized`, `location`, `start_date`, `end_date`, `is_current` | `(user_id, employer_normalized, title)` | **fps** (§7b) |
+| `user_education` | `institution`, `degree`, `field_of_study`, `year` | `(user_id, institution, degree)` | **zaba** (§7b) |
+| `user_properties` | `full_address`, `street`, `city`, `state`, `zip`, `county`, `bedrooms`, `bathrooms`, `square_feet`, `year_built`, `estimated_value`, `is_current_residence` | `(user_id, street, zip)` | **fps** (§7b) |
+| `user_financial_summary` | `net_worth`, `asset_count`, `as_of` | `(user_id)` — one row | **anywho** (§7b) |
+
+Notes:
+
+- `employer_normalized` exists so "Ehawk, Inc" and "Ehawk," dedupe to one job
+  (§7b). Store the best-formatted variant in `employer` and match on the
+  normalised one, exactly as addresses do.
+- `bathrooms` is `numeric`, not `int` — fps publishes `2.5`.
+- `user_financial_summary` is one row per user rather than a list, so `user_id`
+  is UNIQUE. It is still confirmable: a net worth estimate is exactly the kind
+  of claim a user will want to reject.
+- `user_properties` overlaps `public.exposures` conceptually but is not the same
+  thing: `exposures` tracks a broker *listing* through a removal workflow,
+  whereas this is the property itself as an attribute of the person.
+
+### Promotion
+
+`promote_pending_profile` needs a branch per table, following the breach
+promotion added in `20260820120005`: read from the scan's
+`quickscan_enrichment.consolidated_profile`, insert with
+`source='quick_scan'` and `user_confirmed_status='unverified'`, and use
+`ON CONFLICT DO NOTHING` on the dedupe key so a re-run is idempotent.
+
+Nothing is required on the `quickscan` side — these live inside
+`consolidated_profile` JSONB and need no migration there (§7b).
+
+---
+
 ## 8. What survives, what goes
 
 **Survives unchanged**
