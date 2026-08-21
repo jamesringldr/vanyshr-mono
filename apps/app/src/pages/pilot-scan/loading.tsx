@@ -12,8 +12,8 @@ import {
   QSResultSingleModal,
   type QSProfileSummary,
 } from "@vanyshr/ui/components/application";
-import { summaryToProfile, type ScanMember } from "./scan-result";
-import { EmailConfirmationModal, uniqueEmailValues } from "./email-confirmation";
+import type { ScanMember } from "./scan-result";
+import { EmailConfirmationModal } from "./email-confirmation";
 
 const EASE_OUT = [0.2, 0, 0, 1] as const;
 
@@ -131,8 +131,43 @@ function zabaCandidatesFrom(data: { zaba_candidates?: unknown } | null): ZabaCan
   return list.filter((c): c is ZabaCandidate => Boolean(c && typeof c === "object" && (c as ZabaCandidate).result_id));
 }
 
+function splitList(raw?: string): string[] {
+  if (!raw || typeof raw !== "string") return [];
+  return raw.split(/[,;|]|(?:\s+and\s+)/i).map((s) => s.trim()).filter((s) => s.length > 1);
+}
+
+function unique(values: string[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const v of values) {
+    const key = v.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(v);
+  }
+  return out;
+}
+
+/** Zaba full_profile_results id -> the QSProfileSummary shape the picker modal renders. */
+function zabaToProfile(member: ScanMember, index: number): QSProfileSummary {
+  const ageRaw = member.age;
+  const age = typeof ageRaw === "number" ? ageRaw : ageRaw ? parseInt(String(ageRaw), 10) || undefined : undefined;
+  return {
+    id: member.result_id || `zaba-${index}`,
+    fullName: member.name || "Unknown",
+    age,
+    aliases: unique(splitList(member.aliases)),
+    phones: unique(splitList(member.phone)),
+    relatives: unique(splitList(member.relatives)),
+    currentAddress: member.address ? [member.address] : [],
+  };
+}
+
 function emailsFrom(data: { consolidated_profile?: { emails?: unknown } } | null): string[] {
-  return uniqueEmailValues(data?.consolidated_profile?.emails).filter((e) => !/x{3,}/i.test(e));
+  const raw = data?.consolidated_profile?.emails;
+  const list = Array.isArray(raw) ? raw : [];
+  return unique(list.filter((e): e is string => typeof e === "string" && e.includes("@")))
+    .filter((e) => !/x{3,}/i.test(e));
 }
 
 /** One in-flight invoke per quickscan+function so React Strict Mode doesn't scrape twice. */
@@ -209,7 +244,7 @@ export function PilotLoadingPage() {
         const zaba = zabaCandidatesFrom(data);
         zabaRef.current = zaba;
         sessionStorage.removeItem("pilotScanError");
-        setProfiles(zaba.map((m, i) => summaryToProfile(m, i)));
+        setProfiles(zaba.map((m, i) => zabaToProfile(m, i)));
         go(zaba.length > 0 ? "pick" : "error");
         if (zaba.length === 0) setErrorMessage("No ZabaSearch results for that name and city.");
       })
@@ -430,8 +465,9 @@ export function PilotLoadingPage() {
 
       {phase === "emails" ? (
         <EmailConfirmationModal
-          key={uniqueEmailValues(emailCandidates).join("|") || "empty"}
-          initialEmails={uniqueEmailValues(emailCandidates)}
+          isOpen
+          key={unique(emailCandidates).join("|") || "empty"}
+          initialEmails={unique(emailCandidates)}
           onConfirm={handleEmailsConfirmed}
           onCancel={() => {
             if (phaseRef.current === "emails") go("pick");
