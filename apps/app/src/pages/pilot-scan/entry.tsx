@@ -168,19 +168,33 @@ export function PilotEntryPage() {
     };
   }, [scanIdParam]);
 
-  function handlePilotSubmit(fields: {
+  async function handlePilotSubmit(fields: {
     firstName: string;
     lastName: string;
     zipCode: string;
     city: string;
     state: string;
   }) {
-    // Clear old scan results to force a fresh scan, not cached results
     sessionStorage.removeItem("pilotScanResult");
     sessionStorage.removeItem("pilotScanError");
     sessionStorage.removeItem("pilotPhase2Result");
     sessionStorage.removeItem("pilotConfirmedEmails");
+    sessionStorage.removeItem("pendingScanId");
 
+    const { data, error } = await supabase.functions.invoke("intro-scan", {
+      body: {
+        firstName: fields.firstName,
+        lastName: fields.lastName,
+        zipCode: fields.zipCode,
+        city: fields.city,
+        state: fields.state,
+      },
+    });
+    if (error || data?.error || !data?.id) {
+      throw new Error(error?.message || data?.error || "Could not start scan");
+    }
+
+    sessionStorage.setItem("pendingScanId", data.id);
     sessionStorage.setItem("pilotScanFields", JSON.stringify(fields));
     setIsDrawerOpen(false);
     navigate("/pilot-scan/splash");
