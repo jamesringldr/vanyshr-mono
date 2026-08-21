@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `address-parser.ts` — parses broker address lines into street/city/state/zip, normalising street suffixes (LN ≡ Lane) and state names (Missouri ≡ MO)
+- Given-name canonicalisation in dedup scoring, so Jim ≡ James and Bob ≡ Robert match on merit rather than by fuzzy accident
+- `deblurAnywhoHtml()` — recovers the values AnyWho hides behind a CSS blur, where the real text sits in a `data-content` attribute
+- Email confirmation step, expired-scan screen, and a risk-summary skeleton in the pilot-scan flow
+- `docs/SCAN_SEQUENCE.md` — design for the three-phase scan rework, with per-broker extraction coverage
+- `UNIQUE (quick_scan_id, dedup_group_id)` on `quickscan_enrichment`, and `phase` widened to accept a third phase
+
 - `quickscan.record_phase1_tier()` — atomic create-or-join for the scan row, so the fast and slow Phase 1 tiers converge on one `quick_scans` record instead of racing into two
 - `public.get_pilot_scan_result(uuid)` — read a stored pilot scan back (selected group, enrichment, consolidated profile); honours `purge_after`, returning `expired` rather than serving PII past its deadline
 - `usePilotScanResult()` hook — pilot results are read from the database, with sessionStorage as a fallback so a failed write degrades instead of blanking the page
@@ -29,6 +36,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Dedup scoring now compares parsed address components instead of splitting the raw string on commas
+- AnyWho detail extraction reads emails per card rather than regexing a whole-section blob
+- The scan-timeout reaper only fails scans that stored nothing; scans awaiting a user's selection are left alone, and genuinely abandoned ones expire rather than fail
+- `source` on the harvested-PII tables accepts per-broker provenance (`fps`, `npd`, `zaba`) alongside the existing values
 - `pilot-scan` Phase 1 now persists the scan and each tier's raw results; Phase 2 stores the group the user actually selected plus its enrichment, and back-links both onto the scan
 - `promote_pending_profile()` now carries breaches into `public.data_breaches` on conversion instead of discarding enrichment entirely
 - `Phase2Orchestrator` now records enrichment coverage (`services_checked`, `breach_count`, `fields_exposed`) and reports `holehe_status` as `success` / `no_results` / `unavailable`, so "we checked and found nothing" is distinguishable from "we could not check"
@@ -44,6 +55,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Zabasearch and AnyWho scrapers updated to align with shared parse/merge patterns used by admin HTML ingestion
 
 ### Fixed
+
+- One person came back as two results. Brokers format addresses four different ways, and a naive `split(",")` turned the street into the city and produced a different "state" per broker — so two records at the identical street address scored as a location mismatch and never merged.
+- AnyWho emails and phone numbers arrived truncated. AnyWho does not redact server-side; it splits a value across spans and hides one fragment in a `data-content` attribute behind a CSS blur. Every email was cut to its first character. AnyWho is the pipeline's primary email source, so the breach and exposed-account checks had almost nothing real to run on.
+- The scan-timeout reaper was failing live sessions. It marks anything sitting in `scanning` for two minutes as failed, but the pilot flow stays in that state while the user chooses which profile is theirs — so real scans were being killed mid-session with complete results already stored.
+- The email confirmation step could trap the user. With nothing extracted, the confirm button stayed disabled and the only other control reopened the picker; enrichment was never invoked and nothing reached the database. An empty list is a legitimate outcome — Zabasearch masks its addresses at source — so the step is now always passable.
+- Debug logging that printed member emails to the browser console was removed before release.
 
 - Pilot scans persisted nothing at all. Phase 1 passed a text id (`pilot-${sessionId}`) into a `uuid NOT NULL` column, so every insert threw on the cast and the error was swallowed — Phase 1 reported success while writing zero rows, and Phase 2 never stored anything. Every scraped profile and paid enrichment result was discarded when the tab closed.
 - Conversion made pre-auth PII permanent. `promote_pending_profile()` set `purge_after = NULL` believing that retired the scan; because `purge_expired()` skips NULLs it did the opposite and exempted the row from purging forever, while it still held the full pre-auth scrape. Now bounded to 30 days.
