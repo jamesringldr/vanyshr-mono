@@ -1,11 +1,10 @@
 /**
  * Holehe Enricher
- * Enriches email addresses with online services using Holehe API
+ * Enriches email addresses with online services using Holehe.
  *
- * Holehe checks 123+ online services (GitHub, LinkedIn, Twitter, etc.)
- * to find where an email is registered.
- *
- * No API key required, generous rate limits.
+ * Stock holehe ships 121 modules. We only keep the high-value consumer
+ * names (see HIGH_VALUE_SERVICES). Niche hits (dominos.fr, forums, adult
+ * sites, B2B CRMs) are dropped before they reach the hex.
  */
 
 /**
@@ -18,35 +17,97 @@ interface HoleheResponse {
 }
 
 /**
- * Services we prioritize (most relevant for identity lookup)
+ * Consumer services worth showing on the pilot-scan accounts hex.
+ * First-label (github) and full domain (github.com) both match.
+ * Sort order is display priority; anything not in this list is dropped.
  */
-const PRIORITY_SERVICES = [
+export const HIGH_VALUE_SERVICES = [
+  "google",
   "github",
-  "linkedin",
-  "twitter",
-  "facebook",
-  "reddit",
   "instagram",
+  "twitter",
+  "x",
+  "facebook",
+  "linkedin",
+  "snapchat",
+  "discord",
+  "amazon",
+  "adobe",
+  "microsoft",
+  "office365",
+  "apple",
+  "yahoo",
+  "spotify",
+  "pinterest",
+  "reddit",
+  "tiktok",
+  "wordpress",
+  "gravatar",
+  "dropbox",
+  "paypal",
+  "venmo",
+  "ebay",
+  "netflix",
+  "tumblr",
+  "patreon",
+  "flickr",
+  "quora",
+  "evernote",
+  "lastfm",
+  "lastpass",
+  "protonmail",
+  "proton",
+  "firefox",
+  "docker",
+  "gitlab",
   "stackoverflow",
   "medium",
-  "lastfm",
-  "patreon",
-  "spotify",
-  "disqus",
-  "gravatar",
-  "wordpress",
-  "adobe",
-  "pinterest",
-  "dropbox",
-  "evernote",
-  "flickr",
-  "tumblr",
-  "quora",
-  "telegram",
-  "whatsapp",
-  "signal",
-  "viber",
+  "codepen",
+  "replit",
+  "eventbrite",
+  "freelancer",
+  "anydo",
+  "envato",
+  "archive",
+  "soundcloud",
+  "strava",
+  "nike",
+  "imgur",
 ];
+
+const HIGH_VALUE_SET = new Set(HIGH_VALUE_SERVICES);
+
+const CANONICAL_HOSTS: Record<string, string> = {
+  "any.do": "anydo",
+  "last.fm": "lastfm",
+  "x.com": "twitter",
+  "proton.me": "protonmail",
+  "protonmail.ch": "protonmail",
+  "office365.com": "office365",
+  "en.gravatar.com": "gravatar",
+};
+
+export function canonicalServiceName(raw: string): string {
+  let s = raw.trim().toLowerCase();
+  s = s.replace(/^https?:\/\//, "");
+  if (s.startsWith("www.") || s.startsWith("en.")) {
+    s = s.slice(s.indexOf(".") + 1);
+  }
+  const host = s.split("/")[0];
+  if (CANONICAL_HOSTS[host]) return CANONICAL_HOSTS[host];
+  const first = host.split(".")[0];
+  return first || host;
+}
+
+export function isHighValueService(raw: string): boolean {
+  const host = raw.trim().toLowerCase().replace(/^https?:\/\//, "").split("/")[0];
+  if (HIGH_VALUE_SET.has(host)) return true;
+  return HIGH_VALUE_SET.has(canonicalServiceName(raw));
+}
+
+function priorityIndex(raw: string): number {
+  return HIGH_VALUE_SERVICES.indexOf(canonicalServiceName(raw));
+}
 
 /**
  * Holehe enrichment result
@@ -184,9 +245,9 @@ async function callHoleheAPI(email: string, timeout: number): Promise<HoleheResp
  * and reporting "no exposed accounts" when nothing was checked is the worst
  * available failure direction.
  */
-function countCheckedServices(response: HoleheResponse): number {
+export function countCheckedServices(response: HoleheResponse): number {
   if (!response.services || typeof response.services !== "object") return 0;
-  return Object.keys(response.services).length;
+  return Object.keys(response.services).filter(isHighValueService).length;
 }
 
 /**
@@ -196,37 +257,26 @@ function countCheckedServices(response: HoleheResponse): number {
  * @param response Holehe API response
  * @returns Array of service names
  */
-function extractServices(response: HoleheResponse): string[] {
-  const services: string[] = [];
-
+export function extractServices(response: HoleheResponse): string[] {
   if (!response.services || typeof response.services !== "object") {
-    return services;
+    return [];
   }
 
-  // First, collect all services that exist (true or object with details)
   const foundServices: string[] = [];
 
   for (const [service, value] of Object.entries(response.services)) {
+    if (!isHighValueService(service)) continue;
     if (value === true || (typeof value === "object" && value !== null)) {
       foundServices.push(service);
     }
   }
 
-  // Sort by priority (priority services first, then alphabetical)
   foundServices.sort((a, b) => {
-    const aPriority = PRIORITY_SERVICES.indexOf(a.toLowerCase());
-    const bPriority = PRIORITY_SERVICES.indexOf(b.toLowerCase());
-
-    // If both are in priority list, sort by priority index
-    if (aPriority !== -1 && bPriority !== -1) {
-      return aPriority - bPriority;
-    }
-
-    // If only one is in priority list, it comes first
+    const aPriority = priorityIndex(a);
+    const bPriority = priorityIndex(b);
+    if (aPriority !== -1 && bPriority !== -1) return aPriority - bPriority;
     if (aPriority !== -1) return -1;
     if (bPriority !== -1) return 1;
-
-    // Otherwise, sort alphabetically
     return a.localeCompare(b);
   });
 
@@ -268,15 +318,11 @@ export function deduplicateServices(results: HoleheResult[]): string[] {
     }
   }
 
-  // Sort by priority
-  const services = Array.from(serviceSet);
+  const services = Array.from(serviceSet).filter(isHighValueService);
   services.sort((a, b) => {
-    const aPriority = PRIORITY_SERVICES.indexOf(a.toLowerCase());
-    const bPriority = PRIORITY_SERVICES.indexOf(b.toLowerCase());
-
-    if (aPriority !== -1 && bPriority !== -1) {
-      return aPriority - bPriority;
-    }
+    const aPriority = priorityIndex(a);
+    const bPriority = priorityIndex(b);
+    if (aPriority !== -1 && bPriority !== -1) return aPriority - bPriority;
     if (aPriority !== -1) return -1;
     if (bPriority !== -1) return 1;
     return a.localeCompare(b);
