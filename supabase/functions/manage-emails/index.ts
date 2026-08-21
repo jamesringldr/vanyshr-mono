@@ -206,6 +206,15 @@ async function handleConfirm(
     .update({ services_found: servicesFound, breaches, breach_count: breaches.length })
     .eq("quickscans_id", quickscanId);
 
+  // Confirm is the last step before the report — the funnel watermark moves
+  // here, not on page navigation, since that's still a client-side event and
+  // this is the service-role write that's allowed to make it.
+  await supabase
+    .schema("quickscan")
+    .from("quickscans")
+    .update({ deepest_page: "report" })
+    .eq("id", quickscanId);
+
   console.log(`✅ manage-emails confirm ${quickscanId}: ${toHolehe.length} holehe, ${toLeakcheck.length} leakcheck checked`);
 
   return new Response(

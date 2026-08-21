@@ -29,6 +29,10 @@ serve(async (req) => {
   try {
     const body = await req.json();
     const quickscanId = String(body.quickscanId || body.quickscan_id || body.id || "").trim();
+    // The zaba full_profile_results row id the user picked in the modal.
+    // Accepted here rather than requiring a separate "select" call first —
+    // one round trip instead of two.
+    const pickedId = String(body.fullProfileResultId || body.selectedFullProfileResultId || "").trim();
     if (!quickscanId) {
       return new Response(
         JSON.stringify({ success: false, error: "quickscanId is required" }),
@@ -56,18 +60,33 @@ serve(async (req) => {
       );
     }
 
-    if (!quickscan.selected_full_profile_result_id) {
+    const selectedId = pickedId || quickscan.selected_full_profile_result_id;
+    if (!selectedId) {
       return new Response(
-        JSON.stringify({ success: false, error: "no profile selected on this quickscan" }),
+        JSON.stringify({ success: false, error: "no profile selected — pass fullProfileResultId or select first" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
+    }
+
+    if (pickedId && pickedId !== quickscan.selected_full_profile_result_id) {
+      const { error: selectError } = await supabase
+        .schema("quickscan")
+        .from("quickscans")
+        .update({ selected_full_profile_result_id: pickedId, match_outcome: "matched" })
+        .eq("id", quickscanId);
+      if (selectError) {
+        return new Response(
+          JSON.stringify({ success: false, error: `Could not record selection: ${selectError.message}` }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
     }
 
     const { data: zaba, error: zabaError } = await supabase
       .schema("quickscan")
       .from("full_profile_results")
       .select("id, match_group_id, raw")
-      .eq("id", quickscan.selected_full_profile_result_id)
+      .eq("id", selectedId)
       .maybeSingle();
 
     if (zabaError || !zaba) {
@@ -153,8 +172,17 @@ serve(async (req) => {
     await supabase
       .schema("quickscan")
       .from("quickscans")
-      .update({ status: "full_profile_scan_complete" })
+      .update({ status: "full_profile_scan_complete", deepest_page: "full_profile" })
       .eq("id", quickscanId);
+
+    // Returned inline rather than making the frontend read it back separately —
+    // this is the data the email-confirmation step needs next.
+    const { data: consolidatedProfile } = await supabase
+      .schema("quickscan")
+      .from("consolidated_profile")
+      .select("*")
+      .eq("quickscans_id", quickscanId)
+      .maybeSingle();
 
     console.log(`✅ full-profile-scan ${quickscanId}: ${newRows.length} broker profiles fetched`);
 
@@ -163,6 +191,7 @@ serve(async (req) => {
         success: true,
         quickscan_id: quickscanId,
         brokers_scraped: newRows.map((r) => r.broker),
+        consolidated_profile: consolidatedProfile,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
