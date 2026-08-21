@@ -331,16 +331,6 @@ export function PilotLoadingPage() {
     const groups = merged?.dedup_groups ?? [];
     const group = groups.find((g, i) => (g.id || `group-${i}`) === profile.id);
 
-    // DEBUG: Log what we found
-    console.log("handlePick debug:", {
-      profileId: profile.id,
-      groupsCount: groups.length,
-      foundGroup: !!group,
-      groupName: group?.name,
-      membersCount: group?.members?.length,
-      memberEmails: group?.members?.map((m) => ({ name: m.name, email: m.email })),
-    });
-
     if (merged) {
       sessionStorage.setItem("pilotScanResult", JSON.stringify(selectGroup(merged, profile.id)));
     }
@@ -357,8 +347,6 @@ export function PilotLoadingPage() {
         });
       }
     });
-
-    console.log("Extracted emails:", Array.from(emails));
 
     // Store profile data and show email confirmation
     setPendingProfileId(profile.id);
