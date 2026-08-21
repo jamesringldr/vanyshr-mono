@@ -7,8 +7,16 @@
  * functions cannot shell out to a Python subprocess. It now runs as a small
  * FastAPI service on serv02 (Docker, Tailscale Funnel for public reach —
  * see workers/holehe/ in vanyshr-scraper-sequence for the source this was
- * built from, and holehe_allowlist.py there for the high-value allowlist:
- * Vanyshr checks ~37 recognizable consumer sites, not holehe's full 121).
+ * built from, and holehe_allowlist.py there for the server-side high-value
+ * allowlist: Vanyshr checks ~37 recognizable consumer sites, not holehe's
+ * full 121).
+ *
+ * The canonicalization/priority-ordering layer below (HIGH_VALUE_SERVICES,
+ * canonicalServiceName, isHighValueService) is separate, parallel work
+ * merged in from staging (dev/pilot-scan-schema) — display names and
+ * ordering for the pilot-scan accounts hex. Its allowed-service set is a
+ * strict superset of the server-side allowlist, so applying it here is
+ * pure filtering/display value, never drops a real hit.
  *
  * Enable with Supabase secrets HOLEHE_SERVICE_URL + HOLEHE_SERVICE_TOKEN.
  */
@@ -23,6 +31,117 @@ interface HoleheServiceResponse {
   services_checked?: number;
   services_rate_limited?: number;
   error?: string;
+}
+
+/**
+ * Consumer services worth showing on the pilot-scan accounts hex.
+ * First-label (github) and full domain (github.com) both match.
+ * Sort order is display priority; anything not in this list is dropped.
+ */
+export const HIGH_VALUE_SERVICES = [
+  "google",
+  "github",
+  "instagram",
+  "twitter",
+  "x",
+  "facebook",
+  "linkedin",
+  "snapchat",
+  "discord",
+  "amazon",
+  "adobe",
+  "microsoft",
+  "office365",
+  "apple",
+  "yahoo",
+  "spotify",
+  "pinterest",
+  "reddit",
+  "tiktok",
+  "wordpress",
+  "gravatar",
+  "dropbox",
+  "paypal",
+  "venmo",
+  "ebay",
+  "netflix",
+  "tumblr",
+  "patreon",
+  "flickr",
+  "quora",
+  "evernote",
+  "lastfm",
+  "lastpass",
+  "protonmail",
+  "proton",
+  "firefox",
+  "docker",
+  "gitlab",
+  "stackoverflow",
+  "medium",
+  "codepen",
+  "replit",
+  "eventbrite",
+  "freelancer",
+  "anydo",
+  "envato",
+  "archive",
+  "soundcloud",
+  "strava",
+  "nike",
+  "imgur",
+];
+
+const HIGH_VALUE_SET = new Set(HIGH_VALUE_SERVICES);
+
+const CANONICAL_HOSTS: Record<string, string> = {
+  "any.do": "anydo",
+  "last.fm": "lastfm",
+  "x.com": "twitter",
+  "proton.me": "protonmail",
+  "protonmail.ch": "protonmail",
+  "office365.com": "office365",
+  "en.gravatar.com": "gravatar",
+};
+
+export function canonicalServiceName(raw: string): string {
+  let s = raw.trim().toLowerCase();
+  s = s.replace(/^https?:\/\//, "");
+  if (s.startsWith("www.") || s.startsWith("en.")) {
+    s = s.slice(s.indexOf(".") + 1);
+  }
+  const host = s.split("/")[0];
+  if (CANONICAL_HOSTS[host]) return CANONICAL_HOSTS[host];
+  const first = host.split(".")[0];
+  return first || host;
+}
+
+export function isHighValueService(raw: string): boolean {
+  const host = raw.trim().toLowerCase().replace(/^https?:\/\//, "").split("/")[0];
+  if (HIGH_VALUE_SET.has(host)) return true;
+  return HIGH_VALUE_SET.has(canonicalServiceName(raw));
+}
+
+function priorityIndex(raw: string): number {
+  return HIGH_VALUE_SERVICES.indexOf(canonicalServiceName(raw));
+}
+
+function byPriority(a: string, b: string): number {
+  const aPriority = priorityIndex(a);
+  const bPriority = priorityIndex(b);
+  if (aPriority !== -1 && bPriority !== -1) return aPriority - bPriority;
+  if (aPriority !== -1) return -1;
+  if (bPriority !== -1) return 1;
+  return a.localeCompare(b);
+}
+
+/** Filter to the high-value set, canonicalize names, sort by display priority. */
+function canonicalize(services: string[]): string[] {
+  const names = new Set<string>();
+  for (const raw of services) {
+    if (isHighValueService(raw)) names.add(canonicalServiceName(raw));
+  }
+  return Array.from(names).sort(byPriority);
 }
 
 export type HoleheStatus = "success" | "invalid_email" | "unavailable" | "timeout" | "error";
@@ -107,7 +226,9 @@ export async function enrichWithHolehe(email: string, timeout: number = 90000): 
       return holeheResult(normalized, status, timingMs, { error: data.error || data.status });
     }
 
-    const services = data.services_found ?? [];
+    // The server already filters to its own high-value allowlist; canonicalize
+    // here too so display names/order match everywhere this result is read.
+    const services = canonicalize(data.services_found ?? []);
     return holeheResult(normalized, "success", timingMs, {
       services,
       count: services.length,
@@ -145,7 +266,7 @@ export async function enrichMultipleEmails(emails: string[], timeout: number = 9
 /**
  * Deduplicate services from multiple enrichment results
  * @param results Array of enrichment results
- * @returns Deduplicated, sorted service names
+ * @returns Deduplicated, priority-sorted service names
  */
 export function deduplicateServices(results: HoleheResult[]): string[] {
   const serviceSet = new Set<string>();
@@ -158,7 +279,7 @@ export function deduplicateServices(results: HoleheResult[]): string[] {
     }
   }
 
-  return Array.from(serviceSet).sort();
+  return Array.from(serviceSet).sort(byPriority);
 }
 
 /**
@@ -174,8 +295,11 @@ export function aggregateHoleheResults(results: HoleheResult[]) {
   return {
     success: successCount > 0,
     emails_checked: results.length,
-    emails_with_services: successCount,
-    total_unique_services: allServices.length,
+    emails_found_services: successCount,
+    total_services: allServices.length,
+    // Summed across emails, so it is a coverage signal rather than a distinct
+    // service count -- read it as "verdicts received", not "unique services".
+    services_checked: results.reduce((sum, r) => sum + r.services_checked, 0),
     services: allServices,
     total_timing_ms: totalTiming,
     average_timing_ms: results.length ? Math.round(totalTiming / results.length) : 0,
