@@ -13,7 +13,11 @@ import {
 import { ContextDevError, scrapeHtml } from "./context-dev-client.ts";
 
 const MAX_RESULTS = 5;
-const MAX_VALUES = 5;
+// Was 5 -- confirmed against the Python scraper-lab's real captured fixtures
+// to silently drop phones (7->5, 9->5) and aliases (10->5) on real Zaba
+// profiles. Raised with headroom above observed maxima (see
+// vanyshr-scraper-lab's zaba_html_scraper.py for the same fix).
+const MAX_VALUES = 20;
 
 const STATE_NAMES: Record<string, string> = {
   AL: "alabama", AK: "alaska", AZ: "arizona", AR: "arkansas",
@@ -148,7 +152,11 @@ function emptySummary(broker: BrokerName, extra: Partial<SummaryResult> & { full
     email: extra.email || "",
     aliases: extra.aliases || "",
     relatives: extra.relatives || "",
+    associates: extra.associates || "",
     previous_addresses: extra.previous_addresses || "",
+    birth_date: extra.birth_date || "",
+    job_history: extra.job_history || "",
+    education: extra.education || "",
   };
 }
 
@@ -531,10 +539,29 @@ function listItems(card: El, heading: string): string[] {
   return items.slice(0, MAX_VALUES);
 }
 
+/**
+ * Split an element's text on <br> into trimmed lines.
+ *
+ * Previously split el.textContent on "\n" -- but this deno_dom version does
+ * not insert a newline (or any separator) at <br> boundaries, so that always
+ * returned the whole text as one unsplit line ("7935 Holmes RDKansas City,
+ * Missouri 64131"). Walking childNodes and breaking on the <br> node itself
+ * is the reliable way to do this regardless of what textContent does.
+ */
 function linesOf(el: El | null): string[] {
   if (!el) return [];
-  const raw = (el.textContent || "").split("\n");
-  return raw.map((ln) => ln.trim()).filter(Boolean);
+  const parts: string[] = [];
+  let current = "";
+  for (const node of el.childNodes || []) {
+    if ((node.nodeName || "").toLowerCase() === "br") {
+      parts.push(current);
+      current = "";
+    } else {
+      current += node.textContent || "";
+    }
+  }
+  parts.push(current);
+  return parts.map((ln) => ln.trim()).filter(Boolean);
 }
 
 function parseZabaAddress(lines: string[]): { formatted: string } {
@@ -578,12 +605,56 @@ function parseZabaEmails(card: El): string[] {
   return emails.slice(0, MAX_VALUES);
 }
 
+/**
+ * "Job History": <li><p><strong>Name</strong><br>Title</p><p>Employer</p></li>
+ * -- a distinct, overlapping-but-not-identical list from "Jobs" (not
+ * extracted; a separately-formatted title/employer/date-range list with some
+ * titles this one lacks and vice versa -- see vanyshr-scraper-lab's audit).
+ */
+function parseZabaJobHistory(card: El): string[] {
+  const section = findSection(card, "Job History");
+  if (!section) return [];
+  const jobs: string[] = [];
+  for (const li of allTags(section, "li")) {
+    const paragraphs = allTags(li, "p");
+    if (!paragraphs.length) continue;
+    // First <p> is "<Name><br>Title" -- the name repeats on every entry, so
+    // only the line after the <br> is the title.
+    const lines = linesOf(paragraphs[0]);
+    const title = lines.length > 1 ? lines[1] : (lines[0] || "");
+    const employer = paragraphs.length > 1 ? textOf(paragraphs[1]) : "";
+    const entry = [title, employer].filter(Boolean).join(" at ");
+    if (entry) jobs.push(entry);
+  }
+  return jobs.slice(0, MAX_VALUES);
+}
+
+function ageFromBirthDate(value: unknown): number | undefined {
+  const match = String(value ?? "").match(/\d{4}/);
+  if (!match) return undefined;
+  const age = new Date().getFullYear() - parseInt(match[0], 10);
+  return age > 0 && age < 150 ? age : undefined;
+}
+
+function relatedToNames(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  const names: string[] = [];
+  for (const entry of value) {
+    const name = entry && typeof entry === "object"
+      ? String((entry as Record<string, unknown>).name || "").trim()
+      : "";
+    if (name && !names.includes(name)) names.push(name);
+  }
+  return names;
+}
+
 export function parseZabaSummaries(html: string): SummaryResult[] {
   const doc = parseDoc(html);
   if (!doc) return [];
   const results: SummaryResult[] = [];
+  const cards = Array.from(doc.querySelectorAll("div.person")).slice(0, MAX_RESULTS) as El[];
 
-  for (const card of Array.from(doc.querySelectorAll("div.person")).slice(0, MAX_RESULTS) as El[]) {
+  for (const card of cards) {
     const nameEl = card.querySelector("#container-name h2") || card.querySelector("h2");
     const fullName = textOf(nameEl as El);
     if (!fullName) continue;
@@ -631,8 +702,37 @@ export function parseZabaSummaries(html: string): SummaryResult[] {
       email: parseZabaEmails(card).join(", "),
       aliases: aliases.slice(0, MAX_VALUES).join(", "),
       relatives: listItems(card, "Possible Relatives").join(", "),
+      associates: listItems(card, "Possible Associations").join(", "),
       previous_addresses: past.join("; "),
+      job_history: parseZabaJobHistory(card).join("; "),
+      education: listItems(card, "Education").join("; "),
     }));
+  }
+
+  // birthDate and a relatives fallback come from JSON-LD, which the rest of
+  // this parser never reads. Zaba can publish more than one standalone
+  // top-level Person block per page ("More than 1 record found"). Matched to
+  // each card by position, since both render in the same order; only applied
+  // when the counts agree and the JSON-LD person's derived age is close to
+  // the card's own, as a guard against a mismatched pairing silently
+  // attaching the wrong person's data (see vanyshr-scraper-lab's
+  // zaba_html_scraper.py for the same fix and reasoning).
+  const persons = jsonLdPersons(html);
+  if (persons.length === results.length) {
+    persons.forEach((person, i) => {
+      const result = results[i];
+      const computedAge = ageFromBirthDate(person.birthDate);
+      if (
+        result.age !== undefined && computedAge !== undefined &&
+        Math.abs(result.age - computedAge) > 1
+      ) {
+        return;
+      }
+      if (person.birthDate) result.birth_date = String(person.birthDate);
+      if (!result.relatives) {
+        result.relatives = joinUnique(relatedToNames(person.relatedTo), MAX_VALUES);
+      }
+    });
   }
 
   return results;

@@ -223,18 +223,24 @@ export async function populateFromSummaryResult(
   for (const name of splitList(summary.relatives)) {
     await upsertRelative(supabase, quickscansId, fullProfileResultId, "relative", name);
   }
+  for (const name of splitList(summary.associates)) {
+    await upsertRelative(supabase, quickscansId, fullProfileResultId, "associate", name);
+  }
   for (const alias of splitList(summary.aliases)) {
     await upsertTyped(supabase, "aliases", quickscansId, fullProfileResultId, alias, normalizeName(alias));
   }
 }
 
-/** FPS/NPD/AnyWho after their detail-page fetch. No aliases field on this shape. */
+/** FPS/NPD/AnyWho after their detail-page fetch. */
 export async function populateFromBrokerDetail(
   supabase: SupabaseClient,
   quickscansId: string,
   fullProfileResultId: string,
   profile: BrokerDetailProfile,
 ): Promise<void> {
+  for (const alias of profile.aliases ?? []) {
+    await upsertTyped(supabase, "aliases", quickscansId, fullProfileResultId, alias, normalizeName(alias));
+  }
   for (const phone of profile.phoneNumbers ?? []) {
     await upsertTyped(supabase, "phones", quickscansId, fullProfileResultId, phone, normalizePhone(phone));
   }

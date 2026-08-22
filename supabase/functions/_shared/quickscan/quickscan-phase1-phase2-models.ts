@@ -50,8 +50,17 @@ export interface SummaryResult {
   email?: string;
   aliases?: string;
   relatives?: string;
+  /** Comma-separated "Possible Associations" -- folded into relatives at the
+   * DB layer (kind='associate'), same as detail-scrapers.ts's associates. */
+  associates?: string;
   /** Semicolon-separated former addresses — commas are part of the address. */
   previous_addresses?: string;
+  /** Zaba only, from JSON-LD (full ISO date or just a year). */
+  birth_date?: string;
+  /** Zaba only, semicolon-separated "title at employer" entries. */
+  job_history?: string;
+  /** Zaba only, semicolon-separated raw sentences (Zaba's own shape). */
+  education?: string;
 }
 
 /**

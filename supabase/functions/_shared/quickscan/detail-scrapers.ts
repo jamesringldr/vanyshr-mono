@@ -42,6 +42,9 @@ export interface DetailAddress {
   city?: string;
   state?: string;
   zip?: string;
+  county?: string;
+  recordedDate?: string; // FPS previous addresses ("Recorded July 2020")
+  propertyType?: string; // AnyWho per-address ("Single Family Residential")
 }
 
 export interface DetailRelation {
@@ -49,19 +52,63 @@ export interface DetailRelation {
   relation?: string;
   age?: number;
   address?: string;
+  gender?: string;
+  birthMonth?: string; // FPS relatives/associates ("May 1961")
+}
+
+/**
+ * Phones stay `phoneNumbers: string[]` for backward compatibility with
+ * consolidation.ts's upsertTyped() and the phones table (raw_value/
+ * normalized_value only, no type/carrier columns). The richer per-number
+ * detail some brokers publish (line type, carrier, first-reported date,
+ * AnyWho's per-number city/state) is captured in this parallel array instead
+ * -- same order as phoneNumbers, not yet written to a dedicated column, but
+ * preserved in full_profile_results.raw either way.
+ */
+export interface DetailPhone {
+  number: string;
+  type?: string;
+  carrier?: string;
+  firstReported?: string;
+  location?: string;
+}
+
+export interface DetailJob {
+  employer?: string;
+  title?: string;
+  since?: string;
+  location?: string;
+  duration?: string;
+}
+
+export interface DetailEducation {
+  school?: string;
+  details?: string[];
+}
+
+export interface DetailLegalRecords {
+  countyRecords?: { location: string; count?: number };
+  nationwideCount?: number;
 }
 
 /** Shape consolidateProfiles() in profile-consolidator.ts expects per broker. */
 export interface BrokerDetailProfile {
   fullName?: string;
   age?: number;
+  bornDate?: string; // FPS only, month/year from the header ("June 1965")
+  aliases?: string[];
   primaryAddress?: DetailAddress;
   previousAddresses?: DetailAddress[];
   phoneNumbers?: string[];
+  phoneDetails?: DetailPhone[]; // see DetailPhone doc comment
   emails?: string[];
   relatives?: DetailRelation[];
   associates?: DetailRelation[];
-  properties?: never[]; // none of the current parsers extract real property/asset records
+  properties?: Record<string, unknown>[]; // FPS only; empty for brokers with no property section
+  employment?: DetailJob[]; // FPS "Current Employment"
+  jobHistory?: DetailJob[]; // FPS "Work Experience"
+  education?: DetailEducation[];
+  legalRecords?: DetailLegalRecords; // AnyWho only
 }
 
 function addrFromParts(street: string | undefined, city: string | undefined, state: string | undefined, zip: string | undefined, fallback?: string): DetailAddress {
@@ -96,6 +143,29 @@ export function summaryFallback(summary: SummaryResult): BrokerDetailProfile {
 // FPS — ported from FastPeopleSearchScraper.parsePersonDetailPage
 // ---------------------------------------------------------------------------
 
+// #current_property_data <dl> labels not covered by beds/baths/sqft/built/
+// value alone -- see vanyshr-scraper-lab's fps_full_profile_scraper.py for
+// the same map. Numeric fields get their currency/commas stripped to ints.
+const FPS_PROPERTY_LABELS: Record<string, string> = {
+  "Bedrooms": "beds",
+  "Bathrooms": "baths",
+  "Square Feet": "squareFeet",
+  "Year Built": "yearBuilt",
+  "Estimated Value": "estimatedValue",
+  "Estimated Equity": "estimatedEquity",
+  "Last Sale Amount": "lastSaleAmount",
+  "Last Sale Date": "lastSaleDate",
+  "Occupancy Type": "occupancyType",
+  "Ownership Type": "ownershipType",
+  "Land Use": "landUse",
+  "Property Class": "propertyClass",
+  "Subdivision": "subdivision",
+  "Lot SqFt.": "lotSqFt",
+};
+const FPS_PROPERTY_NUMERIC_FIELDS = new Set([
+  "squareFeet", "yearBuilt", "estimatedValue", "estimatedEquity", "lastSaleAmount", "lotSqFt",
+]);
+
 export function parseFpsDetail(html: string): BrokerDetailProfile {
   const doc = parseDoc(html) as unknown as El;
   if (!doc) return {};
@@ -105,13 +175,40 @@ export function parseFpsDetail(html: string): BrokerDetailProfile {
     textOf(doc.querySelector("h1#details-header"));
   if (!fullName) return {};
 
-  const ageMatch = textOf(doc.querySelector("#age-header")).match(/Age\s+(\d+)/i);
+  // "Age 61, Born June 1965" is a <p> sibling of h1#details-header -- not a
+  // separate #age-header (that id doesn't exist on the real page, so age was
+  // silently always undefined here before this fix) and not near
+  // #full_name_section .fullname either (a different, unrelated "Full Name:"
+  // summary box elsewhere on the page, despite winning the fullName lookup
+  // above).
+  const headerText = textOf(doc.querySelector("#age-header")) ||
+    textOf(doc.querySelector("h1#details-header")?.parentElement);
+  const ageMatch = headerText.match(/Age\s+(\d+)/i);
   const age = ageMatch ? parseInt(ageMatch[1], 10) : undefined;
+  const bornMatch = headerText.match(/Born\s+([A-Za-z]+\s+\d{4})/i);
+  const bornDate = bornMatch ? bornMatch[1] : undefined;
 
   const phoneNumbers: string[] = [];
+  const phoneDetails: DetailPhone[] = [];
   for (const dl of doc.querySelectorAll("#phone_number_section .detail-box-phone dl")) {
     const number = textOf(dl.querySelector("dt a"));
-    if (number.replace(/\D/g, "").length >= 10) phoneNumbers.push(number);
+    if (number.replace(/\D/g, "").length < 10) continue;
+    phoneNumbers.push(number);
+
+    // Type/carrier/first-reported sit as <dd> siblings of the number this
+    // scraper already reads -- previously discarded.
+    const detail: DetailPhone = { number };
+    for (const dd of dl.querySelectorAll("dd")) {
+      const text = textOf(dd);
+      if (/^first reported/i.test(text)) {
+        detail.firstReported = text.replace(/^first reported\s*/i, "").trim();
+      } else if (!detail.type) {
+        detail.type = text;
+      } else if (!detail.carrier) {
+        detail.carrier = text;
+      }
+    }
+    phoneDetails.push(detail);
   }
 
   const emails: string[] = [];
@@ -133,23 +230,123 @@ export function parseFpsDetail(html: string): BrokerDetailProfile {
   for (const link of doc.querySelectorAll("#previous-addresses dt.address-link a")) {
     const text = textOf(link);
     const csMatch = text.match(/^(.+?)\s+([A-Za-z\s.]+?)\s+([A-Z]{2})\s+(\d{5}(?:-\d{4})?)$/);
-    previousAddresses.push(
-      csMatch
-        ? addrFromParts(csMatch[1].trim(), csMatch[2].trim(), csMatch[3], csMatch[4], text)
-        : { formatted: text },
-    );
+    const addr: DetailAddress = csMatch
+      ? addrFromParts(csMatch[1].trim(), csMatch[2].trim(), csMatch[3], csMatch[4], text)
+      : { formatted: text };
+
+    // County + "Recorded <date>" are <dd> siblings of the <dt> this link
+    // lives in (<a> -> <dt> -> <dl>) -- previously never read.
+    const dl = link.parentElement?.parentElement;
+    if (dl) {
+      for (const dd of dl.querySelectorAll("dd")) {
+        const ddText = textOf(dd);
+        const recorded = ddText.match(/^Recorded\s+(.+)$/i);
+        if (recorded) addr.recordedDate = recorded[1].trim();
+        else if (/county$/i.test(ddText)) addr.county = ddText;
+      }
+    }
+    previousAddresses.push(addr);
   }
+
+  // Age + birth month sit as one <dd> per relative/associate ("Age 65 (May
+  // 1961)"), matching #relative-links and #associate-links identically.
+  const AGE_BIRTH = /Age\s+(\d+)(?:\s*\(([A-Za-z]+\s+\d{4})\))?/i;
 
   const relatives: DetailRelation[] = [];
   for (const dl of doc.querySelectorAll("#relative-links dl")) {
     const name = textOf(dl.querySelector("dt a"));
     if (!name || name.length < 3) continue;
-    const ageDd = textOf(dl.querySelector("dd"));
-    const relAgeMatch = ageDd.match(/Age\s+(\d+)/i);
-    relatives.push({ name, relation: "family", age: relAgeMatch ? parseInt(relAgeMatch[1], 10) : undefined });
+    const match = textOf(dl.querySelector("dd")).match(AGE_BIRTH);
+    relatives.push({
+      name, relation: "family",
+      age: match ? parseInt(match[1], 10) : undefined,
+      birthMonth: match?.[2],
+    });
   }
 
-  return { fullName, age, primaryAddress, previousAddresses, phoneNumbers, emails, relatives, associates: [] };
+  // Declared in BrokerDetailProfile but previously had zero extraction code
+  // -- folded into `relatives`/`associates` the same as the other brokers,
+  // consolidation.ts's populateFromBrokerDetail already merges both into one
+  // relatives table (kind='relative'/'associate').
+  const associates: DetailRelation[] = [];
+  for (const dl of doc.querySelectorAll("#associate-links dl")) {
+    const name = textOf(dl.querySelector("dt a"));
+    if (!name || name.length < 3) continue;
+    const match = textOf(dl.querySelector("dd")).match(AGE_BIRTH);
+    associates.push({
+      name, relation: "associate",
+      age: match ? parseInt(match[1], 10) : undefined,
+      birthMonth: match?.[2],
+    });
+  }
+
+  const aliases: string[] = [];
+  const akaSection = doc.querySelector("#aka-links");
+  if (akaSection) {
+    for (const h3 of akaSection.querySelectorAll("h3")) {
+      const name = textOf(h3);
+      if (name && !aliases.includes(name)) aliases.push(name);
+    }
+  }
+
+  const employment: DetailJob[] = [];
+  for (const dl of doc.querySelectorAll("#current_employment_section dl")) {
+    const employer = textOf(dl.querySelector("dt"));
+    if (!employer) continue;
+    const job: DetailJob = { employer };
+    for (const dd of dl.querySelectorAll("dd")) {
+      const text = textOf(dd);
+      if (/^title:/i.test(text)) job.title = text.replace(/^title:\s*/i, "");
+      else if (/^since:/i.test(text)) job.since = text.replace(/^since:\s*/i, "");
+      else if (text) job.location = text;
+    }
+    employment.push(job);
+  }
+
+  const jobHistory: DetailJob[] = [];
+  for (const dl of doc.querySelectorAll("#work_experience_section dl")) {
+    const employer = textOf(dl.querySelector("dt"));
+    if (!employer) continue;
+    const dds = dl.querySelectorAll("dd");
+    jobHistory.push({
+      employer,
+      title: dds[0] ? textOf(dds[0]) : undefined,
+      duration: dds[1] ? textOf(dds[1]) : undefined,
+    });
+  }
+
+  const education: DetailEducation[] = [];
+  for (const dl of doc.querySelectorAll("#education_section dl")) {
+    const school = textOf(dl.querySelector("dt"));
+    if (!school) continue;
+    const details = Array.from(dl.querySelectorAll("dd")).map(textOf).filter(Boolean);
+    education.push({ school, details: details.length ? details : undefined });
+  }
+
+  const properties: Record<string, unknown>[] = [];
+  const propertyData = doc.querySelector("#current_property_data");
+  if (propertyData) {
+    const property: Record<string, unknown> = {};
+    for (const dl of propertyData.querySelectorAll("dl")) {
+      const key = FPS_PROPERTY_LABELS[textOf(dl.querySelector("dt"))];
+      if (!key) continue;
+      const value = textOf(dl.querySelector("dd"));
+      if (!value) continue;
+      if (FPS_PROPERTY_NUMERIC_FIELDS.has(key)) {
+        const digits = value.replace(/[^\d]/g, "");
+        if (digits) property[key] = parseInt(digits, 10);
+      } else {
+        property[key] = value;
+      }
+    }
+    if (Object.keys(property).length) properties.push(property);
+  }
+
+  return {
+    fullName, age, bornDate, aliases, primaryAddress, previousAddresses,
+    phoneNumbers, phoneDetails, emails, relatives, associates, employment,
+    jobHistory, education, properties,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -206,6 +403,7 @@ export function parseAnywhoDetail(html: string): BrokerDetailProfile {
   const bodyText = textOf(doc.querySelector("body")) || textOf(doc);
 
   const phoneNumbers: string[] = [];
+  const phoneDetails: DetailPhone[] = [];
   const phonesSection = doc.querySelector("#phones");
   if (phonesSection) {
     for (const item of phonesSection.querySelectorAll(".show-more-item")) {
@@ -217,13 +415,39 @@ export function parseAnywhoDetail(html: string): BrokerDetailProfile {
       // trick. That has to go: once the substitution runs there is no
       // data-content span left to find, and the loop would `continue` past
       // every card and return zero phones.
-      const digits = textOf(item).replace(/\D/g, "");
+      const itemText = textOf(item);
+      const digits = itemText.replace(/\D/g, "");
       if (digits.length < 10) continue;
       const ten = digits.length === 11 && digits.startsWith("1") ? digits.slice(1) : digits.slice(0, 10);
       if (ten.length !== 10) continue;
       const formatted = `${ten.slice(0, 3)}-${ten.slice(3, 6)}-${ten.slice(6)}`;
-      if (!phoneNumbers.includes(formatted)) phoneNumbers.push(formatted);
+      if (phoneNumbers.includes(formatted)) continue;
+      phoneNumbers.push(formatted);
+
+      // The rest of the card's text is "<City, ST>•<Carrier>" -- location
+      // before the bullet, carrier after -- both computed alongside the
+      // digits above and previously discarded.
+      const numberMatch = itemText.match(/\d[\d\s().-]{8,}\d/);
+      const tail = numberMatch ? itemText.slice((numberMatch.index ?? 0) + numberMatch[0].length) : "";
+      const parts = tail.split("•").map((p) => p.trim()).filter(Boolean);
+      const detail: DetailPhone = { number: formatted };
+      if (parts[0]) detail.location = parts[0].slice(0, 60);
+      if (parts[1]) {
+        detail.carrier = parts[1].replace(/(View|Show|Unlock|See)\s*[-+]?\d*\s*(More|Less)?/gi, "").trim().slice(0, 60);
+      }
+      phoneDetails.push(detail);
     }
+  }
+
+  const aliases: string[] = [];
+  for (const p of doc.querySelectorAll("p")) {
+    const text = textOf(p);
+    if (!text.startsWith("Aka:")) continue;
+    for (const name of text.replace(/^Aka:\s*/i, "").split(/,\s*|\s+or\s+/i)) {
+      const trimmed = name.trim();
+      if (trimmed && !aliases.includes(trimmed)) aliases.push(trimmed);
+    }
+    break;
   }
 
   const emails: string[] = [];
@@ -274,6 +498,20 @@ export function parseAnywhoDetail(html: string): BrokerDetailProfile {
       const zip = locationMatch?.[3]?.substring(0, 5);
       const isCurrent = first || containerText.includes("CURRENT") || containerText.includes("has resided here");
       const addr = addrFromParts(streetText, city, state, zip, streetText);
+
+      // "James lived here in this Single Family Residential from 2005 to
+      // 2025" -- a sentence sitting in the same block as the street/
+      // city-state text already read above, previously discarded.
+      const propertyIdx = containerText.indexOf("in this ");
+      if (propertyIdx !== -1) {
+        const propertyType = containerText
+          .slice(propertyIdx + "in this ".length)
+          .replace(/\s+from\s+\d{4}\s+to\s+\d{4}\s*$/i, "")
+          .replace(/\s+in\s+\d{4}\s*$/i, "")
+          .trim();
+        if (propertyType) addr.propertyType = propertyType;
+      }
+
       if (isCurrent && !primaryAddress) primaryAddress = addr;
       else previousAddresses.push(addr);
       first = false;
@@ -283,10 +521,35 @@ export function parseAnywhoDetail(html: string): BrokerDetailProfile {
   const relatives: DetailRelation[] = [];
   const relativePattern = /Relative\s+data\s+re\s*s?\s*ult[:\s]+([A-Za-z\s]+?)\s*(Female|Male)\s*[•·\-]\s*(\d+)/gi;
   for (const match of bodyText.matchAll(relativePattern)) {
-    relatives.push({ name: match[1].trim(), relation: "family", age: parseInt(match[3], 10) });
+    // match[2] (gender) was already captured by this regex and never used.
+    relatives.push({
+      name: match[1].trim(), relation: "family",
+      gender: match[2], age: parseInt(match[3], 10),
+    });
   }
 
-  return { fullName, age, primaryAddress, previousAddresses, phoneNumbers, emails, relatives, associates: [] };
+  // #court-records ("Legal Records (N)"): a nationwide count, plus a
+  // county-level count when the person has local records. The generic
+  // category list alongside them (Police/Criminal, Sex Offender, ...) is
+  // boilerplate, not per-record data -- not extracted.
+  let legalRecords: DetailLegalRecords | undefined;
+  for (const h3 of doc.querySelectorAll("h3")) {
+    const heading = textOf(h3);
+    if (heading !== "County Records" && heading !== "Nationwide Search") continue;
+    const paragraphs = h3.parentElement?.querySelectorAll("p") ?? [];
+    if (paragraphs.length < 2) continue;
+    const location = textOf(paragraphs[0]);
+    const countMatch = textOf(paragraphs[1]).match(/(\d+)/);
+    const count = countMatch ? parseInt(countMatch[1], 10) : undefined;
+    legalRecords = legalRecords ?? {};
+    if (heading === "County Records") legalRecords.countyRecords = { location, count };
+    else legalRecords.nationwideCount = count;
+  }
+
+  return {
+    fullName, age, aliases, primaryAddress, previousAddresses,
+    phoneNumbers, phoneDetails, emails, relatives, associates: [], legalRecords,
+  };
 }
 
 // ---------------------------------------------------------------------------
