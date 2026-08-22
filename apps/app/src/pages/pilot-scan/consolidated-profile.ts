@@ -61,7 +61,17 @@ export interface ConsolidatedProfile {
    * overwrites sessionStorage with manage-emails' refreshed row.
    */
   services_found?: string[] | null;
-  breaches?: Array<{ name: string; date?: string | null; year?: string | null }> | null;
+  /**
+   * Grouped by email, not flattened — Leakcheck's query unit is one email
+   * address at a time, and fields_exposed is an aggregate over that whole
+   * query (which field *types* turned up across all its breach sources),
+   * not attributable to any single breach within it.
+   */
+  breaches?: Array<{
+    email: string;
+    breaches: Array<{ name: string; date?: string | null; year?: string | null }>;
+    fields_exposed: string[];
+  }> | null;
   breach_count?: number | null;
 }
 
@@ -148,6 +158,13 @@ export function parseFullAddress(fullAddr: string): { street: string; cityStateZ
 
 export type RiskAreaId = "critical" | "scam" | "family" | "identity" | "accounts" | "spam" | "property" | "other";
 
+/** One breached email, its breach sources, and the field types Leakcheck found exposed for it. */
+export type BreachGroup = {
+  email: string;
+  breaches: Array<{ name: string; date?: string | null; year?: string | null }>;
+  fieldsExposed: string[];
+};
+
 export type RiskArea = {
   id: RiskAreaId;
   label: string;
@@ -155,6 +172,8 @@ export type RiskArea = {
   detail: string;
   score: number;
   items: Finding[];
+  /** Critical only — the breach-by-email view replaces the generic Finding list for that area. */
+  breachGroups?: BreachGroup[];
 };
 
 function score(count: number, cap: number, extra = 0): number {
@@ -179,33 +198,19 @@ export function buildRiskAreas(profile: ConsolidatedProfile): RiskArea[] {
   const education = profile.education ?? [];
   const properties = profile.properties ?? [];
   const servicesFound = profile.services_found ?? [];
-  const breaches = profile.breaches ?? [];
-  const legalRecords = profile.legal_records;
+  const breachesByEmail = profile.breaches ?? [];
+  const breachCount = breachesByEmail.reduce((sum, e) => sum + e.breaches.length, 0);
 
   const addressCount = (profile.primary_address ? 1 : 0) + previousAddresses.length;
 
-  const criticalItems: Finding[] = [];
-  if (profile.primary_address) {
-    criticalItems.push({ label: "Current address", value: profile.primary_address });
-  }
-  if (breaches.length > 0) {
-    const first = breaches[0];
-    criticalItems.push({
-      label: "Data breach",
-      value: [first.name, first.date || first.year].filter(Boolean).join(" · "),
-    });
-  }
-  if (legalRecords?.countyRecords || legalRecords?.nationwideCount) {
-    if (legalRecords.countyRecords) {
-      criticalItems.push({
-        label: "County legal records",
-        value: `${legalRecords.countyRecords.location}${legalRecords.countyRecords.count != null ? ` (${legalRecords.countyRecords.count})` : ""}`,
-      });
-    }
-    if (legalRecords.nationwideCount != null) {
-      criticalItems.push({ label: "Nationwide legal records", value: String(legalRecords.nationwideCount) });
-    }
-  }
+  // Critical is breach-only -- current address and legal records already
+  // have their own home (pre-profile's Contact section / Legal records
+  // card), so they don't need a second appearance here.
+  const breachGroups: BreachGroup[] = breachesByEmail.map((e) => ({
+    email: e.email,
+    breaches: e.breaches,
+    fieldsExposed: e.fields_exposed,
+  }));
 
   const identityItems: Finding[] = [
     ...aliases.map((a) => ({ label: "Alias", value: a })),
@@ -228,20 +233,13 @@ export function buildRiskAreas(profile: ConsolidatedProfile): RiskArea[] {
     {
       id: "critical",
       label: "Critical",
-      summary: (() => {
-        const parts = [];
-        if (breaches.length > 0) parts.push(`${breaches.length} breach${breaches.length === 1 ? "" : "es"}`);
-        if (legalRecords?.countyRecords || legalRecords?.nationwideCount) parts.push("legal records on file");
-        if (profile.primary_address) parts.push("current address exposed");
-        return parts.length > 0 ? parts.join(", ") : "No critical flags in this scan";
-      })(),
-      detail:
-        "Data breaches, legal records, and the details that make you easiest to find and impersonate.",
-      score: score(
-        (breaches.length ? 3 : 0) + (legalRecords?.countyRecords || legalRecords?.nationwideCount ? 2 : 0) + (profile.primary_address ? 1 : 0),
-        6,
-      ),
-      items: criticalItems,
+      summary: breachCount > 0
+        ? `${breachCount} breach${breachCount === 1 ? "" : "es"} across ${breachGroups.length} email${breachGroups.length === 1 ? "" : "s"}`
+        : "No data breaches found",
+      detail: "Data breaches your email addresses turned up in — where, when, and what kind of data was exposed.",
+      score: score(breachCount, 4),
+      items: [],
+      breachGroups,
     },
     {
       id: "scam",

@@ -208,10 +208,17 @@ async function handleConfirm(
   // this call's batch, so a second confirm doesn't drop earlier results.
   const [{ data: allHolehe }, { data: allLeakcheck }] = await Promise.all([
     supabase.schema("quickscan").from("holehe_results").select("services_found").eq("quickscans_id", quickscanId).eq("status", "success"),
-    supabase.schema("quickscan").from("leakcheck_results").select("breaches").eq("quickscans_id", quickscanId).eq("status", "success"),
+    supabase.schema("quickscan").from("leakcheck_results").select("email, breaches, fields_exposed").eq("quickscans_id", quickscanId).eq("status", "success"),
   ]);
   const servicesFound = [...new Set(((allHolehe ?? []) as Row[]).flatMap((r) => r.services_found ?? []))];
-  const breaches = ((allLeakcheck ?? []) as Row[]).flatMap((r) => r.breaches ?? []);
+  // Grouped by email (not flattened) -- the risk-summary "Critical" area
+  // shows one container per breached email, since that's the actual
+  // Leakcheck query unit: fields_exposed is a per-email aggregate, not
+  // attributable to any one breach source within it.
+  const breachesByEmail = ((allLeakcheck ?? []) as Row[])
+    .filter((r) => (r.breaches ?? []).length > 0)
+    .map((r) => ({ email: r.email, breaches: r.breaches ?? [], fields_exposed: r.fields_exposed ?? [] }));
+  const breachCount = breachesByEmail.reduce((sum, e) => sum + e.breaches.length, 0);
 
   // select() back so the frontend can refresh its cached copy (the pick-time
   // snapshot it's been holding has none of this — see loading.tsx) without a
@@ -219,7 +226,7 @@ async function handleConfirm(
   const { data: consolidatedProfile } = await supabase
     .schema("quickscan")
     .from("consolidated_profile")
-    .update({ services_found: servicesFound, breaches, breach_count: breaches.length })
+    .update({ services_found: servicesFound, breaches: breachesByEmail, breach_count: breachCount })
     .eq("quickscans_id", quickscanId)
     .select("*")
     .maybeSingle();
@@ -241,7 +248,7 @@ async function handleConfirm(
       holehe_checked: toHolehe.length,
       leakcheck_checked: toLeakcheck.length,
       services_found: servicesFound,
-      breach_count: breaches.length,
+      breach_count: breachCount,
       consolidated_profile: consolidatedProfile ?? null,
     }),
     { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
