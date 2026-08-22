@@ -28,11 +28,15 @@ export async function logTiming(
   durationMs: number,
   extra: { broker?: string; resultCount?: number; status?: string; error?: string } = {},
 ): Promise<void> {
+  // Callers all measure with Date.now(), which is naturally ms -- kept as
+  // the parameter unit so none of them need to change. scan_timings.duration_s
+  // stores seconds (see its own migration comment for why), converted here
+  // rather than at every call site.
   const { error } = await supabase.schema("quickscan").from("scan_timings").insert({
     quickscans_id: quickscansId,
     step,
     broker: extra.broker ?? null,
-    duration_ms: Math.round(durationMs),
+    duration_s: Math.round(durationMs) / 1000,
     result_count: extra.resultCount ?? null,
     status: extra.status ?? "success",
     error: extra.error ?? null,
