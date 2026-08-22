@@ -752,16 +752,26 @@ const BROKERS: { broker: BrokerName; url: UrlBuilder; parse: Parser }[] = [
   { broker: BrokerName.ZABA, url: buildZabaUrl, parse: parseZabaSummaries },
 ];
 
+// NPD is consistently the slowest/least reliable target (see quickscan.
+// scan_timings — 18-25s per fetch, sometimes timing out outright). Capped
+// lower than the shared default so a failing NPD fetch doesn't hold up the
+// rest of the pipeline any longer than it has to; Math.min so an explicitly
+// smaller caller timeout still wins.
+const BROKER_TIMEOUTS: Partial<Record<BrokerName, number>> = {
+  [BrokerName.NPD]: 10000,
+};
+
 async function scrapeOne(
   spec: (typeof BROKERS)[number],
   input: QuickScanInput,
   timeoutMs: number,
 ): Promise<ScrapeResult> {
+  const effectiveTimeoutMs = Math.min(timeoutMs, BROKER_TIMEOUTS[spec.broker] ?? timeoutMs);
   const started = Date.now();
   try {
     const searchUrl = spec.url(input);
     console.log(`🔗 ${spec.broker} context.dev ${searchUrl}`);
-    const page = await scrapeHtml(searchUrl, { timeoutMs });
+    const page = await scrapeHtml(searchUrl, { timeoutMs: effectiveTimeoutMs });
     const timing_ms = Date.now() - started;
     if (page.notFound) {
       return { broker: spec.broker, summaries: [], status: "no_results", timing_ms };
