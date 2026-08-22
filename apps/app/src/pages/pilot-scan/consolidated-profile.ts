@@ -158,10 +158,17 @@ export function parseFullAddress(fullAddr: string): { street: string; cityStateZ
 
 export type RiskAreaId = "critical" | "scam" | "family" | "identity" | "accounts" | "spam" | "property" | "other";
 
-/** One breached email, its breach sources, and the field types Leakcheck found exposed for it. */
-export type BreachGroup = {
+/**
+ * One breach, its own card. fieldsExposed is carried on every card from the
+ * same email even though it's really a per-email aggregate, not attributable
+ * to this specific breach source -- Leakcheck's public API doesn't break it
+ * down any finer than that.
+ */
+export type BreachCard = {
   email: string;
-  breaches: Array<{ name: string; date?: string | null; year?: string | null }>;
+  name: string;
+  date?: string | null;
+  year?: string | null;
   fieldsExposed: string[];
 };
 
@@ -172,8 +179,8 @@ export type RiskArea = {
   detail: string;
   score: number;
   items: Finding[];
-  /** Critical only — the breach-by-email view replaces the generic Finding list for that area. */
-  breachGroups?: BreachGroup[];
+  /** Critical only — one card per breach replaces the generic Finding list for that area. */
+  breachCards?: BreachCard[];
 };
 
 function score(count: number, cap: number, extra = 0): number {
@@ -206,11 +213,15 @@ export function buildRiskAreas(profile: ConsolidatedProfile): RiskArea[] {
   // Critical is breach-only -- current address and legal records already
   // have their own home (pre-profile's Contact section / Legal records
   // card), so they don't need a second appearance here.
-  const breachGroups: BreachGroup[] = breachesByEmail.map((e) => ({
-    email: e.email,
-    breaches: e.breaches,
-    fieldsExposed: e.fields_exposed,
-  }));
+  const breachCards: BreachCard[] = breachesByEmail.flatMap((e) =>
+    e.breaches.map((b) => ({
+      email: e.email,
+      name: b.name,
+      date: b.date,
+      year: b.year,
+      fieldsExposed: e.fields_exposed,
+    })),
+  );
 
   const identityItems: Finding[] = [
     ...aliases.map((a) => ({ label: "Alias", value: a })),
@@ -234,12 +245,12 @@ export function buildRiskAreas(profile: ConsolidatedProfile): RiskArea[] {
       id: "critical",
       label: "Critical",
       summary: breachCount > 0
-        ? `${breachCount} breach${breachCount === 1 ? "" : "es"} across ${breachGroups.length} email${breachGroups.length === 1 ? "" : "s"}`
+        ? `${breachCount} breach${breachCount === 1 ? "" : "es"} across ${breachesByEmail.length} email${breachesByEmail.length === 1 ? "" : "s"}`
         : "No data breaches found",
       detail: "Data breaches your email addresses turned up in — where, when, and what kind of data was exposed.",
       score: score(breachCount, 4),
       items: [],
-      breachGroups,
+      breachCards,
     },
     {
       id: "scam",

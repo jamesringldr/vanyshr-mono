@@ -60,7 +60,7 @@ type AreaView = {
   detail: string;
   score: number;
   items: RiskArea["items"];
-  breachGroups?: RiskArea["breachGroups"];
+  breachCards?: RiskArea["breachCards"];
   Icon: IconComponent;
   angleDeg?: number;
 };
@@ -406,30 +406,28 @@ export function RiskSummaryBody({ profile }: { profile: ConsolidatedProfile }) {
                   {activeArea.detail}
                 </p>
 
-                {activeArea.breachGroups ? (
-                  activeArea.breachGroups.length === 0 ? (
+                {activeArea.breachCards ? (
+                  activeArea.breachCards.length === 0 ? (
                     <p className="mt-5 text-sm text-[#7A92A8]">
                       No breaches found for any confirmed email.
                     </p>
                   ) : (
-                    <ul className="mt-5 flex flex-col gap-3">
-                      {activeArea.breachGroups.map((group) => (
+                    <ul className="mt-5 flex flex-col gap-2">
+                      {activeArea.breachCards.map((b, i) => (
                         <li
-                          key={group.email}
+                          key={`${b.email}-${b.name}-${i}`}
                           className="rounded-xl bg-[#022136]/55 px-3.5 py-3"
                         >
-                          <p className="break-all text-sm font-semibold text-white">{group.email}</p>
-                          <ul className="mt-2 flex flex-col gap-1">
-                            {group.breaches.map((b, i) => (
-                              <li key={`${b.name}-${i}`} className="text-sm text-[#B8C4CC]">
-                                {b.name}
-                                {(b.date || b.year) ? ` · ${b.date || b.year}` : ""}
-                              </li>
-                            ))}
-                          </ul>
-                          {group.fieldsExposed.length > 0 && (
+                          <p className="break-all text-[11px] font-semibold uppercase tracking-[0.12em] text-[#7A92A8]">
+                            {b.email}
+                          </p>
+                          <p className="mt-1 text-sm leading-snug text-white">
+                            {b.name}
+                            {(b.date || b.year) ? ` · ${b.date || b.year}` : ""}
+                          </p>
+                          {b.fieldsExposed.length > 0 && (
                             <div className="mt-2.5 flex flex-wrap gap-1.5">
-                              {group.fieldsExposed.map((field) => (
+                              {b.fieldsExposed.map((field) => (
                                 <span
                                   key={field}
                                   className="rounded-full bg-white/10 px-2 py-0.5 text-[11px] text-[#B8C4CC]"
