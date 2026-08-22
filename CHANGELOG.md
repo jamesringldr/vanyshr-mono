@@ -34,6 +34,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `scraper-lab-client` bridge for optional residential-worker search routing
 - `docs/agent_documentation/duct-tape/` — VPS/home-worker deploy runbooks and admin-invite flow plans
 
+- Full-profile field coverage ported from the vanyshr-scraper-lab: aliases, employment/job history/education, relative gender/birth month, phone type/carrier/first-reported date, address county/recorded-date, AnyWho's per-address property type and legal-records counts, Zaba's birth date
+- `quickscan.employment`, `quickscan.education`, `quickscan.properties` tables — same dedup shape as phones/addresses (a job, school, or property reported by more than one broker corroborates instead of duplicating)
+- `consolidated_profile.employment` / `.education` / `.properties` / `.legal_records` — the rollup the frontend actually reads now carries these, not just phones/addresses/relatives/aliases
+- Employment, Education, Residential details, and Legal records sections on the pilot-scan pre-profile page
+
 ### Changed
 
 - Dedup scoring now compares parsed address components instead of splitting the raw string on commas
@@ -67,3 +72,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Signup harvested nothing from a pilot scan. `create_pending_profile()` reads `quick_scans.profile_data` in a specific shape; the Phase 2 profile used different keys and types, so phones, emails, addresses and aliases all parsed to empty.
 - Enrichment with zero breaches violated a check constraint. `leakcheck_status` was written as `no_results`, which is not an allowed value — since most people have no breaches, this would have failed the entire enrichment insert on the common path.
 - The scan-timeout cron job had failed every minute since the `quickscan` partition landed (~1,200 runs), because it referenced `quick_scans` unqualified. Scans whose edge function died mid-run were never marked failed.
+
+- FPS's detail-page age was silently always null — it read from a `#age-header` selector that does not exist on the real page (the age/born text is a `<p>` sibling of the name `<h1>`)
+- Zaba's summary parser dropped phones and aliases past 5 per profile (list cap left over from an earlier draft, same bug already found and fixed in the Python scraper-lab); raised with headroom above observed maxima
+- `linesOf()` never actually split multi-line text on `<br>` in this deno_dom version — silently mangled Zaba's address parsing (`"7935 Holmes RDKansas City, Missouri 64131"`), not just the new Job History field that surfaced it
