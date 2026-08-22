@@ -277,6 +277,15 @@ export function PilotLoadingPage() {
     return () => window.clearTimeout(t);
   }, [phase, navigate, prefersReducedMotion]);
 
+  // summary-scan responds as soon as Zaba resolves and keeps matching
+  // FPS/NPD/AnyWho in the background; full-profile-scan reports { notReady }
+  // instead of guessing with an incomplete match if the pick happens first.
+  // ~20-30s covers that background pass in practice (see quickscan.
+  // scan_timings) — 45 gives headroom without hanging indefinitely on a
+  // background failure that somehow never lands on a terminal status.
+  const FULL_PROFILE_MAX_ATTEMPTS = 45;
+  const FULL_PROFILE_RETRY_DELAY_MS = 1000;
+
   async function handlePick(profile: QSProfileSummary) {
     if (phaseRef.current !== "pick") return;
     go("full_profile");
@@ -289,11 +298,26 @@ export function PilotLoadingPage() {
     }
 
     try {
-      const { data, error } = await supabase.functions.invoke("full-profile-scan", {
-        body: { quickscanId, fullProfileResultId: profile.id },
-      });
+      let data: any, error: any;
+      for (let attempt = 0; attempt < FULL_PROFILE_MAX_ATTEMPTS; attempt++) {
+        // Cancelled/navigated away mid-poll — the already-running loading
+        // screen covers this wait, so bail rather than keep invoking.
+        if (phaseRef.current !== "full_profile") return;
+        ({ data, error } = await supabase.functions.invoke("full-profile-scan", {
+          body: { quickscanId, fullProfileResultId: profile.id },
+        }));
+        if (error || !data?.notReady) break;
+        await new Promise((resolve) => setTimeout(resolve, FULL_PROFILE_RETRY_DELAY_MS));
+      }
+
       if (error || data?.error) {
         console.warn("full-profile-scan failed:", error?.message || data?.error);
+        setEmailCandidates([]);
+      } else if (data?.notReady) {
+        // Exhausted retries — the background match never landed on a
+        // terminal status. Degrade rather than hang the loading screen
+        // forever; the user still gets Zaba's own data either way.
+        console.warn("full-profile-scan: background match never completed");
         setEmailCandidates([]);
       } else {
         setEmailCandidates(emailsFrom(data));

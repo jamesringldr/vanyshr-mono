@@ -1,0 +1,21 @@
+-- ============================================================================
+-- purge-quickscan-test-data.sql
+-- ============================================================================
+-- Manual dev/test utility -- NOT a migration, does not live in
+-- supabase/migrations/ and never runs automatically via `supabase db push`.
+-- Run by hand (psql, or paste into the Supabase SQL editor) whenever a
+-- testing pass needs a clean slate.
+--
+-- Full wipe, on purpose: the app isn't in clients' hands yet, so there's no
+-- real user data in these tables to protect -- no name-matching needed.
+--
+-- Every quickscan.* child table has ON DELETE CASCADE back to
+-- quickscan.quickscans(id) (phones, addresses, relatives, aliases, emails,
+-- employment, education, properties, full_profile_results, summary_results,
+-- match_groups, consolidated_profile, holehe_results, leakcheck_results,
+-- scan_timings -- confirmed against every migration as of 20260822150000).
+-- Deleting every row from the parent table cascades through all of them;
+-- nothing else in this script is needed.
+-- ============================================================================
+
+delete from quickscan.quickscans;

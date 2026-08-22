@@ -5,6 +5,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { buildSummaryUrls } from "../_shared/quickscan/summary-urls.ts";
+import { logTiming } from "../_shared/quickscan/consolidation.ts";
 
 serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
@@ -32,6 +33,11 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
       { auth: { autoRefreshToken: false, persistSession: false } },
     );
+
+    // No quickscans_id exists yet -- this function creates it -- so the
+    // whole-function timing can only be logged after the insert below
+    // succeeds, using the id it just made.
+    const functionStarted = Date.now();
 
     if (!city || !state) {
       const { data: zipRow } = await supabase
@@ -84,6 +90,8 @@ serve(async (req) => {
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
+
+    await logTiming(supabase, data.id, "intro_scan_total", Date.now() - functionStarted);
 
     return new Response(
       JSON.stringify({ success: true, ...data }),

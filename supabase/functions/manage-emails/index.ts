@@ -15,7 +15,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { normalizeEmail, isValidEmail } from "../_shared/quickscan/email-extractor.ts";
-import { checkMxRecord, syncConfirmedEmails } from "../_shared/quickscan/consolidation.ts";
+import { checkMxRecord, syncConfirmedEmails, logTiming } from "../_shared/quickscan/consolidation.ts";
 import { enrichMultipleEmails as enrichWithHolehe } from "../_shared/quickscan/holehe-enricher.ts";
 import { enrichMultipleEmails as enrichWithLeakcheck } from "../_shared/quickscan/leakcheck-enricher.ts";
 
@@ -160,10 +160,23 @@ async function handleConfirm(
   const toHolehe = confirmedEmails.filter((e) => !doneHolehe.has(e));
   const toLeakcheck = confirmedEmails.filter((e) => !doneLeakcheck.has(e));
 
-  const [holeheResults, leakcheckResults] = await Promise.all([
-    toHolehe.length ? enrichWithHolehe(toHolehe) : Promise.resolve([]),
-    toLeakcheck.length ? enrichWithLeakcheck(toLeakcheck) : Promise.resolve([]),
+  // Run concurrently but time each independently -- Promise.all only
+  // resolves once both are done, so timing around the combined call would
+  // attribute the slower one's wait to both.
+  async function timed<T>(fn: () => Promise<T>): Promise<{ result: T; ms: number }> {
+    const started = Date.now();
+    const result = await fn();
+    return { result, ms: Date.now() - started };
+  }
+
+  const [holeheTimed, leakcheckTimed] = await Promise.all([
+    timed(() => (toHolehe.length ? enrichWithHolehe(toHolehe) : Promise.resolve([]))),
+    timed(() => (toLeakcheck.length ? enrichWithLeakcheck(toLeakcheck) : Promise.resolve([]))),
   ]);
+  const holeheResults = holeheTimed.result;
+  const leakcheckResults = leakcheckTimed.result;
+  await logTiming(supabase, quickscanId, "holehe", holeheTimed.ms, { resultCount: toHolehe.length });
+  await logTiming(supabase, quickscanId, "leakcheck", leakcheckTimed.ms, { resultCount: toLeakcheck.length });
 
   if (holeheResults.length) {
     await supabase.schema("quickscan").from("holehe_results").insert(

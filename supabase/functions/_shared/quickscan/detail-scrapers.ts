@@ -729,38 +729,50 @@ const DETAIL_PARSERS: Partial<Record<BrokerName, (html: string) => BrokerDetailP
  * Falls back to the flat Phase 1 summary data (already known) if a detail fetch
  * fails, times out, or the page has nothing the parser recognizes.
  */
+export interface BrokerDetailTiming {
+  timingMs: number;
+  status: "success" | "fallback" | "failed";
+}
+
 export async function scrapeBrokerDetails(
   members: DedupMember[],
   timeoutMs = DEFAULT_DETAIL_TIMEOUT_MS,
-): Promise<Record<string, unknown>> {
+): Promise<{ profiles: Record<string, unknown>; timings: Record<string, BrokerDetailTiming> }> {
   const settled = await Promise.allSettled(
     members.map(async (member) => {
       const { broker, profile_url } = member.summary;
-      if (!profile_url) return { broker, profile: summaryFallback(member.summary) };
+      const started = Date.now();
+      if (!profile_url) {
+        return { broker, profile: summaryFallback(member.summary), timingMs: Date.now() - started, status: "fallback" as const };
+      }
 
       try {
         const page = await scrapeHtml(profile_url, { timeoutMs });
-        if (page.notFound || !page.html) return { broker, profile: summaryFallback(member.summary) };
+        if (page.notFound || !page.html) {
+          return { broker, profile: summaryFallback(member.summary), timingMs: Date.now() - started, status: "fallback" as const };
+        }
 
         const parser = DETAIL_PARSERS[broker];
         const detail = parser?.(page.html);
         if (!detail || !detail.fullName) {
           console.warn(`⚠️ ${broker} detail page parsed empty — falling back to summary data`);
-          return { broker, profile: summaryFallback(member.summary) };
+          return { broker, profile: summaryFallback(member.summary), timingMs: Date.now() - started, status: "fallback" as const };
         }
-        return { broker, profile: detail };
+        return { broker, profile: detail, timingMs: Date.now() - started, status: "success" as const };
       } catch (error) {
         console.warn(`⚠️ ${broker} detail scrape failed/timed out (${timeoutMs}ms): ${(error as Error).message}`);
-        return { broker, profile: summaryFallback(member.summary) };
+        return { broker, profile: summaryFallback(member.summary), timingMs: Date.now() - started, status: "failed" as const };
       }
     }),
   );
 
   const out: Record<string, unknown> = {};
+  const timings: Record<string, BrokerDetailTiming> = {};
   for (const result of settled) {
     if (result.status === "fulfilled") {
       out[result.value.broker] = result.value.profile;
+      timings[result.value.broker] = { timingMs: result.value.timingMs, status: result.value.status };
     }
   }
-  return out;
+  return { profiles: out, timings };
 }

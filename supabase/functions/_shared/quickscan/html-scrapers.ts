@@ -796,3 +796,22 @@ export async function scrapeAllBrokers(
   for (const r of results) out[r.broker] = r;
   return out;
 }
+
+/**
+ * Same fetches as scrapeAllBrokers, kicked off together -- but returns each
+ * broker's own Promise instead of one combined Promise.all. Lets a caller
+ * await just the broker it needs right now (Zaba, for the fast path to the
+ * selection modal) while the rest keep running independently in the
+ * background. scrapeAllBrokers is left as-is for phase1-orchestrator.ts,
+ * which genuinely wants to wait for everything.
+ */
+export function scrapeBrokersConcurrently(
+  input: QuickScanInput,
+  timeoutMs = 25000,
+  brokers?: BrokerName[],
+): Record<string, Promise<ScrapeResult>> {
+  const specs = brokers ? BROKERS.filter((b) => brokers.includes(b.broker)) : BROKERS;
+  const out: Record<string, Promise<ScrapeResult>> = {};
+  for (const spec of specs) out[spec.broker] = scrapeOne(spec, input, timeoutMs);
+  return out;
+}

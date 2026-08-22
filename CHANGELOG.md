@@ -39,6 +39,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `consolidated_profile.employment` / `.education` / `.properties` / `.legal_records` — the rollup the frontend actually reads now carries these, not just phones/addresses/relatives/aliases
 - Employment, Education, Residential details, and Legal records sections on the pilot-scan pre-profile page
 
+- `quickscan.scan_timings` — per-step/per-broker duration and result-count logging across intro-scan, summary-scan, and full-profile-scan, for diagnosing where a scan spends its time
+- `supabase/scripts/purge-quickscan-test-data.sql` — manual dev/test utility to wipe all `quickscan.*` tables between test passes
+- `quickscan.quickscans.selected_summary_result_id` — holds a fallback (non-Zaba) pick when Zaba returns no results for a scan
+
 ### Changed
 
 - Dedup scoring now compares parsed address components instead of splitting the raw string on commas
@@ -58,6 +62,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Pre-profile page loads saved `profile_data` when present (e.g. after manual admin upload) instead of being overridden by stub `selectedProfile` state
 - Pre-profile UI: two-column list previews with “N More…”, improved alias normalization, address parsing, and relative age handling
 - Zabasearch and AnyWho scrapers updated to align with shared parse/merge patterns used by admin HTML ingestion
+
+- `scan_timings.duration_ms` → `duration_s` (numeric seconds, easier to read)
+- `summary-scan` now responds as soon as Zaba resolves instead of waiting on all 4 brokers — the selection modal used to take 50s+ because it waited on the slowest/most failure-prone broker (NPD) too; FPS/NPD/AnyWho now finish matching in the background, and `full-profile-scan` holds the pick until that background match completes instead of proceeding on an incomplete one
+- `summary-scan` now falls back to fps/npd/anywho's own matched results as selection-modal candidates when Zaba itself found nothing for a scan, instead of surfacing an empty "no results" list
 
 ### Fixed
 
