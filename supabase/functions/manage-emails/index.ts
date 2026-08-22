@@ -213,11 +213,16 @@ async function handleConfirm(
   const servicesFound = [...new Set(((allHolehe ?? []) as Row[]).flatMap((r) => r.services_found ?? []))];
   const breaches = ((allLeakcheck ?? []) as Row[]).flatMap((r) => r.breaches ?? []);
 
-  await supabase
+  // select() back so the frontend can refresh its cached copy (the pick-time
+  // snapshot it's been holding has none of this — see loading.tsx) without a
+  // second round trip.
+  const { data: consolidatedProfile } = await supabase
     .schema("quickscan")
     .from("consolidated_profile")
     .update({ services_found: servicesFound, breaches, breach_count: breaches.length })
-    .eq("quickscans_id", quickscanId);
+    .eq("quickscans_id", quickscanId)
+    .select("*")
+    .maybeSingle();
 
   // Confirm is the last step before the report — the funnel watermark moves
   // here, not on page navigation, since that's still a client-side event and
@@ -231,7 +236,14 @@ async function handleConfirm(
   console.log(`✅ manage-emails confirm ${quickscanId}: ${toHolehe.length} holehe, ${toLeakcheck.length} leakcheck checked`);
 
   return new Response(
-    JSON.stringify({ success: true, holehe_checked: toHolehe.length, leakcheck_checked: toLeakcheck.length, services_found: servicesFound, breach_count: breaches.length }),
+    JSON.stringify({
+      success: true,
+      holehe_checked: toHolehe.length,
+      leakcheck_checked: toLeakcheck.length,
+      services_found: servicesFound,
+      breach_count: breaches.length,
+      consolidated_profile: consolidatedProfile ?? null,
+    }),
     { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
   );
 }

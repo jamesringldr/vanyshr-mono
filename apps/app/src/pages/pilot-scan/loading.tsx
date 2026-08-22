@@ -14,6 +14,7 @@ import {
 } from "@vanyshr/ui/components/application";
 import type { ScanMember } from "./scan-result";
 import { EmailConfirmationModal } from "./email-confirmation";
+import { loadConsolidatedProfile, saveConsolidatedProfile, type ConsolidatedProfile } from "./consolidated-profile";
 
 const EASE_OUT = [0.2, 0, 0, 1] as const;
 
@@ -269,10 +270,7 @@ export function PilotLoadingPage() {
   useEffect(() => {
     if (phase !== "report") return;
     const t = window.setTimeout(() => {
-      // Temporary: pre-profile is the landing spot while risk-summary isn't
-      // wired to consolidated_profile yet. Risk-summary goes back in front
-      // of this once it is.
-      navigate("/pilot-scan/pre-profile", { replace: true });
+      navigate("/pilot-scan/report", { replace: true });
     }, prefersReducedMotion ? 400 : 800);
     return () => window.clearTimeout(t);
   }, [phase, navigate, prefersReducedMotion]);
@@ -321,13 +319,14 @@ export function PilotLoadingPage() {
         setEmailCandidates([]);
       } else {
         setEmailCandidates(emailsFrom(data));
-        // Temporary landing spot while risk-summary isn't wired to
-        // consolidated_profile yet — see pre-profile.tsx.
+        // Report carousel (risk-summary + pre-profile) reads this back —
+        // services_found/breaches aren't in it yet at this point (that's
+        // manage-emails' confirm step, later); handleEmailsConfirmed()
+        // below overwrites this same key once those land.
         const brokersScraped = Array.isArray(data?.brokers_scraped) ? data.brokers_scraped.length : 0;
-        sessionStorage.setItem(
-          "pilotConsolidatedProfile",
-          JSON.stringify({ profile: data?.consolidated_profile ?? null, brokerCount: brokersScraped + 1 }),
-        );
+        if (data?.consolidated_profile) {
+          saveConsolidatedProfile(data.consolidated_profile as ConsolidatedProfile, brokersScraped + 1);
+        }
       }
     } catch (err) {
       console.warn("full-profile-scan error:", err);
@@ -367,7 +366,16 @@ export function PilotLoadingPage() {
           supabase.functions.invoke("manage-emails", { body: { quickscanId, action: "remove", email } }),
         ),
       ]);
-      await supabase.functions.invoke("manage-emails", { body: { quickscanId, action: "confirm" } });
+      const { data: confirmData } = await supabase.functions.invoke("manage-emails", {
+        body: { quickscanId, action: "confirm" },
+      });
+      // Refresh the cached profile with the now-populated services_found/
+      // breaches — the pick-time copy predates email confirmation, so it
+      // never had these (see handlePick above).
+      if (confirmData?.consolidated_profile) {
+        const brokerCount = loadConsolidatedProfile().data?.brokerCount ?? 1;
+        saveConsolidatedProfile(confirmData.consolidated_profile as ConsolidatedProfile, brokerCount);
+      }
     } catch (err) {
       console.warn("manage-emails confirm error:", err);
     }
