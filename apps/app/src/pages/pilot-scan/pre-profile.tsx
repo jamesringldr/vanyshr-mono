@@ -6,13 +6,11 @@ import {
     Users,
     MapPin,
     Phone,
-    Scale,
     Briefcase,
     GraduationCap,
     Home,
     Gavel,
 } from "lucide-react";
-import PrimaryLogo from "@vanyshr/ui/assets/PrimaryLogo.png";
 import PrimaryLogoDark from "@vanyshr/ui/assets/PrimaryLogo-DarkMode.png";
 import {
     loadConsolidatedProfile,
@@ -102,11 +100,11 @@ function DataTypeCard({
         <section
             role="region"
             aria-label={title}
-            className="rounded-xl border p-4 transition-colors bg-[var(--bg-surface)] dark:bg-[#2D3847] border-[var(--border-subtle)] dark:border-[#2A4A68]"
+            className="rounded-2xl bg-[#1A2E42] p-4"
         >
             <div className="flex items-center gap-2">
-                <Icon className="h-5 w-5 shrink-0 text-[var(--text-secondary)] dark:text-[#B8C4CC]" aria-hidden />
-                <h3 className="text-sm font-semibold text-[var(--text-primary)] dark:text-white">{title}</h3>
+                <Icon className="h-5 w-5 shrink-0 text-[#7A92A8]" aria-hidden />
+                <h3 className="text-sm font-semibold text-white">{title}</h3>
             </div>
             <div className="mt-3">{children}</div>
         </section>
@@ -115,7 +113,7 @@ function DataTypeCard({
 
 function Pill({ children }: { children: React.ReactNode }) {
     return (
-        <span className="inline-flex items-center rounded-xl px-3 py-1.5 text-sm bg-[#F0F4F8]/50 dark:bg-[#022136]/50 border border-[var(--border-subtle)] dark:border-[#2A4A68] text-[var(--text-primary)] dark:text-white">
+        <span className="inline-flex items-center rounded-full px-3 py-1.5 text-sm bg-white/10 text-white">
             {children}
         </span>
     );
@@ -141,7 +139,7 @@ function LimitedTwoColumnGrid<T>({
                 <li key={i}>{renderItem(item, i)}</li>
             ))}
             {remaining > 0 && (
-                <li className="text-sm font-medium text-[var(--text-muted)] dark:text-[#7A92A8]">
+                <li className="text-sm font-medium text-[#7A92A8]">
                     {remaining} More...
                 </li>
             )}
@@ -159,7 +157,7 @@ export function PreProfileBody({ profile }: { profile: ConsolidatedProfile }) {
     const data = useMemo(() => convertToPreProfileData(profile), [profile]);
     return (
         <div>
-            <h1 className="text-2xl font-bold tracking-tight text-[var(--text-primary)] dark:text-white sm:text-3xl">
+            <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">
                 Exposure Summary
             </h1>
 
@@ -167,14 +165,14 @@ export function PreProfileBody({ profile }: { profile: ConsolidatedProfile }) {
                 <section
                     role="region"
                     aria-label="Contact"
-                    className="rounded-xl border p-4 sm:p-5 bg-[var(--bg-surface)] dark:bg-[#2D3847] border-[var(--border-subtle)] dark:border-[#2A4A68]"
+                    className="rounded-2xl bg-[#1A2E42] p-4 sm:p-5"
                 >
                     <div className="flex flex-wrap items-end justify-between gap-2">
-                        <h2 className="text-lg font-bold text-[var(--text-primary)] dark:text-white">
+                        <h2 className="text-lg font-bold text-white">
                             {data.contact.fullName}
                         </h2>
                         {data.contact.age != null && (
-                            <span className="text-lg text-[var(--text-primary)] dark:text-white">
+                            <span className="text-lg text-white">
                                 <span className="font-semibold tabular-nums">{data.contact.age}</span>{" "}
                                 <span className="font-normal">years old</span>
                             </span>
@@ -182,18 +180,18 @@ export function PreProfileBody({ profile }: { profile: ConsolidatedProfile }) {
                     </div>
                     <div className="mt-4 grid grid-cols-2 gap-4">
                         <div>
-                            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)] dark:text-[#7A92A8]">
+                            <p className="text-xs font-semibold uppercase tracking-wide text-[#7A92A8]">
                                 Primary phone
                             </p>
-                            <p className="mt-0.5 font-mono text-sm tabular-nums text-[var(--text-primary)] dark:text-white">
+                            <p className="mt-0.5 font-mono text-sm tabular-nums text-white">
                                 {data.contact.primaryPhone}
                             </p>
                         </div>
                         <div>
-                            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)] dark:text-[#7A92A8]">
+                            <p className="text-xs font-semibold uppercase tracking-wide text-[#7A92A8]">
                                 Current address
                             </p>
-                            <p className="mt-0.5 text-sm text-[var(--text-primary)] dark:text-white whitespace-pre-line">
+                            <p className="mt-0.5 text-sm text-white whitespace-pre-line">
                                 {data.contact.currentAddress}
                             </p>
                         </div>
@@ -216,16 +214,16 @@ export function PreProfileBody({ profile }: { profile: ConsolidatedProfile }) {
                             items={data.familyAndFriends}
                             renderItem={(item) => (
                                 <div className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5">
-                                    <span className="text-sm text-[var(--text-primary)] dark:text-white">
+                                    <span className="text-sm text-white">
                                         {item.name}
                                         {item.relationship && (
-                                            <span className="text-[var(--text-muted)] dark:text-[#7A92A8] ml-1">
+                                            <span className="text-[#7A92A8] ml-1">
                                                 ({item.relationship})
                                             </span>
                                         )}
                                     </span>
                                     {item.age != null && (
-                                        <span className="shrink-0 text-sm text-[var(--text-muted)] dark:text-[#7A92A8] tabular-nums">
+                                        <span className="shrink-0 text-sm text-[#7A92A8] tabular-nums">
                                             {item.age}
                                         </span>
                                     )}
@@ -243,12 +241,12 @@ export function PreProfileBody({ profile }: { profile: ConsolidatedProfile }) {
                             renderItem={(addr) => (
                                 <div>
                                     {addr.street && (
-                                        <p className="text-sm font-bold text-[var(--text-primary)] dark:text-white">
+                                        <p className="text-sm font-bold text-white">
                                             {addr.street}
                                         </p>
                                     )}
                                     {addr.cityStateZip && (
-                                        <p className="text-sm font-normal text-[var(--text-secondary)] dark:text-[#B8C4CC]">
+                                        <p className="text-sm font-normal text-[#B8C4CC]">
                                             {addr.cityStateZip}
                                         </p>
                                     )}
@@ -263,7 +261,7 @@ export function PreProfileBody({ profile }: { profile: ConsolidatedProfile }) {
                         <LimitedTwoColumnGrid
                             items={data.pastPhones}
                             renderItem={(phone) => (
-                                <span className="font-mono text-sm tabular-nums text-[var(--text-primary)] dark:text-white">
+                                <span className="font-mono text-sm tabular-nums text-white">
                                     {phone}
                                 </span>
                             )}
@@ -276,10 +274,10 @@ export function PreProfileBody({ profile }: { profile: ConsolidatedProfile }) {
                         <LimitedTwoColumnGrid
                             items={data.employment}
                             renderItem={(job) => (
-                                <span className="text-sm text-[var(--text-primary)] dark:text-white">
+                                <span className="text-sm text-white">
                                     {job.label}
                                     {job.isCurrent && (
-                                        <span className="text-[var(--text-muted)] dark:text-[#7A92A8] ml-1">
+                                        <span className="text-[#7A92A8] ml-1">
                                             (Current)
                                         </span>
                                     )}
@@ -293,7 +291,7 @@ export function PreProfileBody({ profile }: { profile: ConsolidatedProfile }) {
                     <DataTypeCard icon={GraduationCap} title="Education">
                         <ul className="space-y-1.5">
                             {data.education.map((entry, i) => (
-                                <li key={i} className="text-sm text-[var(--text-primary)] dark:text-white">
+                                <li key={i} className="text-sm text-white">
                                     {entry}
                                 </li>
                             ))}
@@ -307,17 +305,17 @@ export function PreProfileBody({ profile }: { profile: ConsolidatedProfile }) {
                             {data.homeSpecs.map((home, i) => (
                                 <div key={i}>
                                     {home.address && (
-                                        <p className="mb-2 text-sm font-bold text-[var(--text-primary)] dark:text-white">
+                                        <p className="mb-2 text-sm font-bold text-white">
                                             {home.address}
                                         </p>
                                     )}
                                     <div className="grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-3">
                                         {home.facts.map((fact, j) => (
                                             <div key={j}>
-                                                <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)] dark:text-[#7A92A8]">
+                                                <p className="text-xs font-semibold uppercase tracking-wide text-[#7A92A8]">
                                                     {fact.label}
                                                 </p>
-                                                <p className="mt-0.5 text-sm text-[var(--text-primary)] dark:text-white">
+                                                <p className="mt-0.5 text-sm text-white">
                                                     {fact.value}
                                                 </p>
                                             </div>
@@ -362,21 +360,18 @@ export function PilotPreProfilePage() {
     if (!stored) {
         return (
             <div
-                className="min-h-screen w-full flex flex-col items-center justify-center p-4 bg-[#F0F4F8] dark:bg-[#022136] font-sans transition-colors duration-200"
+                className="flex min-h-screen w-full flex-col items-center justify-center bg-[#022136] p-4 font-sans"
                 role="main"
                 aria-label="Error loading profile"
             >
                 <div className="w-full max-w-md text-center">
-                    <div className="w-16 h-16 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mx-auto mb-4">
-                        <Scale className="w-8 h-8 text-red-600 dark:text-red-400" />
-                    </div>
-                    <h1 className="text-xl font-bold text-[#022136] dark:text-white mb-2">No profile data found</h1>
-                    <p className="text-sm text-[#B8C4CC] mb-6">
+                    <h1 className="mb-2 text-xl font-bold text-white">No profile data found</h1>
+                    <p className="mb-6 text-sm text-[#B8C4CC]">
                         Nothing came through from this scan — run it again from the start.
                     </p>
                     <Link
                         to="/pilot-scan"
-                        className="inline-flex h-[44px] items-center justify-center px-6 rounded-xl bg-[#00BFFF] hover:bg-[#1196E0] text-white font-semibold transition-all"
+                        className="inline-flex h-[44px] items-center justify-center rounded-xl bg-[#00BFFF] px-6 font-semibold text-white transition-all hover:bg-[#1196E0]"
                         onClick={() => navigate("/pilot-scan")}
                     >
                         Start over
@@ -388,7 +383,7 @@ export function PilotPreProfilePage() {
 
     return (
         <div
-            className="min-h-screen w-full bg-[#F0F4F8] dark:bg-[#022136] font-sans transition-colors duration-200"
+            className="min-h-screen w-full bg-[#022136] font-sans"
             role="main"
             aria-label="Pre-profile exposure summary"
         >
@@ -396,13 +391,12 @@ export function PilotPreProfilePage() {
                 <header className="mb-6 flex h-14 items-center justify-between gap-4 sm:mb-8">
                     <div className="w-10 shrink-0" aria-hidden />
                     <div className="flex min-w-0 flex-1 justify-center">
-                        <img src={PrimaryLogo} alt="Vanyshr" className="h-[2.1875rem] w-auto dark:hidden sm:h-[2.5rem]" />
-                        <img src={PrimaryLogoDark} alt="Vanyshr" className="hidden h-[2.1875rem] w-auto dark:block sm:h-[2.5rem]" />
+                        <img src={PrimaryLogoDark} alt="Vanyshr" className="h-[2.1875rem] w-auto sm:h-[2.5rem]" />
                     </div>
                     <button
                         type="button"
                         aria-label="Open menu"
-                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-[var(--text-primary)] dark:text-white outline-none transition hover:bg-black/5 dark:hover:bg-white/10"
+                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-white outline-none transition hover:bg-white/10"
                     >
                         <Menu className="h-6 w-6" />
                     </button>

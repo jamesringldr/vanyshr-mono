@@ -1,7 +1,6 @@
 import { useRef, useState } from "react";
 import { Link } from "react-router";
 import { Menu } from "lucide-react";
-import PrimaryLogo from "@vanyshr/ui/assets/PrimaryLogo.png";
 import PrimaryLogoDark from "@vanyshr/ui/assets/PrimaryLogo-DarkMode.png";
 import { cx } from "@/utils/cx";
 import { loadConsolidatedProfile } from "./consolidated-profile";
@@ -86,8 +85,7 @@ export function PilotReportPage() {
         <header className="flex h-14 items-center justify-between gap-4">
           <div className="w-10 shrink-0" aria-hidden />
           <div className="flex min-w-0 flex-1 justify-center">
-            <img src={PrimaryLogo} alt="Vanyshr" className="h-[2.1875rem] w-auto dark:hidden sm:h-[2.5rem]" />
-            <img src={PrimaryLogoDark} alt="Vanyshr" className="hidden h-[2.1875rem] w-auto dark:block sm:h-[2.5rem]" />
+            <img src={PrimaryLogoDark} alt="Vanyshr" className="h-[2.1875rem] w-auto sm:h-[2.5rem]" />
           </div>
           <button
             type="button"
