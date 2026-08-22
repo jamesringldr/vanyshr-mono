@@ -112,6 +112,8 @@ async function upsertRelative(
   name: string,
   relation?: string,
   age?: number,
+  gender?: string,
+  birthMonth?: string,
 ): Promise<void> {
   const normalized = normalizeName(name);
   if (!name.trim() || !normalized) return;
@@ -137,10 +139,99 @@ async function upsertRelative(
       normalized_value: normalized,
       relation: relation ?? null,
       age: age ?? null,
+      gender: gender ?? null,
+      birth_month: birthMonth ?? null,
       duplicate_of: existing?.id ?? null,
     });
 
   if (error) console.error(`✗ relatives insert failed (scan=${quickscansId}): ${error.message}`);
+}
+
+/**
+ * employment: normalized_value keys on employer+title so the same job
+ * reported by more than one broker can dedup, same idea as phones/addresses.
+ */
+async function upsertEmployment(
+  supabase: SupabaseClient,
+  quickscansId: string,
+  fullProfileResultId: string,
+  kind: "current" | "history",
+  job: { employer?: string; title?: string; since?: string; duration?: string; location?: string },
+): Promise<void> {
+  const rawValue = [job.title, job.employer].filter(Boolean).join(" at ").trim();
+  const normalized = normalizeName([job.employer, job.title].filter(Boolean).join("|"));
+  if (!rawValue || !normalized) return;
+
+  const { data: existing } = await supabase
+    .schema("quickscan")
+    .from("employment")
+    .select("id")
+    .eq("quickscans_id", quickscansId)
+    .eq("normalized_value", normalized)
+    .is("duplicate_of", null)
+    .limit(1)
+    .maybeSingle();
+
+  const { error } = await supabase
+    .schema("quickscan")
+    .from("employment")
+    .insert({
+      quickscans_id: quickscansId,
+      full_profile_result_id: fullProfileResultId,
+      kind,
+      raw_value: rawValue,
+      normalized_value: normalized,
+      employer: job.employer ?? null,
+      title: job.title ?? null,
+      since: job.since ?? null,
+      duration: job.duration ?? null,
+      location: job.location ?? null,
+      duplicate_of: existing?.id ?? null,
+    });
+
+  if (error) console.error(`✗ employment insert failed (scan=${quickscansId}): ${error.message}`);
+}
+
+/**
+ * education: normalized_value keys on school when known (FPS); falls back to
+ * the normalized raw sentence when it isn't (Zaba, which publishes one
+ * flowing sentence rather than separate school/degree/field values).
+ */
+async function upsertEducation(
+  supabase: SupabaseClient,
+  quickscansId: string,
+  fullProfileResultId: string,
+  entry: { rawValue: string; school?: string; degree?: string; fieldOfStudy?: string },
+): Promise<void> {
+  const rawValue = entry.rawValue.trim();
+  const normalized = normalizeName(entry.school || entry.rawValue);
+  if (!rawValue || !normalized) return;
+
+  const { data: existing } = await supabase
+    .schema("quickscan")
+    .from("education")
+    .select("id")
+    .eq("quickscans_id", quickscansId)
+    .eq("normalized_value", normalized)
+    .is("duplicate_of", null)
+    .limit(1)
+    .maybeSingle();
+
+  const { error } = await supabase
+    .schema("quickscan")
+    .from("education")
+    .insert({
+      quickscans_id: quickscansId,
+      full_profile_result_id: fullProfileResultId,
+      raw_value: rawValue,
+      normalized_value: normalized,
+      school: entry.school ?? null,
+      degree: entry.degree ?? null,
+      field_of_study: entry.fieldOfStudy ?? null,
+      duplicate_of: existing?.id ?? null,
+    });
+
+  if (error) console.error(`✗ education insert failed (scan=${quickscansId}): ${error.message}`);
 }
 
 /** Broker-sourced only — user-added emails go through manage-emails instead. */
@@ -229,6 +320,17 @@ export async function populateFromSummaryResult(
   for (const alias of splitList(summary.aliases)) {
     await upsertTyped(supabase, "aliases", quickscansId, fullProfileResultId, alias, normalizeName(alias));
   }
+  // Zaba's job_history/education are semicolon-joined strings (see
+  // parseZabaSummaries). job_history entries are "<title> at <employer>" --
+  // the exact join populateFromSummaryResult's own upsertEmployment call
+  // below re-derives, since this codebase controls both ends of that format.
+  for (const entry of summary.job_history?.split(";").map((s) => s.trim()).filter(Boolean) ?? []) {
+    const [title, employer] = entry.split(/\s+at\s+/);
+    await upsertEmployment(supabase, quickscansId, fullProfileResultId, "history", { title, employer });
+  }
+  for (const entry of summary.education?.split(";").map((s) => s.trim()).filter(Boolean) ?? []) {
+    await upsertEducation(supabase, quickscansId, fullProfileResultId, { rawValue: entry });
+  }
 }
 
 /** FPS/NPD/AnyWho after their detail-page fetch. */
@@ -241,27 +343,64 @@ export async function populateFromBrokerDetail(
   for (const alias of profile.aliases ?? []) {
     await upsertTyped(supabase, "aliases", quickscansId, fullProfileResultId, alias, normalizeName(alias));
   }
+
+  // phoneDetails is a parallel array to phoneNumbers (same order) -- matched
+  // by number since that's the one value both arrays agree on.
+  const phoneDetailsByNumber = new Map((profile.phoneDetails ?? []).map((d) => [d.number, d]));
   for (const phone of profile.phoneNumbers ?? []) {
-    await upsertTyped(supabase, "phones", quickscansId, fullProfileResultId, phone, normalizePhone(phone));
+    const detail = phoneDetailsByNumber.get(phone);
+    await upsertTyped(supabase, "phones", quickscansId, fullProfileResultId, phone, normalizePhone(phone), {
+      phone_type: detail?.type ?? null,
+      carrier: detail?.carrier ?? null,
+      first_reported: detail?.firstReported ?? null,
+      location: detail?.location ?? null,
+    });
   }
+
   for (const email of profile.emails ?? []) {
     await upsertBrokerEmail(supabase, quickscansId, fullProfileResultId, email);
   }
   if (profile.primaryAddress?.formatted) {
+    const addr = profile.primaryAddress;
     await upsertTyped(
       supabase, "addresses", quickscansId, fullProfileResultId,
-      profile.primaryAddress.formatted, normalizeAddress(profile.primaryAddress.formatted), { is_current: true },
+      addr.formatted, normalizeAddress(addr.formatted),
+      { is_current: true, county: addr.county ?? null, recorded_date: addr.recordedDate ?? null, property_type: addr.propertyType ?? null },
     );
   }
   for (const addr of profile.previousAddresses ?? []) {
     if (!addr.formatted) continue;
-    await upsertTyped(supabase, "addresses", quickscansId, fullProfileResultId, addr.formatted, normalizeAddress(addr.formatted), { is_current: false });
+    await upsertTyped(
+      supabase, "addresses", quickscansId, fullProfileResultId,
+      addr.formatted, normalizeAddress(addr.formatted),
+      { is_current: false, county: addr.county ?? null, recorded_date: addr.recordedDate ?? null, property_type: addr.propertyType ?? null },
+    );
   }
   for (const rel of profile.relatives ?? []) {
-    if (rel.name) await upsertRelative(supabase, quickscansId, fullProfileResultId, "relative", rel.name, rel.relation, rel.age);
+    if (rel.name) {
+      await upsertRelative(supabase, quickscansId, fullProfileResultId, "relative", rel.name, rel.relation, rel.age, rel.gender, rel.birthMonth);
+    }
   }
   for (const assoc of profile.associates ?? []) {
-    if (assoc.name) await upsertRelative(supabase, quickscansId, fullProfileResultId, "associate", assoc.name, assoc.relation, assoc.age);
+    if (assoc.name) {
+      await upsertRelative(supabase, quickscansId, fullProfileResultId, "associate", assoc.name, assoc.relation, assoc.age, assoc.gender, assoc.birthMonth);
+    }
+  }
+  for (const job of profile.employment ?? []) {
+    await upsertEmployment(supabase, quickscansId, fullProfileResultId, "current", job);
+  }
+  for (const job of profile.jobHistory ?? []) {
+    await upsertEmployment(supabase, quickscansId, fullProfileResultId, "history", job);
+  }
+  for (const entry of profile.education ?? []) {
+    const rawValue = [entry.school, ...(entry.details ?? [])].filter(Boolean).join(", ");
+    if (!rawValue) continue;
+    await upsertEducation(supabase, quickscansId, fullProfileResultId, {
+      rawValue,
+      school: entry.school,
+      degree: entry.details?.[0],
+      fieldOfStudy: entry.details?.[1],
+    });
   }
 }
 

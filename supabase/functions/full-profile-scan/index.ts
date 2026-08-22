@@ -13,7 +13,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
-import { scrapeBrokerDetails } from "../_shared/quickscan/detail-scrapers.ts";
+import { scrapeBrokerDetails, type BrokerDetailProfile } from "../_shared/quickscan/detail-scrapers.ts";
 import { populateFromSummaryResult, populateFromBrokerDetail, buildConsolidatedProfile } from "../_shared/quickscan/consolidation.ts";
 import { BrokerName, type DedupMember, type SummaryResult } from "../_shared/quickscan/quickscan-phase1-phase2-models.ts";
 
@@ -148,6 +148,16 @@ serve(async (req) => {
           match_group_id: zaba.match_group_id,
           status: "success",
           raw: detail,
+          // AnyWho only; undefined for every other broker, which the
+          // columns being nullable already handles. detail comes back as
+          // Record<string, unknown> from scrapeBrokerDetails() -- cast to
+          // read its actual (all-optional) BrokerDetailProfile shape, same
+          // as populateFromBrokerDetail(..., detail) below already assumes
+          // structurally without needing the cast (every field there is
+          // optional, so {} satisfies it; reading a named property does not).
+          legal_records_county: (detail as BrokerDetailProfile).legalRecords?.countyRecords?.location ?? null,
+          legal_records_county_count: (detail as BrokerDetailProfile).legalRecords?.countyRecords?.count ?? null,
+          legal_records_nationwide_count: (detail as BrokerDetailProfile).legalRecords?.nationwideCount ?? null,
         })
         .select("id")
         .single();

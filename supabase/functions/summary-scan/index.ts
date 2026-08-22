@@ -270,6 +270,9 @@ async function writeFullProfile(
       target: summary.broker,
       status: "success",
       raw: summary,
+      // Zaba only; undefined for every other broker, which the column
+      // being nullable already handles.
+      birth_date: summary.birth_date || null,
     })
     .select("id")
     .single();
