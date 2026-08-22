@@ -14,7 +14,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { scrapeBrokerDetails, type BrokerDetailProfile } from "../_shared/quickscan/detail-scrapers.ts";
-import { populateFromSummaryResult, populateFromBrokerDetail, buildConsolidatedProfile } from "../_shared/quickscan/consolidation.ts";
+import { populateFromSummaryResult, populateFromBrokerDetail, buildConsolidatedProfile, logTiming } from "../_shared/quickscan/consolidation.ts";
 import { BrokerName, type DedupMember, type SummaryResult } from "../_shared/quickscan/quickscan-phase1-phase2-models.ts";
 
 // deno-lint-ignore no-explicit-any
@@ -45,6 +45,8 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
       { auth: { autoRefreshToken: false, persistSession: false } },
     );
+
+    const functionStarted = Date.now();
 
     const { data: quickscan, error: qsError } = await supabase
       .schema("quickscan")
@@ -127,7 +129,13 @@ serve(async (req) => {
         match_score: 100,
       }));
 
-    const details = members.length ? await scrapeBrokerDetails(members) : {};
+    const { profiles: details, timings: fetchTimings } = members.length
+      ? await scrapeBrokerDetails(members)
+      : { profiles: {} as Record<string, unknown>, timings: {} as Record<string, { timingMs: number; status: string }> };
+
+    for (const [broker, timing] of Object.entries(fetchTimings)) {
+      await logTiming(supabase, quickscanId, "full_profile_fetch", timing.timingMs, { broker, status: timing.status });
+    }
 
     // Write the new full_profile_results rows and fan them into the per-type
     // tables. Zaba's already-existing row is fanned out here too — this is
@@ -167,17 +175,27 @@ serve(async (req) => {
         continue;
       }
       newRows.push({ fullProfileResultId: row.id, broker: candidate.target });
+
+      // The per-field select-then-insert loop (see consolidation.ts) --
+      // timed separately from the fetch above so fetch-vs-write is directly
+      // comparable per broker.
+      const populateStarted = Date.now();
       await populateFromBrokerDetail(supabase, quickscanId, row.id, detail);
+      await logTiming(supabase, quickscanId, "full_profile_populate", Date.now() - populateStarted, { broker: candidate.target });
     }
 
     if (zabaSummary) {
+      const populateStarted = Date.now();
       await populateFromSummaryResult(supabase, quickscanId, zaba.id, zabaSummary);
+      await logTiming(supabase, quickscanId, "full_profile_populate", Date.now() - populateStarted, { broker: "zaba" });
     }
 
+    const rollupStarted = Date.now();
     await buildConsolidatedProfile(supabase, quickscanId, zaba.match_group_id, {
       full_name: zabaSummary?.full_name,
       age: zabaSummary?.age,
     });
+    await logTiming(supabase, quickscanId, "rollup", Date.now() - rollupStarted);
 
     await supabase
       .schema("quickscan")
@@ -195,6 +213,7 @@ serve(async (req) => {
       .maybeSingle();
 
     console.log(`✅ full-profile-scan ${quickscanId}: ${newRows.length} broker profiles fetched`);
+    await logTiming(supabase, quickscanId, "full_profile_scan_total", Date.now() - functionStarted, { resultCount: newRows.length });
 
     return new Response(
       JSON.stringify({

@@ -16,6 +16,31 @@ import type { SummaryResult } from "./quickscan-phase1-phase2-models.ts";
 type SupabaseClient = any;
 
 // ---------------------------------------------------------------------------
+// Timing (diagnostic only, not read by the app -- see scan_timings' own
+// migration comment for the full step vocabulary and why the pipeline is
+// instrumented this granularly)
+// ---------------------------------------------------------------------------
+
+export async function logTiming(
+  supabase: SupabaseClient,
+  quickscansId: string,
+  step: string,
+  durationMs: number,
+  extra: { broker?: string; resultCount?: number; status?: string; error?: string } = {},
+): Promise<void> {
+  const { error } = await supabase.schema("quickscan").from("scan_timings").insert({
+    quickscans_id: quickscansId,
+    step,
+    broker: extra.broker ?? null,
+    duration_ms: Math.round(durationMs),
+    result_count: extra.resultCount ?? null,
+    status: extra.status ?? "success",
+    error: extra.error ?? null,
+  });
+  if (error) console.error(`✗ scan_timings insert failed (step=${step}, scan=${quickscansId}): ${error.message}`);
+}
+
+// ---------------------------------------------------------------------------
 // Normalization
 // ---------------------------------------------------------------------------
 

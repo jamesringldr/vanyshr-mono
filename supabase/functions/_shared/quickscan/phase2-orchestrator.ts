@@ -133,7 +133,10 @@ export class Phase2Orchestrator {
       // blocking the rest.
       const detailStartTime = Date.now();
       console.log(`🔎 Step 0: Scraping ${dedupGroup.members.length} broker detail page(s)...`);
-      const rawProfiles = await scrapeBrokerDetails(dedupGroup.members, detailTimeoutMs);
+      // scrapeBrokerDetails() now also returns per-broker timings (added for
+      // quickscan.scan_timings) -- this orchestrator already times the whole
+      // batch itself, so only the profiles are needed here.
+      const { profiles: rawProfiles } = await scrapeBrokerDetails(dedupGroup.members, detailTimeoutMs);
       const detailMs = Date.now() - detailStartTime;
       console.log(`✓ Detail scrape done in ${detailMs}ms: ${Object.keys(rawProfiles).join(", ")}`);
 

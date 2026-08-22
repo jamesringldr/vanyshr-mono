@@ -20,6 +20,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { scrapeAllBrokers } from "../_shared/quickscan/html-scrapers.ts";
 import { DedupEngine } from "../_shared/quickscan/DedupEngine.ts";
+import { logTiming } from "../_shared/quickscan/consolidation.ts";
 import {
   BrokerName,
   type QuickScanInput,
@@ -52,6 +53,10 @@ serve(async (req) => {
       { auth: { autoRefreshToken: false, persistSession: false } },
     );
 
+    // Whole-function wall time -- literally "time to the selector modal",
+    // since the modal renders off this response.
+    const functionStarted = Date.now();
+
     const { data: quickscan, error: fetchError } = await supabase
       .schema("quickscan")
       .from("quickscans")
@@ -78,7 +83,11 @@ serve(async (req) => {
       `🔍 summary-scan ${quickscanId}: ${input.first_name} ${input.last_name}, ${input.city}, ${input.state}`,
     );
 
+    const fetchStarted = Date.now();
     const rawResults = await scrapeAllBrokers(input);
+    await logTiming(supabase, quickscanId, "summary_scan_fetch", Date.now() - fetchStarted, {
+      resultCount: Object.values(rawResults as Record<string, ScrapeResult>).reduce((n, r) => n + r.summaries.length, 0),
+    });
 
     // Write every candidate. Keyed by broker+result_id so the matching pass
     // below can turn a DedupGroup (in-memory SummaryResult objects) back into
@@ -91,8 +100,17 @@ serve(async (req) => {
     // already knows how to render.
     const zabaCandidates: Record<string, unknown>[] = [];
 
+    const writeStarted = Date.now();
     for (const result of Object.values(rawResults) as ScrapeResult[]) {
       summaryCounts[result.broker] = result.summaries.length;
+      // scrapeOne() already times its own fetch+parse per broker (see
+      // ScrapeResult.timing_ms) -- reused here rather than re-timed.
+      await logTiming(supabase, quickscanId, "summary_scan_broker", result.timing_ms, {
+        broker: result.broker,
+        resultCount: result.summaries.length,
+        status: result.status,
+        error: result.error,
+      });
 
       if (result.summaries.length === 0) {
         await writePlaceholder(supabase, quickscanId, result);
@@ -122,6 +140,7 @@ serve(async (req) => {
         }
       }
     }
+    await logTiming(supabase, quickscanId, "summary_scan_write", Date.now() - writeStarted, { resultCount: stored.size });
 
     // No results from any target at all — the "no_data" terminal outcome.
     // Distinct from "rejected" (user turned down data that did come back),
@@ -143,9 +162,12 @@ serve(async (req) => {
     // matchReference, which needs a pick) groups all summaries on their own,
     // which is exactly the "already matched by the time the modal needs a
     // fallback" background pass this step exists for.
+    const matchStarted = Date.now();
     const groups = new DedupEngine().deduplicate(rawResults);
+    await logTiming(supabase, quickscanId, "match", Date.now() - matchStarted, { resultCount: groups.length });
     let groupsStored = 0;
 
+    const matchWriteStarted = Date.now();
     for (const group of groups) {
       // deduplicate() gives every summary its own singleton group by
       // construction when nothing else matches it. A group with no
@@ -187,8 +209,10 @@ serve(async (req) => {
         }
       }
     }
+    await logTiming(supabase, quickscanId, "match_write", Date.now() - matchWriteStarted, { resultCount: groupsStored });
 
     console.log(`✅ summary-scan ${quickscanId}: ${stored.size} candidates, ${groupsStored} match groups`);
+    await logTiming(supabase, quickscanId, "summary_scan_total", Date.now() - functionStarted, { resultCount: stored.size });
 
     return new Response(
       JSON.stringify({
