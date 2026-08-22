@@ -2,23 +2,34 @@
  * summary-scan — the intro-scan sequence's summary/full-scan step.
  *
  * Given an existing quickscan.quickscans row, runs the 4-broker parallel
- * search (scrapeAllBrokers — same context.dev path pilot-scan Phase 1 uses),
- * writes each candidate to a child table, then clusters everything into
- * quickscan.match_groups so a later selection (or "none of these"/no-Zaba
- * fallback) already has matched candidates to work from.
+ * search (scrapeBrokersConcurrently — same context.dev path pilot-scan
+ * Phase 1 uses) but only *awaits* Zaba, which is already full-profile-grade
+ * data on its own -- the selection modal needs nothing else. FPS/NPD/AnyWho
+ * are consistently the slow, sometimes-failing part (NPD alone was 18-25s
+ * across real test runs, once timing out entirely -- see quickscan.
+ * scan_timings), and the modal doesn't need them at all, so this responds
+ * the moment Zaba resolves and finishes fetching/writing/matching the other
+ * three in the background via EdgeRuntime.waitUntil().
+ *
+ * quickscans.status marks the handoff: 'zaba_ready' the instant this
+ * function responds, 'summary_scan_complete' once the background pass
+ * finishes (or fails -- always set to something terminal, since
+ * full-profile-scan polls this and would otherwise wait forever on a
+ * background error). full-profile-scan checks for 'summary_scan_complete'
+ * before doing any work and returns { notReady: true } instead if the
+ * background pass isn't done yet; the frontend just retries.
  *
  * Zaba bypasses summary_results entirely: its search results are already
  * full-profile-grade data, so they're written straight to
  * full_profile_results (summary_result_id left NULL). FPS/NPD/AnyWho write to
  * summary_results — their full-profile scrape is a later step, not this one.
  *
- * Input: { quickscanId }. Not wired to the frontend yet — call directly with
- * the id intro-scan returned.
+ * Input: { quickscanId }.
  */
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
-import { scrapeAllBrokers } from "../_shared/quickscan/html-scrapers.ts";
+import { scrapeBrokersConcurrently } from "../_shared/quickscan/html-scrapers.ts";
 import { DedupEngine } from "../_shared/quickscan/DedupEngine.ts";
 import { logTiming } from "../_shared/quickscan/consolidation.ts";
 import {
@@ -83,46 +94,36 @@ serve(async (req) => {
       `🔍 summary-scan ${quickscanId}: ${input.first_name} ${input.last_name}, ${input.city}, ${input.state}`,
     );
 
-    const fetchStarted = Date.now();
-    const rawResults = await scrapeAllBrokers(input);
-    await logTiming(supabase, quickscanId, "summary_scan_fetch", Date.now() - fetchStarted, {
-      resultCount: Object.values(rawResults as Record<string, ScrapeResult>).reduce((n, r) => n + r.summaries.length, 0),
+    // All 4 fetches start together; only Zaba is awaited here.
+    const brokerPromises = scrapeBrokersConcurrently(input);
+
+    const zabaResult = await brokerPromises[BrokerName.ZABA];
+    await logTiming(supabase, quickscanId, "summary_scan_broker", zabaResult.timing_ms, {
+      broker: zabaResult.broker,
+      resultCount: zabaResult.summaries.length,
+      status: zabaResult.status,
+      error: zabaResult.error,
     });
 
-    // Write every candidate. Keyed by broker+result_id so the matching pass
-    // below can turn a DedupGroup (in-memory SummaryResult objects) back into
-    // row ids to stamp match_group_id onto.
+    // Keyed by broker+result_id so the background matching pass can turn a
+    // DedupGroup (in-memory SummaryResult objects) back into row ids to
+    // stamp match_group_id onto. Shared with the background closure below --
+    // both add to the same map, Zaba's entries now, the other three later.
     const stored = new Map<string, StoredRow>();
-    const summaryCounts: Record<string, number> = {};
+    const summaryCounts: Record<string, number> = { [BrokerName.ZABA]: zabaResult.summaries.length };
     // Zaba candidates for the frontend's selection modal — the only target
     // with full-profile-grade data at this point, so the only one worth
     // returning here. Shaped like the old pilot-scan ScanMember the modal
     // already knows how to render.
     const zabaCandidates: Record<string, unknown>[] = [];
 
-    const writeStarted = Date.now();
-    for (const result of Object.values(rawResults) as ScrapeResult[]) {
-      summaryCounts[result.broker] = result.summaries.length;
-      // scrapeOne() already times its own fetch+parse per broker (see
-      // ScrapeResult.timing_ms) -- reused here rather than re-timed.
-      await logTiming(supabase, quickscanId, "summary_scan_broker", result.timing_ms, {
-        broker: result.broker,
-        resultCount: result.summaries.length,
-        status: result.status,
-        error: result.error,
-      });
-
-      if (result.summaries.length === 0) {
-        await writePlaceholder(supabase, quickscanId, result);
-        continue;
-      }
-
-      for (const summary of result.summaries) {
-        const row = summary.broker === BrokerName.ZABA
-          ? await writeFullProfile(supabase, quickscanId, summary)
-          : await writeSummary(supabase, quickscanId, summary);
-        if (row) stored.set(candidateKey(summary), row);
-        if (row && summary.broker === BrokerName.ZABA) {
+    if (zabaResult.summaries.length === 0) {
+      await writePlaceholder(supabase, quickscanId, zabaResult);
+    } else {
+      for (const summary of zabaResult.summaries) {
+        const row = await writeFullProfile(supabase, quickscanId, summary);
+        if (row) {
+          stored.set(candidateKey(summary), row);
           zabaCandidates.push({
             broker: summary.broker,
             name: summary.full_name,
@@ -140,87 +141,150 @@ serve(async (req) => {
         }
       }
     }
-    await logTiming(supabase, quickscanId, "summary_scan_write", Date.now() - writeStarted, { resultCount: stored.size });
-
-    // No results from any target at all — the "no_data" terminal outcome.
-    // Distinct from "rejected" (user turned down data that did come back),
-    // which is a later, UI-driven write once the fallback flow exists.
-    const totalCandidates = Object.values(summaryCounts).reduce((a, b) => a + b, 0);
 
     await supabase
       .schema("quickscan")
       .from("quickscans")
-      .update({
-        summary_result_counts: summaryCounts,
-        status: "summary_scan_complete",
-        deepest_page: "select_profile",
-        ...(totalCandidates === 0 ? { match_outcome: "no_data" } : {}),
-      })
+      .update({ status: "zaba_ready", deepest_page: "select_profile" })
       .eq("id", quickscanId);
 
-    // Cluster everything — no user pick exists yet. deduplicate() (unlike
-    // matchReference, which needs a pick) groups all summaries on their own,
-    // which is exactly the "already matched by the time the modal needs a
-    // fallback" background pass this step exists for.
-    const matchStarted = Date.now();
-    const groups = new DedupEngine().deduplicate(rawResults);
-    await logTiming(supabase, quickscanId, "match", Date.now() - matchStarted, { resultCount: groups.length });
-    let groupsStored = 0;
+    await logTiming(supabase, quickscanId, "summary_scan_response", Date.now() - functionStarted, { resultCount: stored.size });
+    console.log(`✅ summary-scan ${quickscanId}: responding with ${zabaCandidates.length} Zaba candidates, FPS/NPD/AnyWho continuing in the background`);
 
-    const matchWriteStarted = Date.now();
-    for (const group of groups) {
-      // deduplicate() gives every summary its own singleton group by
-      // construction when nothing else matches it. A group with no
-      // cross-broker corroboration isn't a "match" worth recording — its
-      // member's match_group_id just stays NULL.
-      if (group.members.length < 2) continue;
+    // FPS/NPD/AnyWho fetch + write + the cross-broker match, continuing
+    // after the response below has already gone out. full-profile-scan
+    // polls quickscans.status for 'summary_scan_complete' rather than
+    // racing this.
+    const backgroundWork = (async () => {
+      try {
+        const rawResults: Record<string, ScrapeResult> = { [BrokerName.ZABA]: zabaResult };
+        const others = await Promise.all(
+          [BrokerName.FPS, BrokerName.NPD, BrokerName.ANYWHO].map((b) => brokerPromises[b]),
+        );
 
-      const { data: groupRow, error: groupError } = await supabase
-        .schema("quickscan")
-        .from("match_groups")
-        .insert({
-          quickscans_id: quickscanId,
-          confidence: averageScore(group),
-          matched_on: {
-            brokers: group.members.map((m) => m.summary.broker),
-            age_conflict: group.age_conflict,
-            age_note: group.age_note ?? null,
-          },
-        })
-        .select("id")
-        .single();
+        for (const result of others) {
+          rawResults[result.broker] = result;
+          summaryCounts[result.broker] = result.summaries.length;
+          // scrapeOne() already times its own fetch+parse per broker (see
+          // ScrapeResult.timing_ms) -- reused here rather than re-timed.
+          await logTiming(supabase, quickscanId, "summary_scan_broker", result.timing_ms, {
+            broker: result.broker,
+            resultCount: result.summaries.length,
+            status: result.status,
+            error: result.error,
+          });
 
-      if (groupError || !groupRow) {
-        console.error(`✗ match_groups insert failed (scan=${quickscanId}): ${groupError?.message}`);
-        continue;
-      }
-
-      groupsStored++;
-      for (const member of group.members) {
-        const row = stored.get(candidateKey(member.summary));
-        if (!row) continue;
-        const { error: linkError } = await supabase
-          .schema("quickscan")
-          .from(row.table)
-          .update({ match_group_id: groupRow.id })
-          .eq("id", row.id);
-        if (linkError) {
-          console.error(`✗ ${row.table} match_group_id update failed (id=${row.id}): ${linkError.message}`);
+          if (result.summaries.length === 0) {
+            await writePlaceholder(supabase, quickscanId, result);
+            continue;
+          }
+          for (const summary of result.summaries) {
+            const row = await writeSummary(supabase, quickscanId, summary);
+            if (row) stored.set(candidateKey(summary), row);
+          }
         }
-      }
-    }
-    await logTiming(supabase, quickscanId, "match_write", Date.now() - matchWriteStarted, { resultCount: groupsStored });
 
-    console.log(`✅ summary-scan ${quickscanId}: ${stored.size} candidates, ${groupsStored} match groups`);
-    await logTiming(supabase, quickscanId, "summary_scan_total", Date.now() - functionStarted, { resultCount: stored.size });
+        // No results from any target at all — the "no_data" terminal
+        // outcome. Distinct from "rejected" (user turned down data that did
+        // come back), which is a later, UI-driven write once the fallback
+        // flow exists. Can only be decided here, now that all 4 brokers'
+        // counts are known -- Zaba alone having 0 results doesn't mean
+        // FPS/NPD/AnyWho will too (the frontend already handles an empty
+        // zaba_candidates array as its own "no results" case regardless).
+        const totalCandidates = Object.values(summaryCounts).reduce((a, b) => a + b, 0);
+
+        // Cluster everything — no user pick exists yet, so this groups all
+        // summaries on their own rather than matching against a reference.
+        const groups = new DedupEngine().deduplicate(rawResults);
+        let groupsStored = 0;
+
+        for (const group of groups) {
+          // deduplicate() gives every summary its own singleton group by
+          // construction when nothing else matches it. A group with no
+          // cross-broker corroboration isn't a "match" worth recording — its
+          // member's match_group_id just stays NULL.
+          if (group.members.length < 2) continue;
+
+          const { data: groupRow, error: groupError } = await supabase
+            .schema("quickscan")
+            .from("match_groups")
+            .insert({
+              quickscans_id: quickscanId,
+              confidence: averageScore(group),
+              matched_on: {
+                brokers: group.members.map((m) => m.summary.broker),
+                age_conflict: group.age_conflict,
+                age_note: group.age_note ?? null,
+              },
+            })
+            .select("id")
+            .single();
+
+          if (groupError || !groupRow) {
+            console.error(`✗ match_groups insert failed (scan=${quickscanId}): ${groupError?.message}`);
+            continue;
+          }
+
+          groupsStored++;
+          for (const member of group.members) {
+            const row = stored.get(candidateKey(member.summary));
+            if (!row) continue;
+            const { error: linkError } = await supabase
+              .schema("quickscan")
+              .from(row.table)
+              .update({ match_group_id: groupRow.id })
+              .eq("id", row.id);
+            if (linkError) {
+              console.error(`✗ ${row.table} match_group_id update failed (id=${row.id}): ${linkError.message}`);
+            }
+          }
+        }
+
+        await supabase
+          .schema("quickscan")
+          .from("quickscans")
+          .update({
+            summary_result_counts: summaryCounts,
+            status: "summary_scan_complete",
+            ...(totalCandidates === 0 ? { match_outcome: "no_data" } : {}),
+          })
+          .eq("id", quickscanId);
+
+        console.log(`✅ summary-scan ${quickscanId} background: ${stored.size} candidates, ${groupsStored} match groups`);
+        await logTiming(supabase, quickscanId, "summary_scan_background_total", Date.now() - functionStarted, { resultCount: stored.size });
+      } catch (err) {
+        // Always land on a terminal status -- full-profile-scan polls for
+        // 'summary_scan_complete' and would otherwise wait forever on a
+        // background failure it never hears about.
+        console.error(`✗ summary-scan background work failed (scan=${quickscanId}):`, err);
+        await logTiming(supabase, quickscanId, "summary_scan_background_total", Date.now() - functionStarted, {
+          status: "failed",
+          error: (err as Error).message,
+        });
+        await supabase
+          .schema("quickscan")
+          .from("quickscans")
+          .update({ status: "summary_scan_complete" })
+          .eq("id", quickscanId);
+      }
+    })();
+
+    // deno-lint-ignore no-explicit-any
+    const edgeRuntime = (globalThis as any).EdgeRuntime;
+    if (edgeRuntime?.waitUntil) {
+      edgeRuntime.waitUntil(backgroundWork);
+    } else {
+      // No background-task support in this environment (e.g. local dev) --
+      // fall back to awaiting it so the work isn't silently dropped when the
+      // isolate tears down after the response. Loses the speed win there,
+      // stays correct.
+      await backgroundWork;
+    }
 
     return new Response(
       JSON.stringify({
         success: true,
         quickscan_id: quickscanId,
-        summary_result_counts: summaryCounts,
-        candidates_stored: stored.size,
-        match_groups: groupsStored,
         zaba_candidates: zabaCandidates,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },

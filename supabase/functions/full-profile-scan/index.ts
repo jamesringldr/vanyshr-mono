@@ -51,7 +51,7 @@ serve(async (req) => {
     const { data: quickscan, error: qsError } = await supabase
       .schema("quickscan")
       .from("quickscans")
-      .select("id, selected_full_profile_result_id")
+      .select("id, status, selected_full_profile_result_id")
       .eq("id", quickscanId)
       .maybeSingle();
 
@@ -59,6 +59,20 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ success: false, error: qsError?.message || "quickscan not found" }),
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    // summary-scan responds as soon as Zaba resolves and keeps matching
+    // FPS/NPD/AnyWho in the background (status 'zaba_ready' until that
+    // finishes, 'summary_scan_complete' once it does — always one or the
+    // other, even on a background failure, so this can't wait forever).
+    // The user can click "pick" before that background pass is done; rather
+    // than proceed with an incomplete match or block the pick button, this
+    // says so cheaply and the frontend just retries.
+    if (quickscan.status !== "summary_scan_complete") {
+      return new Response(
+        JSON.stringify({ success: true, notReady: true }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
