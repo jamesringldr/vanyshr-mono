@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import { useNavigate } from "react-router";
+import { createPortal } from "react-dom";
+import { Link, useNavigate } from "react-router";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import {
   AlertTriangleFilled,
@@ -15,10 +16,7 @@ import {
   type IconComponent,
 } from "@appica/icons-react";
 import { cx } from "@/utils/cx";
-import { buildAreas, type Finding } from "./scan-result";
-import { usePilotScanResult } from "./use-pilot-scan-result";
-import { RiskSummarySkeleton } from "./risk-summary-skeleton";
-import { PilotExpiredPage } from "./expired";
+import { buildRiskAreas, loadConsolidatedProfile, type ConsolidatedProfile, type RiskArea } from "./consolidated-profile";
 
 const DRAWER_EASE = [0.2, 0, 0, 1] as const;
 const LEVEL_BARS = 4;
@@ -61,7 +59,7 @@ type AreaView = {
   summary: string;
   detail: string;
   score: number;
-  items: Finding[];
+  items: RiskArea["items"];
   Icon: IconComponent;
   angleDeg?: number;
 };
@@ -129,9 +127,9 @@ function formatDeviceStamp(date: Date) {
   return `${mm}/${dd}/${yyyy} ${hour12}:${minutes} ${ampm}`;
 }
 
-function scanPersonName(groupName?: string) {
-  const fromGroup = groupName?.trim();
-  if (fromGroup) return fromGroup;
+function scanPersonName(fullName?: string | null) {
+  const fromProfile = fullName?.trim();
+  if (fromProfile) return fromProfile;
   try {
     const raw = sessionStorage.getItem("pilotScanFields");
     if (!raw) return "";
@@ -143,28 +141,24 @@ function scanPersonName(groupName?: string) {
 }
 
 /**
- * Pilot Risk Summary — hex + area list, filled from live Phase 1 groups.
+ * Risk summary slide content — hex chart + area list, no page chrome. Used
+ * standalone by PilotRiskSummaryPage's own header/background below, and as
+ * one slide of the report carousel (report.tsx), which supplies its own
+ * shared header instead.
+ *
+ * The area-detail drawer is rendered via a portal to document.body rather
+ * than inline: inside the carousel it sits under a swipe track that gets
+ * animated with a CSS transform, and a `position: fixed` descendant of a
+ * transformed ancestor is positioned relative to that ancestor instead of
+ * the viewport — the portal sidesteps that entirely.
  */
-export function PilotRiskSummaryPage() {
+export function RiskSummaryBody({ profile }: { profile: ConsolidatedProfile }) {
   const navigate = useNavigate();
   const prefersReducedMotion = useReducedMotion();
-  // Database-first with a sessionStorage fallback, so a refresh or a return
-  // visit from an emailed link renders the same report the scan produced.
-  const { result, error, enrichment, hydrating } = usePilotScanResult();
-  const { group, areas } = useMemo(() => buildAreas(result, enrichment), [result, enrichment]);
+  const areas = useMemo(() => buildRiskAreas(profile), [profile]);
   const [activeArea, setActiveArea] = useState<AreaView | null>(null);
   const [stamp] = useState(() => formatDeviceStamp(new Date()));
-  const personName = scanPersonName(group?.name);
-
-  // Show expired screen if the scan result has passed its retention deadline
-  if (error === "expired") {
-    return <PilotExpiredPage />;
-  }
-
-  // Show skeleton while database read is in flight
-  if (hydrating) {
-    return <RiskSummarySkeleton />;
-  }
+  const personName = scanPersonName(profile.full_name);
 
   const byId = useMemo(() => {
     const map = new Map(areas.map((a) => [a.id, a]));
@@ -202,12 +196,8 @@ export function PilotRiskSummaryPage() {
   const ActiveIcon = activeArea?.Icon;
 
   return (
-    <>
-      <div
-        className="relative flex min-h-screen w-full flex-col items-center bg-[#022136] px-6 pb-12 pt-12 font-ubuntu"
-        role="main"
-        aria-label="Risk summary"
-      >
+    <div className="relative flex w-full flex-col items-center px-6 pb-12 font-ubuntu">
+      <div>
         <div className="flex w-full max-w-sm flex-col items-center text-center">
           <span className="inline-flex items-center gap-1.5 rounded-full border border-[#00BFFF]/35 bg-[#00BFFF]/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#00BFFF]">
             Your exposure
@@ -215,15 +205,9 @@ export function PilotRiskSummaryPage() {
           <h1 className="mt-4 text-3xl font-bold tracking-tight text-white sm:text-4xl">
             Risk Summary
           </h1>
-          {error && !result ? (
-            <p className="mt-2 text-sm text-[#FF8A00]">{error}</p>
-          ) : personName || result ? (
-            <p className="mt-2 text-sm text-[#B8C4CC]">
-              {personName ? `${personName} - ${stamp}` : stamp}
-            </p>
-          ) : (
-            <p className="mt-2 text-sm text-[#B8C4CC]">No scan data in this session</p>
-          )}
+          <p className="mt-2 text-sm text-[#B8C4CC]">
+            {personName ? `${personName} - ${stamp}` : stamp}
+          </p>
         </div>
 
         <div className="relative mt-8 flex w-full max-w-md items-center justify-center">
@@ -356,7 +340,8 @@ export function PilotRiskSummaryPage() {
         </div>
       </div>
 
-      <AnimatePresence>
+      {createPortal(
+        <AnimatePresence>
         {activeArea && (
           <>
             <motion.div
@@ -455,7 +440,48 @@ export function PilotRiskSummaryPage() {
             </motion.div>
           </>
         )}
-      </AnimatePresence>
-    </>
+        </AnimatePresence>,
+        document.body,
+      )}
+    </div>
+  );
+}
+
+/**
+ * Standalone risk-summary page — reads quickscan.consolidated_profile from
+ * sessionStorage, same as pre-profile. Not part of the normal flow any more
+ * (loading.tsx navigates to the report carousel instead — see report.tsx),
+ * kept as a direct-link fallback.
+ */
+export function PilotRiskSummaryPage() {
+  const [{ data: stored }] = useState(() => loadConsolidatedProfile());
+
+  if (!stored) {
+    return (
+      <div
+        className="flex min-h-screen w-full flex-col items-center justify-center bg-[#022136] p-4 font-ubuntu"
+        role="main"
+        aria-label="Error loading risk summary"
+      >
+        <div className="w-full max-w-md text-center">
+          <h1 className="mb-2 text-xl font-bold text-white">No scan data found</h1>
+          <p className="mb-6 text-sm text-[#B8C4CC]">
+            Nothing came through from this scan — run it again from the start.
+          </p>
+          <Link
+            to="/pilot-scan"
+            className="inline-flex h-[44px] items-center justify-center rounded-xl bg-[#00BFFF] px-6 font-semibold text-white transition-all hover:bg-[#1196E0]"
+          >
+            Start over
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen w-full bg-[#022136] pt-12" role="main" aria-label="Risk summary">
+      <RiskSummaryBody profile={stored.profile} />
+    </div>
   );
 }
