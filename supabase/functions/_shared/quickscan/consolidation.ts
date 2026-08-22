@@ -234,6 +234,61 @@ async function upsertEducation(
   if (error) console.error(`✗ education insert failed (scan=${quickscansId}): ${error.message}`);
 }
 
+/**
+ * properties: keyed on the address it describes (raw_value/normalized_value)
+ * rather than a property identity of its own, same reasoning as employment/
+ * education -- the same property could plausibly be reported by a second
+ * broker for the same address later.
+ */
+async function upsertProperty(
+  supabase: SupabaseClient,
+  quickscansId: string,
+  fullProfileResultId: string,
+  address: string,
+  property: Record<string, unknown>,
+): Promise<void> {
+  const rawValue = address.trim();
+  const normalized = normalizeAddress(address);
+  if (!rawValue || !normalized) return;
+
+  const { data: existing } = await supabase
+    .schema("quickscan")
+    .from("properties")
+    .select("id")
+    .eq("quickscans_id", quickscansId)
+    .eq("normalized_value", normalized)
+    .is("duplicate_of", null)
+    .limit(1)
+    .maybeSingle();
+
+  const { error } = await supabase
+    .schema("quickscan")
+    .from("properties")
+    .insert({
+      quickscans_id: quickscansId,
+      full_profile_result_id: fullProfileResultId,
+      raw_value: rawValue,
+      normalized_value: normalized,
+      beds: property.beds ?? null,
+      baths: property.baths ?? null,
+      square_feet: property.squareFeet ?? null,
+      year_built: property.yearBuilt ?? null,
+      estimated_value: property.estimatedValue ?? null,
+      estimated_equity: property.estimatedEquity ?? null,
+      last_sale_amount: property.lastSaleAmount ?? null,
+      last_sale_date: property.lastSaleDate ?? null,
+      occupancy_type: property.occupancyType ?? null,
+      ownership_type: property.ownershipType ?? null,
+      land_use: property.landUse ?? null,
+      property_class: property.propertyClass ?? null,
+      subdivision: property.subdivision ?? null,
+      lot_sqft: property.lotSqFt ?? null,
+      duplicate_of: existing?.id ?? null,
+    });
+
+  if (error) console.error(`✗ properties insert failed (scan=${quickscansId}): ${error.message}`);
+}
+
 /** Broker-sourced only — user-added emails go through manage-emails instead. */
 async function upsertBrokerEmail(
   supabase: SupabaseClient,
@@ -402,6 +457,13 @@ export async function populateFromBrokerDetail(
       fieldOfStudy: entry.details?.[1],
     });
   }
+  // Properties describe the current address -- the only one FPS's
+  // #current_property_data section is ever scoped to.
+  if (profile.primaryAddress?.formatted) {
+    for (const property of profile.properties ?? []) {
+      await upsertProperty(supabase, quickscansId, fullProfileResultId, profile.primaryAddress.formatted, property);
+    }
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -423,15 +485,30 @@ export async function buildConsolidatedProfile(
   const canonical = (table: string, extra: Record<string, unknown> = {}) =>
     supabase.schema("quickscan").from(table).select("*").eq("quickscans_id", quickscansId).is("duplicate_of", null).match(extra);
 
-  const [phones, addresses, relatives, aliases, emails] = await Promise.all([
+  const [phones, addresses, relatives, aliases, emails, employment, education, properties, fullProfileResults] = await Promise.all([
     canonical("phones"),
     canonical("addresses"),
     canonical("relatives"),
     canonical("aliases"),
     supabase.schema("quickscan").from("emails").select("*").eq("quickscans_id", quickscansId).is("duplicate_of", null).eq("confirmed", true),
+    canonical("employment"),
+    canonical("education"),
+    canonical("properties"),
+    // legal_records/birth_date live on full_profile_results itself (a
+    // broker's own per-scrape facts, not per-type rows) -- not a
+    // canonical()/duplicate_of query.
+    supabase.schema("quickscan").from("full_profile_results").select("legal_records_county, legal_records_county_count, legal_records_nationwide_count").eq("quickscans_id", quickscansId),
   ]);
 
   const addrRows = (addresses.data ?? []) as { raw_value: string; is_current: boolean }[];
+
+  // AnyWho's own estimate -- not deduped/merged across brokers, just taken
+  // from whichever full_profile_results row has it (only one broker ever
+  // does today).
+  const legalRecordsRow = (fullProfileResults.data ?? []).find(
+    (r: { legal_records_nationwide_count: number | null; legal_records_county_count: number | null }) =>
+      r.legal_records_nationwide_count != null || r.legal_records_county_count != null,
+  ) as { legal_records_county: string | null; legal_records_county_count: number | null; legal_records_nationwide_count: number | null } | undefined;
 
   const { error } = await supabase
     .schema("quickscan")
@@ -448,6 +525,26 @@ export async function buildConsolidatedProfile(
       relatives: ((relatives.data ?? []) as { raw_value: string; relation: string | null; age: number | null }[])
         .map((r) => ({ name: r.raw_value, relation: r.relation, age: r.age })),
       aliases: ((aliases.data ?? []) as { raw_value: string }[]).map((r) => r.raw_value),
+      employment: ((employment.data ?? []) as Record<string, unknown>[]).map((r) => ({
+        kind: r.kind, employer: r.employer, title: r.title, since: r.since, duration: r.duration, location: r.location,
+      })),
+      education: ((education.data ?? []) as Record<string, unknown>[]).map((r) => ({
+        school: r.school, degree: r.degree, fieldOfStudy: r.field_of_study, rawValue: r.raw_value,
+      })),
+      properties: ((properties.data ?? []) as Record<string, unknown>[]).map((r) => ({
+        address: r.raw_value, beds: r.beds, baths: r.baths, squareFeet: r.square_feet, yearBuilt: r.year_built,
+        estimatedValue: r.estimated_value, estimatedEquity: r.estimated_equity, lastSaleAmount: r.last_sale_amount,
+        lastSaleDate: r.last_sale_date, occupancyType: r.occupancy_type, ownershipType: r.ownership_type,
+        landUse: r.land_use, propertyClass: r.property_class, subdivision: r.subdivision, lotSqFt: r.lot_sqft,
+      })),
+      legal_records: legalRecordsRow
+        ? {
+            countyRecords: legalRecordsRow.legal_records_county
+              ? { location: legalRecordsRow.legal_records_county, count: legalRecordsRow.legal_records_county_count }
+              : undefined,
+            nationwideCount: legalRecordsRow.legal_records_nationwide_count ?? undefined,
+          }
+        : {},
     });
 
   if (error) console.error(`✗ consolidated_profile upsert failed (scan=${quickscansId}): ${error.message}`);

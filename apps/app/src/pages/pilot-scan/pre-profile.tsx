@@ -8,6 +8,10 @@ import {
     MapPin,
     Phone,
     Scale,
+    Briefcase,
+    GraduationCap,
+    Home,
+    Gavel,
 } from "lucide-react";
 import PrimaryLogo from "@vanyshr/ui/assets/PrimaryLogo.png";
 import PrimaryLogoDark from "@vanyshr/ui/assets/PrimaryLogo-DarkMode.png";
@@ -28,6 +32,41 @@ interface ConsolidatedProfile {
     emails: string[];
     relatives: Array<{ name: string; relation?: string | null; age?: number | null }>;
     aliases: string[];
+    employment: Array<{
+        kind?: string | null;
+        employer?: string | null;
+        title?: string | null;
+        since?: string | null;
+        duration?: string | null;
+        location?: string | null;
+    }>;
+    education: Array<{
+        school?: string | null;
+        degree?: string | null;
+        fieldOfStudy?: string | null;
+        rawValue?: string | null;
+    }>;
+    properties: Array<{
+        address?: string | null;
+        beds?: string | null;
+        baths?: string | null;
+        squareFeet?: number | null;
+        yearBuilt?: number | null;
+        estimatedValue?: number | null;
+        estimatedEquity?: number | null;
+        lastSaleAmount?: number | null;
+        lastSaleDate?: string | null;
+        occupancyType?: string | null;
+        ownershipType?: string | null;
+        landUse?: string | null;
+        propertyClass?: string | null;
+        subdivision?: string | null;
+        lotSqFt?: number | null;
+    }>;
+    legal_records: {
+        countyRecords?: { location: string; count?: number | null } | null;
+        nationwideCount?: number | null;
+    };
 }
 
 interface PreProfileData {
@@ -45,6 +84,10 @@ interface PreProfileData {
     familyAndFriends: { name: string; age?: number; relationship?: string }[];
     pastAddresses: Array<{ street: string; cityStateZip: string }>;
     pastPhones: string[];
+    employment: { label: string; isCurrent: boolean }[];
+    education: string[];
+    homeSpecs: { address?: string; facts: { label: string; value: string }[] }[];
+    legalRecords: { county?: string; countyCount?: number; nationwideCount?: number } | null;
 }
 
 type LoadingState = "loading" | "loaded" | "error";
@@ -59,6 +102,25 @@ function formatPhone(num: string): string {
         return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
     }
     return num;
+}
+
+function formatMoney(amount: number): string {
+    return `$${amount.toLocaleString("en-US")}`;
+}
+
+/** "Enterprise Account Executive at Ehawk, Inc." -- the display string for one job. */
+function formatJob(job: ConsolidatedProfile["employment"][number]): string {
+    return [job.title, job.employer && `at ${job.employer}`].filter(Boolean).join(" ") || job.employer || "";
+}
+
+/** "Bachelor of Science in Organizational Communication from Northwest Missouri State University"
+ *  -- FPS gives structured fields; Zaba gives one sentence (rawValue) with nothing else to build from. */
+function formatEducation(entry: ConsolidatedProfile["education"][number]): string {
+    if (entry.school) {
+        return [entry.degree, entry.fieldOfStudy && `in ${entry.fieldOfStudy}`, `from ${entry.school}`]
+            .filter(Boolean).join(" ");
+    }
+    return entry.rawValue || "";
 }
 
 /** "413 Lovers Ln, Cameron, MO 64429" -> { street, cityStateZip } for two-line display. */
@@ -78,8 +140,12 @@ function convertToPreProfileData(profile: ConsolidatedProfile, brokerCount: numb
     const addressCount = (profile.primary_address ? 1 : 0) + (profile.previous_addresses?.length || 0);
     const relativeCount = profile.relatives?.length || 0;
     const aliasCount = profile.aliases?.length || 0;
+    const employmentCount = profile.employment?.length || 0;
+    const educationCount = profile.education?.length || 0;
+    const propertyCount = profile.properties?.length || 0;
 
-    const totalDataPoints = phoneCount + addressCount + relativeCount + aliasCount;
+    const totalDataPoints = phoneCount + addressCount + relativeCount + aliasCount
+        + employmentCount + educationCount + propertyCount;
     const scamRisks = Math.min(Math.floor((phoneCount + addressCount) * 3), 30);
     const spamRisks = Math.min(Math.floor(phoneCount * 5 + relativeCount), 35);
 
@@ -104,6 +170,31 @@ function convertToPreProfileData(profile: ConsolidatedProfile, brokerCount: numb
         })),
         pastAddresses: (profile.previous_addresses || []).map(parseFullAddress),
         pastPhones: restPhones.map(formatPhone),
+        employment: (profile.employment || [])
+            .map((job) => ({ label: formatJob(job), isCurrent: job.kind === "current" }))
+            .filter((job) => job.label),
+        education: (profile.education || []).map(formatEducation).filter(Boolean),
+        homeSpecs: (profile.properties || []).map((p) => {
+            const facts: { label: string; value: string }[] = [];
+            if (p.beds) facts.push({ label: "Beds", value: p.beds });
+            if (p.baths) facts.push({ label: "Baths", value: p.baths });
+            if (p.squareFeet) facts.push({ label: "Sq Ft", value: p.squareFeet.toLocaleString("en-US") });
+            if (p.yearBuilt) facts.push({ label: "Year Built", value: String(p.yearBuilt) });
+            if (p.estimatedValue) facts.push({ label: "Est. Value", value: formatMoney(p.estimatedValue) });
+            if (p.estimatedEquity) facts.push({ label: "Est. Equity", value: formatMoney(p.estimatedEquity) });
+            if (p.lastSaleAmount) facts.push({ label: "Last Sale", value: formatMoney(p.lastSaleAmount) });
+            if (p.lastSaleDate) facts.push({ label: "Sale Date", value: p.lastSaleDate });
+            if (p.landUse) facts.push({ label: "Land Use", value: p.landUse });
+            if (p.occupancyType) facts.push({ label: "Occupancy", value: p.occupancyType });
+            return { address: p.address ?? undefined, facts };
+        }).filter((p) => p.facts.length > 0),
+        legalRecords: (profile.legal_records?.countyRecords || profile.legal_records?.nationwideCount != null)
+            ? {
+                county: profile.legal_records.countyRecords?.location,
+                countyCount: profile.legal_records.countyRecords?.count ?? undefined,
+                nationwideCount: profile.legal_records.nationwideCount ?? undefined,
+            }
+            : null,
     };
 }
 
@@ -409,6 +500,79 @@ export function PilotPreProfilePage() {
                                     </span>
                                 )}
                             />
+                        </DataTypeCard>
+                    )}
+
+                    {data.employment.length > 0 && (
+                        <DataTypeCard icon={Briefcase} title="Employment">
+                            <LimitedTwoColumnGrid
+                                items={data.employment}
+                                renderItem={(job) => (
+                                    <span className="text-sm text-[var(--text-primary)] dark:text-white">
+                                        {job.label}
+                                        {job.isCurrent && (
+                                            <span className="text-[var(--text-muted)] dark:text-[#7A92A8] ml-1">
+                                                (Current)
+                                            </span>
+                                        )}
+                                    </span>
+                                )}
+                            />
+                        </DataTypeCard>
+                    )}
+
+                    {data.education.length > 0 && (
+                        <DataTypeCard icon={GraduationCap} title="Education">
+                            <ul className="space-y-1.5">
+                                {data.education.map((entry, i) => (
+                                    <li key={i} className="text-sm text-[var(--text-primary)] dark:text-white">
+                                        {entry}
+                                    </li>
+                                ))}
+                            </ul>
+                        </DataTypeCard>
+                    )}
+
+                    {data.homeSpecs.length > 0 && (
+                        <DataTypeCard icon={Home} title="Residential details">
+                            <div className="space-y-4">
+                                {data.homeSpecs.map((home, i) => (
+                                    <div key={i}>
+                                        {home.address && (
+                                            <p className="mb-2 text-sm font-bold text-[var(--text-primary)] dark:text-white">
+                                                {home.address}
+                                            </p>
+                                        )}
+                                        <div className="grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-3">
+                                            {home.facts.map((fact, j) => (
+                                                <div key={j}>
+                                                    <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)] dark:text-[#7A92A8]">
+                                                        {fact.label}
+                                                    </p>
+                                                    <p className="mt-0.5 text-sm text-[var(--text-primary)] dark:text-white">
+                                                        {fact.value}
+                                                    </p>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </DataTypeCard>
+                    )}
+
+                    {data.legalRecords && (
+                        <DataTypeCard icon={Gavel} title="Legal records">
+                            <div className="flex flex-wrap gap-2">
+                                {data.legalRecords.nationwideCount != null && (
+                                    <Pill>{data.legalRecords.nationwideCount} nationwide</Pill>
+                                )}
+                                {data.legalRecords.county && (
+                                    <Pill>
+                                        {data.legalRecords.countyCount ?? "?"} in {data.legalRecords.county}
+                                    </Pill>
+                                )}
+                            </div>
                         </DataTypeCard>
                     )}
                 </div>
