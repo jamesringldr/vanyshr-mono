@@ -76,28 +76,52 @@ const STEPS: LoadingStep[] = [
   },
 ];
 
-/** The step list is cosmetic. It is derived from the real phase — never a timer. */
-function stepIndexFor(phase: Phase): { current: number; allDone: boolean } {
-  switch (phase) {
-    case "searching":
-      return { current: 1, allDone: false };
-    case "pick":
-      return { current: 1, allDone: false };
-    case "full_profile":
-      return { current: 3, allDone: false };
-    case "emails":
-      return { current: 3, allDone: false };
-    case "report":
-      return { current: 4, allDone: true };
-    case "error":
-      return { current: 1, allDone: false };
+/**
+ * The step list is cosmetic. It is derived from the real phase — never a
+ * timer.
+ *
+ *   searching     → summary-scan in flight (building/running the search)
+ *   pick          → Zaba candidates ready; user choosing a profile while
+ *                   FPS/NPD/AnyWho match in the background
+ *   full_profile  → full-profile-scan polling — the actual broker detail
+ *                   scrape (this is "Searching Data Brokers")
+ *   emails        → email-selector modal up. `isConfirming` distinguishes
+ *                   "still the user's turn" from "Confirm tapped — the
+ *                   manage-emails 'confirm' call (which triggers holehe +
+ *                   leakcheck server-side) is actually in flight," since both
+ *                   share this one phase
+ *   report        → confirm call returned, navigating to the report
+ *   error         → search failed
+ */
+function stepStatuses(phase: Phase, isConfirming: boolean): Record<string, StepStatus> {
+  if (phase === "report") {
+    return {
+      criteria: "complete",
+      brokers: "complete",
+      accounts: "complete",
+      darkweb: "complete",
+      results: "active",
+    };
   }
-}
+  if (phase === "error") {
+    return { criteria: "complete", brokers: "active", accounts: "pending", darkweb: "pending", results: "pending" };
+  }
 
-function stepStatus(index: number, current: number, allDone: boolean): StepStatus {
-  if (allDone || index < current) return "complete";
-  if (index === current) return "active";
-  return "pending";
+  const criteriaDone = phase !== "searching";
+  const brokersDone = phase === "emails";
+  // Holehe and leakcheck run inside one manage-emails "confirm" call, so the
+  // client only ever knows "confirmed, call in flight" vs "call returned" —
+  // not which of the two finished first. Shown active together rather than
+  // pretending to know an order the backend doesn't report.
+  const enriching = phase === "emails" && isConfirming;
+
+  return {
+    criteria: criteriaDone ? "complete" : "active",
+    brokers: !criteriaDone ? "pending" : brokersDone ? "complete" : "active",
+    accounts: !brokersDone ? "pending" : enriching ? "active" : "pending",
+    darkweb: !brokersDone ? "pending" : enriching ? "active" : "pending",
+    results: "pending",
+  };
 }
 
 function StepIndicator({ status }: { status: StepStatus }) {
@@ -383,8 +407,12 @@ export function PilotLoadingPage() {
     go("report");
   }
 
-  const { current, allDone } = stepIndexFor(phase);
-  const activeStep = STEPS[Math.min(current, STEPS.length - 1)]!;
+  const statuses = stepStatuses(phase, isConfirming);
+  const allDone = phase === "report";
+  const activeStep =
+    STEPS.find((s) => statuses[s.id] === "active") ??
+    STEPS.find((s) => statuses[s.id] === "pending") ??
+    STEPS[STEPS.length - 1]!;
   const pickOpen = phase === "pick";
 
   return (
@@ -451,8 +479,8 @@ export function PilotLoadingPage() {
         </div>
 
         <ol className="flex w-full max-w-[280px] flex-col gap-4" aria-label="Scan progress">
-          {STEPS.map((step, index) => {
-            const status = stepStatus(index, current, allDone);
+          {STEPS.map((step) => {
+            const status = statuses[step.id]!;
             return (
               <li key={step.id} className="flex items-center gap-3">
                 <StepIndicator status={status} />
