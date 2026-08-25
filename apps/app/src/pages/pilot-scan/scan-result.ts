@@ -156,7 +156,11 @@ export function groupToSummary(group: ScanGroup, index: number) {
     aliases: unique(aliases),
     phones: unique(phones),
     relatives: unique(relatives),
-    currentAddress: unique(addresses).slice(0, 2),
+    // One address only — these are per-broker addresses (each member is a
+    // different broker's record for the same person), and brokers disagree
+    // on which address is current. Joining two different brokers' addresses
+    // together under one "Current Address" label reads as one garbled address.
+    currentAddress: addresses.length ? [addresses[0]] : [],
   };
 }
 
