@@ -388,7 +388,7 @@ export function PilotEntryPage() {
             return (
             <section
               key={isClone ? `${item.id}-loop` : item.id}
-              className="flex w-full shrink-0 snap-center flex-col items-stretch px-6 pt-[72px] pb-[248px]"
+              className="flex w-full shrink-0 snap-center flex-col items-stretch px-6 pt-[72px] pb-8"
               aria-roledescription="slide"
               aria-label={`Slide ${i + 1} of ${SLIDES.length}`}
             >
@@ -416,9 +416,9 @@ export function PilotEntryPage() {
           })}
         </div>
 
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-30 flex justify-center px-4 pb-5">
-          <div
-            className="w-full max-w-md rounded-[28px] bg-[#1A2E42] px-5 pb-5 pt-5 shadow-[0_0_40px_rgba(0,191,255,0.18)]"
+        <div className="w-full shrink-0 px-4">
+          <footer
+            className="w-full rounded-t-[28px] bg-[#1A2E42] px-5 pb-6 pt-5 shadow-[0_0_40px_rgba(0,191,255,0.18)]"
             style={{ pointerEvents: phase === "slides" ? "auto" : "none" }}
           >
             <span className="inline-flex items-center gap-1.5 rounded-full border border-[#2A4A68] bg-[#022136] px-3 py-1 text-[11px] font-medium text-[#00BFFF]">
@@ -448,7 +448,7 @@ export function PilotEntryPage() {
                 No Sign Up
               </li>
             </ul>
-          </div>
+          </footer>
         </div>
         </motion.div>
 
@@ -718,7 +718,32 @@ function ListedSlide({
 
   return (
     <>
-      <div className="relative mt-2 flex w-full flex-1 items-center justify-center">
+      <div className="relative min-h-[108px] w-full text-left">
+        <AnimatePresence mode="wait">
+          <motion.h1
+            key={vanyshCopy ? "vanysh" : "expose"}
+            className="text-[30px] font-bold leading-[1.15] tracking-tight text-white sm:text-[34px]"
+            initial={reduced ? false : { opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={reduced ? undefined : { opacity: 0, y: -8 }}
+            transition={{ duration: TITLE_SWAP_MS / 1000, ease: REVEAL_EASE }}
+          >
+            {vanyshCopy ? (
+              <>We help you Vanysh</>
+            ) : (
+              <>
+                Data brokers expose
+                <br />
+                your personal data to
+                <br />
+                scammers and spammers
+              </>
+            )}
+          </motion.h1>
+        </AnimatePresence>
+      </div>
+
+      <div className="relative mt-6 flex w-full flex-1 items-center justify-center">
         <div className="relative h-[300px] w-full max-w-[320px]">
           <motion.div
             className="absolute left-[48px] top-[28px] h-[220px] w-[230px] rounded-[20px] border border-white/10 bg-[#24384C] px-4 py-4 shadow-[0_16px_36px_rgba(0,0,0,0.32)]"
@@ -788,31 +813,6 @@ function ListedSlide({
             );
           })}
         </div>
-      </div>
-
-      <div className="relative min-h-[108px] w-full text-left">
-        <AnimatePresence mode="wait">
-          <motion.h1
-            key={vanyshCopy ? "vanysh" : "expose"}
-            className="text-[30px] font-bold leading-[1.15] tracking-tight text-white sm:text-[34px]"
-            initial={reduced ? false : { opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={reduced ? undefined : { opacity: 0, y: -8 }}
-            transition={{ duration: TITLE_SWAP_MS / 1000, ease: REVEAL_EASE }}
-          >
-            {vanyshCopy ? (
-              <>We help you Vanysh</>
-            ) : (
-              <>
-                Data brokers expose
-                <br />
-                your personal data to
-                <br />
-                scammers and spammers
-              </>
-            )}
-          </motion.h1>
-        </AnimatePresence>
       </div>
     </>
   );
@@ -902,7 +902,34 @@ function ScanSlide({
 
   return (
     <>
-      <div className="relative mt-2 flex w-full flex-1 items-center justify-center">
+      <div className="relative min-h-[108px] w-full text-left">
+        <AnimatePresence mode="wait">
+          <motion.h1
+            key={removeCopy ? "remove" : "find"}
+            className="text-[30px] font-bold leading-[1.15] tracking-tight text-white sm:text-[34px]"
+            initial={reduced ? false : { opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={reduced ? undefined : { opacity: 0, y: -8 }}
+            transition={{ duration: TITLE_SWAP_MS / 1000, ease: REVEAL_EASE }}
+          >
+            {removeCopy ? (
+              <>
+                and automate full
+                <br />
+                removal from each source
+              </>
+            ) : (
+              <>
+                Our agents find exactly
+                <br />
+                where your data is exposed...
+              </>
+            )}
+          </motion.h1>
+        </AnimatePresence>
+      </div>
+
+      <div className="relative mt-6 flex w-full flex-1 items-center justify-center">
         <div className="relative w-full max-w-[300px] overflow-hidden rounded-[20px] border border-white/10 bg-[#24384C] px-4 py-4 shadow-[0_16px_36px_rgba(0,0,0,0.32)]">
           <div className="flex items-center gap-2">
             <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#00BFFF]/15">
@@ -986,33 +1013,6 @@ function ScanSlide({
           </div>
         </div>
       </div>
-
-      <div className="relative min-h-[108px] w-full text-left">
-        <AnimatePresence mode="wait">
-          <motion.h1
-            key={removeCopy ? "remove" : "find"}
-            className="text-[30px] font-bold leading-[1.15] tracking-tight text-white sm:text-[34px]"
-            initial={reduced ? false : { opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={reduced ? undefined : { opacity: 0, y: -8 }}
-            transition={{ duration: TITLE_SWAP_MS / 1000, ease: REVEAL_EASE }}
-          >
-            {removeCopy ? (
-              <>
-                and automate full
-                <br />
-                removal from each source
-              </>
-            ) : (
-              <>
-                Our agents find exactly
-                <br />
-                where your data is exposed...
-              </>
-            )}
-          </motion.h1>
-        </AnimatePresence>
-      </div>
     </>
   );
 }
@@ -1020,12 +1020,12 @@ function ScanSlide({
 type ReportBeat = "hex" | "preview";
 
 const HEX_MINI = [
-  { id: "critical", angle: -90, score: 0.82, Icon: AlertTriangleFilled },
-  { id: "scam", angle: -30, score: 0.55, Icon: ShieldFilled },
-  { id: "family", angle: 30, score: 0.38, Icon: UsersFilled },
-  { id: "identity", angle: 90, score: 0.7, Icon: Fingerprint },
-  { id: "accounts", angle: 150, score: 0.48, Icon: KeyFilled },
-  { id: "spam", angle: 210, score: 0.62, Icon: MailFilled },
+  { id: "critical", label: "Critical", angle: -90, score: 0.82, Icon: AlertTriangleFilled },
+  { id: "scam", label: "Scam", angle: -30, score: 0.55, Icon: ShieldFilled },
+  { id: "family", label: "Family", angle: 30, score: 0.38, Icon: UsersFilled },
+  { id: "identity", label: "Identity Theft", angle: 90, score: 0.7, Icon: Fingerprint },
+  { id: "accounts", label: "Accounts", angle: 150, score: 0.48, Icon: KeyFilled },
+  { id: "spam", label: "Spam", angle: 210, score: 0.62, Icon: MailFilled },
 ] as const;
 
 const HEX_VIEW = 200;
@@ -1138,7 +1138,7 @@ function HexPreview({ reduced, play }: { reduced: boolean; play: boolean }) {
         return (
           <div
             key={`lb-${item.id}`}
-            className="pointer-events-none absolute flex -translate-x-1/2 -translate-y-1/2 items-center justify-center"
+            className="pointer-events-none absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-1"
             style={{
               left: `${(pt.x / HEX_VIEW) * 100}%`,
               top: `${(pt.y / HEX_VIEW) * 100}%`,
@@ -1146,6 +1146,9 @@ function HexPreview({ reduced, play }: { reduced: boolean; play: boolean }) {
           >
             <span className="flex h-11 w-11 items-center justify-center rounded-full border-2 border-white/35 bg-[#022136] text-white shadow-[0_0_10px_rgba(255,255,255,0.2)]">
               <Icon size={20} />
+            </span>
+            <span className="max-w-[72px] text-center text-[9px] font-medium leading-tight text-white">
+              {item.label}
             </span>
           </div>
         );
@@ -1320,16 +1323,6 @@ function ReportSlide({
 
   return (
     <>
-      <div className="relative mt-2 flex w-full flex-1 items-center justify-center">
-        <AnimatePresence mode="wait">
-          {beat === "hex" ? (
-            <HexPreview reduced={reduced} play={active} />
-          ) : (
-            <PreProfilePreview />
-          )}
-        </AnimatePresence>
-      </div>
-
       <div className="w-full text-left">
         <h1 className="text-[30px] font-bold leading-[1.15] tracking-tight text-white sm:text-[34px]">
           Start Vanyshing
@@ -1350,6 +1343,16 @@ function ReportSlide({
             </motion.p>
           </AnimatePresence>
         </div>
+      </div>
+
+      <div className="relative mt-6 flex w-full flex-1 items-center justify-center">
+        <AnimatePresence mode="wait">
+          {beat === "hex" ? (
+            <HexPreview reduced={reduced} play={active} />
+          ) : (
+            <PreProfilePreview />
+          )}
+        </AnimatePresence>
       </div>
     </>
   );
