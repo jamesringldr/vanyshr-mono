@@ -22,7 +22,10 @@ import {
 import { EmailConfirmationModal } from "./email-confirmation";
 
 const EASE_OUT = [0.2, 0, 0, 1] as const;
-const STEP_MS = 2200;
+// Minimum time the "results" step spends visibly active before the final
+// "All set..." copy takes over — Phase 2 (or the no-groups fast path) may
+// resolve faster than this feels good, so it's a floor, not a fake grind.
+const RESULTS_HOLD_MS = 1200;
 const DONE_HOLD_MS = 900;
 
 /**
@@ -73,10 +76,45 @@ const STEPS: LoadingStep[] = [
   },
 ];
 
-function stepStatus(index: number, current: number, allDone: boolean): StepStatus {
-  if (allDone || index < current) return "complete";
-  if (index === current) return "active";
-  return "pending";
+/**
+ * Real backend milestones, not a blind per-step timer:
+ *   picking                → user tapped "Yes, this is me" on a profile
+ *   showEmailConfirmation  → the email-selector modal is on screen
+ *   enriching              → user confirmed emails; the one Phase 2 call
+ *                            (broker detail scrape + holehe + leakcheck +
+ *                            dedup, all server-side) is in flight
+ *   confirmed              → that Phase 2 call returned
+ *
+ * Holehe and leakcheck run in parallel inside that single call, so the client
+ * only ever knows "confirmed emails, call in flight" vs "call returned" — not
+ * which of the two finished first. They're shown active together rather than
+ * pretending to know an order the backend doesn't report.
+ *
+ * When there's no profile to enrich (no matches, or a hard Phase 1 failure),
+ * `needsConfirm` is false and every step resolves together the moment the
+ * scan settles — there's nothing left for steps 2-5 to represent.
+ */
+function stepStatuses(args: {
+  needsConfirm: boolean;
+  scanSettled: boolean;
+  picking: boolean;
+  showEmailConfirmation: boolean;
+  enriching: boolean;
+  confirmed: boolean;
+}): Record<string, StepStatus> {
+  const { needsConfirm, scanSettled, picking, showEmailConfirmation, enriching, confirmed } = args;
+
+  const criteriaDone = needsConfirm ? picking : scanSettled;
+  const brokersDone = needsConfirm ? showEmailConfirmation : scanSettled;
+  const enrichDone = needsConfirm ? confirmed : scanSettled;
+
+  return {
+    criteria: criteriaDone ? "complete" : "active",
+    brokers: !criteriaDone ? "pending" : brokersDone ? "complete" : "active",
+    accounts: !brokersDone ? "pending" : enrichDone ? "complete" : enriching ? "active" : "pending",
+    darkweb: !brokersDone ? "pending" : enrichDone ? "complete" : enriching ? "active" : "pending",
+    results: enrichDone ? "active" : "pending",
+  };
 }
 
 function StepIndicator({ status }: { status: StepStatus }) {
@@ -124,8 +162,11 @@ export function PilotLoadingPage() {
   const [searchParams] = useSearchParams();
   const holdMode = searchParams.has("hold");
   const prefersReducedMotion = useReducedMotion();
-  const [current, setCurrent] = useState(0);
   const [allDone, setAllDone] = useState(false);
+  // Flips the instant the confirmed-emails Phase 2 call is sent, so
+  // "Finding exposed accounts" / "Scanning Dark Web" light up right when the
+  // user hands off, not when some fixed timer says so.
+  const [enriching, setEnriching] = useState(false);
   const [scanSettled, setScanSettled] = useState(holdMode);
   const [confirmed, setConfirmed] = useState(false);
   const confirmedRef = useRef(false);
@@ -146,8 +187,6 @@ export function PilotLoadingPage() {
   const slowSettledPromiseRef = useRef<Promise<void>>(Promise.resolve());
   const sessionIdRef = useRef<string>("");
   const needsConfirm = picker === "single" || picker === "multiple";
-  const criteriaUnlocked =
-    confirmed || (scanSettled && !needsConfirm);
 
   useEffect(() => {
     if (holdMode) return;
@@ -264,54 +303,31 @@ export function PilotLoadingPage() {
     };
   }, [holdMode]);
 
-  useEffect(() => {
-    if (holdMode) return;
-    if (current !== 0) return;
-    if (!criteriaUnlocked) return;
-    setCurrent(1);
-  }, [criteriaUnlocked, current, holdMode]);
+  // Everything left to enrich has resolved — Phase 2 returned, or (when there
+  // was no profile to enrich) Phase 1 settled with nothing to confirm.
+  const resultsUnlocked = needsConfirm ? confirmed : scanSettled;
 
   useEffect(() => {
     if (holdMode) return;
-    if (current < 1) return;
-    if (allDone) return;
+    if (!resultsUnlocked || allDone) return;
 
     if (prefersReducedMotion) {
-      setCurrent(STEPS.length - 1);
       setAllDone(true);
       return;
     }
 
-    const t = window.setTimeout(() => {
-      setCurrent((prev) => {
-        if (prev >= STEPS.length - 1) {
-          setAllDone(true);
-          return prev;
-        }
-        return prev + 1;
-      });
-    }, STEP_MS);
-
+    const t = window.setTimeout(() => setAllDone(true), RESULTS_HOLD_MS);
     return () => window.clearTimeout(t);
-  }, [current, allDone, prefersReducedMotion, holdMode]);
+  }, [resultsUnlocked, allDone, prefersReducedMotion, holdMode]);
 
   useEffect(() => {
     if (holdMode) return;
-    if (!allDone || !scanSettled) return;
-    if (needsConfirm && !confirmed) return;
+    if (!allDone) return;
     const t = window.setTimeout(() => {
       navigate("/pilot-scan/risk-summary", { replace: true });
     }, prefersReducedMotion ? 800 : DONE_HOLD_MS);
     return () => window.clearTimeout(t);
-  }, [
-    allDone,
-    scanSettled,
-    needsConfirm,
-    confirmed,
-    holdMode,
-    navigate,
-    prefersReducedMotion,
-  ]);
+  }, [allDone, holdMode, navigate, prefersReducedMotion]);
 
   function goToSummary() {
     navigate("/pilot-scan/risk-summary", { replace: true });
@@ -358,6 +374,10 @@ export function PilotLoadingPage() {
     setConfirmedEmails(emails);
     sessionStorage.setItem("pilotConfirmedEmails", JSON.stringify(emails));
     setShowEmailConfirmation(false);
+    // "Finding exposed accounts" / "Scanning Dark Web" go active now — this is
+    // the moment the one bundled Phase 2 call (detail scrape + holehe +
+    // leakcheck + dedup) actually gets sent.
+    setEnriching(true);
 
     // Now proceed with Phase 2 using the confirmed emails.
     //
@@ -414,7 +434,26 @@ export function PilotLoadingPage() {
     setConfirmed(true);
   }
 
-  const activeStep = STEPS[Math.min(current, STEPS.length - 1)]!;
+  // ?hold freezes on the first step for a design screenshot — scanSettled
+  // starts true under holdMode (nothing here ever runs to flip it), which
+  // would otherwise fast-forward every step's status on the very first render.
+  const statuses: Record<string, StepStatus> = holdMode
+    ? { criteria: "active", brokers: "pending", accounts: "pending", darkweb: "pending", results: "pending" }
+    : stepStatuses({
+        needsConfirm,
+        scanSettled,
+        picking,
+        showEmailConfirmation,
+        enriching,
+        confirmed,
+      });
+  // No step is "active" while the email-selector modal is up (it's the
+  // user's turn, not the backend's) — fall back to the next step's copy for
+  // that stretch; it's hidden behind the modal anyway.
+  const activeStep =
+    STEPS.find((s) => statuses[s.id] === "active") ??
+    STEPS.find((s) => statuses[s.id] === "pending") ??
+    STEPS[STEPS.length - 1]!;
 
   return (
     <div
@@ -475,8 +514,8 @@ export function PilotLoadingPage() {
 
         {/* Steps */}
         <ol className="flex w-full max-w-[280px] flex-col gap-4" aria-label="Scan progress">
-          {STEPS.map((step, index) => {
-            const status = stepStatus(index, current, allDone);
+          {STEPS.map((step) => {
+            const status = allDone ? "complete" : statuses[step.id]!;
             return (
               <li key={step.id} className="flex items-center gap-3">
                 <StepIndicator status={status} />
