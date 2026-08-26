@@ -46,6 +46,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Intro-scan identifies the user first (Zaba → FPS → AnyWho picker), then matches other brokers against that pick. Summary-scan no longer groups people before anyone has said who they are. "None of these" walks the next broker; unmatched brokers are not detail-scraped
+- Dedup scoring weights are now phone / location / relatives / name / age, with a first-name gate so a shared house and landline do not merge spouses
 - Dedup scoring now compares parsed address components instead of splitting the raw string on commas
 - AnyWho detail extraction reads emails per card rather than regexing a whole-section blob
 - The scan-timeout reaper only fails scans that stored nothing; scans awaiting a user's selection are left alone, and genuinely abandoned ones expire rather than fail

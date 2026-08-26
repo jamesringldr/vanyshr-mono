@@ -1,24 +1,23 @@
 /**
- * full-profile-scan — the intro-scan sequence's post-selection step.
+ * full-profile-scan — post-identify resolution + detail scrape.
  *
- * Triggered once the user picks a candidate in the selection modal. Usually
- * that's a Zaba full_profile_results row (Zaba's search results are already
- * full-profile-grade — see summary-scan). But when Zaba found nothing for a
- * scan, summary-scan falls back to offering fps/npd/anywho's own matched
- * summary_results as candidates instead — so the pick can be either kind of
- * row; both are tried below. Fetches the FPS/NPD/AnyWho detail pages for
- * whichever summary_results share the pick's match_group_id (or, for a
- * fallback pick with no cross-broker match, just the pick itself), writes
- * their full_profile_results rows, then fans every broker's data into the
- * per-type tables and rebuilds quickscan.consolidated_profile.
+ * The pick is the reference. Other brokers' already-stored summaries are
+ * scored against it (DedupEngine.matchReference). At most one hit per
+ * broker above MERGE_THRESHOLD; a candidate that matches a rejected card
+ * better than the pick is dropped. Unresolved brokers are not scraped.
  *
- * Input: { quickscanId }. Not wired to the frontend yet.
+ * Zaba's search page is already full-profile-grade — reuse that row.
+ * FPS/NPD/AnyWho fetch their profile_url. Then fan into per-type tables
+ * and rebuild consolidated_profile.
+ *
+ * Input: { quickscanId, fullProfileResultId, rejected? }.
  */
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { scrapeBrokerDetails, type BrokerDetailProfile } from "../_shared/quickscan/detail-scrapers.ts";
 import { populateFromSummaryResult, populateFromBrokerDetail, buildConsolidatedProfile, logTiming, exposedFieldsFromDetail, exposedFieldsFromSummary } from "../_shared/quickscan/consolidation.ts";
+import { DedupEngine } from "../_shared/quickscan/DedupEngine.ts";
 import { BrokerName, type DedupMember, type SummaryResult } from "../_shared/quickscan/quickscan-phase1-phase2-models.ts";
 
 // deno-lint-ignore no-explicit-any
@@ -37,6 +36,7 @@ serve(async (req) => {
     // Accepted here rather than requiring a separate "select" call first —
     // one round trip instead of two.
     const pickedId = String(body.fullProfileResultId || body.selectedFullProfileResultId || "").trim();
+    const rejectedInput = Array.isArray(body.rejected) ? body.rejected : [];
     if (!quickscanId) {
       return new Response(
         JSON.stringify({ success: false, error: "quickscanId is required" }),
@@ -110,7 +110,7 @@ serve(async (req) => {
 
     if (zaba) {
       matchGroupId = zaba.match_group_id;
-      zabaSummary = zaba.raw as SummaryResult;
+      zabaSummary = summaryFromRaw(BrokerName.ZABA, zaba.id, zaba.raw);
       zabaRowId = zaba.id;
       brokerFields.zaba = exposedFieldsFromSummary(zabaSummary);
       if (pickedId && pickedId !== quickscan.selected_full_profile_result_id) {
@@ -158,37 +158,122 @@ serve(async (req) => {
       }
     }
 
-    console.log(`🔍 full-profile-scan ${quickscanId}: ${zabaSummary?.full_name ?? fallbackPick?.full_name}, group=${matchGroupId}`);
+    const pickSummary: SummaryResult | undefined = zabaSummary ?? (
+      fallbackPick
+        ? summaryFromRaw(fallbackPick.target as BrokerName, fallbackPick.id, fallbackPick.raw, fallbackPick)
+        : undefined
+    );
 
-    // The matched fps/npd/anywho candidates from summary-scan. A fallback
-    // pick with no cross-broker match is its own sole candidate -- still
-    // needs its own detail scrape, same as a matched one would.
-    let matchedCandidates: Row[] = [];
-    if (matchGroupId) {
-      const { data } = await supabase
-        .schema("quickscan")
-        .from("summary_results")
-        .select("*")
-        .eq("match_group_id", matchGroupId)
-        .in("target", ["fps", "npd", "anywho"]);
-      matchedCandidates = data ?? [];
-    } else if (fallbackPick) {
-      matchedCandidates = [fallbackPick];
+    if (!pickSummary) {
+      return new Response(
+        JSON.stringify({ success: false, error: "could not load the selected profile" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    console.log(`🔍 full-profile-scan ${quickscanId}: ${pickSummary.full_name}, resolving against pick`);
+
+    const { data: allSummaries } = await supabase
+      .schema("quickscan")
+      .from("summary_results")
+      .select("*")
+      .eq("quickscans_id", quickscanId)
+      .eq("status", "success");
+
+    const { data: allZaba } = await supabase
+      .schema("quickscan")
+      .from("full_profile_results")
+      .select("*")
+      .eq("quickscans_id", quickscanId)
+      .eq("target", "zaba")
+      .eq("status", "success");
+
+    const candidatesByBroker: Record<string, SummaryResult[]> = {
+      [BrokerName.FPS]: [],
+      [BrokerName.NPD]: [],
+      [BrokerName.ANYWHO]: [],
+      [BrokerName.ZABA]: [],
+    };
+    const summaryById = new Map<string, Row>();
+    const zabaById = new Map<string, Row>();
+
+    for (const row of allSummaries ?? []) {
+      const s = summaryFromRaw(row.target as BrokerName, row.id, row.raw, row);
+      candidatesByBroker[row.target]?.push(s);
+      summaryById.set(row.id, row);
+    }
+    for (const row of allZaba ?? []) {
+      const s = summaryFromRaw(BrokerName.ZABA, row.id, row.raw);
+      candidatesByBroker[BrokerName.ZABA].push(s);
+      zabaById.set(row.id, row);
+    }
+
+    const rejected = rejectedInput
+      .filter((c: Row) => c && typeof c === "object")
+      .map((c: Row) => pickerToSummary(c));
+
+    const resolved = pickSummary
+      ? new DedupEngine().matchReference(pickSummary, candidatesByBroker, rejected)
+      : [];
+
+    const { data: groupRow, error: groupError } = await supabase
+      .schema("quickscan")
+      .from("match_groups")
+      .insert({
+        quickscans_id: quickscanId,
+        confidence: resolved.length
+          ? resolved.reduce((s, r) => s + r.match_score, 0) / resolved.length
+          : 100,
+        matched_on: {
+          reference: pickSummary?.broker ?? null,
+          brokers: [pickSummary?.broker, ...resolved.map((r) => r.broker)].filter(Boolean),
+        },
+      })
+      .select("id")
+      .single();
+
+    if (groupError || !groupRow) {
+      console.error(`✗ match_groups insert failed (scan=${quickscanId}): ${groupError?.message}`);
+    } else {
+      matchGroupId = groupRow.id;
+      const stamp = async (table: string, id: string) => {
+        const { error } = await supabase.schema("quickscan").from(table).update({ match_group_id: matchGroupId }).eq("id", id);
+        if (error) console.error(`✗ ${table} match_group_id update failed (id=${id}): ${error.message}`);
+      };
+      if (zabaRowId) await stamp("full_profile_results", zabaRowId);
+      if (fallbackPick) await stamp("summary_results", fallbackPick.id);
+      for (const r of resolved) {
+        if (r.broker === BrokerName.ZABA) await stamp("full_profile_results", r.summary.result_id || "");
+        else await stamp("summary_results", r.summary.result_id || "");
+      }
+    }
+
+    const matchedCandidates: Row[] = [];
+    const seen = new Set<string>();
+    const addSummaryRow = (row: Row | undefined) => {
+      if (!row?.id || seen.has(row.id) || !row.profile_url) return;
+      seen.add(row.id);
+      matchedCandidates.push(row);
+    };
+
+    if (fallbackPick) addSummaryRow(fallbackPick);
+    for (const r of resolved) {
+      if (r.broker === BrokerName.ZABA) {
+        const row = zabaById.get(r.summary.result_id || "");
+        if (row && !zabaSummary) {
+          zabaSummary = summaryFromRaw(BrokerName.ZABA, row.id, row.raw);
+          zabaRowId = row.id;
+          brokerFields.zaba = exposedFieldsFromSummary(zabaSummary);
+        }
+        continue;
+      }
+      addSummaryRow(summaryById.get(r.summary.result_id || ""));
     }
 
     const members: DedupMember[] = matchedCandidates
       .filter((c) => c.profile_url)
       .map((c) => ({
-        summary: {
-          broker: c.target as BrokerName,
-          full_name: c.full_name || "",
-          address: c.address || "",
-          age_range: c.age != null ? String(c.age) : "",
-          age: c.age ?? undefined,
-          location: c.address || "",
-          profile_url: c.profile_url,
-          result_id: c.id,
-        } as SummaryResult,
+        summary: summaryFromRaw(c.target as BrokerName, c.id, c.raw, c),
         match_score: 100,
       }));
 
@@ -297,3 +382,52 @@ serve(async (req) => {
     );
   }
 });
+
+function asString(value: unknown): string {
+  return value == null ? "" : String(value);
+}
+
+function asAge(value: unknown): number | undefined {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && /^\d+$/.test(value)) return Number(value);
+  return undefined;
+}
+
+function summaryFromRaw(
+  broker: BrokerName,
+  id: string,
+  raw: unknown,
+  row?: Row,
+): SummaryResult {
+  const r = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+  return {
+    broker,
+    full_name: asString(r.full_name || row?.full_name),
+    address: asString(r.address || row?.address || row?.current_address),
+    age_range: asString(r.age_range || (row?.age != null ? String(row.age) : "")),
+    age: asAge(r.age) ?? asAge(row?.age),
+    location: asString(r.location || r.address || row?.address),
+    profile_url: asString(r.profile_url || row?.profile_url),
+    result_id: id,
+    phone: asString(r.phone || row?.phone),
+    email: asString(r.email || row?.email),
+    aliases: asString(r.aliases || row?.aliases),
+    relatives: asString(r.relatives || row?.relatives),
+    previous_addresses: asString(r.previous_addresses || row?.previous_addresses),
+  };
+}
+
+function pickerToSummary(c: Row): SummaryResult {
+  const broker = (asString(c.broker) || BrokerName.ZABA) as BrokerName;
+  return summaryFromRaw(broker, asString(c.result_id || c.id), {
+    full_name: c.name || c.full_name,
+    address: c.address,
+    age: c.age,
+    age_range: c.age_range,
+    phone: c.phone,
+    aliases: c.aliases,
+    relatives: c.relatives,
+    previous_addresses: c.previous_addresses,
+    profile_url: c.profile_url,
+  });
+}

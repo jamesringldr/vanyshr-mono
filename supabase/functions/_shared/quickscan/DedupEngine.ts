@@ -1,22 +1,23 @@
 /**
  * Deduplication Engine
- * Ported from Python scraper-lab system
  *
- * Matches profiles across brokers and scores them using:
- * - Name similarity (45 points)
- * - Location match (35 points)
- * - Age compatibility (10 points)
- * - Broker credibility (10 points)
+ * Scoring is 1-vs-1. Identification is not this module's job — the user
+ * picks a record, then matchReference() scores that record against each
+ * other broker's summaries and keeps at most one hit per broker.
+ *
+ * Weights (sum 100), from observed broker data:
+ *   phone 30 / location 25 / relatives 20 / name 20 / age 5
+ *
+ * Name is a gate, not the primary score. Address and phone are the strongest
+ * signals *because* they are shared within a household, so without a
+ * first-name ceiling they merge spouses.
  */
 
 import {
   BrokerName,
   SummaryResult,
   DedupGroup,
-  DedupMember,
   ScrapeResult,
-  DedupThresholds,
-  MatchScoreBreakdown,
 } from "./quickscan-phase1-phase2-models.ts";
 import { compareParsedAddresses, parseAddress } from "./address-parser.ts";
 
@@ -76,13 +77,62 @@ function canonicalGivenName(name: string): string {
   return NAME_CANON[key] ?? key;
 }
 
+function firstToken(name: string): string {
+  return (name || "").toLowerCase().trim().split(/\s+/)[0]?.replace(/\./g, "") ?? "";
+}
+
+function ageDistance(a?: number, b?: number): number {
+  if (!a || !b) return 999;
+  return Math.abs(a - b);
+}
+
+function normalizePhones(raw: string | undefined): Set<string> {
+  const numbers = new Set<string>();
+  for (const part of (raw || "").split(",")) {
+    let digits = part.replace(/\D/g, "");
+    if (digits.length === 11 && digits.startsWith("1")) digits = digits.slice(1);
+    if (digits.length === 10) numbers.add(digits);
+  }
+  return numbers;
+}
+
+function relativeKeys(raw: string | undefined): Set<string> {
+  const keys = new Set<string>();
+  for (const part of (raw || "").split(/[,;]/)) {
+    const words = part
+      .replace(/[^A-Za-z ]/g, " ")
+      .toLowerCase()
+      .split(/\s+/)
+      .filter((w) => w.length > 1);
+    if (words.length >= 2) keys.add(`${words[0]} ${words[words.length - 1]}`);
+    else if (words.length === 1) keys.add(words[0]);
+  }
+  for (const k of [...keys]) {
+    if (k.includes("more")) keys.delete(k);
+  }
+  return keys;
+}
+
 /**
  * Deduplication and scoring engine
  */
+export type ResolvedMatch = {
+  broker: BrokerName;
+  summary: SummaryResult;
+  match_score: number;
+};
+
 export class DedupEngine {
-  // Scoring thresholds
-  static readonly MERGE_THRESHOLD = 75; // Merge if score >= this
-  static readonly GROUP_THRESHOLD = 50; // Group if score >= this (possible match)
+  static readonly MERGE_THRESHOLD = 75;
+  static readonly GROUP_THRESHOLD = 50;
+  /** Below GROUP_THRESHOLD, so a gated pair is never offered as a match. */
+  static readonly NAME_GATE_CEILING = 45;
+
+  static readonly W_PHONE = 30.0;
+  static readonly W_LOCATION = 25.0;
+  static readonly W_RELATIVES = 20.0;
+  static readonly W_NAME = 20.0;
+  static readonly W_AGE = 5.0;
 
   /**
    * Deduplicate summaries from multiple brokers
@@ -156,32 +206,85 @@ export class DedupEngine {
   }
 
   /**
-   * Calculate match score between two summaries (0-100)
-   * Thresholds:
-   *   75+: Merge (same person)
-   *   50-75: Group (possible match)
-   *   <50: Separate (different person)
+   * Score the picked record against each other broker's summaries.
+   * At most one hit per broker, and only at/above MERGE_THRESHOLD.
+   *
+   * A candidate that matches a rejected card better than the pick is dropped
+   * — "none of these" is negative evidence, not a no-op.
+   *
+   * When two candidates both clear the threshold, prefer the closer age to
+   * the pick (Jr vs Sr at the same house), then the higher score.
+   */
+  matchReference(
+    pick: SummaryResult,
+    candidatesByBroker: Record<string, SummaryResult[]>,
+    rejected: SummaryResult[] = [],
+  ): ResolvedMatch[] {
+    const resolved: ResolvedMatch[] = [];
+
+    for (const [broker, candidates] of Object.entries(candidatesByBroker)) {
+      if (!candidates?.length) continue;
+      if (broker === pick.broker) continue;
+
+      let best: { summary: SummaryResult; score: number; ageDelta: number } | null = null;
+
+      for (const candidate of candidates) {
+        const score = this.calculateMatchScore(pick, candidate);
+        if (score < DedupEngine.MERGE_THRESHOLD) continue;
+
+        const rejectedBetter = rejected.some(
+          (r) => this.calculateMatchScore(r, candidate) > score,
+        );
+        if (rejectedBetter) continue;
+
+        const ageDelta = ageDistance(pick.age, candidate.age);
+        if (
+          !best ||
+          ageDelta < best.ageDelta ||
+          (ageDelta === best.ageDelta && score > best.score)
+        ) {
+          best = { summary: candidate, score, ageDelta };
+        }
+      }
+
+      if (best) {
+        resolved.push({
+          broker: broker as BrokerName,
+          summary: best.summary,
+          match_score: best.score,
+        });
+      }
+    }
+
+    return resolved;
+  }
+
+  /**
+   * Score how likely two summaries describe the same person (0-100).
+   *
+   *   75+   merge
+   *   50-75 possible match
+   *   <50   separate
    */
   calculateMatchScore(summary1: SummaryResult, summary2: SummaryResult): number {
-    let score = 0.0;
-
-    // NAME SIMILARITY (45 points) - PRIMARY
     const nameScore = this.compareNames(summary1.full_name, summary2.full_name);
-    score += nameScore * 45.0;
-
-    // LOCATION MATCH (35 points) - SECONDARY
     const locationScore = this.compareLocations(summary1, summary2);
-    score += locationScore * 35.0;
-
-    // AGE COMPATIBILITY (10 points) - CONTEXTUAL ONLY
+    const phoneScore = this.comparePhones(summary1.phone, summary2.phone);
+    const relativeScore = this.compareRelatives(summary1.relatives, summary2.relatives);
     const ageScore = this.compareAges(summary1.age, summary2.age);
-    score += ageScore * 10.0;
 
-    // BROKER CREDIBILITY (10 points)
-    // For now: all brokers equal weight
-    score += 10.0;
+    const score =
+      phoneScore * DedupEngine.W_PHONE +
+      locationScore * DedupEngine.W_LOCATION +
+      relativeScore * DedupEngine.W_RELATIVES +
+      nameScore * DedupEngine.W_NAME +
+      ageScore * DedupEngine.W_AGE;
 
-    return Math.min(100.0, score); // Cap at 100
+    if (!this.firstNamesCompatible(summary1.full_name, summary2.full_name)) {
+      return Math.min(score, DedupEngine.NAME_GATE_CEILING);
+    }
+
+    return Math.min(100.0, score);
   }
 
   /**
@@ -253,49 +356,87 @@ export class DedupEngine {
   }
 
   /**
-   * Compare two locations (0-1 scale)
+   * Whether two names could belong to the same person. Gates the match:
+   * household members share address and landline, so without this a weighted
+   * score merges spouses.
    */
-  private compareLocations(summary1: SummaryResult, summary2: SummaryResult): number {
-    const addr1 = (summary1.address || "").trim();
-    const addr2 = (summary2.address || "").trim();
-
-    if (!addr1 || !addr2) return 0.5; // Unknown, not different.
-
-    if (addr1.toLowerCase() === addr2.toLowerCase()) return 1.0;
-
-    // Score on parsed COMPONENTS rather than the raw string. The brokers
-    // disagree about punctuation and abbreviation for the very same address --
-    // "413 Lovers LN Cameron, Missouri 64429" vs "413 Lovers Ln, Cameron MO
-    // 64429" -- so any comparison of the raw text understates the match.
-    const parsed1 = parseAddress(addr1);
-    const parsed2 = parseAddress(addr2);
-    const componentScore = compareParsedAddresses(parsed1, parsed2);
-
-    if (componentScore > 0) return componentScore;
-
-    // Nothing structured lined up; fall back to raw similarity so an
-    // unparseable-but-identical string is not scored as a mismatch.
-    const ratio = this.sequenceMatchRatio(addr1.toLowerCase(), addr2.toLowerCase());
-    return ratio > 0.7 ? 0.7 : ratio > 0.5 ? 0.5 : 0.0;
+  private firstNamesCompatible(name1: string, name2: string): boolean {
+    const a = firstToken(name1);
+    const b = firstToken(name2);
+    if (!a || !b) return true;
+    if (canonicalGivenName(a) === canonicalGivenName(b)) return true;
+    if (a.length === 1 || b.length === 1) return a[0] === b[0];
+    if (a.length >= 3 && (b.startsWith(a) || a.startsWith(b))) return true;
+    return this.levenshteinDistance(a, b) <= 1;
   }
 
   /**
-   * Compare two ages (0-1 scale)
+   * Overlap between two phone lists, 0-1. Absence is not evidence (FPS
+   * publishes no phone on its summary page).
+   */
+  private comparePhones(phones1: string | undefined, phones2: string | undefined): number {
+    const set1 = normalizePhones(phones1);
+    const set2 = normalizePhones(phones2);
+    if (!set1.size || !set2.size) return 0;
+    let overlap = 0;
+    for (const n of set1) if (set2.has(n)) overlap++;
+    return overlap / Math.min(set1.size, set2.size);
+  }
+
+  /**
+   * Overlap between two relative lists, 0-1. First+last, dropping middles.
+   */
+  private compareRelatives(relatives1: string | undefined, relatives2: string | undefined): number {
+    const set1 = relativeKeys(relatives1);
+    const set2 = relativeKeys(relatives2);
+    if (!set1.size || !set2.size) return 0;
+    let overlap = 0;
+    for (const k of set1) if (set2.has(k)) overlap++;
+    return overlap / Math.min(set1.size, set2.size);
+  }
+
+  /**
+   * Best match across both records' current and former addresses, 0-1.
+   *
+   * History matters because brokers disagree about which address is current.
+   * A former-address hit scores slightly below a current one.
+   */
+  private compareLocations(summary1: SummaryResult, summary2: SummaryResult): number {
+    const list1 = this.addressesOf(summary1);
+    const list2 = this.addressesOf(summary2);
+    if (!list1.length || !list2.length) return 0;
+
+    let best = 0;
+    for (let i = 0; i < list1.length; i++) {
+      for (let j = 0; j < list2.length; j++) {
+        let score = compareParsedAddresses(list1[i], list2[j]);
+        if (i || j) score *= 0.9;
+        best = Math.max(best, score);
+      }
+    }
+    return best;
+  }
+
+  private addressesOf(summary: SummaryResult): ReturnType<typeof parseAddress>[] {
+    const out = [parseAddress(summary.address)];
+    for (const part of (summary.previous_addresses || "").split(";")) {
+      if (part.trim()) out.push(parseAddress(part));
+    }
+    return out.filter((a) => a.city || a.state || a.street || a.zip);
+  }
+
+  /**
+   * Compare two ages (0-1 scale). Contextual, never a veto.
    */
   private compareAges(age1: number | undefined, age2: number | undefined): number {
-    if (!age1 || !age2) {
-      return 0.5; // Neutral if missing
-    }
+    if (age1 == null && age2 == null) return 1.0;
+    if (age1 == null || age2 == null) return 0.8;
 
     const diff = Math.abs(age1 - age2);
-
-    if (diff === 0) return 1.0; // Exact match
-    if (diff <= 1) return 0.95;
-    if (diff <= 2) return 0.9;
-    if (diff <= 3) return 0.8;
-    if (diff <= 5) return 0.6;
-    if (diff <= 10) return 0.4;
-    return 0.0;
+    if (diff === 0) return 1.0;
+    if (diff === 1) return 0.9;
+    if (diff <= 3) return 0.5;
+    return 0.2;
   }
 
   /**
