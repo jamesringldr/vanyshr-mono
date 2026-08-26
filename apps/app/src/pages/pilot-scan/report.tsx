@@ -138,7 +138,7 @@ export function PilotReportPage() {
         </div>
         <div className="w-full shrink-0 snap-start snap-always" aria-hidden={slide !== 3}>
           <div className="mx-auto max-w-3xl px-4 pb-16">
-            <BrokersBody brokers={stored.brokers ?? []} />
+            <BrokersBody brokers={stored.brokers ?? []} brokerFields={stored.brokerFields ?? {}} />
           </div>
         </div>
       </div>

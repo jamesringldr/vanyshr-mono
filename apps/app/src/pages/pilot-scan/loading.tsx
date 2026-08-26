@@ -347,16 +347,15 @@ export function PilotLoadingPage() {
         // services_found/breaches aren't in it yet at this point (that's
         // manage-emails' confirm step, later); handleEmailsConfirmed()
         // below overwrites this same key once those land.
-        const brokersScraped: string[] = Array.isArray(data?.brokers_scraped) ? data.brokers_scraped : [];
-        // Zaba's own row is scraped earlier in summary-scan rather than
-        // here, so it never appears in brokers_scraped — added back in as
-        // the implicit "+1" source. Slightly overcounts on the rarer
-        // Zaba-empty fallback pick (matchedCandidates comes from fps/npd/
-        // anywho directly, no Zaba row involved) — full-profile-scan
-        // doesn't currently tell the client which case this was.
-        const brokers = ["zaba", ...brokersScraped];
+        // broker_fields' keys are the authoritative broker list — built
+        // server-side from whichever brokers actually contributed data
+        // (correctly omits Zaba on the fallback-pick path, unlike the old
+        // brokers_scraped + hardcoded "zaba" approach this replaced).
+        const brokerFields: Record<string, string[]> =
+          data?.broker_fields && typeof data.broker_fields === "object" ? data.broker_fields : {};
+        const brokers = Object.keys(brokerFields);
         if (data?.consolidated_profile) {
-          saveConsolidatedProfile(data.consolidated_profile as ConsolidatedProfile, brokers.length, brokers);
+          saveConsolidatedProfile(data.consolidated_profile as ConsolidatedProfile, brokers.length, brokers, brokerFields);
         }
       }
     } catch (err) {
@@ -409,6 +408,7 @@ export function PilotLoadingPage() {
           confirmData.consolidated_profile as ConsolidatedProfile,
           stored?.brokerCount ?? 1,
           stored?.brokers,
+          stored?.brokerFields,
         );
       }
     } catch (err) {
