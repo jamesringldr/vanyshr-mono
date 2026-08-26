@@ -89,7 +89,7 @@ export interface DedupGroup {
 export interface ScrapeResult {
   broker: BrokerName;
   summaries: SummaryResult[];
-  status: "success" | "failed" | "no_results";
+  status: "success" | "failed" | "no_results" | "blocked";
   error?: string;
   timing_ms: number;
 }
