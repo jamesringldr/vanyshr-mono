@@ -27,3 +27,14 @@ jobs:
       # specs in detail-scrapers.test.ts -- fail CI instead of hiding.
       - name: deno test
         run: deno test --allow-read --allow-env --no-check supabase/functions/
+
+  # Guards the failure this repo actually had: both workflows shipped as
+  # `echo "Add ... steps"` on 2026-01-31 and stayed that way until 2026-08-26,
+  # painting a green check on every merge to main while deploying nothing.
+  no-stub-jobs:
+    name: no placeholder jobs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: pip install --quiet pyyaml
+      - run: python3 .github/scripts/check_no_stub_jobs.py

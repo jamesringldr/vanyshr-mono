@@ -1,0 +1,65 @@
+# Nightly: does production still match main?
+#
+# The check nobody had. Between 2026-01-31 and 2026-08-26 the deploy workflow
+# was an echo, so nothing ever shipped a function automatically and every
+# deploy was a hand-run CLI command against whatever branch was checked out.
+# This would have caught that in February.
+#
+# Opens an issue on drift rather than only failing, so it surfaces without
+# anyone thinking to look at the Actions tab — which is exactly what did not
+# happen for seven months.
+name: Drift Check
+
+on:
+  schedule:
+    - cron: "17 9 * * *" # daily, offset off the hour to dodge scheduler pileups
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+env:
+  PROJECT_REF: skhejbzrfptrusskuqoy
+
+jobs:
+  drift:
+    name: production vs main
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # needs history to diff the deployed sha against main
+
+      - name: Check for drift
+        id: check
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set +e
+          python3 .github/scripts/check_drift.py > drift.txt 2>&1
+          echo "status=$?" >> "$GITHUB_OUTPUT"
+          cat drift.txt
+
+      - name: Open an issue on drift
+        if: steps.check.outputs.status != '0'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # One open issue at a time — a nightly job should not file the same
+          # report every morning until someone acts on it.
+          existing=$(gh issue list --label drift --state open --json number --jq '.[0].number')
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --body-file drift.txt
+          else
+            gh label create drift --color B45309 --description "Production out of sync with main" 2>/dev/null || true
+            gh issue create \
+              --title "Production functions have drifted from main" \
+              --label drift \
+              --body-file drift.txt
+          fi
+
+      - name: Fail the run
+        if: steps.check.outputs.status != '0'
+        run: exit 1

@@ -1,0 +1,70 @@
+# Weekly: delete dev/* branches that are fully merged into main.
+#
+# `delete_branch_on_merge` only fires on PR merges, and work here reaches
+# staging and main by direct push — so that setting never cleaned anything.
+# Nineteen dead branches accumulated between 2026-05-20 and 2026-08-26, all
+# removed by hand in one sitting.
+#
+# Only branches with zero commits not already on main are touched, so nothing
+# can be lost: every commit on a deleted branch is reachable from main. The age
+# floor keeps a branch that was merged minutes ago — and may still be checked
+# out in someone's worktree — from vanishing under them.
+name: Prune Merged Branches
+
+on:
+  schedule:
+    - cron: "23 10 * * 1" # Mondays
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "List what would be deleted without deleting"
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+jobs:
+  prune:
+    name: delete merged dev/* branches
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Prune
+        env:
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || 'false' }}
+          MIN_AGE_DAYS: "7"
+        run: |
+          set -euo pipefail
+          git fetch origin --prune --quiet
+          cutoff=$(( $(date +%s) - MIN_AGE_DAYS * 86400 ))
+          deleted=0; kept=0
+
+          for ref in $(git for-each-ref --format='%(refname:short)' refs/remotes/origin/dev); do
+            branch="${ref#origin/}"
+            ahead=$(git rev-list --count "origin/main..$ref")
+            last=$(git log -1 --format=%ct "$ref")
+
+            if [ "$ahead" != "0" ]; then
+              echo "keep    $branch — $ahead commit(s) not on main"
+              kept=$((kept+1)); continue
+            fi
+            if [ "$last" -gt "$cutoff" ]; then
+              echo "keep    $branch — merged, but touched in the last $MIN_AGE_DAYS days"
+              kept=$((kept+1)); continue
+            fi
+
+            if [ "$DRY_RUN" = "true" ]; then
+              echo "WOULD DELETE  $branch — fully merged into main"
+            else
+              echo "delete  $branch — fully merged into main"
+              git push origin --delete "$branch"
+            fi
+            deleted=$((deleted+1))
+          done
+
+          echo
+          echo "$deleted branch(es) $([ "$DRY_RUN" = "true" ] && echo 'would be deleted' || echo deleted), $kept kept"
