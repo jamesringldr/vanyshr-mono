@@ -15,7 +15,7 @@ const EXCLUDED_EMAIL_PATTERNS = [
   /^noreply@/i,
   /^no-reply@/i,
   /^donotreply@/i,
-  /^test@/i,
+  /^test[._@-]/i,
   /^demo@/i,
   /^admin@/i,
   /^info@/i,
