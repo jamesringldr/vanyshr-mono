@@ -1,43 +1,62 @@
 import { useRef, useState } from "react";
 import { Link } from "react-router";
 import { Menu } from "lucide-react";
+import { motion } from "framer-motion";
 import PrimaryLogoDark from "@vanyshr/ui/assets/PrimaryLogo-DarkMode.png";
 import { cx } from "@/utils/cx";
 import { loadConsolidatedProfile } from "./consolidated-profile";
 import { RiskSummaryBody } from "./risk-summary";
 import { PreProfileBody } from "./pre-profile";
+import { BreachesBody } from "./breaches";
+import { BrokersBody } from "./brokers";
 
-const SLIDES = ["Risk summary", "Exposure details"] as const;
+const SLIDES = ["Risk Summary", "Your Data", "Breaches", "Brokers"] as const;
 
-function Dots({ active, onSelect }: { active: number; onSelect: (index: number) => void }) {
+function TabBar({ active, onSelect }: { active: number; onSelect: (index: number) => void }) {
   return (
-    <div className="flex items-center justify-center gap-2 pb-3" role="tablist" aria-label="Report sections">
-      {SLIDES.map((label, i) => (
-        <button
-          key={label}
-          type="button"
-          role="tab"
-          aria-selected={active === i}
-          aria-label={label}
-          onClick={() => onSelect(i)}
-          className={cx(
-            "h-2 rounded-full transition-all",
-            active === i ? "w-6 bg-[#00BFFF]" : "w-2 bg-white/25 hover:bg-white/40",
-          )}
-        />
-      ))}
+    <div
+      className="flex items-center gap-5 overflow-x-auto pb-3 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      role="tablist"
+      aria-label="Report sections"
+    >
+      {SLIDES.map((label, i) => {
+        const isActive = active === i;
+        return (
+          <button
+            key={label}
+            type="button"
+            role="tab"
+            aria-selected={isActive}
+            onClick={() => onSelect(i)}
+            className={cx(
+              "relative shrink-0 whitespace-nowrap pb-2 text-sm font-medium transition-colors",
+              isActive ? "text-white" : "text-white/45 hover:text-white/70",
+            )}
+          >
+            {label}
+            {isActive && (
+              <motion.span
+                layoutId="report-tab-indicator"
+                className="absolute inset-x-0 -bottom-0.5 h-[2px] rounded-full bg-[#00BFFF]"
+                transition={{ type: "spring", stiffness: 380, damping: 32 }}
+              />
+            )}
+          </button>
+        );
+      })}
     </div>
   );
 }
 
 /**
- * Post-scan report — risk-summary and pre-profile as two swipeable slides on
- * one page, sharing a single header/dots bar rather than each carrying its
- * own. Native CSS scroll-snap rather than a framer-motion drag track: no
- * constraint-measuring or drag/animate-conflict tuning needed, and it keeps
- * the whole page free of CSS transforms — relevant because the risk-summary
- * slide's area-detail drawer is `position: fixed` (portaled to document.body
- * regardless, but a transform-free page is one less thing to reason about).
+ * Post-scan report — risk-summary, pre-profile, breaches, and brokers as four
+ * swipeable slides on one page, sharing a single header/tab bar rather than
+ * each carrying its own. Native CSS scroll-snap rather than a framer-motion
+ * drag track: no constraint-measuring or drag/animate-conflict tuning needed,
+ * and it keeps the whole page free of CSS transforms — relevant because the
+ * risk-summary slide's area-detail drawer is `position: fixed` (portaled to
+ * document.body regardless, but a transform-free page is one less thing to
+ * reason about).
  */
 export function PilotReportPage() {
   const [{ data: stored }] = useState(() => loadConsolidatedProfile());
@@ -96,7 +115,7 @@ export function PilotReportPage() {
           </button>
         </header>
 
-        <Dots active={slide} onSelect={goToSlide} />
+        <TabBar active={slide} onSelect={goToSlide} />
       </div>
 
       <div
@@ -110,6 +129,16 @@ export function PilotReportPage() {
         <div className="w-full shrink-0 snap-start snap-always" aria-hidden={slide !== 1}>
           <div className="mx-auto max-w-3xl px-4 pb-16">
             <PreProfileBody profile={stored.profile} />
+          </div>
+        </div>
+        <div className="w-full shrink-0 snap-start snap-always" aria-hidden={slide !== 2}>
+          <div className="mx-auto max-w-3xl px-4 pb-16">
+            <BreachesBody profile={stored.profile} />
+          </div>
+        </div>
+        <div className="w-full shrink-0 snap-start snap-always" aria-hidden={slide !== 3}>
+          <div className="mx-auto max-w-3xl px-4 pb-16">
+            <BrokersBody brokers={stored.brokers ?? []} />
           </div>
         </div>
       </div>

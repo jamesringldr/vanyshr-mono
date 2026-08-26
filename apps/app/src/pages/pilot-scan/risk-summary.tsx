@@ -117,30 +117,6 @@ function isHttpUrl(value: string) {
   return /^https?:\/\//i.test(value);
 }
 
-function formatDeviceStamp(date: Date) {
-  const mm = String(date.getMonth() + 1).padStart(2, "0");
-  const dd = String(date.getDate()).padStart(2, "0");
-  const yyyy = date.getFullYear();
-  const minutes = String(date.getMinutes()).padStart(2, "0");
-  const hour24 = date.getHours();
-  const hour12 = hour24 % 12 || 12;
-  const ampm = hour24 >= 12 ? "pm" : "am";
-  return `${mm}/${dd}/${yyyy} ${hour12}:${minutes} ${ampm}`;
-}
-
-function scanPersonName(fullName?: string | null) {
-  const fromProfile = fullName?.trim();
-  if (fromProfile) return fromProfile;
-  try {
-    const raw = sessionStorage.getItem("pilotScanFields");
-    if (!raw) return "";
-    const fields = JSON.parse(raw) as { firstName?: string; lastName?: string };
-    return `${fields.firstName ?? ""} ${fields.lastName ?? ""}`.trim();
-  } catch {
-    return "";
-  }
-}
-
 /**
  * Risk summary slide content — hex chart + area list, no page chrome. Used
  * standalone by PilotRiskSummaryPage's own header/background below, and as
@@ -158,8 +134,6 @@ export function RiskSummaryBody({ profile }: { profile: ConsolidatedProfile }) {
   const prefersReducedMotion = useReducedMotion();
   const areas = useMemo(() => buildRiskAreas(profile), [profile]);
   const [activeArea, setActiveArea] = useState<AreaView | null>(null);
-  const [stamp] = useState(() => formatDeviceStamp(new Date()));
-  const personName = scanPersonName(profile.full_name);
 
   const byId = useMemo(() => {
     const map = new Map(areas.map((a) => [a.id, a]));
@@ -205,18 +179,6 @@ export function RiskSummaryBody({ profile }: { profile: ConsolidatedProfile }) {
   return (
     <div className="relative flex w-full flex-col items-center px-6 pb-[200px] font-ubuntu">
       <div>
-        <div className="flex w-full max-w-sm flex-col items-center text-center">
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-[#00BFFF]/35 bg-[#00BFFF]/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#00BFFF]">
-            Your exposure
-          </span>
-          <h1 className="mt-4 text-3xl font-bold tracking-tight text-white sm:text-4xl">
-            Risk Summary
-          </h1>
-          <p className="mt-2 text-sm text-[#B8C4CC]">
-            {personName ? `${personName} - ${stamp}` : stamp}
-          </p>
-        </div>
-
         <div className="relative mt-8 flex w-full max-w-md items-center justify-center">
           <div className="relative aspect-square w-full max-w-[340px]">
             <svg
