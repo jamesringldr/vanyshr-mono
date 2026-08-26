@@ -113,7 +113,7 @@ function unique(values: string[]): string[] {
   return out;
 }
 
-function brokerLabel(raw?: string): string {
+export function brokerLabel(raw?: string): string {
   const b = (raw || "").toLowerCase();
   if (b === "fps") return "FastPeopleSearch";
   if (b === "npd") return "NPD";

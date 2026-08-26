@@ -347,9 +347,16 @@ export function PilotLoadingPage() {
         // services_found/breaches aren't in it yet at this point (that's
         // manage-emails' confirm step, later); handleEmailsConfirmed()
         // below overwrites this same key once those land.
-        const brokersScraped = Array.isArray(data?.brokers_scraped) ? data.brokers_scraped.length : 0;
+        const brokersScraped: string[] = Array.isArray(data?.brokers_scraped) ? data.brokers_scraped : [];
+        // Zaba's own row is scraped earlier in summary-scan rather than
+        // here, so it never appears in brokers_scraped — added back in as
+        // the implicit "+1" source. Slightly overcounts on the rarer
+        // Zaba-empty fallback pick (matchedCandidates comes from fps/npd/
+        // anywho directly, no Zaba row involved) — full-profile-scan
+        // doesn't currently tell the client which case this was.
+        const brokers = ["zaba", ...brokersScraped];
         if (data?.consolidated_profile) {
-          saveConsolidatedProfile(data.consolidated_profile as ConsolidatedProfile, brokersScraped + 1);
+          saveConsolidatedProfile(data.consolidated_profile as ConsolidatedProfile, brokers.length, brokers);
         }
       }
     } catch (err) {
@@ -397,8 +404,12 @@ export function PilotLoadingPage() {
       // breaches — the pick-time copy predates email confirmation, so it
       // never had these (see handlePick above).
       if (confirmData?.consolidated_profile) {
-        const brokerCount = loadConsolidatedProfile().data?.brokerCount ?? 1;
-        saveConsolidatedProfile(confirmData.consolidated_profile as ConsolidatedProfile, brokerCount);
+        const stored = loadConsolidatedProfile().data;
+        saveConsolidatedProfile(
+          confirmData.consolidated_profile as ConsolidatedProfile,
+          stored?.brokerCount ?? 1,
+          stored?.brokers,
+        );
       }
     } catch (err) {
       console.warn("manage-emails confirm error:", err);
