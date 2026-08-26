@@ -1,9 +1,10 @@
 /**
  * Progressive identification order for the picker.
  *
- * FPS first (highest target-match rate on the lab set). Empty / blocked /
- * failed / timeout on a broker is the same as the user rejecting that list:
- * walk to the next. NPD is last — ~30% hit, never exclusive in lab or prod.
+ * FPS first (highest target-match rate on the lab set). Only an empty list
+ * walks to the next broker — see shouldWalkNextIdentifyBroker below, which
+ * this header used to contradict by listing blocked / failed / timeout as
+ * walkable too. NPD is last — ~30% hit, never exclusive in lab or prod.
  *
  * Keep this list in sync with IDENTIFY_ORDER in
  * apps/app/src/pages/pilot-scan/loading.tsx.
