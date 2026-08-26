@@ -117,6 +117,21 @@ Two things to know before changing it:
 Cloudflare Workers under `workers/` are a separate target and are not deployed by this
 workflow.
 
+After deploying, the workflow reads the project back and fails unless every function was
+updated by that run (`.github/scripts/verify_deploy.py`) — an exit code alone is a claim,
+not evidence.
+
+## Guardrails
+
+| Workflow | When | What it does |
+|---|---|---|
+| `test.yml` → `no-stub-jobs` | every push | Fails if any workflow job's only steps are `echo`. Both workflows here were echo stubs from 2026-01-31 to 2026-08-26, reporting green on every merge while doing nothing. |
+| `drift-check.yml` | nightly 09:17 UTC | Compares production functions against `main` — flags function changes committed but never deployed, and functions deployed outside CI. Opens a `drift`-labelled issue. |
+| `prune-branches.yml` | Mondays 10:23 UTC | Deletes `dev/*` branches fully merged into `main` and untouched for 7+ days. `delete_branch_on_merge` only fires on PR merges, and work here lands by direct push. |
+
+Both scheduled workflows accept `workflow_dispatch`; `prune-branches` defaults to a dry run
+when triggered manually.
+
 ## Environment Variables
 
 - Local: `apps/app/.env.local` (never committed)
