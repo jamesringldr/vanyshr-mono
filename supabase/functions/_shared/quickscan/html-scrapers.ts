@@ -54,10 +54,16 @@ type El = {
   querySelector: (sel: string) => El | null;
   querySelectorAll: (sel: string) => El[];
   getElementsByTagName?: (tag: string) => El[];
+  nextElementSibling?: El | null;
 };
 
-function parseDoc(html: string) {
-  return new DOMParser().parseFromString(html, "text/html");
+// deno-dom types querySelector/querySelectorAll as returning Node, which has
+// none of the element members this file uses. Convert once here rather than
+// casting at every call site -- the casts that were scattered downstream were
+// inconsistent, and the sites that lacked one were type errors hidden by
+// `deno test --no-check`.
+function parseDoc(html: string): El | null {
+  return new DOMParser().parseFromString(html, "text/html") as unknown as El | null;
 }
 
 function textOf(el: El | null | undefined): string {
