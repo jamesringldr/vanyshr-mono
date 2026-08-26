@@ -241,6 +241,63 @@ export function parseFpsSummaries(html: string): SummaryResult[] {
     if (results.length >= MAX_RESULTS) break;
   }
 
+  // Cards are richer (age, street) when present. JSON-LD Person is the
+  // fallback: context.dev can return a results page whose cards don't
+  // parse but whose Person nodes still carry name, city, relatives, and
+  // the /name_id_G… profile URL. Bot-check HTML has no Person, so this
+  // stays empty there.
+  if (results.length === 0) return parseFpsJsonLd(html);
+  return results;
+}
+
+function jsonLdPostalLine(place: Record<string, unknown>): string {
+  const addr = (place.address && typeof place.address === "object")
+    ? place.address as Record<string, string>
+    : {};
+  return [addr.streetAddress, addr.addressLocality, addr.addressRegion]
+    .map((p) => (p || "").trim())
+    .filter(Boolean)
+    .join(", ");
+}
+
+function parseFpsJsonLd(html: string): SummaryResult[] {
+  const results: SummaryResult[] = [];
+  for (const person of jsonLdPersons(html)) {
+    const name = String(person.name || "").trim();
+    if (!name) continue;
+    const url = String(person.url || person["@id"] || "");
+    // Search-page JSON-LD also emits Organization / nav graphs; Person
+    // profile nodes carry /name_id_G… URLs. Skip anything else.
+    if (url && !/_id_/i.test(url)) continue;
+
+    const homes = Array.isArray(person.homeLocation) ? person.homeLocation : [];
+    const places = homes.filter((p): p is Record<string, unknown> => Boolean(p) && typeof p === "object");
+    const recent = places.find((p) =>
+      /recent|current/i.test(String(p.description || "")),
+    ) || places[0];
+    const address = recent ? jsonLdPostalLine(recent) : "";
+    const previous = places
+      .filter((p) => p !== recent)
+      .map(jsonLdPostalLine)
+      .filter(Boolean);
+
+    const related = Array.isArray(person.relatedTo) ? person.relatedTo : [];
+    const relatives = joinUnique(
+      related
+        .filter((r): r is Record<string, unknown> => Boolean(r) && typeof r === "object")
+        .map((r) => String(r.name || "")),
+    );
+
+    results.push(emptySummary(BrokerName.FPS, {
+      result_id: url || `fps_jsonld_${results.length}`,
+      full_name: name,
+      address,
+      profile_url: absUrl("https://www.fastpeoplesearch.com", url),
+      relatives,
+      previous_addresses: previous.join("; "),
+    }));
+    if (results.length >= MAX_RESULTS) break;
+  }
   return results;
 }
 
