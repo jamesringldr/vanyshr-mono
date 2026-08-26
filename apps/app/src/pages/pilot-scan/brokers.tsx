@@ -1,4 +1,3 @@
-import { Search } from "lucide-react";
 import { brokerLabel } from "./scan-result";
 
 const BROKER_DESCRIPTIONS: Record<string, string> = {
@@ -8,8 +7,19 @@ const BROKER_DESCRIPTIONS: Record<string, string> = {
     zaba: "People-search listing with address, phone, and relative history.",
 };
 
-/** Brokers slide — which people-search sites had a listing for this pick. */
-export function BrokersBody({ brokers }: { brokers: string[] }) {
+/**
+ * Brokers slide — which people-search sites had a listing for this pick,
+ * and which field types each one exposed (see full-profile-scan's
+ * broker_fields, derived server-side from that broker's own raw scrape —
+ * same card style as the Breaches page).
+ */
+export function BrokersBody({
+    brokers,
+    brokerFields,
+}: {
+    brokers: string[];
+    brokerFields: Record<string, string[]>;
+}) {
     const unique = Array.from(new Set(brokers));
 
     return (
@@ -21,7 +31,7 @@ export function BrokersBody({ brokers }: { brokers: string[] }) {
                 {unique.length} data broker{unique.length === 1 ? "" : "s"} had a listing for you
             </p>
 
-            <div className="mt-6 flex flex-col gap-2.5">
+            <div className="mt-6">
                 {unique.length === 0 ? (
                     <div className="rounded-2xl bg-[#1A2E42] p-4 sm:p-5">
                         <p className="text-sm text-[#7A92A8]">
@@ -29,21 +39,35 @@ export function BrokersBody({ brokers }: { brokers: string[] }) {
                         </p>
                     </div>
                 ) : (
-                    unique.map((code) => (
-                        <div key={code} className="flex items-start gap-3 rounded-2xl bg-[#1A2E42] p-4 sm:p-5">
-                            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#00BFFF]/15 text-[#00BFFF]">
-                                <Search className="h-4 w-4" />
-                            </span>
-                            <div className="min-w-0">
-                                <p className="text-sm font-semibold text-white">{brokerLabel(code)}</p>
-                                {BROKER_DESCRIPTIONS[code] && (
-                                    <p className="mt-0.5 text-xs leading-snug text-[#7A92A8]">
-                                        {BROKER_DESCRIPTIONS[code]}
+                    <ul className="flex flex-col gap-2.5">
+                        {unique.map((code) => {
+                            const fields = brokerFields[code] ?? [];
+                            return (
+                                <li key={code} className="rounded-2xl bg-[#1A2E42] p-4 sm:p-5">
+                                    <p className="text-[15px] font-semibold text-white">
+                                        {brokerLabel(code)}
                                     </p>
-                                )}
-                            </div>
-                        </div>
-                    ))
+                                    {BROKER_DESCRIPTIONS[code] && (
+                                        <p className="mt-0.5 text-xs text-[#7A92A8]">
+                                            {BROKER_DESCRIPTIONS[code]}
+                                        </p>
+                                    )}
+                                    {fields.length > 0 && (
+                                        <div className="mt-2.5 flex flex-wrap gap-1.5">
+                                            {fields.map((field) => (
+                                                <span
+                                                    key={field}
+                                                    className="rounded-full bg-white/10 px-2 py-0.5 text-[11px] text-[#B8C4CC]"
+                                                >
+                                                    {field}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    )}
+                                </li>
+                            );
+                        })}
+                    </ul>
                 )}
             </div>
         </div>

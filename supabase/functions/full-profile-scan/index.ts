@@ -18,7 +18,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { scrapeBrokerDetails, type BrokerDetailProfile } from "../_shared/quickscan/detail-scrapers.ts";
-import { populateFromSummaryResult, populateFromBrokerDetail, buildConsolidatedProfile, logTiming } from "../_shared/quickscan/consolidation.ts";
+import { populateFromSummaryResult, populateFromBrokerDetail, buildConsolidatedProfile, logTiming, exposedFieldsFromDetail, exposedFieldsFromSummary } from "../_shared/quickscan/consolidation.ts";
 import { BrokerName, type DedupMember, type SummaryResult } from "../_shared/quickscan/quickscan-phase1-phase2-models.ts";
 
 // deno-lint-ignore no-explicit-any
@@ -103,11 +103,16 @@ serve(async (req) => {
     let zabaSummary: SummaryResult | undefined;
     let zabaRowId: string | undefined;
     let fallbackPick: Row | null = null;
+    // Which field types each individual broker exposed — for the Brokers
+    // page, which shows each broker's own listing rather than the merged
+    // consolidated_profile.
+    const brokerFields: Record<string, string[]> = {};
 
     if (zaba) {
       matchGroupId = zaba.match_group_id;
       zabaSummary = zaba.raw as SummaryResult;
       zabaRowId = zaba.id;
+      brokerFields.zaba = exposedFieldsFromSummary(zabaSummary);
       if (pickedId && pickedId !== quickscan.selected_full_profile_result_id) {
         const { error: selectError } = await supabase
           .schema("quickscan")
@@ -203,6 +208,7 @@ serve(async (req) => {
     for (const candidate of matchedCandidates) {
       const detail = details[candidate.target];
       if (!detail) continue;
+      brokerFields[candidate.target] = exposedFieldsFromDetail(detail as BrokerDetailProfile);
 
       const { data: row, error } = await supabase
         .schema("quickscan")
@@ -278,6 +284,7 @@ serve(async (req) => {
         success: true,
         quickscan_id: quickscanId,
         brokers_scraped: newRows.map((r) => r.broker),
+        broker_fields: brokerFields,
         consolidated_profile: consolidatedProfile,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },

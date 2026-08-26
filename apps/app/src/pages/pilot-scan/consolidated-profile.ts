@@ -82,6 +82,8 @@ export interface StoredConsolidatedProfile {
   brokerCount: number;
   /** Raw broker codes (e.g. "fps", "zaba") scraped for this pick — see brokerLabel() for display names. */
   brokers?: string[];
+  /** Per-broker field types exposed (e.g. { fps: ["Phone Numbers", "Current Address"] }) — for the Brokers page. */
+  brokerFields?: Record<string, string[]>;
 }
 
 /** Read the profile loading.tsx stored after the pick, or manage-emails refreshed after confirm. */
@@ -101,8 +103,13 @@ export function loadConsolidatedProfile(): { data: StoredConsolidatedProfile | n
  * (manage-emails returns the same row with services_found/breaches filled
  * in), so whichever page renders next always has the freshest copy.
  */
-export function saveConsolidatedProfile(profile: ConsolidatedProfile, brokerCount: number, brokers?: string[]): void {
-  sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ profile, brokerCount, brokers }));
+export function saveConsolidatedProfile(
+  profile: ConsolidatedProfile,
+  brokerCount: number,
+  brokers?: string[],
+  brokerFields?: Record<string, string[]>,
+): void {
+  sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ profile, brokerCount, brokers, brokerFields }));
 }
 
 // ---------------------------------------------------------------------------
