@@ -1,21 +1,22 @@
 /**
  * full-profile-scan — post-identify resolution + detail scrape.
  *
- * The pick is the reference. Other brokers' already-stored summaries are
- * scored against it (DedupEngine.matchReference). At most one hit per
+ * The pick is the reference. If the pick is FPS/AnyWho/NPD, its detail
+ * page is scraped first so matching has phones/relatives the summary
+ * didn't. Other brokers' already-stored summaries are scored against
+ * that full profile (DedupEngine.matchReference). At most one hit per
  * broker above MERGE_THRESHOLD; a candidate that matches a rejected card
  * better than the pick is dropped. Unresolved brokers are not scraped.
  *
  * Zaba's search page is already full-profile-grade — reuse that row.
- * FPS/NPD/AnyWho fetch their profile_url. Then fan into per-type tables
- * and rebuild consolidated_profile.
+ * Then fan into per-type tables and rebuild consolidated_profile.
  *
  * Input: { quickscanId, fullProfileResultId, rejected? }.
  */
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
-import { scrapeBrokerDetails, type BrokerDetailProfile } from "../_shared/quickscan/detail-scrapers.ts";
+import { scrapeBrokerDetails, detailToSummary, type BrokerDetailProfile } from "../_shared/quickscan/detail-scrapers.ts";
 import { populateFromSummaryResult, populateFromBrokerDetail, buildConsolidatedProfile, logTiming, exposedFieldsFromDetail, exposedFieldsFromSummary } from "../_shared/quickscan/consolidation.ts";
 import { DedupEngine } from "../_shared/quickscan/DedupEngine.ts";
 import { BrokerName, type DedupMember, type SummaryResult } from "../_shared/quickscan/quickscan-phase1-phase2-models.ts";
@@ -66,13 +67,13 @@ serve(async (req) => {
       );
     }
 
-    // summary-scan responds as soon as Zaba resolves and keeps matching
-    // FPS/NPD/AnyWho in the background (status 'zaba_ready' until that
-    // finishes, 'summary_scan_complete' once it does — always one or the
-    // other, even on a background failure, so this can't wait forever).
-    // The user can click "pick" before that background pass is done; rather
-    // than proceed with an incomplete match or block the pick button, this
-    // says so cheaply and the frontend just retries.
+    // summary-scan responds as soon as FPS resolves and keeps AnyWho/Zaba/NPD
+    // in the background (status 'identify_ready' until that finishes,
+    // 'summary_scan_complete' once it does — always one or the other, even
+    // on a background failure, so this can't wait forever). The user can
+    // click "pick" before that background pass is done; rather than proceed
+    // with an incomplete match or block the pick button, this says so
+    // cheaply and the frontend just retries.
     if (quickscan.status !== "summary_scan_complete") {
       return new Response(
         JSON.stringify({ success: true, notReady: true }),
@@ -88,10 +89,10 @@ serve(async (req) => {
       );
     }
 
-    // The pick is usually a Zaba full_profile_results row -- try that first,
-    // the overwhelmingly common case. Falls back to summary_results when
-    // Zaba found nothing for this scan and the modal offered an fps/npd/
-    // anywho candidate instead (see summary-scan's zaba-empty fallback path).
+    // The pick is usually an FPS summary_results row (FPS-first picker).
+    // Zaba picks land on full_profile_results because that search page is
+    // already full-profile-grade. Try full_profile_results first so a Zaba
+    // fallback pick still resolves, then summary_results.
     const { data: zaba } = await supabase
       .schema("quickscan")
       .from("full_profile_results")
@@ -158,7 +159,7 @@ serve(async (req) => {
       }
     }
 
-    const pickSummary: SummaryResult | undefined = zabaSummary ?? (
+    let pickSummary: SummaryResult | undefined = zabaSummary ?? (
       fallbackPick
         ? summaryFromRaw(fallbackPick.target as BrokerName, fallbackPick.id, fallbackPick.raw, fallbackPick)
         : undefined
@@ -211,6 +212,30 @@ serve(async (req) => {
     const rejected = rejectedInput
       .filter((c: Row) => c && typeof c === "object")
       .map((c: Row) => pickerToSummary(c));
+
+    // FPS/AnyWho/NPD summaries are thin (FPS has no phone). Scrape the pick
+    // first so matchReference has the full profile, then score the others.
+    const prefetched: Record<string, BrokerDetailProfile> = {};
+    if (!zabaSummary && pickSummary.profile_url) {
+      const { profiles, timings } = await scrapeBrokerDetails([{
+        summary: pickSummary,
+        match_score: 100,
+      }]);
+      for (const [broker, timing] of Object.entries(timings)) {
+        await logTiming(supabase, quickscanId, "full_profile_fetch", timing.timingMs, { broker, status: timing.status });
+      }
+      const detail = profiles[pickSummary.broker] as BrokerDetailProfile | undefined;
+      if (detail) {
+        prefetched[pickSummary.broker] = detail;
+        pickSummary = detailToSummary(
+          pickSummary.broker,
+          pickSummary.result_id || String(fallbackPick?.id || ""),
+          detail,
+          pickSummary,
+        );
+        brokerFields[pickSummary.broker] = exposedFieldsFromDetail(detail);
+      }
+    }
 
     const resolved = pickSummary
       ? new DedupEngine().matchReference(pickSummary, candidatesByBroker, rejected)
@@ -271,19 +296,21 @@ serve(async (req) => {
     }
 
     const members: DedupMember[] = matchedCandidates
-      .filter((c) => c.profile_url)
+      .filter((c) => c.profile_url && !prefetched[c.target])
       .map((c) => ({
         summary: summaryFromRaw(c.target as BrokerName, c.id, c.raw, c),
         match_score: 100,
       }));
 
-    const { profiles: details, timings: fetchTimings } = members.length
+    const { profiles: scraped, timings: fetchTimings } = members.length
       ? await scrapeBrokerDetails(members)
       : { profiles: {} as Record<string, unknown>, timings: {} as Record<string, { timingMs: number; status: string }> };
 
     for (const [broker, timing] of Object.entries(fetchTimings)) {
       await logTiming(supabase, quickscanId, "full_profile_fetch", timing.timingMs, { broker, status: timing.status });
     }
+
+    const details: Record<string, unknown> = { ...scraped, ...prefetched };
 
     // Write the new full_profile_results rows and fan them into the per-type
     // tables. Zaba's already-existing row is fanned out here too — this is

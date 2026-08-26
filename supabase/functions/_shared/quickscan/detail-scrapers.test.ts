@@ -2,7 +2,8 @@
  * Zaba detail targeting — the search page IS the profile page.
  * Run: deno test supabase/functions/_shared/quickscan/detail-scrapers.test.ts
  */
-import { parseZabaDetail } from "./detail-scrapers.ts";
+import { detailToSummary, parseZabaDetail } from "./detail-scrapers.ts";
+import { BrokerName, type SummaryResult } from "./quickscan-phase1-phase2-models.ts";
 
 const TWO_PEOPLE = `<html><body>
 <div class="person" data-age="34" data-id="aaa">
@@ -63,4 +64,40 @@ Deno.test("parseZabaDetail falls back to ordinal when names collide without age"
   if (detail.age !== 30) {
     throw new Error(`ordinal 1 should be age 30, got ${detail.age}`);
   }
+});
+
+Deno.test("detailToSummary copies phones so matchReference can score them", () => {
+  const fallback = {
+    broker: BrokerName.FPS,
+    full_name: "James Oehring",
+    address: "Cameron, MO",
+    age_range: "61",
+    age: 61,
+    location: "Cameron, MO",
+    profile_url: "https://example.test/fps/james",
+  } as SummaryResult;
+  const summary = detailToSummary(
+    BrokerName.FPS,
+    "pick-1",
+    {
+      fullName: "James Oehring",
+      age: 61,
+      primaryAddress: { formatted: "413 Lovers Ln, Cameron MO 64429" },
+      phoneNumbers: ["(816) 632-2218", "(816) 225-8592"],
+      emails: ["jaoehring@gmail.com"],
+      relatives: [{ name: "Rickilinda Oehring" }],
+      previousAddresses: [{ formatted: "380 W 22nd St, Kansas City, MO" }],
+    },
+    fallback,
+  );
+  if (summary.phone !== "(816) 632-2218, (816) 225-8592") {
+    throw new Error(`expected phones, got ${summary.phone}`);
+  }
+  if (summary.address !== "413 Lovers Ln, Cameron MO 64429") {
+    throw new Error(`expected street address, got ${summary.address}`);
+  }
+  if (summary.relatives !== "Rickilinda Oehring") {
+    throw new Error(`expected relative, got ${summary.relatives}`);
+  }
+  if (summary.result_id !== "pick-1") throw new Error("result_id should be the pick id");
 });

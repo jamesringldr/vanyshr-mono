@@ -1,16 +1,16 @@
 /**
  * summary-scan — fetch raw broker summaries. Does not identify anyone.
  *
- * All four brokers start together. Zaba is awaited (its search page is already
- * person-shaped, so the picker can open). FPS/NPD/AnyWho finish in the
- * background. Nothing is grouped: matching happens after the user picks, in
- * full-profile-scan.
+ * All four brokers start together. FPS is awaited (highest lab target-match
+ * rate) so the picker can open. AnyWho/Zaba/NPD finish in the background.
+ * Nothing is grouped: matching happens after the user picks, in
+ * full-profile-scan, against the pick's full profile.
  *
- * Identification order is Zaba → FPS → AnyWho (NPD is never shown). If Zaba
- * is empty this waits on the others and returns FPS (then AnyWho) as the
- * first picker list. `listBroker` re-reads an already-written list so the
- * client can walk that order without re-scraping. `rejectAll` records that
- * the user turned down every shown card.
+ * Identification order is FPS → AnyWho → Zaba → NPD. Empty, blocked, failed,
+ * and timeout on a broker are the same as the user rejecting that list —
+ * fall through to the next. `listBroker` re-reads an already-written list
+ * so the client can walk that order without re-scraping. `rejectAll`
+ * records that the user turned down every shown card.
  *
  * Input: { quickscanId, listBroker?, rejectAll? }.
  */
@@ -20,13 +20,20 @@ import { getCorsHeaders } from "../_shared/cors.ts";
 import { scrapeBrokersConcurrently } from "../_shared/quickscan/html-scrapers.ts";
 import { logTiming } from "../_shared/quickscan/consolidation.ts";
 import {
+  FIRST_IDENTIFY_BROKER,
+  IDENTIFY_ORDER,
+  firstNonEmptyIdentifyList,
+  isIdentifyBroker,
+  type IdentifyBroker,
+} from "../_shared/quickscan/identify-order.ts";
+import {
   BrokerName,
   type QuickScanInput,
   type ScrapeResult,
   type SummaryResult,
 } from "../_shared/quickscan/quickscan-phase1-phase2-models.ts";
 
-const IDENTIFY_BROKERS = [BrokerName.FPS, BrokerName.ANYWHO] as const;
+const IDENTIFY_READY_STATUS = "identify_ready";
 
 type StoredRow = { table: "summary_results" | "full_profile_results"; id: string };
 
@@ -86,30 +93,24 @@ serve(async (req) => {
     }
 
     if (listBroker) {
-      const broker = listBroker === "zaba" || listBroker === "fps" || listBroker === "anywho"
-        ? listBroker
-        : "";
-      if (!broker) {
+      if (!isIdentifyBroker(listBroker)) {
         return new Response(
-          JSON.stringify({ success: false, error: "listBroker must be zaba, fps, or anywho" }),
+          JSON.stringify({ success: false, error: "listBroker must be fps, anywho, zaba, or npd" }),
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
       }
-      const ready = broker === "zaba"
-        ? quickscan.status === "zaba_ready" || quickscan.status === "summary_scan_complete"
-        : quickscan.status === "summary_scan_complete";
-      if (!ready) {
+      if (!listBrokerReady(listBroker, quickscan.status)) {
         return new Response(
-          JSON.stringify({ success: true, notReady: true, broker }),
+          JSON.stringify({ success: true, notReady: true, broker: listBroker }),
           { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
       }
-      const candidates = await listCandidates(supabase, quickscanId, broker);
+      const candidates = await listCandidates(supabase, quickscanId, listBroker);
       return new Response(
         JSON.stringify({
           success: true,
           quickscan_id: quickscanId,
-          broker,
+          broker: listBroker,
           candidates,
           zaba_candidates: candidates,
         }),
@@ -119,7 +120,7 @@ serve(async (req) => {
 
     // Idempotent: a retry after the scrape has started must not fire four
     // more context.dev calls. Return whatever list is already stored.
-    if (quickscan.status === "zaba_ready" || quickscan.status === "summary_scan_complete") {
+    if (quickscan.status === IDENTIFY_READY_STATUS || quickscan.status === "zaba_ready" || quickscan.status === "summary_scan_complete") {
       const listed = await firstIdentifyList(supabase, quickscanId, quickscan.status);
       if (listed.notReady) {
         return new Response(
@@ -151,44 +152,44 @@ serve(async (req) => {
       `🔍 summary-scan ${quickscanId}: ${input.first_name} ${input.last_name}, ${input.city}, ${input.state}`,
     );
 
-    // All 4 fetches start together; only Zaba is awaited here.
+    // All 4 fetches start together; only FPS is awaited here.
     const brokerPromises = scrapeBrokersConcurrently(input);
 
-    const zabaResult = await brokerPromises[BrokerName.ZABA];
-    await logTiming(supabase, quickscanId, "summary_scan_broker", zabaResult.timing_ms, {
-      broker: zabaResult.broker,
-      resultCount: zabaResult.summaries.length,
-      status: zabaResult.status,
-      error: zabaResult.error,
+    const fpsResult = await brokerPromises[BrokerName.FPS];
+    await logTiming(supabase, quickscanId, "summary_scan_broker", fpsResult.timing_ms, {
+      broker: fpsResult.broker,
+      resultCount: fpsResult.summaries.length,
+      status: fpsResult.status,
+      error: fpsResult.error,
     });
 
     const stored = new Map<string, StoredRow>();
-    const summaryCounts: Record<string, number> = { [BrokerName.ZABA]: zabaResult.summaries.length };
-    const zabaCandidates: Record<string, unknown>[] = [];
+    const summaryCounts: Record<string, number> = { [BrokerName.FPS]: fpsResult.summaries.length };
+    const fpsCandidates: Record<string, unknown>[] = [];
 
-    if (zabaResult.summaries.length === 0) {
-      await writePlaceholder(supabase, quickscanId, zabaResult);
+    if (fpsResult.summaries.length === 0) {
+      await writePlaceholder(supabase, quickscanId, fpsResult);
     } else {
-      for (const summary of zabaResult.summaries) {
-        const row = await writeFullProfile(supabase, quickscanId, summary);
+      for (const summary of fpsResult.summaries) {
+        const row = await writeSummary(supabase, quickscanId, summary);
         if (row) {
           stored.set(candidateKey(summary), row);
-          zabaCandidates.push(toPickerCandidate(summary, row.id));
+          fpsCandidates.push(toPickerCandidate(summary, row.id));
         }
       }
     }
 
-    if (zabaResult.summaries.length > 0) {
+    if (fpsCandidates.length > 0) {
       await supabase
         .schema("quickscan")
         .from("quickscans")
-        .update({ status: "zaba_ready", deepest_page: "select_profile" })
+        .update({ status: IDENTIFY_READY_STATUS, deepest_page: "select_profile" })
         .eq("id", quickscanId);
 
       await logTiming(supabase, quickscanId, "summary_scan_response", Date.now() - functionStarted, { resultCount: stored.size });
-      console.log(`✅ summary-scan ${quickscanId}: responding with ${zabaCandidates.length} Zaba candidates, FPS/NPD/AnyWho continuing in the background`);
+      console.log(`✅ summary-scan ${quickscanId}: responding with ${fpsCandidates.length} FPS candidates, AnyWho/Zaba/NPD continuing in the background`);
 
-      const backgroundWork = finishScan(supabase, quickscanId, functionStarted, zabaResult, brokerPromises, stored, summaryCounts);
+      const backgroundWork = finishScan(supabase, quickscanId, functionStarted, brokerPromises, stored, summaryCounts, BrokerName.FPS);
 
       // deno-lint-ignore no-explicit-any
       const edgeRuntime = (globalThis as any).EdgeRuntime;
@@ -202,20 +203,27 @@ serve(async (req) => {
         JSON.stringify({
           success: true,
           quickscan_id: quickscanId,
-          broker: BrokerName.ZABA,
-          candidates: zabaCandidates,
-          zaba_candidates: zabaCandidates,
+          broker: BrokerName.FPS,
+          candidates: fpsCandidates,
+          zaba_candidates: fpsCandidates,
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
-    console.log(`… summary-scan ${quickscanId}: Zaba found nothing, waiting on FPS/NPD/AnyWho for a fallback candidate list`);
-    await finishScan(supabase, quickscanId, functionStarted, zabaResult, brokerPromises, stored, summaryCounts);
+    console.log(`… summary-scan ${quickscanId}: FPS found nothing, waiting on AnyWho/Zaba/NPD for a fallback candidate list`);
+    await finishScan(supabase, quickscanId, functionStarted, brokerPromises, stored, summaryCounts, BrokerName.FPS);
 
     const listed = await firstIdentifyList(supabase, quickscanId, "summary_scan_complete");
+    if (listed.candidates.length) {
+      await supabase
+        .schema("quickscan")
+        .from("quickscans")
+        .update({ deepest_page: "select_profile" })
+        .eq("id", quickscanId);
+    }
     await logTiming(supabase, quickscanId, "summary_scan_response", Date.now() - functionStarted, { resultCount: listed.candidates.length });
-    console.log(`✅ summary-scan ${quickscanId}: Zaba empty, responding with ${listed.candidates.length} ${listed.broker} candidates`);
+    console.log(`✅ summary-scan ${quickscanId}: FPS empty, responding with ${listed.candidates.length} ${listed.broker} candidates`);
 
     return new Response(
       JSON.stringify({
@@ -237,25 +245,26 @@ serve(async (req) => {
 });
 
 /**
- * Fetches fps/npd/anywho (already in flight via brokerPromises), writes
- * their summary_results as raw rows, and always lands quickscans.status on
- * 'summary_scan_complete'. No clustering — the user has not identified
- * themselves yet.
+ * Fetches the brokers still in flight, writes their rows, and always lands
+ * quickscans.status on 'summary_scan_complete'. No clustering — the user
+ * has not identified themselves yet.
+ *
+ * alreadyHandled is the broker awaited on the fast path (FPS); its count
+ * and placeholder/rows are already written.
  */
 async function finishScan(
   // deno-lint-ignore no-explicit-any
   supabase: any,
   quickscanId: string,
   functionStarted: number,
-  zabaResult: ScrapeResult,
   brokerPromises: Record<string, Promise<ScrapeResult>>,
   stored: Map<string, StoredRow>,
   summaryCounts: Record<string, number>,
+  alreadyHandled: BrokerName,
 ): Promise<void> {
   try {
-    const others = await Promise.all(
-      [BrokerName.FPS, BrokerName.NPD, BrokerName.ANYWHO].map((b) => brokerPromises[b]),
-    );
+    const remaining = (Object.keys(brokerPromises) as BrokerName[]).filter((b) => b !== alreadyHandled);
+    const others = await Promise.all(remaining.map((b) => brokerPromises[b]));
 
     for (const result of others) {
       summaryCounts[result.broker] = result.summaries.length;
@@ -271,7 +280,9 @@ async function finishScan(
         continue;
       }
       for (const summary of result.summaries) {
-        const row = await writeSummary(supabase, quickscanId, summary);
+        const row = result.broker === BrokerName.ZABA
+          ? await writeFullProfile(supabase, quickscanId, summary)
+          : await writeSummary(supabase, quickscanId, summary);
         if (row) stored.set(candidateKey(summary), row);
       }
     }
@@ -375,24 +386,29 @@ async function listCandidates(
   return out;
 }
 
+function listBrokerReady(broker: IdentifyBroker, status: string): boolean {
+  if (status === "summary_scan_complete") return true;
+  // FPS (the awaited broker) is written at identify_ready. zaba_ready is
+  // the pre-FPS-first status, kept so an in-flight retry during deploy
+  // still serves whatever was stored.
+  if (broker === FIRST_IDENTIFY_BROKER && (status === IDENTIFY_READY_STATUS || status === "zaba_ready")) {
+    return true;
+  }
+  if (broker === "zaba" && status === "zaba_ready") return true;
+  return false;
+}
+
 async function firstIdentifyList(
   // deno-lint-ignore no-explicit-any
   supabase: any,
   quickscanId: string,
   status: string,
-): Promise<{ broker: string; candidates: Record<string, unknown>[]; notReady?: boolean }> {
-  const zaba = await listCandidates(supabase, quickscanId, BrokerName.ZABA);
-  if (zaba.length) return { broker: BrokerName.ZABA, candidates: zaba };
-
-  if (status !== "summary_scan_complete") {
-    return { broker: BrokerName.FPS, candidates: [], notReady: true };
+): Promise<{ broker: IdentifyBroker; candidates: Record<string, unknown>[]; notReady?: boolean }> {
+  const lists: Partial<Record<IdentifyBroker, Record<string, unknown>[]>> = {};
+  for (const broker of IDENTIFY_ORDER) {
+    lists[broker] = await listCandidates(supabase, quickscanId, broker);
   }
-
-  for (const broker of IDENTIFY_BROKERS) {
-    const candidates = await listCandidates(supabase, quickscanId, broker);
-    if (candidates.length) return { broker, candidates };
-  }
-  return { broker: BrokerName.ZABA, candidates: [] };
+  return firstNonEmptyIdentifyList(lists, status === "summary_scan_complete");
 }
 
 async function writeSummary(

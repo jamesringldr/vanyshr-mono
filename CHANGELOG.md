@@ -46,6 +46,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Intro-scan picker is now FPS → AnyWho → Zaba → NPD. Empty, blocked, failed, and timeout on a broker walk the same as the user rejecting that list. After a pick, that broker's full profile is scraped first so the other summaries are scored against phones/relatives the FPS summary page never has
+- context.dev summary scrape timeout is 60s (was 25s, with NPD capped at 10s) so uncached Zaba/NPD are not aborted while the other brokers overlap in the background
 - context.dev HTML scrapes send `maxAgeMs=0` (docs default is a 1-day cache) and treat bot-check / `WEBSITE_BLOCKED` as `blocked` instead of `no_results`
 - FPS summary parse falls back to JSON-LD `@type: Person` when `card-block` cards are missing, so a successful context.dev page is not stored as `no_results`
 - Intro-scan identifies the user first (Zaba → FPS → AnyWho picker), then matches other brokers against that pick. Summary-scan no longer groups people before anyone has said who they are. "None of these" walks the next broker; unmatched brokers are not detail-scraped

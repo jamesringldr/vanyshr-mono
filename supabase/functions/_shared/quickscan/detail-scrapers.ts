@@ -18,7 +18,8 @@ import { DOMParser } from "https://deno.land/x/deno_dom@v0.1.38/deno-dom-wasm.ts
 import { BrokerName, type DedupMember, type SummaryResult } from "./quickscan-phase1-phase2-models.ts";
 import { scrapeHtml } from "./context-dev-client.ts";
 
-const DEFAULT_DETAIL_TIMEOUT_MS = 20000;
+// Fresh context.dev detail pages take 15–25s+. 20s was tuned for cache hits.
+const DEFAULT_DETAIL_TIMEOUT_MS = 45000;
 
 type El = {
   textContent: string | null;
@@ -114,6 +115,40 @@ export interface BrokerDetailProfile {
 function addrFromParts(street: string | undefined, city: string | undefined, state: string | undefined, zip: string | undefined, fallback?: string): DetailAddress {
   const formatted = [street, [city, state].filter(Boolean).join(", "), zip].filter(Boolean).join(", ") || fallback || "";
   return { formatted, street, city, state, zip };
+}
+
+/**
+ * Flatten a detail profile back into the summary shape matchReference scores.
+ * FPS summaries have no phone; the detail page does, and that is what lets
+ * AnyWho/Zaba clear MERGE_THRESHOLD against an FPS pick.
+ */
+export function detailToSummary(
+  broker: BrokerName,
+  id: string,
+  detail: BrokerDetailProfile,
+  fallback: SummaryResult,
+): SummaryResult {
+  const phones = (detail.phoneNumbers || []).map((p) => p.trim()).filter(Boolean);
+  const emails = (detail.emails || []).map((e) => e.trim()).filter(Boolean);
+  const aliases = (detail.aliases || []).map((a) => a.trim()).filter(Boolean);
+  const relatives = (detail.relatives || []).map((r) => r.name?.trim()).filter(Boolean);
+  const previous = (detail.previousAddresses || []).map((a) => a.formatted?.trim()).filter(Boolean);
+  const address = detail.primaryAddress?.formatted || fallback.address;
+  return {
+    ...fallback,
+    broker,
+    result_id: id,
+    full_name: detail.fullName || fallback.full_name,
+    age: detail.age ?? fallback.age,
+    address,
+    location: address || fallback.location,
+    phone: phones.join(", ") || fallback.phone,
+    email: emails.join(", ") || fallback.email,
+    aliases: aliases.join(", ") || fallback.aliases,
+    relatives: relatives.join(", ") || fallback.relatives,
+    previous_addresses: previous.join("; ") || fallback.previous_addresses,
+    profile_url: fallback.profile_url,
+  };
 }
 
 /** Fallback when a detail-page fetch fails/times out — degrade to what Phase 1's summary already had. */
