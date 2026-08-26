@@ -308,6 +308,11 @@ export function PilotLoadingPage() {
         setIdentifyBroker(broker);
         candidatesRef.current = list;
         sessionStorage.removeItem("pilotScanError");
+        if (data.unavailable) {
+          setErrorMessage("We couldn't reach a people-search site. Try the scan again.");
+          go("error");
+          return;
+        }
         if (list.length > 0) {
           setProfiles(list.map((m, i) => candidateToProfile(m, i)));
           go("pick");
