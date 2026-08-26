@@ -1,6 +1,11 @@
 /**
- * context.dev HTML scrape — the fetch layer that replaced Camoufox for Phase 1.
- * GET https://api.context.dev/v1/web/scrape/html?url=...
+ * context.dev HTML scrape — GET https://api.context.dev/v1/web/scrape/html
+ *
+ * Docs: https://docs.context.dev/api-reference/web-scraping/html
+ *
+ * maxAgeMs defaults to 1 day ON THEIR SIDE when omitted. A cached bot-check
+ * page for the same URL then comes back as HTTP 200 with no Person cards
+ * (~0.5s). Live scans must send maxAgeMs=0 so every request is fresh.
  */
 
 const CONTEXT_API = "https://api.context.dev/v1/web/scrape/html";
@@ -20,7 +25,36 @@ export type HtmlScrapeResult = {
   html: string;
   url: string;
   notFound: boolean;
+  blocked: boolean;
+  finalUrl?: string;
 };
+
+type ContextDevBody = {
+  success?: boolean;
+  html?: string;
+  url?: string;
+  message?: string;
+  error_code?: string;
+  metadata?: {
+    sourceUrl?: string;
+    finalUrl?: string;
+    title?: string;
+    jsonLd?: unknown[];
+  };
+};
+
+/** FPS (and similar) anti-bot shells that context.dev may still return as 200. */
+export function isChallengePage(html: string, finalUrl?: string): boolean {
+  if (finalUrl && /bot-check|blacklist=1/i.test(finalUrl)) return true;
+  const low = html.toLowerCase();
+  if (low.includes("are you human") && (low.includes("captcha") || low.includes("recaptcha"))) {
+    return true;
+  }
+  if (low.includes("security challenge") && !low.includes("@type\":\"person")) {
+    return true;
+  }
+  return false;
+}
 
 export function contextDevEnabled(): boolean {
   return Boolean(Deno.env.get("CONTEXT_DEV_API_KEY"));
@@ -36,14 +70,14 @@ export async function scrapeHtml(
   }
 
   const timeoutMs = opts.timeoutMs ?? 25000;
+  // 0 = always scrape fresh. Omitting this uses their 86400000ms default.
+  const maxAgeMs = opts.maxAgeMs ?? 0;
   const params = new URLSearchParams({
     url,
     country: "us",
     timeoutMS: String(timeoutMs),
+    maxAgeMs: String(maxAgeMs),
   });
-  if (opts.maxAgeMs !== undefined) {
-    params.set("maxAgeMs", String(opts.maxAgeMs));
-  }
 
   const response = await fetch(`${CONTEXT_API}?${params.toString()}`, {
     method: "GET",
@@ -51,16 +85,19 @@ export async function scrapeHtml(
     signal: AbortSignal.timeout(timeoutMs + 5000),
   });
 
-  const body = await response.json().catch(() => ({})) as {
-    success?: boolean;
-    html?: string;
-    url?: string;
-    message?: string;
-    error_code?: string;
-  };
+  const body = await response.json().catch(() => ({})) as ContextDevBody;
+  const finalUrl = body.metadata?.finalUrl || body.url || url;
 
   if (response.status === 404 || body.error_code === "NOT_FOUND") {
-    return { html: "", url, notFound: true };
+    return { html: "", url, notFound: true, blocked: false, finalUrl };
+  }
+
+  if (body.error_code === "WEBSITE_BLOCKED") {
+    throw new ContextDevError(
+      body.message || "context.dev WEBSITE_BLOCKED",
+      response.status || 400,
+      "WEBSITE_BLOCKED",
+    );
   }
 
   if (!response.ok || !body.html) {
@@ -71,5 +108,13 @@ export async function scrapeHtml(
     );
   }
 
-  return { html: body.html, url: body.url || url, notFound: false };
+  if (isChallengePage(body.html, finalUrl)) {
+    throw new ContextDevError(
+      `context.dev returned a bot-check page (${finalUrl})`,
+      400,
+      "WEBSITE_BLOCKED",
+    );
+  }
+
+  return { html: body.html, url: body.url || url, notFound: false, blocked: false, finalUrl };
 }
