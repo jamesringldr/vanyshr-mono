@@ -280,6 +280,47 @@ Deno.test("a successful detail scrape does not skip the other brokers", () => {
   }
 });
 
+Deno.test("one shared number scores the same as every number shared", () => {
+  // The reference is a detail page with many numbers; the candidate is a
+  // summary card with few. Scoring the proportion made the shared number read
+  // as a partial disagreement and dragged the pair below the merge bar.
+  const manyPhones = {
+    ...PHONELESS_PICK,
+    phone: "(217) 555-0142, (217) 555-0199, (816) 555-0123, (816) 555-0177",
+  };
+  const oneInCommon = summary({
+    broker: BrokerName.ANYWHO,
+    full_name: "Danny Carroll",
+    address: "123 Main St, Springfield, IL 62704",
+    age: 45,
+    phone: "(217) 555-0142, (312) 555-0188",
+  });
+  const allInCommon = { ...oneInCommon, phone: "(217) 555-0142" };
+
+  const one = engine.scoreAgainstReference(manyPhones, oneInCommon);
+  const all = engine.scoreAgainstReference(manyPhones, allInCommon);
+  if (one !== all) {
+    throw new Error(`one shared number scored ${one.toFixed(1)}, all shared ${all.toFixed(1)} — should match`);
+  }
+  if (one < DedupEngine.MERGE_THRESHOLD) {
+    throw new Error(`a shared number should clear the merge bar, scored ${one.toFixed(1)}`);
+  }
+});
+
+Deno.test("no shared number is still a real disagreement", () => {
+  const different = summary({
+    broker: BrokerName.ANYWHO,
+    full_name: "Danny Carroll",
+    address: "123 Main St, Springfield, IL 62704",
+    age: 45,
+    phone: "(312) 555-0188",
+  });
+  const shared = { ...different, phone: "(217) 555-0142" };
+  if (!(engine.scoreAgainstReference(PHONELESS_PICK, shared) > engine.scoreAgainstReference(PHONELESS_PICK, different))) {
+    throw new Error("a shared number must score above a wholly different one");
+  }
+});
+
 Deno.test("renormalising does not let a phoneless spouse through the name gate", () => {
   const spouse = summary({
     broker: BrokerName.ZABA,
