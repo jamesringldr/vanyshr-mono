@@ -46,6 +46,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- The email step now asks which addresses to check for breaches, rather than which ones to remove. Every address the brokers found stays on the report either way; choosing one adds it to the dark web scan and nothing else. Previously, declining to scan an address also deleted it from the user's own results, because the same flag controlled both. Nothing is selected by default, and a quickscan covers up to three — a fourth prompts to sign up for unlimited monitoring.
 - Intro-scan picker is now FPS → AnyWho → Zaba → NPD. Only a genuine `no_results` walks to the next broker; a bot-check/block is retried once and then errors instead of showing another site's list. After a pick, that broker's full profile is scraped first so the other summaries are scored against phones/relatives the FPS summary page never has
 - context.dev summary scrape timeout is 60s (was 25s, with NPD capped at 10s) so uncached Zaba/NPD are not aborted while the other brokers overlap in the background
 - context.dev HTML scrapes send `maxAgeMs=0` (docs default is a 1-day cache) and treat bot-check / `WEBSITE_BLOCKED` as `blocked` instead of `no_results`
