@@ -38,6 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `quickscan.employment`, `quickscan.education`, `quickscan.properties` tables — same dedup shape as phones/addresses (a job, school, or property reported by more than one broker corroborates instead of duplicating)
 - `consolidated_profile.employment` / `.education` / `.properties` / `.legal_records` — the rollup the frontend actually reads now carries these, not just phones/addresses/relatives/aliases
 - Employment, Education, Residential details, and Legal records sections on the pilot-scan pre-profile page
+- `full-profile-scan` now returns `broker_fields` — which field types (Phone Numbers, Current Address, Relatives, etc.) each individual broker actually contributed, not just the merged consolidated_profile — powers per-broker cards on the Brokers page
 
 - `quickscan.scan_timings` — per-step/per-broker duration and result-count logging across intro-scan, summary-scan, and full-profile-scan, for diagnosing where a scan spends its time
 - `supabase/scripts/purge-quickscan-test-data.sql` — manual dev/test utility to wipe all `quickscan.*` tables between test passes
