@@ -394,6 +394,26 @@ verify_jwt = false
 [functions.run-quick-scan]
 verify_jwt = false
 
+# The quickscan flow. These were set to verify_jwt = false in the dashboard and
+# never written down here, so the file disagreed with production — harmless while
+# every deploy was manual and named one function, but CI deploys the whole
+# directory and config.toml's default is `true`. Undeclared, they were one deploy
+# away from 401-ing every logged-out scan.
+[functions.summary-scan]
+verify_jwt = false
+
+[functions.full-profile-scan]
+verify_jwt = false
+
+[functions.manage-emails]
+verify_jwt = false
+
+[functions.universal-search]
+verify_jwt = false
+
+[functions.universal-details]
+verify_jwt = false
+
 [edge_runtime]
 enabled = true
 # Supported request policies: `oneshot`, `per_worker`.

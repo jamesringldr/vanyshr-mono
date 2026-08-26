@@ -1,15 +1,65 @@
-# Deploy Supabase functions
+# Deploy the Supabase edge functions on push to main.
+#
+# Replaces a stub that ran `echo "Add deploy steps for packages/backend/functions"`.
+# Nothing had ever deployed a function, so `docs/CICD.md` described a pipeline
+# that did not exist and every deploy was someone running the CLI by hand —
+# which is how production ran ahead of `main` for most of 2026-08-26.
+#
+# `packages/backend/functions/` holds only a .gitkeep; the functions the stub
+# named have always lived in `supabase/functions/`. `workers/` is Cloudflare,
+# deployed with wrangler, and is not what this workflow builds — both are off
+# the trigger.
 name: Deploy Functions
+
 on:
   push:
     branches: [main]
     paths:
       - "supabase/functions/**"
-      - "packages/backend/**"
-      - "workers/**"
+      - "supabase/config.toml"
+  # Manual re-run, for recovering from a failed deploy without an empty commit.
+  workflow_dispatch:
+
+concurrency:
+  # Never let two deploys race; a later push wins rather than queueing behind
+  # one that is already superseded.
+  group: deploy-functions
+  cancel-in-progress: false
+
+env:
+  PROJECT_REF: skhejbzrfptrusskuqoy
+
 jobs:
   deploy:
+    name: supabase functions deploy
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: echo "Add deploy steps for packages/backend/functions"
+
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      # Same flags as test.yml — a red suite must not reach production. This
+      # duplicates the Test workflow rather than chaining off it: workflow_run
+      # would deploy on a *later* event with its own checkout, and the point
+      # here is that these exact files passed.
+      - name: deno test
+        run: deno test --allow-read --allow-env --no-check supabase/functions/
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      # No --prune. Four functions live in the project but not in this repo
+      # (admin-users, recon-probe, recon-report, removal-enqueue) — they come
+      # from vanyshr-admin or were deployed by hand, and --prune would delete
+      # them. --use-api bundles server-side so the runner needs no Docker.
+      #
+      # verify_jwt comes from supabase/config.toml. Every pre-auth function
+      # must be declared there; the default is `true`, and an undeclared
+      # pre-auth function would 401 for logged-out users.
+      - name: Deploy
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: supabase functions deploy --project-ref "$PROJECT_REF" --use-api
