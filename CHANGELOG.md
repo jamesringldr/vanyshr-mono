@@ -46,6 +46,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- FPS summary parse falls back to JSON-LD `@type: Person` when `card-block` cards are missing, so a successful context.dev page is not stored as `no_results`
 - Intro-scan identifies the user first (Zaba → FPS → AnyWho picker), then matches other brokers against that pick. Summary-scan no longer groups people before anyone has said who they are. "None of these" walks the next broker; unmatched brokers are not detail-scraped
 - Dedup scoring weights are now phone / location / relatives / name / age, with a first-name gate so a shared house and landline do not merge spouses
 - Dedup scoring now compares parsed address components instead of splitting the raw string on commas
