@@ -80,6 +80,8 @@ const STORAGE_KEY = "pilotConsolidatedProfile";
 export interface StoredConsolidatedProfile {
   profile: ConsolidatedProfile;
   brokerCount: number;
+  /** Raw broker codes (e.g. "fps", "zaba") scraped for this pick — see brokerLabel() for display names. */
+  brokers?: string[];
 }
 
 /** Read the profile loading.tsx stored after the pick, or manage-emails refreshed after confirm. */
@@ -99,8 +101,8 @@ export function loadConsolidatedProfile(): { data: StoredConsolidatedProfile | n
  * (manage-emails returns the same row with services_found/breaches filled
  * in), so whichever page renders next always has the freshest copy.
  */
-export function saveConsolidatedProfile(profile: ConsolidatedProfile, brokerCount: number): void {
-  sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ profile, brokerCount }));
+export function saveConsolidatedProfile(profile: ConsolidatedProfile, brokerCount: number, brokers?: string[]): void {
+  sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ profile, brokerCount, brokers }));
 }
 
 // ---------------------------------------------------------------------------
