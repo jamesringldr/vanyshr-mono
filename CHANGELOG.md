@@ -64,6 +64,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Zabasearch and AnyWho scrapers updated to align with shared parse/merge patterns used by admin HTML ingestion
 - Risk summary's round arrow "Continue" button replaced with a docked footer CTA ("Start Vanyshing" → /pilot-scan/start) that slides up 2s after the report loads, matching the pilot-scan entry footer's style
 - Report page's dot indicators replaced with a 4-tab sliding menu (Risk Summary / Your Data / Breaches / Brokers) — Breaches and Brokers are new full pages, previously breach data was only reachable as a risk-summary drill-down and broker sources weren't shown at all
+- Breaches page reorganized for readability: breach name is now the headline (date as "Month YYYY", was raw "YYYY-MM"), added a "N breaches across M emails" summary line, sorted newest-first
 
 - `scan_timings.duration_ms` → `duration_s` (numeric seconds, easier to read)
 - `summary-scan` now responds as soon as Zaba resolves instead of waiting on all 4 brokers — the selection modal used to take 50s+ because it waited on the slowest/most failure-prone broker (NPD) too; FPS/NPD/AnyWho now finish matching in the background, and `full-profile-scan` holds the pick until that background match completes instead of proceeding on an incomplete one
