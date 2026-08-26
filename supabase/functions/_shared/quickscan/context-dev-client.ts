@@ -64,9 +64,10 @@ type ContextDevBody = {
  * unguarded and flagged any page carrying that phrase. Tolerate arbitrary
  * whitespace and the array form (`"@type": ["Person", ...]`).
  *
- * Caveat: useMainContentOnly=true strips <script type="application/ld+json">
- * outright (FPS search: 5 blocks -> 0), so this returns false for every page
- * fetched with that flag set, whatever the page actually contains.
+ * Do not add useMainContentOnly=true to the request: it strips
+ * <script type="application/ld+json"> outright, which zeroes this probe and
+ * the Person fallback both. Measured per broker, ld+json blocks with the
+ * flag -> without: FPS 0 -> 5, Zaba 0 -> 6, NPD 0 -> 3.
  */
 function hasPersonJsonLd(lowerHtml: string): boolean {
   return /"@type"\s*:\s*\[?\s*"person"/.test(lowerHtml);
