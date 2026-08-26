@@ -16,7 +16,7 @@
 
 import { DOMParser } from "https://deno.land/x/deno_dom@v0.1.38/deno-dom-wasm.ts";
 import { BrokerName, type DedupMember, type SummaryResult } from "./quickscan-phase1-phase2-models.ts";
-import { scrapeHtml } from "./context-dev-client.ts";
+import { scrapeHtml, ContextDevError } from "./context-dev-client.ts";
 
 // Fresh context.dev detail pages take 15–25s+. 20s was tuned for cache hits.
 const DEFAULT_DETAIL_TIMEOUT_MS = 45000;
@@ -767,6 +767,29 @@ const DETAIL_PARSERS: Partial<Record<BrokerName, (html: string) => BrokerDetailP
 export interface BrokerDetailTiming {
   timingMs: number;
   status: "success" | "fallback" | "failed";
+  error?: string;
+}
+
+async function fetchOneDetail(
+  member: DedupMember,
+  timeoutMs: number,
+  started: number,
+): Promise<{ broker: BrokerName; profile: BrokerDetailProfile; timingMs: number; status: BrokerDetailTiming["status"]; error?: string }> {
+  const { broker, profile_url } = member.summary;
+  if (!profile_url) {
+    return { broker, profile: summaryFallback(member.summary), timingMs: Date.now() - started, status: "fallback" };
+  }
+  const page = await scrapeHtml(profile_url, { timeoutMs });
+  if (page.notFound || !page.html) {
+    return { broker, profile: summaryFallback(member.summary), timingMs: Date.now() - started, status: "fallback" };
+  }
+  const parser = DETAIL_PARSERS[broker];
+  const detail = parser?.(page.html);
+  if (!detail || !detail.fullName) {
+    console.warn(`⚠️ ${broker} detail page parsed empty — falling back to summary data`);
+    return { broker, profile: summaryFallback(member.summary), timingMs: Date.now() - started, status: "fallback" };
+  }
+  return { broker, profile: detail, timingMs: Date.now() - started, status: "success" };
 }
 
 export async function scrapeBrokerDetails(
@@ -775,28 +798,34 @@ export async function scrapeBrokerDetails(
 ): Promise<{ profiles: Record<string, unknown>; timings: Record<string, BrokerDetailTiming> }> {
   const settled = await Promise.allSettled(
     members.map(async (member) => {
-      const { broker, profile_url } = member.summary;
       const started = Date.now();
-      if (!profile_url) {
-        return { broker, profile: summaryFallback(member.summary), timingMs: Date.now() - started, status: "fallback" as const };
-      }
-
       try {
-        const page = await scrapeHtml(profile_url, { timeoutMs });
-        if (page.notFound || !page.html) {
-          return { broker, profile: summaryFallback(member.summary), timingMs: Date.now() - started, status: "fallback" as const };
-        }
-
-        const parser = DETAIL_PARSERS[broker];
-        const detail = parser?.(page.html);
-        if (!detail || !detail.fullName) {
-          console.warn(`⚠️ ${broker} detail page parsed empty — falling back to summary data`);
-          return { broker, profile: summaryFallback(member.summary), timingMs: Date.now() - started, status: "fallback" as const };
-        }
-        return { broker, profile: detail, timingMs: Date.now() - started, status: "success" as const };
+        return await fetchOneDetail(member, timeoutMs, started);
       } catch (error) {
-        console.warn(`⚠️ ${broker} detail scrape failed/timed out (${timeoutMs}ms): ${(error as Error).message}`);
-        return { broker, profile: summaryFallback(member.summary), timingMs: Date.now() - started, status: "failed" as const };
+        const blocked = error instanceof ContextDevError && error.errorCode === "WEBSITE_BLOCKED";
+        if (blocked) {
+          console.warn(`⚠️ ${member.summary.broker} detail blocked, retrying once`);
+          try {
+            return await fetchOneDetail(member, timeoutMs, started);
+          } catch (retryError) {
+            console.warn(`⚠️ ${member.summary.broker} detail retry failed: ${(retryError as Error).message}`);
+            return {
+              broker: member.summary.broker,
+              profile: summaryFallback(member.summary),
+              timingMs: Date.now() - started,
+              status: "failed" as const,
+              error: (retryError as Error).message,
+            };
+          }
+        }
+        console.warn(`⚠️ ${member.summary.broker} detail scrape failed/timed out (${timeoutMs}ms): ${(error as Error).message}`);
+        return {
+          broker: member.summary.broker,
+          profile: summaryFallback(member.summary),
+          timingMs: Date.now() - started,
+          status: "failed" as const,
+          error: (error as Error).message,
+        };
       }
     }),
   );
@@ -806,7 +835,11 @@ export async function scrapeBrokerDetails(
   for (const result of settled) {
     if (result.status === "fulfilled") {
       out[result.value.broker] = result.value.profile;
-      timings[result.value.broker] = { timingMs: result.value.timingMs, status: result.value.status };
+      timings[result.value.broker] = {
+        timingMs: result.value.timingMs,
+        status: result.value.status,
+        error: result.value.error,
+      };
     }
   }
   return { profiles: out, timings };

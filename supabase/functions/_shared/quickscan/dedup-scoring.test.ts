@@ -230,6 +230,25 @@ Deno.test("FPS summary without phone misses AnyWho; full profile with phone matc
   }
 });
 
+Deno.test("phoneless pick still matches AnyWho at GROUP_THRESHOLD so a failed FPS detail does not skip other brokers", () => {
+  const fpsSummary = summary({
+    broker: BrokerName.FPS,
+    full_name: "James Oehring",
+    address: "413 Lovers Ln, Cameron MO 64429",
+    age: 61,
+    relatives: "Rickilinda Oehring, Robert Mctarsney",
+  });
+  const fromSummary = engine.matchReference(
+    fpsSummary,
+    { [BrokerName.ANYWHO]: [ANYWHO] },
+    [],
+    DedupEngine.GROUP_THRESHOLD,
+  );
+  if (fromSummary.length !== 1) {
+    throw new Error("phoneless FPS pick should still attach AnyWho at the 50 threshold");
+  }
+});
+
 Deno.test("matchReference prefers closer age when two candidates both merge", () => {
   const sr = { ...FPS, result_id: "sr" };
   const jr = summary({
