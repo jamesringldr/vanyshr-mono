@@ -24,6 +24,7 @@ import {
   IDENTIFY_ORDER,
   firstNonEmptyIdentifyList,
   isIdentifyBroker,
+  shouldWalkNextIdentifyBroker,
   type IdentifyBroker,
 } from "../_shared/quickscan/identify-order.ts";
 import {
@@ -122,6 +123,20 @@ serve(async (req) => {
     // more context.dev calls. Return whatever list is already stored.
     if (quickscan.status === IDENTIFY_READY_STATUS || quickscan.status === "zaba_ready" || quickscan.status === "summary_scan_complete") {
       const listed = await firstIdentifyList(supabase, quickscanId, quickscan.status);
+      if (listed.unavailable) {
+        return new Response(
+          JSON.stringify({
+            success: true,
+            quickscan_id: quickscanId,
+            broker: listed.broker,
+            candidates: [],
+            zaba_candidates: [],
+            unavailable: true,
+            status: listed.status,
+          }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
       if (listed.notReady) {
         return new Response(
           JSON.stringify({ success: true, notReady: true }),
@@ -206,6 +221,50 @@ serve(async (req) => {
           broker: BrokerName.FPS,
           candidates: fpsCandidates,
           zaba_candidates: fpsCandidates,
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    if (!shouldWalkNextIdentifyBroker(fpsResult.status)) {
+      console.log(
+        `✗ summary-scan ${quickscanId}: FPS ${fpsResult.status}, not walking to AnyWho`,
+      );
+      await supabase
+        .schema("quickscan")
+        .from("quickscans")
+        .update({ status: IDENTIFY_READY_STATUS })
+        .eq("id", quickscanId);
+      const backgroundWork = finishScan(
+        supabase,
+        quickscanId,
+        functionStarted,
+        brokerPromises,
+        stored,
+        summaryCounts,
+        BrokerName.FPS,
+      );
+      // deno-lint-ignore no-explicit-any
+      const edgeRuntime = (globalThis as any).EdgeRuntime;
+      if (edgeRuntime?.waitUntil) {
+        edgeRuntime.waitUntil(backgroundWork);
+      } else {
+        await backgroundWork;
+      }
+      await logTiming(supabase, quickscanId, "summary_scan_response", Date.now() - functionStarted, {
+        resultCount: 0,
+        status: fpsResult.status,
+        error: fpsResult.error,
+      });
+      return new Response(
+        JSON.stringify({
+          success: true,
+          quickscan_id: quickscanId,
+          broker: BrokerName.FPS,
+          candidates: [],
+          zaba_candidates: [],
+          unavailable: true,
+          status: fpsResult.status,
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
@@ -403,12 +462,49 @@ async function firstIdentifyList(
   supabase: any,
   quickscanId: string,
   status: string,
-): Promise<{ broker: IdentifyBroker; candidates: Record<string, unknown>[]; notReady?: boolean }> {
+): Promise<{
+  broker: IdentifyBroker;
+  candidates: Record<string, unknown>[];
+  notReady?: boolean;
+  unavailable?: boolean;
+  status?: string;
+}> {
   const lists: Partial<Record<IdentifyBroker, Record<string, unknown>[]>> = {};
   for (const broker of IDENTIFY_ORDER) {
     lists[broker] = await listCandidates(supabase, quickscanId, broker);
   }
+  const fpsStatus = await brokerAttemptStatus(supabase, quickscanId, FIRST_IDENTIFY_BROKER);
+  if (fpsStatus && !shouldWalkNextIdentifyBroker(fpsStatus) && !(lists.fps ?? []).length) {
+    return {
+      broker: FIRST_IDENTIFY_BROKER,
+      candidates: [],
+      unavailable: true,
+      status: fpsStatus,
+    };
+  }
   return firstNonEmptyIdentifyList(lists, status === "summary_scan_complete");
+}
+
+async function brokerAttemptStatus(
+  // deno-lint-ignore no-explicit-any
+  supabase: any,
+  quickscanId: string,
+  broker: IdentifyBroker,
+): Promise<string | null> {
+  const table = broker === "zaba" ? "full_profile_results" : "summary_results";
+  const { data, error } = await supabase
+    .schema("quickscan")
+    .from(table)
+    .select("status")
+    .eq("quickscans_id", quickscanId)
+    .eq("target", broker);
+  if (error) {
+    console.error(`✗ brokerAttemptStatus ${broker} failed (scan=${quickscanId}): ${error.message}`);
+    return null;
+  }
+  const rows = data ?? [];
+  if (rows.some((r: { status?: string }) => r.status === "success")) return "success";
+  return rows[0]?.status ?? null;
 }
 
 async function writeSummary(
