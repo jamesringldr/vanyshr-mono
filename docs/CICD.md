@@ -93,9 +93,29 @@ Preview deployments are created automatically on every push. Check the Vercel da
 
 ## Supabase Functions Deployment
 
-`.github/workflows/deploy-functions.yml` deploys `packages/backend/functions` on push to
-`main`, scoped to changes under `supabase/functions/**`, `packages/backend/**`, or
-`workers/**` — a UI-only push can't trigger it and vice versa.
+`.github/workflows/deploy-functions.yml` deploys `supabase/functions` on push to `main`,
+scoped to changes under `supabase/functions/**` or `supabase/config.toml` — a UI-only push
+can't trigger it and vice versa. It runs the Deno suite first and stops if that fails, so a
+red test never reaches production. `workflow_dispatch` allows a manual re-run.
+
+Requires the `SUPABASE_ACCESS_TOKEN` repository secret:
+
+```bash
+gh secret set SUPABASE_ACCESS_TOKEN --repo jamesringldr/vanyshr-mono
+```
+
+Two things to know before changing it:
+
+- **`verify_jwt` comes from `supabase/config.toml`, and the default is `true`.** Every
+  pre-auth function must have a `[functions.<name>]` block declaring `verify_jwt = false`.
+  A pre-auth function that isn't declared there will 401 for logged-out users — which is
+  every quickscan — from the next deploy onward.
+- **The workflow deliberately does not pass `--prune`.** Some functions exist in the
+  Supabase project but not in this repo (`admin-users`, `recon-probe`, `recon-report`,
+  `removal-enqueue`, from `vanyshr-admin` or deployed by hand). `--prune` would delete them.
+
+Cloudflare Workers under `workers/` are a separate target and are not deployed by this
+workflow.
 
 ## Environment Variables
 
