@@ -857,6 +857,33 @@ async function scrapeOneAttempt(
   }
 }
 
+/** Below this, a second attempt cannot finish -- take the first result. */
+const MIN_RETRY_BUDGET_MS = 5000;
+
+/**
+ * Budget for a second attempt, or null to accept what the first one returned.
+ *
+ * Retry both `blocked` and `failed`. Bot-check pages are flaky on a single
+ * session, and a 5xx or a dropped connection is transient in exactly the same
+ * way -- both mean we never saw the page, so neither is evidence the person
+ * isn't on this broker. `failed` went un-retried only because it wasn't
+ * spelled "blocked" (treating a first block as "not in this broker" is how
+ * Jillian Pfaff's FPS listing was skipped for AnyWho strangers).
+ *
+ * The retry gets whatever is left of the original budget rather than a fresh
+ * timeoutMs, so adding `failed` here cannot double a broker's wall clock. A
+ * first attempt that timed out has nothing left and is returned as-is.
+ */
+export function retryBudgetMs(
+  status: string,
+  spentMs: number,
+  timeoutMs: number,
+): number | null {
+  if (status !== "blocked" && status !== "failed") return null;
+  const remaining = timeoutMs - spentMs;
+  return remaining >= MIN_RETRY_BUDGET_MS ? remaining : null;
+}
+
 async function scrapeOne(
   spec: (typeof BROKERS)[number],
   input: QuickScanInput,
@@ -864,12 +891,10 @@ async function scrapeOne(
 ): Promise<ScrapeResult> {
   const started = Date.now();
   const first = await scrapeOneAttempt(spec, input, timeoutMs, started);
-  if (first.status !== "blocked") return first;
-  // Bot-check pages are flaky on a single residential session. One immediate
-  // retry has a real shot; treating the first block as "not in this broker"
-  // is how Jillian Pfaff's FPS listing was skipped for AnyWho strangers.
-  console.warn(`⚠️ ${spec.broker} blocked, retrying once`);
-  return await scrapeOneAttempt(spec, input, timeoutMs, started);
+  const budget = retryBudgetMs(first.status, Date.now() - started, timeoutMs);
+  if (budget === null) return first;
+  console.warn(`⚠️ ${spec.broker} ${first.status}, retrying once (${budget}ms left)`);
+  return await scrapeOneAttempt(spec, input, budget, started);
 }
 
 export async function scrapeAllBrokers(
