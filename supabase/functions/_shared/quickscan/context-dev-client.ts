@@ -6,6 +6,18 @@
  * maxAgeMs defaults to 1 day ON THEIR SIDE when omitted. A cached bot-check
  * page for the same URL then comes back as HTTP 200 with no Person cards
  * (~0.5s). Live scans must send maxAgeMs=0 so every request is fresh.
+ *
+ * Deliberately NO country param. country=us routes the fetch through
+ * context.dev's US residential pool, whose exits FPS has partly blacklisted.
+ * Measured over paired live FPS scrapes, everything else held equal:
+ *
+ *              country=us              omitted
+ *   failures   2 bot-check + 1 hang    0
+ *   requests   71                      60
+ *   latency    median 3.3s / p90 30s   median 2.2s / p90 2.8s
+ *
+ * It also returned 200s with zero parseable result cards, which read
+ * downstream as no_results. The default (unpinned) path is not blocked.
  */
 
 const CONTEXT_API = "https://api.context.dev/v1/web/scrape/html";
@@ -74,7 +86,6 @@ export async function scrapeHtml(
   const maxAgeMs = opts.maxAgeMs ?? 0;
   const params = new URLSearchParams({
     url,
-    country: "us",
     timeoutMS: String(timeoutMs),
     maxAgeMs: String(maxAgeMs),
   });
