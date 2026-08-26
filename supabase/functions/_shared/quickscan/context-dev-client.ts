@@ -69,7 +69,7 @@ export async function scrapeHtml(
     throw new ContextDevError("CONTEXT_DEV_API_KEY is not set", 401, "UNAUTHORIZED");
   }
 
-  const timeoutMs = opts.timeoutMs ?? 25000;
+  const timeoutMs = opts.timeoutMs ?? 60000;
   // 0 = always scrape fresh. Omitting this uses their 86400000ms default.
   const maxAgeMs = opts.maxAgeMs ?? 0;
   const params = new URLSearchParams({

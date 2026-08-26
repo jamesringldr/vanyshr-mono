@@ -210,6 +210,26 @@ Deno.test("matchReference drops a candidate that matches a rejected card better"
   }
 });
 
+Deno.test("FPS summary without phone misses AnyWho; full profile with phone matches", () => {
+  const fpsSummary = summary({
+    broker: BrokerName.FPS,
+    full_name: "James Oehring",
+    address: "413 Lovers Ln, Cameron MO 64429",
+    age: 61,
+    relatives: "Rickilinda Oehring, Robert Mctarsney",
+  });
+  const fromSummary = engine.matchReference(fpsSummary, { [BrokerName.ANYWHO]: [ANYWHO] });
+  if (fromSummary.length !== 0) {
+    throw new Error(`summary pick should miss AnyWho, scored a hit at ${fromSummary[0].match_score}`);
+  }
+
+  const fpsFull = { ...fpsSummary, phone: "(816) 632-2218" };
+  const fromFull = engine.matchReference(fpsFull, { [BrokerName.ANYWHO]: [ANYWHO] });
+  if (fromFull.length !== 1) {
+    throw new Error("full-profile pick with shared phone should match AnyWho");
+  }
+});
+
 Deno.test("matchReference prefers closer age when two candidates both merge", () => {
   const sr = { ...FPS, result_id: "sr" };
   const jr = summary({

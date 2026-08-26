@@ -809,21 +809,18 @@ const BROKERS: { broker: BrokerName; url: UrlBuilder; parse: Parser }[] = [
   { broker: BrokerName.ZABA, url: buildZabaUrl, parse: parseZabaSummaries },
 ];
 
-// NPD is consistently the slowest/least reliable target (see quickscan.
-// scan_timings — 18-25s per fetch, sometimes timing out outright). Capped
-// lower than the shared default so a failing NPD fetch doesn't hold up the
-// rest of the pipeline any longer than it has to; Math.min so an explicitly
-// smaller caller timeout still wins.
-const BROKER_TIMEOUTS: Partial<Record<BrokerName, number>> = {
-  [BrokerName.NPD]: 10000,
-};
+// Fresh context.dev scrapes (maxAgeMs=0) take 15–25s+. The old 10s NPD cap
+// and 25s default were tuned for cache hits (~0.6s) and abort uncached
+// Zaba/NPD as "failed" before HTML arrives. FPS-first still overlaps the
+// other three in the background, so they need the same window.
+const DEFAULT_SCRAPE_TIMEOUT_MS = 60000;
 
 async function scrapeOne(
   spec: (typeof BROKERS)[number],
   input: QuickScanInput,
   timeoutMs: number,
 ): Promise<ScrapeResult> {
-  const effectiveTimeoutMs = Math.min(timeoutMs, BROKER_TIMEOUTS[spec.broker] ?? timeoutMs);
+  const effectiveTimeoutMs = timeoutMs;
   const started = Date.now();
   try {
     const searchUrl = spec.url(input);
@@ -863,7 +860,7 @@ async function scrapeOne(
 
 export async function scrapeAllBrokers(
   input: QuickScanInput,
-  timeoutMs = 25000,
+  timeoutMs = DEFAULT_SCRAPE_TIMEOUT_MS,
   brokers?: BrokerName[],
 ): Promise<Record<string, ScrapeResult>> {
   const specs = brokers ? BROKERS.filter((b) => brokers.includes(b.broker)) : BROKERS;
@@ -876,14 +873,14 @@ export async function scrapeAllBrokers(
 /**
  * Same fetches as scrapeAllBrokers, kicked off together -- but returns each
  * broker's own Promise instead of one combined Promise.all. Lets a caller
- * await just the broker it needs right now (Zaba, for the fast path to the
+ * await just the broker it needs right now (FPS, for the fast path to the
  * selection modal) while the rest keep running independently in the
  * background. scrapeAllBrokers is left as-is for phase1-orchestrator.ts,
  * which genuinely wants to wait for everything.
  */
 export function scrapeBrokersConcurrently(
   input: QuickScanInput,
-  timeoutMs = 25000,
+  timeoutMs = DEFAULT_SCRAPE_TIMEOUT_MS,
   brokers?: BrokerName[],
 ): Record<string, Promise<ScrapeResult>> {
   const specs = brokers ? BROKERS.filter((b) => brokers.includes(b.broker)) : BROKERS;
