@@ -5,6 +5,7 @@
  */
 
 import { ConsolidatedProfile, ContactInfo, PersonRelation, PropertyRecord, BreachRecord } from "./quickscan-phase1-phase2-models.ts";
+import { deduplicateEmails } from "./email-extractor.ts";
 
 /**
  * Address similarity threshold (0-1)
@@ -99,22 +100,7 @@ function deduplicatePhones(phones: string[]): string[] {
   return Array.from(normalizedPhones).sort();
 }
 
-/**
- * Deduplicate emails
- * @param emails Array of emails
- * @returns Deduplicated emails
- */
-function deduplicateEmails(emails: string[]): string[] {
-  const uniqueEmails = new Set<string>();
 
-  for (const email of emails) {
-    if (email && typeof email === "string") {
-      uniqueEmails.add(email.toLowerCase().trim());
-    }
-  }
-
-  return Array.from(uniqueEmails).sort();
-}
 
 /**
  * Deduplicate relatives/associates
