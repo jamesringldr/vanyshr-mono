@@ -496,6 +496,52 @@ export async function populateFromBrokerDetail(
 }
 
 // ---------------------------------------------------------------------------
+// Per-broker exposed-field summary — for the Brokers page (report.tsx), which
+// shows each individual broker's own listing rather than the merged
+// consolidated_profile. Read-only over the same shapes populateFrom*() above
+// writes from; kept in sync with those field lists by hand since there's no
+// single source of truth to derive both from.
+// ---------------------------------------------------------------------------
+
+/** Human-readable field types present on one broker's raw detail scrape. */
+export function exposedFieldsFromDetail(profile: BrokerDetailProfile): string[] {
+  const fields: string[] = [];
+  if (profile.aliases?.length) fields.push("Aliases");
+  if (profile.phoneNumbers?.length) fields.push("Phone Numbers");
+  if (profile.emails?.length) fields.push("Emails");
+  if (profile.primaryAddress?.formatted) fields.push("Current Address");
+  if (profile.previousAddresses?.length) fields.push("Previous Addresses");
+  if (profile.relatives?.length) fields.push("Relatives");
+  if (profile.associates?.length) fields.push("Associates");
+  if (profile.employment?.length || profile.jobHistory?.length) fields.push("Employment");
+  if (profile.education?.length) fields.push("Education");
+  if (profile.properties?.length) fields.push("Property Records");
+  if (profile.legalRecords?.countyRecords || profile.legalRecords?.nationwideCount) fields.push("Legal Records");
+  if (profile.bornDate) fields.push("Date of Birth");
+  return fields;
+}
+
+/**
+ * Same, for Zaba's own SummaryResult — Zaba's search result IS its full
+ * profile (see full-profile-scan's header comment), so it never goes through
+ * populateFromBrokerDetail()/exposedFieldsFromDetail() above.
+ */
+export function exposedFieldsFromSummary(summary: SummaryResult): string[] {
+  const fields: string[] = [];
+  if (summary.aliases) fields.push("Aliases");
+  if (summary.phone) fields.push("Phone Numbers");
+  if (summary.email) fields.push("Emails");
+  if (summary.address) fields.push("Current Address");
+  if (summary.previous_addresses) fields.push("Previous Addresses");
+  if (summary.relatives) fields.push("Relatives");
+  if (summary.associates) fields.push("Associates");
+  if (summary.job_history) fields.push("Employment");
+  if (summary.education) fields.push("Education");
+  if (summary.birth_date) fields.push("Date of Birth");
+  return fields;
+}
+
+// ---------------------------------------------------------------------------
 // Rollup
 // ---------------------------------------------------------------------------
 
