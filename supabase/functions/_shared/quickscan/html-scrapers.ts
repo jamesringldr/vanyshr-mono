@@ -846,6 +846,15 @@ async function scrapeOne(
     if (code === "NOT_FOUND") {
       return { broker: spec.broker, summaries: [], status: "no_results", timing_ms };
     }
+    if (code === "WEBSITE_BLOCKED") {
+      return {
+        broker: spec.broker,
+        summaries: [],
+        status: "blocked",
+        error: err instanceof Error ? err.message : String(err),
+        timing_ms,
+      };
+    }
     const message = err instanceof Error ? err.message : String(err);
     console.error(`✗ ${spec.broker} failed: ${message}`);
     return { broker: spec.broker, summaries: [], status: "failed", error: message, timing_ms };
