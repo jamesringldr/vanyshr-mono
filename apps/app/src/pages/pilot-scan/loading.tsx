@@ -81,7 +81,8 @@ const STEPS: LoadingStep[] = [
  * timer.
  *
  *   searching     → summary-scan in flight (building/running the search)
- *   pick          → identify list ready (Zaba, then FPS, then AnyWho).
+ *   pick          → identify list ready (FPS, then AnyWho, then Zaba, then NPD).
+ *                   Empty/blocked/failed on a broker is the same as reject.
  *                   Other brokers' summaries land in the background.
  *   full_profile  → full-profile-scan polling — resolve the pick against
  *                   the other brokers, then scrape matched detail pages
@@ -149,8 +150,9 @@ function StepIndicator({ status }: { status: StepStatus }) {
   );
 }
 
-type IdentifyBroker = "zaba" | "fps" | "anywho";
-const IDENTIFY_ORDER: IdentifyBroker[] = ["zaba", "fps", "anywho"];
+type IdentifyBroker = "fps" | "anywho" | "zaba" | "npd";
+// Keep in sync with supabase/functions/_shared/quickscan/identify-order.ts
+const IDENTIFY_ORDER: IdentifyBroker[] = ["fps", "anywho", "zaba", "npd"];
 
 type IdentifyCandidate = ScanMember & { result_id: string };
 
@@ -161,8 +163,14 @@ function nextIdentifyBroker(current: IdentifyBroker): IdentifyBroker | null {
 
 function identifyBrokerFrom(data: { broker?: unknown } | null): IdentifyBroker {
   const raw = String(data?.broker || "").toLowerCase();
-  if (raw === "fps" || raw === "anywho") return raw;
-  return "zaba";
+  if (raw === "anywho" || raw === "zaba" || raw === "npd") return raw;
+  return "fps";
+}
+
+function pickHeadline(broker: IdentifyBroker, isFirstShown: boolean): string {
+  if (isFirstShown) return "Pick the person that is you";
+  if (nextIdentifyBroker(broker) === null) return "Last list — any of these?";
+  return "Not on that list — any of these?";
 }
 
 function candidatesFrom(data: { candidates?: unknown; zaba_candidates?: unknown } | null): IdentifyCandidate[] {
@@ -232,7 +240,7 @@ function invokeOnce(key: string, fn: string, body: object) {
 /**
  * Linear scan sequence. One phase at a time. Nothing else can navigate.
  *
- *   searching (summary-scan) → pick (Zaba → FPS → AnyWho) → full_profile
+ *   searching (summary-scan) → pick (FPS → AnyWho → Zaba → NPD) → full_profile
  *   → emails (manage-emails) → report
  */
 export function PilotLoadingPage() {
@@ -263,8 +271,8 @@ export function PilotLoadingPage() {
 
   const candidatesRef = useRef<IdentifyCandidate[]>([]);
   const rejectedRef = useRef<IdentifyCandidate[]>([]);
-  const identifyBrokerRef = useRef<IdentifyBroker>("zaba");
-  const [identifyBroker, setIdentifyBroker] = useState<IdentifyBroker>("zaba");
+  const identifyBrokerRef = useRef<IdentifyBroker>("fps");
+  const [identifyBroker, setIdentifyBroker] = useState<IdentifyBroker>("fps");
   const quickScanIdRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -300,9 +308,18 @@ export function PilotLoadingPage() {
         setIdentifyBroker(broker);
         candidatesRef.current = list;
         sessionStorage.removeItem("pilotScanError");
-        setProfiles(list.map((m, i) => candidateToProfile(m, i)));
-        go(list.length > 0 ? "pick" : "error");
-        if (list.length === 0) setErrorMessage("No public records found for that name and city.");
+        if (list.length > 0) {
+          setProfiles(list.map((m, i) => candidateToProfile(m, i)));
+          go("pick");
+          return;
+        }
+        const next = nextIdentifyBroker(broker);
+        if (next) {
+          void showIdentifyBroker(next);
+          return;
+        }
+        setErrorMessage("No public records found for that name and city.");
+        go("error");
       })
       .catch((err) => {
         if (cancelled) return;
@@ -323,13 +340,13 @@ export function PilotLoadingPage() {
     return () => window.clearTimeout(t);
   }, [phase, navigate, prefersReducedMotion]);
 
-  // summary-scan responds as soon as Zaba resolves and keeps matching
-  // FPS/NPD/AnyWho in the background; full-profile-scan reports { notReady }
-  // instead of guessing with an incomplete match if the pick happens first.
-  // ~20-30s covers that background pass in practice (see quickscan.
-  // scan_timings) — 45 gives headroom without hanging indefinitely on a
-  // background failure that somehow never lands on a terminal status.
-  const FULL_PROFILE_MAX_ATTEMPTS = 45;
+  // summary-scan responds as soon as FPS resolves and keeps AnyWho/Zaba/NPD
+  // in the background; full-profile-scan reports { notReady } instead of
+  // guessing with an incomplete match if the pick happens first.
+  // Background brokers share a 60s scrape timeout. 75s of 1s polls covers
+  // that plus headroom without hanging indefinitely on a background
+  // failure that somehow never lands on a terminal status.
+  const FULL_PROFILE_MAX_ATTEMPTS = 75;
   const FULL_PROFILE_RETRY_DELAY_MS = 1000;
 
   async function handlePick(profile: QSProfileSummary) {
@@ -390,7 +407,7 @@ export function PilotLoadingPage() {
     if (phaseRef.current === "full_profile") go("emails");
   }
 
-  const LIST_MAX_ATTEMPTS = 45;
+  const LIST_MAX_ATTEMPTS = 75;
   const LIST_RETRY_DELAY_MS = 1000;
 
   async function loadIdentifyList(broker: IdentifyBroker): Promise<IdentifyCandidate[] | null> {
@@ -433,6 +450,14 @@ export function PilotLoadingPage() {
     const next = nextIdentifyBroker(broker);
     if (next) {
       await showIdentifyBroker(next);
+      return;
+    }
+
+    // Never showed a card — no broker had this person. Reject-all is only
+    // for the user turning down lists they actually saw.
+    if (rejectedRef.current.length === 0) {
+      setErrorMessage("No public records found for that name and city.");
+      go("error");
       return;
     }
 
@@ -561,11 +586,7 @@ export function PilotLoadingPage() {
                 {phase === "error"
                   ? errorMessage || "We couldn't finish this search"
                   : phase === "pick"
-                    ? identifyBroker === "zaba"
-                      ? "Pick the person that is you"
-                      : identifyBroker === "fps"
-                        ? "Not on that list — any of these?"
-                        : "One more list — is it one of these?"
+                    ? pickHeadline(identifyBroker, rejectedRef.current.length === 0)
                     : phase === "full_profile"
                       ? "Pulling your full profiles from each site"
                       : phase === "emails"
