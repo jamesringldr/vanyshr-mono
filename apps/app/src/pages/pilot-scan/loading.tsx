@@ -81,10 +81,10 @@ const STEPS: LoadingStep[] = [
  * timer.
  *
  *   searching     → summary-scan in flight (building/running the search)
- *   pick          → Zaba candidates ready; user choosing a profile while
- *                   FPS/NPD/AnyWho match in the background
- *   full_profile  → full-profile-scan polling — the actual broker detail
- *                   scrape (this is "Searching Data Brokers")
+ *   pick          → identify list ready (Zaba, then FPS, then AnyWho).
+ *                   Other brokers' summaries land in the background.
+ *   full_profile  → full-profile-scan polling — resolve the pick against
+ *                   the other brokers, then scrape matched detail pages
  *   emails        → email-selector modal up. `isConfirming` distinguishes
  *                   "still the user's turn" from "Confirm tapped — the
  *                   manage-emails 'confirm' call (which triggers holehe +
@@ -149,11 +149,29 @@ function StepIndicator({ status }: { status: StepStatus }) {
   );
 }
 
-type ZabaCandidate = ScanMember & { result_id: string };
+type IdentifyBroker = "zaba" | "fps" | "anywho";
+const IDENTIFY_ORDER: IdentifyBroker[] = ["zaba", "fps", "anywho"];
 
-function zabaCandidatesFrom(data: { zaba_candidates?: unknown } | null): ZabaCandidate[] {
-  const list = Array.isArray(data?.zaba_candidates) ? data!.zaba_candidates : [];
-  return list.filter((c): c is ZabaCandidate => Boolean(c && typeof c === "object" && (c as ZabaCandidate).result_id));
+type IdentifyCandidate = ScanMember & { result_id: string };
+
+function nextIdentifyBroker(current: IdentifyBroker): IdentifyBroker | null {
+  const i = IDENTIFY_ORDER.indexOf(current);
+  return i >= 0 ? IDENTIFY_ORDER[i + 1] ?? null : null;
+}
+
+function identifyBrokerFrom(data: { broker?: unknown } | null): IdentifyBroker {
+  const raw = String(data?.broker || "").toLowerCase();
+  if (raw === "fps" || raw === "anywho") return raw;
+  return "zaba";
+}
+
+function candidatesFrom(data: { candidates?: unknown; zaba_candidates?: unknown } | null): IdentifyCandidate[] {
+  const raw = Array.isArray(data?.candidates) && data!.candidates!.length
+    ? data!.candidates
+    : Array.isArray(data?.zaba_candidates)
+      ? data!.zaba_candidates
+      : [];
+  return raw.filter((c): c is IdentifyCandidate => Boolean(c && typeof c === "object" && (c as IdentifyCandidate).result_id));
 }
 
 function splitList(raw?: string): string[] {
@@ -173,8 +191,8 @@ function unique(values: string[]): string[] {
   return out;
 }
 
-/** Zaba full_profile_results id -> the QSProfileSummary shape the picker modal renders. */
-function zabaToProfile(member: ScanMember, index: number): QSProfileSummary {
+/** Stored candidate row id -> the QSProfileSummary shape the picker modal renders. */
+function candidateToProfile(member: ScanMember, index: number): QSProfileSummary {
   const ageRaw = member.age;
   const age = typeof ageRaw === "number" ? ageRaw : ageRaw ? parseInt(String(ageRaw), 10) || undefined : undefined;
   return {
@@ -214,7 +232,7 @@ function invokeOnce(key: string, fn: string, body: object) {
 /**
  * Linear scan sequence. One phase at a time. Nothing else can navigate.
  *
- *   searching (summary-scan) → pick (Zaba) → full_profile (full-profile-scan)
+ *   searching (summary-scan) → pick (Zaba → FPS → AnyWho) → full_profile
  *   → emails (manage-emails) → report
  */
 export function PilotLoadingPage() {
@@ -243,7 +261,10 @@ export function PilotLoadingPage() {
   // as progress instead of a frozen button.
   const [isConfirming, setIsConfirming] = useState(false);
 
-  const zabaRef = useRef<ZabaCandidate[]>([]);
+  const candidatesRef = useRef<IdentifyCandidate[]>([]);
+  const rejectedRef = useRef<IdentifyCandidate[]>([]);
+  const identifyBrokerRef = useRef<IdentifyBroker>("zaba");
+  const [identifyBroker, setIdentifyBroker] = useState<IdentifyBroker>("zaba");
   const quickScanIdRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -273,12 +294,15 @@ export function PilotLoadingPage() {
           go("error");
           return;
         }
-        const zaba = zabaCandidatesFrom(data);
-        zabaRef.current = zaba;
+        const list = candidatesFrom(data);
+        const broker = identifyBrokerFrom(data);
+        identifyBrokerRef.current = broker;
+        setIdentifyBroker(broker);
+        candidatesRef.current = list;
         sessionStorage.removeItem("pilotScanError");
-        setProfiles(zaba.map((m, i) => zabaToProfile(m, i)));
-        go(zaba.length > 0 ? "pick" : "error");
-        if (zaba.length === 0) setErrorMessage("No ZabaSearch results for that name and city.");
+        setProfiles(list.map((m, i) => candidateToProfile(m, i)));
+        go(list.length > 0 ? "pick" : "error");
+        if (list.length === 0) setErrorMessage("No public records found for that name and city.");
       })
       .catch((err) => {
         if (cancelled) return;
@@ -326,7 +350,7 @@ export function PilotLoadingPage() {
         // screen covers this wait, so bail rather than keep invoking.
         if (phaseRef.current !== "full_profile") return;
         ({ data, error } = await supabase.functions.invoke("full-profile-scan", {
-          body: { quickscanId, fullProfileResultId: profile.id },
+          body: { quickscanId, fullProfileResultId: profile.id, rejected: rejectedRef.current },
         }));
         if (error || !data?.notReady) break;
         await new Promise((resolve) => setTimeout(resolve, FULL_PROFILE_RETRY_DELAY_MS));
@@ -366,11 +390,72 @@ export function PilotLoadingPage() {
     if (phaseRef.current === "full_profile") go("emails");
   }
 
+  const LIST_MAX_ATTEMPTS = 45;
+  const LIST_RETRY_DELAY_MS = 1000;
+
+  async function loadIdentifyList(broker: IdentifyBroker): Promise<IdentifyCandidate[] | null> {
+    const quickscanId = quickScanIdRef.current;
+    if (!quickscanId) return [];
+
+    for (let attempt = 0; attempt < LIST_MAX_ATTEMPTS; attempt++) {
+      const { data, error } = await supabase.functions.invoke("summary-scan", {
+        body: { quickscanId, listBroker: broker },
+      });
+      if (error || data?.error) {
+        console.warn("summary-scan listBroker failed:", error?.message || data?.error);
+        return [];
+      }
+      if (data?.notReady) {
+        await new Promise((resolve) => setTimeout(resolve, LIST_RETRY_DELAY_MS));
+        continue;
+      }
+      return candidatesFrom(data);
+    }
+    console.warn("summary-scan listBroker: background fetch never completed");
+    return [];
+  }
+
+  async function showIdentifyBroker(broker: IdentifyBroker) {
+    identifyBrokerRef.current = broker;
+    setIdentifyBroker(broker);
+    setProfiles([]);
+
+    const list = await loadIdentifyList(broker);
+    if (phaseRef.current !== "pick" && phaseRef.current !== "searching") return;
+
+    if (list && list.length > 0) {
+      candidatesRef.current = list;
+      setProfiles(list.map((m, i) => candidateToProfile(m, i)));
+      go("pick");
+      return;
+    }
+
+    const next = nextIdentifyBroker(broker);
+    if (next) {
+      await showIdentifyBroker(next);
+      return;
+    }
+
+    const quickscanId = quickScanIdRef.current;
+    if (quickscanId) {
+      await supabase.functions.invoke("summary-scan", { body: { quickscanId, rejectAll: true } });
+    }
+    go("report");
+  }
+
   function dismissPick() {
     if (phaseRef.current !== "pick") return;
-    // TODO: cross-broker fallback groups + match_outcome="rejected" — deferred,
-    // no fallback UI or backend write for this path yet.
-    go("report");
+    rejectedRef.current = [...rejectedRef.current, ...candidatesRef.current];
+    const next = nextIdentifyBroker(identifyBrokerRef.current);
+    if (!next) {
+      const quickscanId = quickScanIdRef.current;
+      if (quickscanId) {
+        void supabase.functions.invoke("summary-scan", { body: { quickscanId, rejectAll: true } });
+      }
+      go("report");
+      return;
+    }
+    void showIdentifyBroker(next);
   }
 
   async function handleEmailsConfirmed(emails: string[]) {
@@ -455,7 +540,7 @@ export function PilotLoadingPage() {
         <div className="mb-10 min-h-[88px] w-full text-center" aria-live="polite">
           <AnimatePresence mode="wait">
             <motion.div
-              key={phase + activeStep.id}
+              key={phase + activeStep.id + identifyBroker}
               initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={prefersReducedMotion ? undefined : { opacity: 0, y: -6 }}
@@ -476,7 +561,11 @@ export function PilotLoadingPage() {
                 {phase === "error"
                   ? errorMessage || "We couldn't finish this search"
                   : phase === "pick"
-                    ? "Pick your ZabaSearch record"
+                    ? identifyBroker === "zaba"
+                      ? "Pick the person that is you"
+                      : identifyBroker === "fps"
+                        ? "Not on that list — any of these?"
+                        : "One more list — is it one of these?"
                     : phase === "full_profile"
                       ? "Pulling your full profiles from each site"
                       : phase === "emails"
