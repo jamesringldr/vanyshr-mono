@@ -4,12 +4,18 @@
  * action "add"/"remove": toggle an email in/out of quickscan.emails and sync
  * consolidated_profile.emails immediately — cheap, no scraping.
  *
- * action "confirm": the trigger for Holehe + Leakcheck. Runs both against
- * whatever's currently confirmed, skipping any email that already has a
- * successful result (so re-confirming doesn't re-spend API calls), then
- * updates consolidated_profile's services_found/breaches/breach_count.
+ * action "confirm": the trigger for Holehe + Leakcheck. Skips any email that
+ * already has a successful result (so re-confirming doesn't re-spend API
+ * calls), then updates consolidated_profile's services_found/breaches/
+ * breach_count.
  *
- * Input: { quickscanId, action, email? }
+ * `emails` narrows what confirm scans without changing what the profile
+ * holds. A quickscan surfaces every address the brokers listed, but only the
+ * few the user picks get run through Holehe and Leakcheck — being scanned and
+ * being the user's are different questions, and `confirmed` only answers the
+ * second. Omit it and every confirmed address is scanned, as before.
+ *
+ * Input: { quickscanId, action, email?, emails? }
  */
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -48,7 +54,10 @@ serve(async (req) => {
 
     if (action === "add") return await handleAdd(supabase, corsHeaders, quickscanId, String(body.email || ""));
     if (action === "remove") return await handleRemove(supabase, corsHeaders, quickscanId, String(body.email || ""));
-    return await handleConfirm(supabase, corsHeaders, quickscanId);
+    const scanOnly = Array.isArray(body.emails)
+      ? body.emails.map((e: unknown) => normalizeEmail(String(e ?? ""))).filter(Boolean)
+      : null;
+    return await handleConfirm(supabase, corsHeaders, quickscanId, scanOnly);
   } catch (error) {
     console.error("manage-emails error:", error);
     return new Response(
@@ -133,6 +142,7 @@ async function handleConfirm(
   supabase: any,
   corsHeaders: Record<string, string>,
   quickscanId: string,
+  scanOnly: string[] | null = null,
 ) {
   const { data: profile } = await supabase
     .schema("quickscan")
@@ -141,7 +151,14 @@ async function handleConfirm(
     .eq("quickscans_id", quickscanId)
     .maybeSingle();
 
-  const confirmedEmails: string[] = profile?.emails ?? [];
+  const profileEmails: string[] = profile?.emails ?? [];
+  // Intersect rather than trust the caller's list outright: an address that
+  // is not on the profile was never confirmed for this scan, and confirm is
+  // what spends the Holehe/Leakcheck budget.
+  const confirmedEmails = scanOnly
+    ? profileEmails.filter((e) => scanOnly.includes(normalizeEmail(e)))
+    : profileEmails;
+
   if (!confirmedEmails.length) {
     return new Response(
       JSON.stringify({ success: true, message: "no confirmed emails to check" }),

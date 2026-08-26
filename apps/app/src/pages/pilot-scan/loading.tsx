@@ -488,7 +488,13 @@ export function PilotLoadingPage() {
     void showIdentifyBroker(next);
   }
 
-  async function handleEmailsConfirmed(emails: string[]) {
+  /**
+   * `selected` is the subset the user chose to run through the dark-web
+   * check, not the subset that is theirs. Every discovered address stays on
+   * the profile and on the report; nothing is removed for being unselected.
+   * Anything the user typed in is new to the scan and has to be added first.
+   */
+  async function handleEmailsConfirmed(selected: string[]) {
     setIsConfirming(true);
 
     const quickscanId = quickScanIdRef.current;
@@ -497,22 +503,17 @@ export function PilotLoadingPage() {
       return;
     }
 
-    const initial = new Set(emailCandidates);
-    const final = new Set(emails);
-    const toAdd = emails.filter((e) => !initial.has(e));
-    const toRemove = [...initial].filter((e) => !final.has(e));
+    const discovered = new Set(emailCandidates);
+    const toAdd = selected.filter((e) => !discovered.has(e));
 
     try {
-      await Promise.all([
-        ...toAdd.map((email) =>
+      await Promise.all(
+        toAdd.map((email) =>
           supabase.functions.invoke("manage-emails", { body: { quickscanId, action: "add", email } }),
         ),
-        ...toRemove.map((email) =>
-          supabase.functions.invoke("manage-emails", { body: { quickscanId, action: "remove", email } }),
-        ),
-      ]);
+      );
       const { data: confirmData } = await supabase.functions.invoke("manage-emails", {
-        body: { quickscanId, action: "confirm" },
+        body: { quickscanId, action: "confirm", emails: selected },
       });
       // Refresh the cached profile with the now-populated services_found/
       // breaches — the pick-time copy predates email confirmation, so it
