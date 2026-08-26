@@ -7,6 +7,7 @@ export type EmailConfirmationModalProps = {
   initialEmails: string[];
   onConfirm: (emails: string[]) => void;
   onCancel: () => void;
+  isOpen?: boolean;
 };
 
 type EmailItem = {
@@ -74,6 +75,7 @@ export function EmailConfirmationModal({
   initialEmails,
   onConfirm,
   onCancel,
+  isOpen = true,
 }: EmailConfirmationModalProps) {
   const prefersReducedMotion = useReducedMotion();
   const [emails, setEmails] = useState<EmailItem[]>(() => toItems(uniqueEmailValues(initialEmails)));
@@ -81,6 +83,8 @@ export function EmailConfirmationModal({
   const [editValue, setEditValue] = useState("");
   const [newEmailInput, setNewEmailInput] = useState("");
   const [error, setError] = useState<string | null>(null);
+
+  if (!isOpen) return null;
 
   const handleAddEmail = () => {
     const added = canonicalizeEmail(newEmailInput);
