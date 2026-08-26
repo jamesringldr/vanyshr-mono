@@ -207,7 +207,10 @@ export class DedupEngine {
 
   /**
    * Score the picked record against each other broker's summaries.
-   * At most one hit per broker, and only at/above MERGE_THRESHOLD.
+   * At most one hit per broker, and only at/above minScore (MERGE_THRESHOLD
+   * by default). Pass GROUP_THRESHOLD (50) when the pick has no phone —
+   * FPS summaries never carry one, so a failed detail scrape would otherwise
+   * match nobody and skip every other broker's full-profile fetch.
    *
    * A candidate that matches a rejected card better than the pick is dropped
    * — "none of these" is negative evidence, not a no-op.
@@ -219,6 +222,7 @@ export class DedupEngine {
     pick: SummaryResult,
     candidatesByBroker: Record<string, SummaryResult[]>,
     rejected: SummaryResult[] = [],
+    minScore: number = DedupEngine.MERGE_THRESHOLD,
   ): ResolvedMatch[] {
     const resolved: ResolvedMatch[] = [];
 
@@ -230,7 +234,7 @@ export class DedupEngine {
 
       for (const candidate of candidates) {
         const score = this.calculateMatchScore(pick, candidate);
-        if (score < DedupEngine.MERGE_THRESHOLD) continue;
+        if (score < minScore) continue;
 
         const rejectedBetter = rejected.some(
           (r) => this.calculateMatchScore(r, candidate) > score,
