@@ -133,6 +133,7 @@ serve(async (req) => {
             zaba_candidates: [],
             unavailable: true,
             status: listed.status,
+            error: "We couldn't reach a people-search site. Try the scan again.",
           }),
           { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
@@ -265,6 +266,7 @@ serve(async (req) => {
           zaba_candidates: [],
           unavailable: true,
           status: fpsResult.status,
+          error: "We couldn't reach a people-search site. Try the scan again.",
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
