@@ -55,6 +55,23 @@ type ContextDevBody = {
   };
 };
 
+/**
+ * Does this HTML carry real schema.org Person data?
+ *
+ * FPS emits `"@type": "Person"` -- with a space after the colon. The
+ * substring probe this replaced looked for `@type":"person`, which never
+ * matched real FPS HTML, so the "security challenge" branch below ran
+ * unguarded and flagged any page carrying that phrase. Tolerate arbitrary
+ * whitespace and the array form (`"@type": ["Person", ...]`).
+ *
+ * Caveat: useMainContentOnly=true strips <script type="application/ld+json">
+ * outright (FPS search: 5 blocks -> 0), so this returns false for every page
+ * fetched with that flag set, whatever the page actually contains.
+ */
+function hasPersonJsonLd(lowerHtml: string): boolean {
+  return /"@type"\s*:\s*\[?\s*"person"/.test(lowerHtml);
+}
+
 /** FPS (and similar) anti-bot shells that context.dev may still return as 200. */
 export function isChallengePage(html: string, finalUrl?: string): boolean {
   if (finalUrl && /bot-check|blacklist=1/i.test(finalUrl)) return true;
@@ -62,7 +79,7 @@ export function isChallengePage(html: string, finalUrl?: string): boolean {
   if (low.includes("are you human") && (low.includes("captcha") || low.includes("recaptcha"))) {
     return true;
   }
-  if (low.includes("security challenge") && !low.includes("@type\":\"person")) {
+  if (low.includes("security challenge") && !hasPersonJsonLd(low)) {
     return true;
   }
   return false;
