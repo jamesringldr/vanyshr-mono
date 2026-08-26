@@ -208,9 +208,10 @@ export class DedupEngine {
   /**
    * Score the picked record against each other broker's summaries.
    * At most one hit per broker, and only at/above minScore (MERGE_THRESHOLD
-   * by default). Pass GROUP_THRESHOLD (50) when the pick has no phone —
-   * FPS summaries never carry one, so a failed detail scrape would otherwise
-   * match nobody and skip every other broker's full-profile fetch.
+   * by default). Scored with scoreAgainstReference(), not
+   * calculateMatchScore() — the pick is a scraped detail page and the
+   * candidates are summary cards, so the two sides do not carry the same
+   * fields.
    *
    * A candidate that matches a rejected card better than the pick is dropped
    * — "none of these" is negative evidence, not a no-op.
@@ -233,11 +234,11 @@ export class DedupEngine {
       let best: { summary: SummaryResult; score: number; ageDelta: number } | null = null;
 
       for (const candidate of candidates) {
-        const score = this.calculateMatchScore(pick, candidate);
+        const score = this.scoreAgainstReference(pick, candidate);
         if (score < minScore) continue;
 
         const rejectedBetter = rejected.some(
-          (r) => this.calculateMatchScore(r, candidate) > score,
+          (r) => this.scoreAgainstReference(r, candidate) > score,
         );
         if (rejectedBetter) continue;
 
@@ -261,6 +262,49 @@ export class DedupEngine {
     }
 
     return resolved;
+  }
+
+  /**
+   * Score a scraped detail page against a summary card (0-100), on the same
+   * 75-merge scale as calculateMatchScore.
+   *
+   * Phone and relatives drop out of the denominator when either side has no
+   * data for them, rather than scoring zero — the same "missing is not a
+   * contradiction" treatment compareAges and compareNames already use.
+   *
+   * The two sides are not symmetric. FPS never publishes a phone on its
+   * summary card, so full-profile-scan scrapes the pick's detail page first;
+   * that pick then carries phone + relatives the *other* brokers' summary
+   * rows cannot possibly match. Scored the flat way, phone (30) + relatives
+   * (20) were unreachable, capping a perfect name/address/age agreement at
+   * 50 — below the 75 merge bar. A *successful* detail scrape therefore
+   * skipped every other broker's full-profile fetch, while a failed one
+   * matched fine (Danny Carroll, 2026-08-26).
+   */
+  scoreAgainstReference(pick: SummaryResult, candidate: SummaryResult): number {
+    // [value 0-1, weight] — name/location/age always compare, since an
+    // absent value on either side already scores neutral rather than zero.
+    const parts: Array<[number, number]> = [
+      [this.compareNames(pick.full_name, candidate.full_name), DedupEngine.W_NAME],
+      [this.compareLocations(pick, candidate), DedupEngine.W_LOCATION],
+      [this.compareAges(pick.age, candidate.age), DedupEngine.W_AGE],
+    ];
+    // Gate on the parsed values, not the raw strings: a phone field that
+    // yields no 10-digit number is no data, not a mismatch.
+    if (normalizePhones(pick.phone).size && normalizePhones(candidate.phone).size) {
+      parts.push([this.comparePhones(pick.phone, candidate.phone), DedupEngine.W_PHONE]);
+    }
+    if (relativeKeys(pick.relatives).size && relativeKeys(candidate.relatives).size) {
+      parts.push([this.compareRelatives(pick.relatives, candidate.relatives), DedupEngine.W_RELATIVES]);
+    }
+
+    const weight = parts.reduce((sum, [, w]) => sum + w, 0);
+    const score = (parts.reduce((sum, [value, w]) => sum + value * w, 0) / weight) * 100;
+
+    if (!this.firstNamesCompatible(pick.full_name, candidate.full_name)) {
+      return Math.min(score, DedupEngine.NAME_GATE_CEILING);
+    }
+    return Math.min(100.0, score);
   }
 
   /**

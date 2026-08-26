@@ -249,14 +249,12 @@ serve(async (req) => {
       }
     }
 
-    const pickHasPhone = Boolean((pickSummary.phone || "").trim());
+    // One bar for both cases. matchReference scores phone/relatives only when
+    // both sides carry them, so whether the pick's detail scrape landed no
+    // longer changes what the other brokers have to clear — it used to, and
+    // a *successful* scrape was the case that matched nobody.
     const resolved = pickSummary
-      ? new DedupEngine().matchReference(
-        pickSummary,
-        candidatesByBroker,
-        rejected,
-        pickHasPhone ? DedupEngine.MERGE_THRESHOLD : DedupEngine.GROUP_THRESHOLD,
-      )
+      ? new DedupEngine().matchReference(pickSummary, candidatesByBroker, rejected)
       : [];
 
     const { data: groupRow, error: groupError } = await supabase
