@@ -54,3 +54,8 @@ _artifacts/
 _sandbox/**/out/
 _sandbox/**/.venv-local/
 _sandbox/**/__pycache__/
+
+# Symlink into the Maiztro Library (machine-specific absolute path) — the
+# target lives in another repo, so committing this would break every other
+# checkout. `.claude/commands/` is real content and stays tracked.
+.claude/operations
