@@ -117,7 +117,7 @@ export interface QuickScanFormProps {
     zipCode: string;
     city: string;
     state: string;
-  }) => void;
+  }) => void | Promise<void>;
   className?: string;
 }
 
@@ -284,13 +284,17 @@ export function QuickScanForm({
     if (!isFormValid || !zipLocation) return;
 
     if (onPilotSubmit) {
-      onPilotSubmit({
-        firstName: firstName.trim(),
-        lastName: lastName.trim(),
-        zipCode,
-        city: zipLocation.city,
-        state: zipLocation.state,
-      });
+      try {
+        await onPilotSubmit({
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
+          zipCode,
+          city: zipLocation.city,
+          state: zipLocation.state,
+        });
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Could not start scan");
+      }
       return;
     }
 

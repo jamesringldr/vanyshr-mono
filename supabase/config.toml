@@ -388,6 +388,9 @@ verify_jwt = false
 [functions.pilot-scan]
 verify_jwt = false
 
+[functions.intro-scan]
+verify_jwt = false
+
 [functions.run-quick-scan]
 verify_jwt = false
 
