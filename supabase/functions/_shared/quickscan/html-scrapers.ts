@@ -163,6 +163,7 @@ function emptySummary(broker: BrokerName, extra: Partial<SummaryResult> & { full
     birth_date: extra.birth_date || "",
     job_history: extra.job_history || "",
     education: extra.education || "",
+    ordinal: extra.ordinal,
   };
 }
 
@@ -767,6 +768,7 @@ export function parseZabaSummaries(html: string): SummaryResult[] {
       relatives: listItems(card, "Possible Relatives").join(", "),
       associates: listItems(card, "Possible Associations").join(", "),
       previous_addresses: past.join("; "),
+      ordinal: results.length,
       job_history: parseZabaJobHistory(card).join("; "),
       education: listItems(card, "Education").join("; "),
     }));

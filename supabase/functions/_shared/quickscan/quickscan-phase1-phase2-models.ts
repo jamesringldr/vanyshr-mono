@@ -55,6 +55,11 @@ export interface SummaryResult {
   associates?: string;
   /** Semicolon-separated former addresses — commas are part of the address. */
   previous_addresses?: string;
+  /**
+   * 0-based index of this card on a search-result page. Zaba has no per-person
+   * href, so Phase 2 re-fetches the search URL and targets div.person[ordinal].
+   */
+  ordinal?: number;
   /** Zaba only, from JSON-LD (full ISO date or just a year). */
   birth_date?: string;
   /** Zaba only, semicolon-separated "title at employer" entries. */
