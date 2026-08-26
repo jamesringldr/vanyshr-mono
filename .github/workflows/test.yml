@@ -1,9 +1,29 @@
-# CI test workflow
+# Deno tests for the Supabase edge functions.
+#
+# Replaces a stub that ran `echo "Add test steps"`. Nothing had ever run these
+# in CI, which is how two test files sat broken at module load ("ReferenceError:
+# describe is not defined") with 73 assertions silently never executing.
 name: Test
 on: [push, pull_request]
+
 jobs:
-  test:
+  deno:
+    name: deno test (supabase/functions)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: echo "Add test steps"
+
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      # --allow-read + --allow-env are all the suite needs: fixture reads and
+      # LAB_FIXTURES. Anything asking for more is a test that should be mocked.
+      #
+      # --no-check is deliberate and temporary: `deno check` currently reports
+      # 12 pre-existing type errors in html-scrapers.ts (deno-dom El typings,
+      # ~lines 497 and 712). Drop this flag once those are cleared, so the
+      # arity bugs it would have caught -- see the quarantined parseZabaDetail
+      # specs in detail-scrapers.test.ts -- fail CI instead of hiding.
+      - name: deno test
+        run: deno test --allow-read --allow-env --no-check supabase/functions/

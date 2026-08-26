@@ -16,7 +16,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
-import { scrapeBrokerDetails, detailToSummary, type BrokerDetailProfile } from "../_shared/quickscan/detail-scrapers.ts";
+import { scrapeBrokerDetails, detailToSummary, type BrokerDetailProfile, type BrokerDetailTiming } from "../_shared/quickscan/detail-scrapers.ts";
 import { populateFromSummaryResult, populateFromBrokerDetail, buildConsolidatedProfile, logTiming, exposedFieldsFromDetail, exposedFieldsFromSummary } from "../_shared/quickscan/consolidation.ts";
 import { DedupEngine } from "../_shared/quickscan/DedupEngine.ts";
 import { BrokerName, type DedupMember, type SummaryResult } from "../_shared/quickscan/quickscan-phase1-phase2-models.ts";
@@ -215,6 +215,9 @@ serve(async (req) => {
 
     // FPS/AnyWho/NPD summaries are thin (FPS has no phone). Scrape the pick
     // first so matchReference has the full profile, then score the others.
+    // Only treat a successful detail page as the reference — a bot-check
+    // fallback has no phones, and stuffing it into prefetched used to skip
+    // every other broker (Daniel/Michael/Lucas 2026-08-26).
     const prefetched: Record<string, BrokerDetailProfile> = {};
     if (!zabaSummary && pickSummary.profile_url) {
       const { profiles, timings } = await scrapeBrokerDetails([{
@@ -222,21 +225,34 @@ serve(async (req) => {
         match_score: 100,
       }]);
       for (const [broker, timing] of Object.entries(timings)) {
-        await logTiming(supabase, quickscanId, "full_profile_fetch", timing.timingMs, { broker, status: timing.status });
+        await logTiming(supabase, quickscanId, "full_profile_fetch", timing.timingMs, {
+          broker,
+          status: timing.status,
+          error: timing.error,
+        });
       }
+      const pickTiming = timings[pickSummary.broker];
       const detail = profiles[pickSummary.broker] as BrokerDetailProfile | undefined;
       if (detail) {
+        // Keep the fallback so we don't re-fetch FPS, but only promote it
+        // to the match reference when the detail page actually parsed.
         prefetched[pickSummary.broker] = detail;
-        pickSummary = detailToSummary(
-          pickSummary.broker,
-          pickSummary.result_id || String(fallbackPick?.id || ""),
-          detail,
-          pickSummary,
-        );
-        brokerFields[pickSummary.broker] = exposedFieldsFromDetail(detail);
+        if (pickTiming?.status === "success") {
+          pickSummary = detailToSummary(
+            pickSummary.broker,
+            pickSummary.result_id || String(fallbackPick?.id || ""),
+            detail,
+            pickSummary,
+          );
+          brokerFields[pickSummary.broker] = exposedFieldsFromDetail(detail);
+        }
       }
     }
 
+    // One bar for both cases. matchReference scores phone/relatives only when
+    // both sides carry them, so whether the pick's detail scrape landed no
+    // longer changes what the other brokers have to clear — it used to, and
+    // a *successful* scrape was the case that matched nobody.
     const resolved = pickSummary
       ? new DedupEngine().matchReference(pickSummary, candidatesByBroker, rejected)
       : [];
@@ -304,10 +320,14 @@ serve(async (req) => {
 
     const { profiles: scraped, timings: fetchTimings } = members.length
       ? await scrapeBrokerDetails(members)
-      : { profiles: {} as Record<string, unknown>, timings: {} as Record<string, { timingMs: number; status: string }> };
+      : { profiles: {} as Record<string, unknown>, timings: {} as Record<string, BrokerDetailTiming> };
 
     for (const [broker, timing] of Object.entries(fetchTimings)) {
-      await logTiming(supabase, quickscanId, "full_profile_fetch", timing.timingMs, { broker, status: timing.status });
+      await logTiming(supabase, quickscanId, "full_profile_fetch", timing.timingMs, {
+        broker,
+        status: timing.status,
+        error: timing.error,
+      });
     }
 
     const details: Record<string, unknown> = { ...scraped, ...prefetched };

@@ -3,6 +3,12 @@
  * Unit tests for email extraction, validation, and deduplication
  */
 
+// describe/test/expect are not Deno globals -- without these two imports
+// this whole file dies at load with "ReferenceError: describe is not defined"
+// and every case below silently never runs.
+import { describe, it as test } from "jsr:@std/testing@1/bdd";
+import { expect } from "jsr:@std/expect@1";
+
 import {
   extractEmails,
   isValidEmail,

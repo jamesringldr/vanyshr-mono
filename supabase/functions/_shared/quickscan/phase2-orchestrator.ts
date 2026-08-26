@@ -17,7 +17,7 @@ import {
   Phase2Result,
   BreachRecord,
 } from "./quickscan-phase1-phase2-models.ts";
-import { extractEmailsFromBrokers } from "./email-extractor.ts";
+import { extractEmailsFromBrokers, deduplicateEmails } from "./email-extractor.ts";
 import { enrichMultipleEmails as enrichEmailsWithHolehe, aggregateHoleheResults } from "./holehe-enricher.ts";
 import {
   enrichMultipleEmails as enrichEmailsWithLeakcheck,
@@ -264,6 +264,7 @@ export class Phase2Orchestrator {
 
       // Add enrichment data
       consolidatedProfile = addEnrichmentData(consolidatedProfile, holeheServices, leakcheckBreaches);
+      consolidatedProfile.emails = deduplicateEmails(consolidatedProfile.emails);
 
       const consolidateMs = Date.now() - consolidateStartTime;
       console.log(`✓ Consolidated profile created`);

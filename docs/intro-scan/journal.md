@@ -100,9 +100,106 @@ Two clocks on `quickscans` only. Child PII dies with the parent.
 
 ---
 
-## Next conversation (paused here)
+## Where things stand (updated after the full-profile-scan + frontend wiring session)
 
-James is about to specify **scraping**: how it should look on the frontend, and how a result feeds the next scrape. He wants **infrastructure design feedback** (tables, writes, IDs, clocks) — not code — until he says go.
+The whole sequence got built and is live on `staging` (deployed via Vercel preview at
+`vanyshr-git-staging-james-projects-9bdace54.vercel.app`, behind Vercel's own login —
+sign in with the GitHub account that owns the project). Not on `main`/prod yet.
+
+**Migrations (all applied to prod DB — schema is live regardless of which branch's
+frontend is deployed):**
+- `20260821130000_intro_scan_matching.sql` — `match_groups`, `summary_results`
+- `20260821140000_full_profile_tables.sql` — `phones`, `addresses`, `relatives`,
+  `aliases`, `emails`, `consolidated_profile`, `holehe_results`, `leakcheck_results`;
+  dropped `full_profile_results`' wide columns
+- `20260821150000_leakcheck_fields_exposed.sql` — `fields_exposed` on `leakcheck_results`
+
+**Edge functions (deployed to prod, callable from staging's frontend):**
+- `intro-scan` — parent row on submit (unchanged from before)
+- `summary-scan` — 4-broker parallel scrape, Zaba → `full_profile_results` directly,
+  FPS/NPD/AnyWho → `summary_results`, `DedupEngine.deduplicate()` → `match_groups`.
+  Returns `zaba_candidates` for the picker modal. Writes `deepest_page` +
+  `match_outcome='no_data'` when nothing came back from anywhere.
+- `full-profile-scan` — accepts the picked `fullProfileResultId` inline, fetches
+  FPS/NPD/AnyWho detail pages for the matched group, fans everything into the
+  per-type tables, rebuilds `consolidated_profile`, returns it inline. Writes
+  `match_outcome='matched'`, `deepest_page='full_profile'`.
+- `manage-emails` — `add`/`remove` sync `consolidated_profile.emails` immediately;
+  `confirm` runs real Holehe (hosted service on serv02, Docker + Tailscale Funnel,
+  see `holehe-enricher.ts`) and Leakcheck (real public endpoint, see
+  `leakcheck-enricher.ts`) against the confirmed set, writes `deepest_page='report'`.
+
+**Frontend (`apps/app/src/pages/pilot-scan/`):**
+- `entry.tsx` calls `intro-scan`, sets `pendingScanId` + `pilotScanFields` — this was
+  sitting uncommitted the whole earlier session and caused a real "Missing scan
+  fields" bug on staging until it got committed; watch for this class of drift
+  (local worktree vs. what's actually committed) any time something works
+  locally but not on a fresh clone/staging.
+- `loading.tsx` — full phase machine (`searching → pick → full_profile → emails →
+  report`) rewired to `summary-scan` / `full-profile-scan` / `manage-emails`.
+  Email confirm hides the modal immediately on click (it has no loading state of
+  its own and Holehe/Leakcheck aren't instant) rather than appearing frozen.
+- `pre-profile.tsx` (new) — **temporary** landing spot after `report`, reads
+  `consolidated_profile` from `sessionStorage` (key `pilotConsolidatedProfile`,
+  written by `loading.tsx` right after `full-profile-scan` resolves). Real
+  `risk-summary.tsx` still reads the *old* dedup-group/enrichment tables and
+  hasn't been rewired — pre-profile is standing in for it on purpose.
+
+**Known divergence trap, worth remembering:** staging has its own actively-changing
+versions of some pilot-scan files (`scan-result.ts`, `email-confirmation.tsx`) from
+parallel work on other branches. Twice now, code that type-checked fine locally
+broke on staging because a helper it depended on had been renamed/removed there.
+Type-check *on the staging worktree* (`Vanyshr-mono`), not just locally, before
+trusting a merge — and run the actual `cd apps/app && pnpm build` Vercel uses, not
+just `tsc --noEmit` (the latter has unrelated pre-existing `packages/ui` noise that
+looks scary but doesn't block the real build).
+
+---
+
+## Open issues for next session (found live-testing on staging, not yet investigated)
+
+**A) Duplicate `ja_studly@hotmail.com`.** Showed up twice in the email
+confirm/pre-profile flow. Worth knowing before diving in: this exact email is the
+one documented in `docs/scraper-testing-data/test-runs/HANDOFF_PROMPT.md` as the
+sample case for the old AnyWho blur-truncation bug (`ja_studly@hotmail.com` →
+`j@hotmail.com`) — that bug is supposedly fixed and regression-tested now, so if
+what's showing up is the truncated fragment *next to* the full address, that's
+actually the dedup design working as intended (raw provenance kept, not
+collapsed — see `consolidation.ts`'s `upsertBrokerEmail` / the migration's own
+reasoning for why duplicates are deliberately not silently merged). If instead it's
+the *same full string* appearing twice, that's a real bug in the dedup query
+(`quickscan.emails`, `duplicate_of` / `normalized_value` matching) or in how
+`manage-emails`'s add/remove path talks to it. Check `quickscan.emails` for this
+quickscan directly — `raw_value`, `normalized_value`, `duplicate_of` — before
+guessing further.
+
+**B) Pre-profile isn't showing everything — full scan data, Holehe, Leakcheck.**
+Two known, already-diagnosed gaps, not yet fixed:
+1. `pre-profile.tsx`'s `ConsolidatedProfile` interface and `convertToPreProfileData`
+   never included `services_found`/`breaches`/`breach_count` at all — the page was
+   ported from the old `/quick-scan/pre-profile`, which never showed that either.
+   Needs those fields added to both the interface and a new card in the JSX.
+2. **Timing bug, not just a missing field**: `loading.tsx` snapshots
+   `consolidated_profile` into `sessionStorage` right when `full-profile-scan`
+   resolves — *before* the user has even confirmed emails, let alone before
+   Holehe/Leakcheck (triggered by `manage-emails`'s `confirm` action, which
+   happens later) have run. So even once (1) is fixed, pre-profile would still
+   show stale/empty enrichment data because it's reading a snapshot taken before
+   that data existed. Fix needs `handleEmailsConfirmed` in `loading.tsx` to
+   re-snapshot `consolidated_profile` (or fetch it fresh) *after* the `confirm`
+   call resolves, not rely solely on the pre-confirm snapshot.
+   Also worth checking whether any *other* full-profile data (phones/addresses/
+   relatives beyond what's already showing) is missing for a reason beyond these
+   two — hence "check the DB" first rather than assume it's only this.
+
+---
+
+## Next conversation
+
+Pick up with A and B above. Both have a real DB row to inspect first — don't
+guess from code reading alone, the fixture data plus a fresh test run through
+staging will show exactly what's in `quickscan.emails` / `consolidated_profile`
+/ `holehe_results` / `leakcheck_results` for a real scan.
 
 ---
 

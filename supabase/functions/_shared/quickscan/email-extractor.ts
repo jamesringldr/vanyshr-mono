@@ -15,7 +15,7 @@ const EXCLUDED_EMAIL_PATTERNS = [
   /^noreply@/i,
   /^no-reply@/i,
   /^donotreply@/i,
-  /^test@/i,
+  /^test[._@-]/i,
   /^demo@/i,
   /^admin@/i,
   /^info@/i,
@@ -148,18 +148,47 @@ export function isValidEmail(email: string): boolean {
  * @param email Email to normalize
  * @returns Normalized email
  */
+/**
+ * Cyrillic characters that render identically to Latin ones. A broker page
+ * carrying one of these produces an address that looks the same on screen but
+ * is a different string -- which is how ja_studly@hotmail.com showed up twice.
+ *
+ * Must stay in sync with CYRILLIC_TO_LATIN in
+ * apps/app/src/pages/pilot-scan/email-confirmation.tsx.
+ */
+const CYRILLIC_TO_LATIN: Record<string, string> = {
+  "\u0430": "a", "\u0435": "e", "\u043e": "o", "\u0440": "p", "\u0441": "c",
+  "\u0443": "y", "\u0445": "x", "\u0456": "i", "\u0455": "s", "\u04bb": "h",
+  "\u0501": "d", "\u04cf": "l", "\u217f": "m",
+};
+
 export function normalizeEmail(email: string): string {
-  return email.toLowerCase().trim();
+  return email
+    .normalize("NFKC")
+    .toLowerCase()
+    .trim()
+    .replace(/mailto:/g, "")
+    // Fold look-alikes to their Latin equivalent BEFORE stripping. Stripping
+    // first turns ja_studly@ into j_studly@ -- a different, wrong address --
+    // instead of collapsing the two variants onto one.
+    .replace(/[\u0400-\u04FF\u2100-\u218F]/g, (ch) => CYRILLIC_TO_LATIN[ch] ?? "")
+    .replace(/[^a-z0-9@._+-]/g, "");
 }
 
 /**
- * Deduplicate emails (case-insensitive)
- * @param emails Array of emails
- * @returns Deduplicated sorted array
+ * Deduplicate emails (case-insensitive, hidden chars stripped)
  */
 export function deduplicateEmails(emails: string[]): string[] {
-  const unique = new Set(emails.map(normalizeEmail));
-  return Array.from(unique).sort();
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const email of emails) {
+    if (!email || typeof email !== "string") continue;
+    const key = normalizeEmail(email);
+    if (!key.includes("@") || !key.includes(".") || seen.has(key)) continue;
+    seen.add(key);
+    out.push(key);
+  }
+  return out.sort();
 }
 
 /**

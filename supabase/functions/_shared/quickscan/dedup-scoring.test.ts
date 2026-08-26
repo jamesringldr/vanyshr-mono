@@ -210,7 +210,10 @@ Deno.test("matchReference drops a candidate that matches a rejected card better"
   }
 });
 
-Deno.test("FPS summary without phone misses AnyWho; full profile with phone matches", () => {
+Deno.test("a phone on the pick strengthens the AnyWho match without gating it", () => {
+  // Whether FPS's detail scrape landed decides only how strong the match is,
+  // never whether it happens — it used to decide the latter, and a landed
+  // scrape was the case that matched nobody.
   const fpsSummary = summary({
     broker: BrokerName.FPS,
     full_name: "James Oehring",
@@ -219,14 +222,74 @@ Deno.test("FPS summary without phone misses AnyWho; full profile with phone matc
     relatives: "Rickilinda Oehring, Robert Mctarsney",
   });
   const fromSummary = engine.matchReference(fpsSummary, { [BrokerName.ANYWHO]: [ANYWHO] });
-  if (fromSummary.length !== 0) {
-    throw new Error(`summary pick should miss AnyWho, scored a hit at ${fromSummary[0].match_score}`);
+  if (fromSummary.length !== 1) {
+    throw new Error("phoneless FPS pick should still attach AnyWho");
   }
 
   const fpsFull = { ...fpsSummary, phone: "(816) 632-2218" };
   const fromFull = engine.matchReference(fpsFull, { [BrokerName.ANYWHO]: [ANYWHO] });
   if (fromFull.length !== 1) {
     throw new Error("full-profile pick with shared phone should match AnyWho");
+  }
+  if (!(fromFull[0].match_score > fromSummary[0].match_score)) {
+    throw new Error("a shared phone should raise the score, not lower the bar");
+  }
+});
+
+/**
+ * The fixtures above all give the candidate an overlapping phone, which is
+ * what let the "successful FPS detail scrape skips every other broker" bug
+ * ship green. These use phoneless candidates — the shape summary cards
+ * actually have.
+ */
+const PHONELESS_PICK = summary({
+  broker: BrokerName.FPS,
+  full_name: "Danny Carroll",
+  address: "123 Main St, Springfield, IL 62704",
+  age: 45,
+  phone: "(217) 555-0142",
+  relatives: "Susan Carroll, Michael Carroll",
+});
+
+Deno.test("a summary card with no phone still merges on name + address + age", () => {
+  const anywho = summary({
+    broker: BrokerName.ANYWHO,
+    full_name: "Danny Carroll",
+    address: "123 Main St, Springfield, IL 62704",
+    age: 45,
+  });
+  const score = engine.scoreAgainstReference(PHONELESS_PICK, anywho);
+  if (score < DedupEngine.MERGE_THRESHOLD) {
+    throw new Error(`phoneless candidate scored ${score.toFixed(1)}, below merge`);
+  }
+});
+
+Deno.test("a successful detail scrape does not skip the other brokers", () => {
+  // The pick carries phone + relatives off its detail page; the candidates
+  // are summary rows that carry neither. Regression: this resolved to [].
+  const thin = (broker: BrokerName, address: string, previous?: string) =>
+    summary({ broker, full_name: "Danny Carroll", address, age: 45, previous_addresses: previous });
+
+  const resolved = engine.matchReference(PHONELESS_PICK, {
+    [BrokerName.ANYWHO]: [thin(BrokerName.ANYWHO, "88 Oak Ave, Chicago, IL", "123 Main St, Springfield, IL 62704")],
+    [BrokerName.ZABA]: [thin(BrokerName.ZABA, "123 Main St, Springfield, IL 62704")],
+  });
+  const brokers = resolved.map((r) => r.broker).sort();
+  if (brokers.length !== 2) {
+    throw new Error(`expected anywho + zaba, got ${JSON.stringify(brokers)}`);
+  }
+});
+
+Deno.test("renormalising does not let a phoneless spouse through the name gate", () => {
+  const spouse = summary({
+    broker: BrokerName.ZABA,
+    full_name: "Susan Carroll",
+    address: "123 Main St, Springfield, IL 62704",
+    age: 44,
+  });
+  const score = engine.scoreAgainstReference(PHONELESS_PICK, spouse);
+  if (score > DedupEngine.NAME_GATE_CEILING) {
+    throw new Error(`spouse scored ${score.toFixed(1)}, name gate should cap it`);
   }
 });
 
