@@ -1,6 +1,6 @@
-import { useState } from "react";
-import { motion, useReducedMotion } from "framer-motion";
-import { X, Plus, Mail, Check } from "lucide-react";
+import { useEffect, useState } from "react";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import { Plus, Check } from "lucide-react";
 import { cx } from "@/utils/cx";
 
 export type EmailConfirmationModalProps = {
@@ -13,8 +13,13 @@ export type EmailConfirmationModalProps = {
 type EmailItem = {
   id: string;
   value: string;
-  isNew?: boolean;
 };
+
+/** A quickscan runs the dark-web check on at most this many addresses. */
+const MAX_SELECTED = 3;
+
+const LIMIT_MESSAGE =
+  "QuickScans only include 3 emails for darkweb scans. Sign up for a free forever plan to monitor unlimited emails";
 
 const CYRILLIC_TO_LATIN: Record<string, string> = {
   а: "a",
@@ -63,13 +68,18 @@ export function uniqueEmailValues(raw: unknown): string[] {
 }
 
 function toItems(values: string[]): EmailItem[] {
-  if (values.length === 0) return [{ id: "email-new-0", value: "", isNew: true }];
   return values.map((value, i) => ({ id: `email-${i}-${value}`, value }));
 }
 
 /**
- * Email confirmation — mounted only while open, so the list is seeded once
- * from a unique-d set. Dupes cannot survive as two rows.
+ * Email selection — mounted only while open, so the list is seeded once from a
+ * unique-d set. Dupes cannot survive as two rows.
+ *
+ * Selection scopes the dark-web check, it does not say which addresses are the
+ * user's. Everything the brokers surfaced stays on the profile and on the
+ * report whether it is picked or not; leaving one unselected only keeps it out
+ * of Holehe and Leakcheck. Nothing starts selected — running someone's address
+ * through a breach check is the kind of thing you opt into.
  */
 export function EmailConfirmationModal({
   initialEmails,
@@ -79,12 +89,35 @@ export function EmailConfirmationModal({
 }: EmailConfirmationModalProps) {
   const prefersReducedMotion = useReducedMotion();
   const [emails, setEmails] = useState<EmailItem[]>(() => toItems(uniqueEmailValues(initialEmails)));
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editValue, setEditValue] = useState("");
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [newEmailInput, setNewEmailInput] = useState("");
   const [error, setError] = useState<string | null>(null);
 
+  // The limit notice is a reaction to a tap, not a persistent state — leaving
+  // it up makes the next tap ambiguous about which one it answered.
+  useEffect(() => {
+    if (!error) return;
+    const t = window.setTimeout(() => setError(null), 6000);
+    return () => window.clearTimeout(t);
+  }, [error]);
+
   if (!isOpen) return null;
+
+  const atLimit = selectedIds.length >= MAX_SELECTED;
+
+  const toggleEmail = (id: string) => {
+    if (selectedIds.includes(id)) {
+      setSelectedIds(selectedIds.filter((s) => s !== id));
+      setError(null);
+      return;
+    }
+    if (atLimit) {
+      setError(LIMIT_MESSAGE);
+      return;
+    }
+    setSelectedIds([...selectedIds, id]);
+    setError(null);
+  };
 
   const handleAddEmail = () => {
     const added = canonicalizeEmail(newEmailInput);
@@ -100,49 +133,25 @@ export function EmailConfirmationModal({
       setError("This email is already in the list");
       return;
     }
-    setEmails([...emails.filter((e) => e.value.trim()), { id: `email-${Date.now()}`, value: added }]);
+    // A typed-in address is one the user wants checked, so it arrives
+    // selected — which means adding a 4th is the same overreach as picking one.
+    if (atLimit) {
+      setError(LIMIT_MESSAGE);
+      return;
+    }
+    const id = `email-${Date.now()}`;
+    setEmails([...emails, { id, value: added }]);
+    setSelectedIds([...selectedIds, id]);
     setNewEmailInput("");
     setError(null);
   };
 
-  const handleStartEdit = (id: string, value: string) => {
-    setEditingId(id);
-    setEditValue(value);
-    setError(null);
-  };
-
-  const handleSaveEdit = () => {
-    const edited = canonicalizeEmail(editValue);
-    if (!edited) {
-      setError("Email cannot be empty");
-      return;
-    }
-    if (!/\S+@\S+\.\S+/.test(edited)) {
-      setError("Please enter a valid email address");
-      return;
-    }
-    if (emails.some((e) => e.id !== editingId && canonicalizeEmail(e.value) === edited)) {
-      setError("This email is already in the list");
-      return;
-    }
-    setEmails(emails.map((e) => (e.id === editingId ? { ...e, value: edited } : e)));
-    setEditingId(null);
-    setError(null);
-  };
-
-  const handleDeleteEmail = (id: string) => {
-    const next = emails.filter((e) => e.id !== id);
-    setEmails(next.length ? next : [{ id: "email-new-0", value: "", isNew: true }]);
-    setError(null);
-  };
-
-  const visibleEmails = toItems(uniqueEmailValues(emails.map((e) => e.value)));
-  const hasEmails = visibleEmails.some((e) => e.value.trim());
-
   const handleConfirm = () => {
-    const validEmails = uniqueEmailValues(emails.map((e) => e.value));
-    onConfirm(validEmails);
+    const byId = new Map(emails.map((e) => [e.id, e.value]));
+    onConfirm(uniqueEmailValues(selectedIds.map((id) => byId.get(id) ?? "")));
   };
+
+  const selectedCount = selectedIds.length;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
@@ -153,89 +162,80 @@ export function EmailConfirmationModal({
         className="relative w-full max-w-md rounded-2xl bg-[#1A2E42] shadow-xl"
       >
         <div className="border-b border-[#2A4A68] px-6 py-5">
-          <h2 className="text-xl font-bold text-white">Confirm your emails</h2>
+          <h2 className="text-xl font-bold text-white">Include emails in your dark web scan</h2>
           <p className="mt-1 text-sm text-[#7A92A8]">
-            These came off your full broker profiles. Remove any that aren't yours, or
-            continue if none were found.
+            These came off your full broker profiles. Choose up to {MAX_SELECTED} to check
+            against known breaches and exposed accounts.
           </p>
         </div>
 
         <div className="max-h-[60vh] overflow-y-auto px-6 py-4">
-          <div className="mb-4 flex flex-col gap-3" role="list" aria-label="Emails">
-            {visibleEmails.map((email) => (
-              <div key={email.id} className="relative group" role="listitem">
-                {editingId === email.id ? (
-                  <div className="flex gap-2">
-                    <input
-                      type="email"
-                      value={editValue}
-                      onChange={(e) => setEditValue(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") handleSaveEdit();
-                        if (e.key === "Escape") setEditingId(null);
-                      }}
-                      autoFocus
-                      className={cx(
-                        "flex-1 rounded-lg border px-3 py-2.5",
-                        "bg-[#022136] text-white placeholder-[#7A92A8]",
-                        "border-[#2A4A68] outline-none transition",
-                        "focus:ring-2 focus:ring-[#00BFFF]",
-                      )}
-                      placeholder="user@example.com"
-                    />
-                    <button
-                      type="button"
-                      onClick={handleSaveEdit}
-                      className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#00BFFF] text-[#022136] font-semibold hover:bg-[#00D4FF] transition"
-                      aria-label="Save email"
-                    >
-                      <Check size={18} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setEditingId(null)}
-                      className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#2A4A68] text-[#B8C4CC] hover:bg-[#3A5A78] transition"
-                      aria-label="Cancel edit"
-                    >
-                      <X size={18} />
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-3 rounded-lg bg-[#022136] px-4 py-3 group-hover:bg-[#0f1f2e] transition">
-                    <Mail size={18} className="shrink-0 text-[#00BFFF]" />
-                    <span className="flex-1 break-all text-sm text-white">
-                      {email.value || "(empty)"}
-                    </span>
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => handleStartEdit(email.id, email.value)}
-                        className="rounded px-3 py-1.5 text-xs font-medium bg-[#2A4A68] text-[#00BFFF] hover:bg-[#3A5A78] transition"
-                        aria-label={`Edit ${email.value}`}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteEmail(email.id)}
-                        className="rounded px-3 py-1.5 text-xs font-medium bg-[#4A2A28] text-[#FF6B6B] hover:bg-[#5A3A38] transition"
-                        aria-label={`Delete ${email.value}`}
-                      >
-                        Remove
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ))}
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-xs font-semibold uppercase tracking-wider text-[#7A92A8]">
+              Up to {MAX_SELECTED} emails
+            </span>
+            <span
+              className={cx(
+                "text-xs font-semibold tabular-nums",
+                atLimit ? "text-[#00BFFF]" : "text-[#7A92A8]",
+              )}
+            >
+              {selectedCount} of {MAX_SELECTED} selected
+            </span>
           </div>
 
-          <div className="mb-4 border-t border-[#2A4A68] pt-2">
-            <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-[#7A92A8]">
-              Add more emails
+          {emails.length > 0 ? (
+            <div className="mb-4 flex flex-col gap-2" role="group" aria-label="Emails to include">
+              {emails.map((email) => {
+                const isSelected = selectedIds.includes(email.id);
+                return (
+                  <button
+                    key={email.id}
+                    type="button"
+                    role="checkbox"
+                    aria-checked={isSelected}
+                    onClick={() => toggleEmail(email.id)}
+                    className={cx(
+                      "flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left transition",
+                      "outline-none focus-visible:ring-2 focus-visible:ring-[#00BFFF]",
+                      isSelected
+                        ? "bg-[#0B3B52] ring-1 ring-[#00BFFF]"
+                        : "bg-[#022136] hover:bg-[#0f1f2e]",
+                      !isSelected && atLimit && "opacity-60",
+                    )}
+                  >
+                    <span
+                      className={cx(
+                        "flex h-5 w-5 shrink-0 items-center justify-center rounded border transition",
+                        isSelected
+                          ? "border-[#00BFFF] bg-[#00BFFF] text-[#022136]"
+                          : "border-[#2A4A68] bg-transparent",
+                      )}
+                      aria-hidden
+                    >
+                      {isSelected ? <Check size={14} strokeWidth={3} /> : null}
+                    </span>
+                    <span className="flex-1 break-all text-sm text-white">{email.value}</span>
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="mb-4 rounded-lg bg-[#022136] px-4 py-3 text-sm text-[#7A92A8]">
+              We didn't find any emails on your broker profiles. Add one below to scan it.
+            </p>
+          )}
+
+          <div className="mb-4 border-t border-[#2A4A68] pt-3">
+            <label
+              htmlFor="add-email"
+              className="mb-2 block text-xs font-semibold uppercase tracking-wider text-[#7A92A8]"
+            >
+              Add another email
             </label>
             <div className="flex gap-2">
               <input
+                id="add-email"
                 type="email"
                 value={newEmailInput}
                 onChange={(e) => setNewEmailInput(e.target.value)}
@@ -267,11 +267,20 @@ export function EmailConfirmationModal({
             </div>
           </div>
 
-          {error && (
-            <div className="rounded-lg bg-[#4A2A28] p-3 text-sm text-[#FF8A00]" role="alert">
-              {error}
-            </div>
-          )}
+          <AnimatePresence>
+            {error ? (
+              <motion.div
+                initial={prefersReducedMotion ? false : { opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={prefersReducedMotion ? undefined : { opacity: 0, y: -6 }}
+                transition={{ duration: 0.18 }}
+                className="rounded-lg border border-[#FF8A00]/40 bg-[#4A2A28] p-3 text-sm text-[#FFB86B]"
+                role="alert"
+              >
+                {error}
+              </motion.div>
+            ) : null}
+          </AnimatePresence>
         </div>
 
         <div className="flex gap-3 border-t border-[#2A4A68] px-6 py-4">
@@ -287,12 +296,14 @@ export function EmailConfirmationModal({
             onClick={handleConfirm}
             className={cx(
               "flex-1 rounded-lg py-2.5 font-semibold transition",
-              hasEmails
+              selectedCount > 0
                 ? "bg-[#00BFFF] text-[#022136] hover:bg-[#00D4FF]"
                 : "bg-[#1B4A63] text-[#9FD9F5] hover:bg-[#1F5678]",
             )}
           >
-            {hasEmails ? "Confirm emails" : "Continue without emails"}
+            {selectedCount > 0
+              ? `Scan ${selectedCount} email${selectedCount === 1 ? "" : "s"}`
+              : "Continue without emails"}
           </button>
         </div>
       </motion.div>
