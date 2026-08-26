@@ -22,6 +22,16 @@ export function nextIdentifyBroker(current: IdentifyBroker): IdentifyBroker | nu
 }
 
 /**
+ * Only a genuine empty result list walks to the next picker broker.
+ * blocked / failed / timeout mean we never saw the page — that is not
+ * "this person isn't on FPS", and falling through shows the wrong people
+ * (Jillian Pfaff 2026-08-26: FPS bot-check → AnyWho PA/WA/WV).
+ */
+export function shouldWalkNextIdentifyBroker(status: string): boolean {
+  return status === "no_results";
+}
+
+/**
  * First non-empty picker list in identify order.
  *
  * If FPS (the awaited broker) is empty and the others are still in flight,

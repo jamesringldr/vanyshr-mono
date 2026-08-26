@@ -815,17 +815,16 @@ const BROKERS: { broker: BrokerName; url: UrlBuilder; parse: Parser }[] = [
 // other three in the background, so they need the same window.
 const DEFAULT_SCRAPE_TIMEOUT_MS = 60000;
 
-async function scrapeOne(
+async function scrapeOneAttempt(
   spec: (typeof BROKERS)[number],
   input: QuickScanInput,
   timeoutMs: number,
+  started: number,
 ): Promise<ScrapeResult> {
-  const effectiveTimeoutMs = timeoutMs;
-  const started = Date.now();
   try {
     const searchUrl = spec.url(input);
     console.log(`🔗 ${spec.broker} context.dev ${searchUrl}`);
-    const page = await scrapeHtml(searchUrl, { timeoutMs: effectiveTimeoutMs });
+    const page = await scrapeHtml(searchUrl, { timeoutMs });
     const timing_ms = Date.now() - started;
     if (page.notFound) {
       return { broker: spec.broker, summaries: [], status: "no_results", timing_ms };
@@ -856,6 +855,21 @@ async function scrapeOne(
     console.error(`✗ ${spec.broker} failed: ${message}`);
     return { broker: spec.broker, summaries: [], status: "failed", error: message, timing_ms };
   }
+}
+
+async function scrapeOne(
+  spec: (typeof BROKERS)[number],
+  input: QuickScanInput,
+  timeoutMs: number,
+): Promise<ScrapeResult> {
+  const started = Date.now();
+  const first = await scrapeOneAttempt(spec, input, timeoutMs, started);
+  if (first.status !== "blocked") return first;
+  // Bot-check pages are flaky on a single residential session. One immediate
+  // retry has a real shot; treating the first block as "not in this broker"
+  // is how Jillian Pfaff's FPS listing was skipped for AnyWho strangers.
+  console.warn(`⚠️ ${spec.broker} blocked, retrying once`);
+  return await scrapeOneAttempt(spec, input, timeoutMs, started);
 }
 
 export async function scrapeAllBrokers(

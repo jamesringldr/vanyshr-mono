@@ -7,6 +7,7 @@ import {
   firstNonEmptyIdentifyList,
   isIdentifyBroker,
   nextIdentifyBroker,
+  shouldWalkNextIdentifyBroker,
 } from "./identify-order.ts";
 
 Deno.test("order is FPS then AnyWho then Zaba then NPD", () => {
@@ -21,6 +22,13 @@ Deno.test("nextIdentifyBroker walks and then stops", () => {
   if (nextIdentifyBroker("anywho") !== "zaba") throw new Error("anywho -> zaba");
   if (nextIdentifyBroker("zaba") !== "npd") throw new Error("zaba -> npd");
   if (nextIdentifyBroker("npd") !== null) throw new Error("npd is last");
+});
+
+Deno.test("only no_results walks to the next picker broker", () => {
+  if (!shouldWalkNextIdentifyBroker("no_results")) throw new Error("no_results should walk");
+  if (shouldWalkNextIdentifyBroker("blocked")) throw new Error("blocked must not walk");
+  if (shouldWalkNextIdentifyBroker("failed")) throw new Error("failed must not walk");
+  if (shouldWalkNextIdentifyBroker("success")) throw new Error("success must not walk");
 });
 
 Deno.test("isIdentifyBroker rejects unknown names", () => {
