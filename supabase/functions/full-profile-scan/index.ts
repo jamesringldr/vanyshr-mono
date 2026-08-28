@@ -345,12 +345,14 @@ serve(async (req) => {
         match_score: 100,
       }));
 
-    await logProgress(
-      supabase,
-      quickscanId,
-      `Extracting user data from targets: 0 of ${members.length} complete`,
-      "brokers",
-    );
+    if (members.length > 0) {
+      await logProgress(
+        supabase,
+        quickscanId,
+        `Extracting user data from ${members.length} broker${members.length !== 1 ? "s" : ""}`,
+        "brokers",
+      );
+    }
 
     const { profiles: scraped, timings: fetchTimings } = members.length
       ? await scrapeBrokerDetails(members)
@@ -371,7 +373,7 @@ serve(async (req) => {
         await logProgress(
           supabase,
           quickscanId,
-          `Extracting user data from targets: ${extracted} of ${members.length} complete`,
+          `Success: Extracted ${extracted} of ${members.length}`,
           "brokers",
           "success",
         );
