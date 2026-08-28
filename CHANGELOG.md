@@ -44,6 +44,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `supabase/scripts/purge-quickscan-test-data.sql` — manual dev/test utility to wipe all `quickscan.*` tables between test passes
 - `quickscan.quickscans.selected_summary_result_id` — holds a fallback (non-Zaba) pick when Zaba returns no results for a scan
 
+- The QuickScan loading screen now carries an expandable progress drawer. Collapsed it shows the running stage, a bar, and the newest line off the scan; expanded, all five stages with the live log under whichever is running and a one-line summary with timing under each finished one. The lines are real — the edge functions write a row per sub-step and the drawer reads them back — so it reports what the scan did rather than counting down a timer. Two spans are estimated instead, because the backend genuinely cannot report them incrementally: the broker detail fetch and the breach scan each resolve as a single unit. Both bars approach 95% asymptotically and only reach 100 when the work actually returns, so an estimate can never claim done before it is.
+- `quickscan.quickscan_progress` — one row per scan sub-step, carrying the stage it belongs to and a lifecycle status (`active`/`success`/`failed`/`summary`). A stage counts as finished once it has a summary row, which is what lets the drawer separate stages that share a single `phase`: matching and extraction both run inside `full_profile`, so `phase` alone cannot tell them apart and only the log can.
+- Two cards on the loading screen covering how data brokers acquire personal data and what exposure leads to, so the wait carries something to read.
+- CI now runs `tsc --noEmit` across all five packages. `vite build` only transpiles: it reported success on a `loading.tsx` that referenced an identifier which no longer existed, which reaches the user as a blank screen. The type-check scripts already existed in every package, but nothing ran them, so they had drifted red and could not be used as a gate.
+
 ### Changed
 
 - The email step now asks which addresses to check for breaches, rather than which ones to remove. Every address the brokers found stays on the report either way; choosing one adds it to the dark web scan and nothing else. Previously, declining to scan an address also deleted it from the user's own results, because the same flag controlled both. Nothing is selected by default, and a quickscan covers up to three — a fourth prompts to sign up for unlimited monitoring.
@@ -101,3 +106,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - The "Is this you?" confirmation modal could show two different brokers' addresses jammed into one garbled "Current Address" line — `groupToSummary()` collected up to two addresses across a dedup group's broker members and `ProfileCard` comma-joined them, but brokers disagree on which address is current, so this read as one nonsensical address rather than two. Takes the first member's address only now.
 - Pilot-scan loading steps ran on a blind per-step timer with no relation to actual scan progress; "Finding exposed accounts" specifically jumped straight from pending to complete without ever showing active, because `full_profile` and `emails` phases shared one step index. Step status is now derived from `phase` + whether the manage-emails confirm call (which triggers holehe/leakcheck) is actually in flight.
+- `full-profile-scan` logged a progress line before its readiness check, and the client polls that endpoint up to 75 times while the background brokers finish — so a single scan wrote the same two lines dozens of times and buried the steps that mattered. It only logs once the work actually starts now.
+
+### Removed
+
+- The date-picker that arrived with the UI-kit import (7 files, plus its `@internationalized/date` dependency). Nothing ever imported it — onboarding collects a date of birth through a plain text input with its own formatter — and its one type error was what kept the workspace type-check red and plain `pnpm build` failing.
