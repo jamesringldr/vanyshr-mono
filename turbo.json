@@ -28,7 +28,11 @@
     "type-check": {
       "outputs": [],
       "cache": true,
-      "dependsOn": ["^type-check"]
+      // ^build, not ^type-check: packages/ui checks against packages/shared's
+      // emitted .d.ts, so the dependency has to actually be built. Type-checking
+      // it emits nothing, so on a clean checkout tsc reported TS6305 for every
+      // cross-package import -- green locally only because dist/ was lying around.
+      "dependsOn": ["^build"]
     },
     "test": {
       "outputs": ["coverage/**"],
