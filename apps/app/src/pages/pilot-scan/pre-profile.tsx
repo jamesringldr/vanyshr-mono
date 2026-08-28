@@ -184,8 +184,8 @@ export function PreProfileBody({ profile }: { profile: ConsolidatedProfile }) {
     return (
         <div>
             <h1 className="sr-only">Exposed Data</h1>
-            <p className="text-base leading-relaxed text-[#B8C4CC]">
-                This is the personal data that's publicly available about you right now. Hackers and scammers use this information to target you and your family with sophisticated social engineering attacks—impersonating trusted companies, authorities, or loved ones. The more data they have, the more convincing their attacks become.
+            <p className="text-sm leading-relaxed text-[#B8C4CC]">
+                Hackers and scammers use your exposed data to attack or impersonate you with sophisticated attacks. The more data they can source, the more convincing the scam becomes.
             </p>
 
             <div className="mt-6 space-y-4">

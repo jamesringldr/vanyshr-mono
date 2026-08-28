@@ -150,18 +150,23 @@ export function formatEducation(entry: ConsolidatedProfile["education"][number])
 }
 
 /**
- * "413 Lovers Ln, Cameron, MO 64429" -> { street, city, state, zip }.
- * Anchors on the first "City, ST ZIP" match rather than splitting on the
- * last comma -- broker scrapes occasionally append a duplicated city/state
- * tail (e.g. "413 Lovers Ln, Cameron, MO 64429, Cameron, MO 64429"), which
- * a last-comma split turns into a garbled street and a lone zip. Anchoring
- * on the first match finds the real boundary and drops anything after it.
+ * "413 Lovers Ln, Cameron, MO, 64429" -> { street, city, state, zip }.
+ * addrFromParts (detail-scrapers.ts) joins street/city/state/zip with ", "
+ * throughout, so the real separator between state and zip is a comma, not
+ * just whitespace -- both are accepted here since not every broker path
+ * goes through that helper. Anchors on the first "City, ST[, ]ZIP" match
+ * rather than splitting on the last comma -- broker scrapes occasionally
+ * append a duplicated city/state tail (e.g. "..., Cameron, MO, 64429,
+ * Cameron, MO, 64429"), which a last-comma split turns into a garbled
+ * street and a lone zip. Anchoring on the first match finds the real
+ * boundary and drops anything after it. Zip is optional -- some broker
+ * addresses have no zip at all.
  */
 export function parseFullAddress(fullAddr: string): { street: string; city: string; state: string; zip: string } {
-  const match = /^(.*?),\s*([^,]+?),\s*([A-Za-z]{2})\s+(\d{5})(?:-\d{4})?/.exec(fullAddr.trim());
+  const match = /^(.*?),\s*([^,]+?),\s*([A-Za-z]{2})(?:[,\s]+(\d{5})(?:-\d{4})?)?/.exec(fullAddr.trim());
   if (match) {
     const [, street, city, state, zip] = match;
-    return { street: street.trim(), city: city.trim(), state: state.toUpperCase(), zip };
+    return { street: street.trim(), city: city.trim(), state: state.toUpperCase(), zip: zip || "" };
   }
   const lastComma = fullAddr.lastIndexOf(",");
   if (lastComma !== -1) {

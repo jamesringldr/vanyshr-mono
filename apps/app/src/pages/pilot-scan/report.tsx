@@ -206,7 +206,7 @@ export function PilotReportPage() {
           <button
             type="button"
             onClick={() => navigate("/pilot-scan/start")}
-            className="mt-5 flex h-12 w-full items-center justify-center rounded-2xl bg-[#0077B6] text-[17px] font-semibold text-white"
+            className="mt-5 flex h-12 w-full items-center justify-center rounded-2xl bg-[#00BFFF] text-[17px] font-semibold text-white"
           >
             Start Vanyshing
           </button>

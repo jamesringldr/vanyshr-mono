@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
-import { Plus, Check } from "lucide-react";
+import { Plus } from "lucide-react";
 import { cx } from "@/utils/cx";
 
 export type EmailConfirmationModalProps = {
@@ -162,17 +162,17 @@ export function EmailConfirmationModal({
         className="relative w-full max-w-md rounded-2xl bg-[#1A2E42] shadow-xl"
       >
         <div className="border-b border-[#2A4A68] px-6 py-5">
-          <h2 className="text-xl font-bold text-white">Include emails in your dark web scan</h2>
+          <h2 className="text-xl font-bold text-white">Choose emails for Dark Web scan</h2>
           <p className="mt-1 text-sm text-[#7A92A8]">
-            These came off your full broker profiles. Choose up to {MAX_SELECTED} to check
-            against known breaches and exposed accounts.
+            Instantly search millions dark web forums, breach databases, and leak announcements to
+            identify if any of your accounts/credentials have been leaked.
           </p>
         </div>
 
-        <div className="max-h-[60vh] overflow-y-auto px-6 py-4">
-          <div className="mb-2 flex items-center justify-between">
+        <div className="max-h-[40vh] overflow-y-auto px-6 py-4">
+          <div className="mb-1 flex items-center justify-between">
             <span className="text-xs font-semibold uppercase tracking-wider text-[#7A92A8]">
-              Up to {MAX_SELECTED} emails
+              Select up to {MAX_SELECTED} emails
             </span>
             <span
               className={cx(
@@ -183,9 +183,10 @@ export function EmailConfirmationModal({
               {selectedCount} of {MAX_SELECTED} selected
             </span>
           </div>
+          <p className="mb-3 text-xs text-[#7A92A8]">All registered plans include unlimited emails</p>
 
           {emails.length > 0 ? (
-            <div className="mb-4 flex flex-col gap-2" role="group" aria-label="Emails to include">
+            <div className="flex flex-col gap-2" role="group" aria-label="Emails to include">
               {emails.map((email) => {
                 const isSelected = selectedIds.includes(email.id);
                 return (
@@ -196,7 +197,7 @@ export function EmailConfirmationModal({
                     aria-checked={isSelected}
                     onClick={() => toggleEmail(email.id)}
                     className={cx(
-                      "flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left transition",
+                      "flex w-full items-center rounded-lg px-4 py-3 text-left transition",
                       "outline-none focus-visible:ring-2 focus-visible:ring-[#00BFFF]",
                       isSelected
                         ? "bg-[#0B3B52] ring-1 ring-[#00BFFF]"
@@ -204,67 +205,57 @@ export function EmailConfirmationModal({
                       !isSelected && atLimit && "opacity-60",
                     )}
                   >
-                    <span
-                      className={cx(
-                        "flex h-5 w-5 shrink-0 items-center justify-center rounded border transition",
-                        isSelected
-                          ? "border-[#00BFFF] bg-[#00BFFF] text-[#022136]"
-                          : "border-[#2A4A68] bg-transparent",
-                      )}
-                      aria-hidden
-                    >
-                      {isSelected ? <Check size={14} strokeWidth={3} /> : null}
-                    </span>
                     <span className="flex-1 break-all text-sm text-white">{email.value}</span>
                   </button>
                 );
               })}
             </div>
           ) : (
-            <p className="mb-4 rounded-lg bg-[#022136] px-4 py-3 text-sm text-[#7A92A8]">
+            <p className="rounded-lg bg-[#022136] px-4 py-3 text-sm text-[#7A92A8]">
               We didn't find any emails on your broker profiles. Add one below to scan it.
             </p>
           )}
+        </div>
 
-          <div className="mb-4 border-t border-[#2A4A68] pt-3">
-            <label
-              htmlFor="add-email"
-              className="mb-2 block text-xs font-semibold uppercase tracking-wider text-[#7A92A8]"
+        {/* Always visible -- not part of the scrollable email list above. */}
+        <div className="border-t border-[#2A4A68] px-6 py-4">
+          <label
+            htmlFor="add-email"
+            className="mb-2 block text-xs font-semibold uppercase tracking-wider text-[#7A92A8]"
+          >
+            Add another email
+          </label>
+          <div className="flex gap-2">
+            <input
+              id="add-email"
+              type="email"
+              value={newEmailInput}
+              onChange={(e) => setNewEmailInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleAddEmail();
+              }}
+              placeholder="another@email.com"
+              className={cx(
+                "flex-1 rounded-lg border px-3 py-2.5 text-sm",
+                "bg-[#022136] text-white placeholder-[#7A92A8]",
+                "border-[#2A4A68] outline-none transition",
+                "focus:ring-2 focus:ring-[#00BFFF]",
+              )}
+            />
+            <button
+              type="button"
+              onClick={handleAddEmail}
+              disabled={!newEmailInput.trim()}
+              className={cx(
+                "flex h-10 w-10 items-center justify-center rounded-lg font-semibold transition",
+                newEmailInput.trim()
+                  ? "bg-[#00BFFF] text-white hover:bg-[#00D4FF]"
+                  : "bg-[#2A4A68] text-[#7A92A8] cursor-not-allowed",
+              )}
+              aria-label="Add email"
             >
-              Add another email
-            </label>
-            <div className="flex gap-2">
-              <input
-                id="add-email"
-                type="email"
-                value={newEmailInput}
-                onChange={(e) => setNewEmailInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") handleAddEmail();
-                }}
-                placeholder="another@email.com"
-                className={cx(
-                  "flex-1 rounded-lg border px-3 py-2.5 text-sm",
-                  "bg-[#022136] text-white placeholder-[#7A92A8]",
-                  "border-[#2A4A68] outline-none transition",
-                  "focus:ring-2 focus:ring-[#00BFFF]",
-                )}
-              />
-              <button
-                type="button"
-                onClick={handleAddEmail}
-                disabled={!newEmailInput.trim()}
-                className={cx(
-                  "flex h-10 w-10 items-center justify-center rounded-lg font-semibold transition",
-                  newEmailInput.trim()
-                    ? "bg-[#00BFFF] text-[#022136] hover:bg-[#00D4FF]"
-                    : "bg-[#2A4A68] text-[#7A92A8] cursor-not-allowed",
-                )}
-                aria-label="Add email"
-              >
-                <Plus size={18} />
-              </button>
-            </div>
+              <Plus size={18} />
+            </button>
           </div>
 
           <AnimatePresence>
@@ -274,7 +265,7 @@ export function EmailConfirmationModal({
                 animate={{ opacity: 1, y: 0 }}
                 exit={prefersReducedMotion ? undefined : { opacity: 0, y: -6 }}
                 transition={{ duration: 0.18 }}
-                className="rounded-lg border border-[#FF8A00]/40 bg-[#4A2A28] p-3 text-sm text-[#FFB86B]"
+                className="mt-3 rounded-lg border border-[#FF8A00]/40 bg-[#4A2A28] p-3 text-sm text-[#FFB86B]"
                 role="alert"
               >
                 {error}
@@ -289,21 +280,20 @@ export function EmailConfirmationModal({
             onClick={onCancel}
             className="flex-1 rounded-lg border border-[#2A4A68] py-2.5 font-semibold text-[#B8C4CC] hover:bg-[#022136] transition"
           >
-            Back
+            Skip Breach Scan
           </button>
           <button
             type="button"
             onClick={handleConfirm}
+            disabled={selectedCount === 0}
             className={cx(
               "flex-1 rounded-lg py-2.5 font-semibold transition",
               selectedCount > 0
-                ? "bg-[#00BFFF] text-[#022136] hover:bg-[#00D4FF]"
-                : "bg-[#1B4A63] text-[#9FD9F5] hover:bg-[#1F5678]",
+                ? "bg-[#00BFFF] text-white hover:bg-[#00D4FF]"
+                : "bg-[#1B4A63] text-[#5A7A94] cursor-not-allowed",
             )}
           >
-            {selectedCount > 0
-              ? `Scan ${selectedCount} email${selectedCount === 1 ? "" : "s"}`
-              : "Continue without emails"}
+            Scan Dark Web
           </button>
         </div>
       </motion.div>

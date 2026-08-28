@@ -1064,7 +1064,7 @@ export function PilotLoadingPage() {
           <button
             type="button"
             onClick={() => go("report")}
-            className="mt-8 rounded-lg bg-[#00BFFF] px-5 py-2.5 text-sm font-semibold text-[#022136]"
+            className="mt-8 rounded-lg bg-[#00BFFF] px-5 py-2.5 text-sm font-semibold text-white"
           >
             Continue anyway
           </button>
