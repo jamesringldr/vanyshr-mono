@@ -127,12 +127,27 @@ const DRAWER_STAGES: ProgressStage[] = [
  * 81s), so a median run reads ~76% at the moment it completes and a slow
  * one keeps creeping rather than sitting pinned at the top.
  */
-const BREACH_TAU_MS = 22_000;
-const BREACH_CEILING = 95;
+const ESTIMATE_CEILING = 95;
 
-function breachPercent(elapsedMs: number): number {
-  return Math.round(BREACH_CEILING * (1 - Math.exp(-elapsedMs / BREACH_TAU_MS)));
+/**
+ * Approaches CEILING but never reaches it, so an estimate can never claim
+ * done before the real event lands. TAU is picked per span from measured
+ * wall time (scan_timings) such that a median run reads ~76% at the moment
+ * it finishes -- far enough along to feel nearly there, with headroom left
+ * if it runs long.
+ */
+function estimatePercent(elapsedMs: number, tauMs: number): number {
+  return Math.round(ESTIMATE_CEILING * (1 - Math.exp(-elapsedMs / tauMs)));
 }
+
+/** leakcheck dominates the confirm call: p50 36s, p90 70s, max 81s. */
+const BREACH_TAU_MS = 22_000;
+
+/**
+ * full_profile_fetch wall time, i.e. the slowest broker since they run in
+ * parallel: p50 4s, p90 14.6s, max 19.5s over 44 scans.
+ */
+const EXTRACTION_TAU_MS = 2_500;
 
 /**
  * Cosmetic filler for the one long silence in stage 3.
@@ -382,6 +397,7 @@ export function PilotLoadingPage() {
   const [progressMessages, setProgressMessages] = useState<ProgressMessage[]>([]);
   const [breachElapsed, setBreachElapsed] = useState(0);
   const [breachSummary, setBreachSummary] = useState<string | null>(null);
+  const [extractElapsed, setExtractElapsed] = useState(0);
   const [fillerTick, setFillerTick] = useState(0);
   const [reportElapsed, setReportElapsed] = useState<number | null>(null);
   const scanStartedAtRef = useRef<number>(Date.now());
@@ -450,11 +466,29 @@ export function PilotLoadingPage() {
   // (at least one success) but the stage summary has not. Structural rather
   // than matched on copy, so editing a message cannot silently break it.
   const brokerRows = progressMessages.filter((m) => m.step === "brokers");
+  const brokersOpen =
+    brokerRows.length > 0 && !brokerRows.some((m) => m.status === "summary");
+  // The parallel fetch is in flight: its opening line is the newest and
+  // nothing has come back yet.
+  const extracting =
+    brokersOpen &&
+    !brokerRows.some((m) => m.status === "success") &&
+    brokerRows.at(-1)?.status === "active";
   const consolidating =
     brokerRows.length > 0 &&
     !brokerRows.some((m) => m.status === "summary") &&
     brokerRows.some((m) => m.status === "success") &&
     brokerRows.at(-1)?.status === "active";
+
+  // Clock for the extraction estimate, started when the client first sees
+  // the window open.
+  useEffect(() => {
+    if (!extracting) return;
+    const startedAt = Date.now();
+    setExtractElapsed(0);
+    const id = window.setInterval(() => setExtractElapsed(Date.now() - startedAt), 250);
+    return () => window.clearInterval(id);
+  }, [extracting]);
 
   // Stage 3's post-extraction lull: cycle the filler on an irregular beat so
   // it reads as work rather than a spinner on a timer.
@@ -861,6 +895,17 @@ export function PilotLoadingPage() {
    * are synthesised rather than read back, and are never persisted. Every
    * other stage comes off the real log.
    */
+  // The extraction line is a real backend row; the percentage is the only
+  // synthetic part, so it rides on that row instead of a duplicate line.
+  const extractingRowId = extracting ? brokerRows.at(-1)?.id : undefined;
+  const loggedMessages: ProgressMessage[] = extractingRowId
+    ? progressMessages.map((m) =>
+        m.id === extractingRowId
+          ? { ...m, percent: estimatePercent(extractElapsed, EXTRACTION_TAU_MS) }
+          : m,
+      )
+    : progressMessages;
+
   const syntheticMessages: ProgressMessage[] = [];
   if (consolidating) {
     syntheticMessages.push({
@@ -886,7 +931,7 @@ export function PilotLoadingPage() {
             step: "darkweb",
             status: "active",
             message: "Scanning millions of dark web forums and breach databases",
-            percent: breachPercent(breachElapsed),
+            percent: estimatePercent(breachElapsed, BREACH_TAU_MS),
             created_at: new Date().toISOString(),
           },
     );
@@ -1036,7 +1081,7 @@ export function PilotLoadingPage() {
           !holdMode
         }
         stages={DRAWER_STAGES}
-        progressMessages={[...progressMessages, ...syntheticMessages]}
+        progressMessages={[...loggedMessages, ...syntheticMessages]}
         statusAction={statusAction}
       />
 
