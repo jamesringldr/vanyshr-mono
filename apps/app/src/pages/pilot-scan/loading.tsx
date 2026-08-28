@@ -134,6 +134,27 @@ function breachPercent(elapsedMs: number): number {
   return Math.round(BREACH_CEILING * (1 - Math.exp(-elapsedMs / BREACH_TAU_MS)));
 }
 
+/**
+ * Cosmetic filler for the one long silence in stage 3.
+ *
+ * scrapeBrokerDetails() resolves every target as a unit, so between
+ * "Extraction finished" and the stage summary there is a ~25-30s stretch
+ * with real work happening and nothing to report. This cycles the field
+ * types consolidation actually merges, so the drawer reads as busy rather
+ * than stalled. It is deliberately not tied to the merge order -- it says
+ * what is being consolidated, not that any one type is done.
+ */
+const CONSOLIDATION_TYPES = [
+  "phone numbers",
+  "street addresses",
+  "email addresses",
+  "relatives",
+  "aliases",
+  "employment history",
+  "education records",
+  "property records",
+] as const;
+
 /** "1m 04s" / "12s" — mirrors the backend's summary-line formatting. */
 function formatElapsed(ms: number): string {
   const total = Math.round(ms / 1000);
@@ -361,6 +382,9 @@ export function PilotLoadingPage() {
   const [progressMessages, setProgressMessages] = useState<ProgressMessage[]>([]);
   const [breachElapsed, setBreachElapsed] = useState(0);
   const [breachSummary, setBreachSummary] = useState<string | null>(null);
+  const [fillerTick, setFillerTick] = useState(0);
+  const [reportElapsed, setReportElapsed] = useState<number | null>(null);
+  const scanStartedAtRef = useRef<number>(Date.now());
 
   const candidatesRef = useRef<IdentifyCandidate[]>([]);
   const rejectedRef = useRef<IdentifyCandidate[]>([]);
@@ -414,11 +438,48 @@ export function PilotLoadingPage() {
 
   useEffect(() => {
     if (phase !== "report") return;
+    // Long enough for stage 5 to close at 700ms and be read. This is the
+    // only moment all five stages show green with their timings.
     const t = window.setTimeout(() => {
       navigate("/pilot-scan/report", { replace: true });
-    }, prefersReducedMotion ? 400 : 800);
+    }, prefersReducedMotion ? 900 : 2000);
     return () => window.clearTimeout(t);
   }, [phase, navigate, prefersReducedMotion]);
+
+  // Stage 3 is mid-lull once the per-target extraction lines have landed
+  // (at least one success) but the stage summary has not. Structural rather
+  // than matched on copy, so editing a message cannot silently break it.
+  const brokerRows = progressMessages.filter((m) => m.step === "brokers");
+  const consolidating =
+    brokerRows.length > 0 &&
+    !brokerRows.some((m) => m.status === "summary") &&
+    brokerRows.some((m) => m.status === "success") &&
+    brokerRows.at(-1)?.status === "active";
+
+  // Stage 3's post-extraction lull: cycle the filler on an irregular beat so
+  // it reads as work rather than a spinner on a timer.
+  useEffect(() => {
+    if (!consolidating) return;
+    let timer: number;
+    const schedule = () => {
+      timer = window.setTimeout(() => {
+        setFillerTick((n) => n + 1);
+        schedule();
+      }, 900 + Math.random() * 1500);
+    };
+    schedule();
+    return () => window.clearTimeout(timer);
+  }, [consolidating]);
+
+  // Let stage 5 land before the navigate, so the run visibly finishes.
+  useEffect(() => {
+    if (phase !== "report") return;
+    const t = window.setTimeout(
+      () => setReportElapsed(Date.now() - scanStartedAtRef.current),
+      700,
+    );
+    return () => window.clearTimeout(t);
+  }, [phase]);
 
   // Ticks stage 4's estimated bar for as long as the confirm call is out.
   useEffect(() => {
@@ -640,6 +701,7 @@ export function PilotLoadingPage() {
     candidatesRef.current = [];
     setProfiles([]);
     setProgressMessages([]);
+    scanStartedAtRef.current = Date.now();
     go("searching");
 
     invokeOnce(`summary-scan:${quickScanId}`, "summary-scan", { quickscanId: quickScanId })
@@ -800,6 +862,15 @@ export function PilotLoadingPage() {
    * other stage comes off the real log.
    */
   const syntheticMessages: ProgressMessage[] = [];
+  if (consolidating) {
+    syntheticMessages.push({
+      id: "brokers-consolidating",
+      step: "brokers",
+      status: "active",
+      message: `Consolidating extracted data: ${CONSOLIDATION_TYPES[fillerTick % CONSOLIDATION_TYPES.length]}`,
+      created_at: new Date().toISOString(),
+    });
+  }
   if (isConfirming || breachSummary) {
     syntheticMessages.push(
       breachSummary
@@ -821,13 +892,23 @@ export function PilotLoadingPage() {
     );
   }
   if (phase === "report") {
-    syntheticMessages.push({
-      id: "report-consolidating",
-      step: "report",
-      status: "active",
-      message: "Consolidating Data",
-      created_at: new Date().toISOString(),
-    });
+    syntheticMessages.push(
+      reportElapsed !== null
+        ? {
+            id: "report-ready",
+            step: "report",
+            status: "summary",
+            message: `Risk report ready - ${formatElapsed(reportElapsed)}`,
+            created_at: new Date().toISOString(),
+          }
+        : {
+            id: "report-consolidating",
+            step: "report",
+            status: "active",
+            message: "Consolidating Data",
+            created_at: new Date().toISOString(),
+          },
+    );
   }
   const allDone = phase === "report";
   const activeStep =
