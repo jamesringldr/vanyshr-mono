@@ -28,6 +28,53 @@ jobs:
       - name: deno test
         run: deno test --allow-read --allow-env --no-check supabase/functions/
 
+  # `vite build` only transpiles — it never typechecks. It will happily report
+  # success on a file referencing an identifier that does not exist, which is
+  # a runtime ReferenceError on the page. That is not hypothetical: it landed
+  # on dev/quickscan-ui on 2026-08-28, where a bad edit deleted ~330 lines of
+  # loading.tsx (every type alias, HOLD_PROFILES, STEPS) and the build still
+  # went green. `tsc --noEmit` catches it instantly.
+  #
+  # The scripts already existed in every package; nothing ran them, so they
+  # had drifted red and nobody could use them as a gate.
+  #
+  # @vanyshr/ui is excluded, not passing: calendar.tsx:26 has one pre-existing
+  # TS2322 (react-aria's CalendarContext onChange is typed to accept
+  # `readonly DateValue[]`, which the single-value setState cannot). Fixing it
+  # means changing that component's runtime behaviour, so it is deliberately
+  # left for its own change. Turbo cannot express the exclusion — type-check
+  # dependsOn ^type-check, so filtering ui out still runs it as app's
+  # dependency — hence the explicit pnpm filter list. Add ui here once
+  # calendar.tsx is clean, and drop this note.
+  typecheck:
+    name: tsc --noEmit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 8.15.4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # No --frozen-lockfile, and no setup-node cache: pnpm-lock.yaml is
+      # gitignored in this repo (.gitignore:4), so neither the install nor the
+      # cache key has a lockfile to work from on a clean checkout. Both would
+      # fail outright. Add them together the day the lockfile is committed.
+      - run: pnpm install
+
+      - name: type-check
+        run: >
+          pnpm
+          --filter @vanyshr/app
+          --filter @vanyshr/shared
+          --filter @vanyshr/services
+          --filter @vanyshr/backend
+          run type-check
+
   # Guards the failure this repo actually had: both workflows shipped as
   # `echo "Add ... steps"` on 2026-01-31 and stayed that way until 2026-08-26,
   # painting a green check on every merge to main while deploying nothing.

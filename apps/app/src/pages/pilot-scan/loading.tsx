@@ -332,6 +332,18 @@ export function PilotLoadingPage() {
     phaseRef.current = next;
     setPhase(next);
   }
+  /**
+   * Read the live phase inside async work.
+   *
+   * Not just sugar for `phaseRef.current`: TypeScript does not reset a
+   * narrowing of `.current` across a call, so after an early
+   * `if (phaseRef.current !== "pick") return` it still believes the value is
+   * "pick" further down — even though go() has since reassigned it. That
+   * made the mid-poll bail-outs below look like dead code to the checker
+   * (and silently disabled checking through them). A call's return value
+   * gets no such stale narrowing.
+   */
+  const currentPhase = (): Phase => phaseRef.current;
 
   const [profiles, setProfiles] = useState<QSProfileSummary[]>([]);
   const [searchName, setSearchName] = useState("");
@@ -461,7 +473,7 @@ export function PilotLoadingPage() {
   const FULL_PROFILE_RETRY_DELAY_MS = 1000;
 
   async function handlePick(profile: QSProfileSummary) {
-    if (phaseRef.current !== "pick") return;
+    if (currentPhase() !== "pick") return;
     go("full_profile");
 
     const quickscanId = quickScanIdRef.current;
@@ -476,7 +488,7 @@ export function PilotLoadingPage() {
       for (let attempt = 0; attempt < FULL_PROFILE_MAX_ATTEMPTS; attempt++) {
         // Cancelled/navigated away mid-poll — the already-running loading
         // screen covers this wait, so bail rather than keep invoking.
-        if (phaseRef.current !== "full_profile") return;
+        if (currentPhase() !== "full_profile") return;
         ({ data, error } = await supabase.functions.invoke("full-profile-scan", {
           body: { quickscanId, fullProfileResultId: profile.id, rejected: rejectedRef.current },
         }));
@@ -518,7 +530,7 @@ export function PilotLoadingPage() {
       setEmailCandidates([]);
     }
 
-    if (phaseRef.current === "full_profile") go("emails");
+    if (currentPhase() === "full_profile") go("emails");
   }
 
   const LIST_MAX_ATTEMPTS = 75;

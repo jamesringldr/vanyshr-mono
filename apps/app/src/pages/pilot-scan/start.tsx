@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
-import { Mail, Check, Zap, Lock, Shield, Key } from "lucide-react";
+import { Mail, Check, Zap, Lock, Shield } from "lucide-react";
 import PrimaryIconOutline from "@vanyshr/ui/assets/PrimaryIcon-outline.png";
 import { cx } from "@/utils/cx";
 import { supabase } from "@/lib/supabase";
