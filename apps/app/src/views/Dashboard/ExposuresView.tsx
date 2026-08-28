@@ -45,7 +45,7 @@ interface RawExposure {
   removal_requested_at: string | null;
   removed_at: string | null;
   verified_removed_at: string | null;
-  brokers?: {
+  brokers: {
     name: string;
     slug: string;
     website_url: string | null;
@@ -150,36 +150,16 @@ function initials(name: string): string {
   return name.slice(0, 2).toUpperCase();
 }
 
-function snapshotString(snapshot: Record<string, unknown> | null, key: string): string | null {
-  if (!snapshot) return null;
-  const value = snapshot[key];
-  return typeof value === 'string' && value.trim() ? value.trim() : null;
-}
-
-function exposureBroker(item: RawExposure): { name: string; website_url: string | null } {
-  const name =
-    snapshotString(item.data_snapshot, 'broker_name')
-    ?? item.brokers?.name
-    ?? 'Unknown Broker';
-  const website_url =
-    snapshotString(item.data_snapshot, 'company_url')
-    ?? snapshotString(item.data_snapshot, 'profile_url')
-    ?? item.profile_url
-    ?? item.brokers?.website_url
-    ?? null;
-  return { name, website_url };
-}
-
 function snapshotPreview(snapshot: Record<string, unknown> | null): string | null {
   if (!snapshot) return null;
   const LABELS: Record<string, string> = {
-    name: 'name', full_name: 'name', address: 'address', phones: 'phone', emails: 'email',
+    name: 'name', address: 'address', phones: 'phone', emails: 'email',
     age: 'age', relatives: 'relatives', employer: 'employer',
   };
   const found = Object.entries(LABELS)
     .filter(([key]) => snapshot[key] && (Array.isArray(snapshot[key]) ? (snapshot[key] as unknown[]).length > 0 : true))
     .map(([, label]) => label);
-  return found.length > 0 ? [...new Set(found)].slice(0, 3).join(', ') : null;
+  return found.length > 0 ? found.slice(0, 3).join(', ') : null;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -189,7 +169,7 @@ function snapshotPreview(snapshot: Record<string, unknown> | null): string | nul
 function ExposureCard({ item, onClick }: { item: ExposureItem; onClick: () => void }) {
   const cfg        = EXPOSURE_STATUS_CONFIG[item.status] ?? EXPOSURE_STATUS_CONFIG.found;
   const StatusIcon = cfg.Icon;
-  const brokerName = exposureBroker(item).name;
+  const brokerName = item.brokers?.name ?? 'Unknown Broker';
   const preview    = snapshotPreview(item.data_snapshot);
 
   return (
@@ -300,14 +280,12 @@ function ExposureModal({
   onClose: () => void;
   onUpdate: (id: string, status: ExposureStatus) => void;
 }) {
-  const broker     = exposureBroker(item);
   const cfg        = EXPOSURE_STATUS_CONFIG[item.status] ?? EXPOSURE_STATUS_CONFIG.found;
   const StatusIcon = cfg.Icon;
-  const brokerName = broker.name;
+  const brokerName = item.brokers?.name ?? 'Unknown Broker';
   const snapshot   = item.data_snapshot ?? {};
-  const HIDDEN_SNAPSHOT_KEYS = new Set(['broker_slug', 'broker_name', 'company_url']);
-  const snapshotEntries = Object.entries(snapshot).filter(([key, v]) =>
-    !HIDDEN_SNAPSHOT_KEYS.has(key) && v !== null && v !== undefined && v !== ''
+  const snapshotEntries = Object.entries(snapshot).filter(([, v]) =>
+    v !== null && v !== undefined && v !== ''
   );
 
   const isActionable = !['removed', 'verified_removed', 'ignored'].includes(item.status);
@@ -323,15 +301,15 @@ function ExposureModal({
           </div>
           <div>
             <p className="text-base font-bold text-white">{brokerName}</p>
-            {broker.website_url && (
+            {item.brokers?.website_url && (
               <a
-                href={broker.website_url}
+                href={item.brokers.website_url}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-1 text-xs text-[#00BFFF] mt-0.5 hover:text-[#00D4FF] transition-colors"
               >
                 <Globe className="w-3 h-3" aria-hidden="true" />
-                {broker.website_url.replace(/^https?:\/\//, '')}
+                {item.brokers.website_url.replace(/^https?:\/\//, '')}
                 <ExternalLink className="w-2.5 h-2.5" aria-hidden="true" />
               </a>
             )}
@@ -571,7 +549,6 @@ export function ExposuresView() {
   const navigate = useNavigate();
 
   const [isLoading, setIsLoading]       = useState(true);
-  const [hasSession, setHasSession]     = useState(false);
   const [exposures, setExposures]       = useState<ExposureItem[]>([]);
   const [breaches, setBreaches]         = useState<BreachItem[]>([]);
   const [typeFilter, setTypeFilter]     = useState<TypeFilter>('all');
@@ -596,8 +573,7 @@ export function ExposuresView() {
   useEffect(() => {
     async function load() {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { setHasSession(false); setIsLoading(false); return; }
-      setHasSession(true);
+      if (!user) { setIsLoading(false); return; }
 
       const { data: profile } = await supabase
         .from('user_profiles')
@@ -610,7 +586,7 @@ export function ExposuresView() {
       const [{ data: exposureData }, { data: breachData }] = await Promise.all([
         supabase
           .from('exposures')
-          .select('*')
+          .select('*, brokers(name, slug, website_url)')
           .eq('user_id', profile.id)
           .order('first_found_at', { ascending: false }),
         supabase
@@ -658,7 +634,7 @@ export function ExposuresView() {
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       if (item.kind === 'exposure') {
-        const name = exposureBroker(item).name.toLowerCase();
+        const name = (item.brokers?.name ?? '').toLowerCase();
         const snap = JSON.stringify(item.data_snapshot ?? '').toLowerCase();
         if (!name.includes(q) && !snap.includes(q)) return false;
       } else {
@@ -788,15 +764,11 @@ export function ExposuresView() {
             <div className="bg-[#2D3847] border border-[#2A4A68] rounded-xl px-6 py-12 flex flex-col items-center gap-3 text-center">
               <Shield className="w-8 h-8 text-[#00D4AA]" aria-hidden="true" />
               <p className="text-sm font-bold text-white">
-                {allItems.length === 0
-                  ? (hasSession ? 'All clear' : 'No exposures to show')
-                  : 'No results for this filter'}
+                {allItems.length === 0 ? 'All clear' : 'No results for this filter'}
               </p>
               <p className="text-xs text-[#7A92A8] leading-relaxed">
                 {allItems.length === 0
-                  ? (hasSession
-                    ? "We haven't found any exposures yet. They appear here after you convert from a scan."
-                    : 'Sign in to load your broker listings and breaches.')
+                  ? "We haven't found any exposures yet. Run a full scan to check all data brokers."
                   : 'Try selecting a different filter above.'}
               </p>
             </div>

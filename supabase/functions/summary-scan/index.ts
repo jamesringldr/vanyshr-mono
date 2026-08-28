@@ -38,6 +38,19 @@ const IDENTIFY_READY_STATUS = "identify_ready";
 
 type StoredRow = { table: "summary_results" | "full_profile_results"; id: string };
 
+/**
+ * Maps broker IDs to human-readable names for status messages.
+ */
+function getBrokerDisplayName(broker: string): string {
+  const names: Record<string, string> = {
+    [BrokerName.FPS]: "FastPeopleSearch",
+    "anywho": "AnyWho",
+    "zaba": "Zaba",
+    "npd": "National Public Data",
+  };
+  return names[broker.toLowerCase()] || broker;
+}
+
 serve(async (req) => {
   const corsHeaders = getCorsHeaders(req);
   if (req.method === "OPTIONS") {
@@ -114,6 +127,7 @@ serve(async (req) => {
           broker: listBroker,
           candidates,
           zaba_candidates: candidates,
+          status_action: `Found ${candidates.length} match${candidates.length !== 1 ? "es" : ""} on ${getBrokerDisplayName(listBroker)}`,
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
@@ -134,6 +148,7 @@ serve(async (req) => {
             unavailable: true,
             status: listed.status,
             error: "We couldn't reach a people-search site. Try the scan again.",
+            status_action: `${getBrokerDisplayName(listed.broker)} is unavailable`,
           }),
           { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
@@ -151,6 +166,7 @@ serve(async (req) => {
           broker: listed.broker,
           candidates: listed.candidates,
           zaba_candidates: listed.candidates,
+          status_action: `Found ${listed.candidates.length} match${listed.candidates.length !== 1 ? "es" : ""} on ${getBrokerDisplayName(listed.broker)}`,
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
@@ -222,6 +238,7 @@ serve(async (req) => {
           broker: BrokerName.FPS,
           candidates: fpsCandidates,
           zaba_candidates: fpsCandidates,
+          status_action: `Found ${fpsCandidates.length} match${fpsCandidates.length !== 1 ? "es" : ""} on ${getBrokerDisplayName(BrokerName.FPS)}`,
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
@@ -267,6 +284,7 @@ serve(async (req) => {
           unavailable: true,
           status: fpsResult.status,
           error: "We couldn't reach a people-search site. Try the scan again.",
+          status_action: `${getBrokerDisplayName(BrokerName.FPS)} is unavailable, trying ${getBrokerDisplayName("anywho")}...`,
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
@@ -293,6 +311,7 @@ serve(async (req) => {
         broker: listed.broker,
         candidates: listed.candidates,
         zaba_candidates: listed.candidates,
+        status_action: `Found ${listed.candidates.length} match${listed.candidates.length !== 1 ? "es" : ""} on ${getBrokerDisplayName(listed.broker)}`,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );

@@ -31,20 +31,6 @@ serve(async (req) => {
       typeof email === "string" && email.trim() ? email.trim() : null;
 
     if (!resolvedEmail) {
-      const { data: introEmail } = await supabaseClient
-        .schema("quickscan").from("emails")
-        .select("normalized_value")
-        .eq("quickscans_id", scan_id)
-        .eq("confirmed", true)
-        .is("duplicate_of", null)
-        .limit(1)
-        .maybeSingle();
-      if (introEmail?.normalized_value && String(introEmail.normalized_value).trim()) {
-        resolvedEmail = String(introEmail.normalized_value).trim();
-      }
-    }
-
-    if (!resolvedEmail) {
       const { data: scanRow } = await supabaseClient
         .schema("quickscan").from("quick_scans")
         .select("email")

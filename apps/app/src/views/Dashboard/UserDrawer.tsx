@@ -3,23 +3,10 @@ import { ChevronRight, User, Bell, Shield, Layers, Plus, LogOut } from 'lucide-r
 interface UserDrawerProps {
   isOpen: boolean;
   onClose: () => void;
-  firstName?: string | null;
-  lastName?: string | null;
-  email?: string | null;
 }
 
-function initialsFromName(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length >= 2) return `${parts[0]![0] ?? ''}${parts[1]![0] ?? ''}`.toUpperCase();
-  return name.slice(0, 2).toUpperCase() || '?';
-}
-
-export function UserDrawer({ isOpen, onClose, firstName, lastName, email }: UserDrawerProps) {
+export function UserDrawer({ isOpen, onClose }: UserDrawerProps) {
   if (!isOpen) return null;
-
-  const displayName = [firstName, lastName].filter(Boolean).join(' ') || 'Account';
-  const displayEmail = email?.trim() || 'No email on file';
-  const initials = initialsFromName(displayName);
 
   return (
     <>
@@ -43,11 +30,11 @@ export function UserDrawer({ isOpen, onClose, firstName, lastName, email }: User
         {/* ── Section 1 — User Identity ─────────────────────────────────── */}
         <div className="px-2 py-2 flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-[#022136] border border-[#2A4A68] flex items-center justify-center flex-shrink-0">
-            <span className="text-[#00BFFF] text-sm font-bold">{initials}</span>
+            <span className="text-[#00BFFF] text-sm font-bold">JD</span>
           </div>
           <div className="flex flex-col">
-            <span className="text-base font-bold text-white font-ubuntu">{displayName}</span>
-            <span className="text-xs text-[#7A92A8] font-ubuntu">{displayEmail}</span>
+            <span className="text-base font-bold text-white font-ubuntu">James Davidson</span>
+            <span className="text-xs text-[#7A92A8] font-ubuntu">james@example.com</span>
           </div>
         </div>
 

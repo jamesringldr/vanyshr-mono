@@ -54,36 +54,26 @@ interface UserUpdate {
   created_at: string;
 }
 
-interface HomeExposure {
-  id: string;
-  status: string;
-  profile_url: string | null;
-  data_snapshot: Record<string, unknown> | null;
-  first_found_at: string;
-}
+// ─────────────────────────────────────────────────────────────────────────────
+// Mock Data (non-breach sections remain mocked)
+// ─────────────────────────────────────────────────────────────────────────────
 
-interface HomeProfile {
-  id: string;
-  first_name: string | null;
-  last_name: string | null;
-  email: string | null;
-}
+const EXPOSURES_DATA: Record<Timeframe, { count: number; delta: string }> = {
+  '30D': { count: 14, delta: '+3' },
+  '90D': { count: 31, delta: '+8' },
+  'All': { count: 47, delta: '+12' },
+};
 
-const SUBMITTED_STATUSES = new Set([
-  'queued',
-  'removal_requested',
-  'removal_in_progress',
-  'removed',
-  'verified_removed',
-]);
-const CONFIRMED_STATUSES = new Set(['removed', 'verified_removed']);
-const ACTIVE_EXPOSURE_STATUSES = new Set([
-  'found',
-  'queued',
-  'manual_required',
-  'relisted',
-  'failed',
-]);
+const REMOVALS_SUBMITTED_DATA = {
+  count: 12,
+  delta: '+3',
+};
+
+const REMOVALS_CONFIRMED_DATA: Record<Timeframe, { count: number; delta: string }> = {
+  '30D': { count: 9,  delta: '-2' },
+  '90D': { count: 22, delta: '-5' },
+  'All': { count: 31, delta: '-8' },
+};
 
 const CARD_INFO: Record<string, string> = {
   'exposures':       'Brokers where your data is currently exposed',
@@ -91,6 +81,96 @@ const CARD_INFO: Record<string, string> = {
   'needs-attention': 'Number of removal requests submitted',
   'in-progress':     'Number of brokers Vanyshr has successfully removed',
 };
+
+const ACTIVITY_ITEMS: {
+  id: string;
+  type: ActivityType;
+  status: ActivityStatus;
+  title: string;
+  descriptor: string;
+  time: string;
+  minutesAgo: number;
+}[] = [
+  {
+    id: 'dark-web-in-progress',
+    type: 'Dark Web Scan',
+    status: 'In Progress',
+    title: 'Dark Web Scan In Progress',
+    descriptor: 'Searching new breach dumps for compromised credentials',
+    time: '10m ago',
+    minutesAgo: 10,
+  },
+  {
+    type: 'Dark Web Scan',
+    id: 'dark-web-complete',
+    status: 'Complete',
+    title: 'Dark Web Scan Complete',
+    descriptor: '2 new breaches identified',
+    time: '2h ago',
+    minutesAgo: 120,
+  },
+  {
+    id: 'broker-scan-in-progress',
+    type: 'Broker Scan',
+    status: 'In Progress',
+    title: 'Broker Scan In Progress',
+    descriptor: '248 of 253 data sources processed',
+    time: '45m ago',
+    minutesAgo: 45,
+  },
+  {
+    type: 'Removal',
+    id: 'removal-complete',
+    status: 'Complete',
+    title: 'Removal Confirmed',
+    descriptor: 'Spokeo — record successfully removed',
+    time: '1d ago',
+    minutesAgo: 1440,
+  },
+  {
+    type: 'Broker Scan',
+    id: 'broker-scan-complete',
+    status: 'Complete',
+    title: 'Broker Scan Complete',
+    descriptor: '253 data sources scanned · 3 new exposures',
+    time: '2d ago',
+    minutesAgo: 2880,
+  },
+];
+
+const REMOVAL_ACTIVITY_ITEMS: {
+  id: string;
+  status: ActivityStatus;
+  title: string;
+  descriptor: string;
+  time: string;
+  minutesAgo: number;
+}[] = [
+  {
+    id: 'removal-spokeo',
+    status: 'Complete',
+    title: 'Spokeo',
+    descriptor: 'Record successfully removed',
+    time: '1d ago',
+    minutesAgo: 1440,
+  },
+  {
+    id: 'removal-whitepages',
+    status: 'In Progress',
+    title: 'Whitepages',
+    descriptor: 'Opt-out submitted, awaiting confirmation',
+    time: '7h ago',
+    minutesAgo: 420,
+  },
+  {
+    id: 'removal-acxiom',
+    status: 'In Progress',
+    title: 'Acxiom',
+    descriptor: 'Removal request is currently processing',
+    time: '3h ago',
+    minutesAgo: 180,
+  },
+];
 
 const UPDATE_TYPE_CONFIG: Record<string, { Icon: React.ElementType; label: string }> = {
   info:            { Icon: Info,          label: 'Info'            },
@@ -111,6 +191,12 @@ const STATUS_CHIP_STYLES: Record<ActivityStatus, { bg: string; text: string; lab
   'In Progress': { bg: 'bg-[#00BFFF]/20', text: 'text-[#00BFFF]', label: 'IN PROGRESS' },
   'Complete': { bg: 'bg-[#00D4AA]/20', text: 'text-[#00D4AA]', label: 'COMPLETE' },
 };
+
+const BROKER_ITEMS: { broker: string; initials: string; status: BrokerStatus; minutesAgo: number }[] = [
+  { broker: 'Acxiom',     initials: 'AC', status: 'Exposed',           minutesAgo: 35 },
+  { broker: 'Whitepages', initials: 'WP', status: 'Removal Requested', minutesAgo: 110 },
+  { broker: 'Spokeo',     initials: 'SP', status: 'Removed',           minutesAgo: 260 },
+];
 
 const BROKER_STATUS_STYLES: Record<BrokerStatus, { dot: string; text: string; label: string }> = {
   'Exposed':           { dot: 'bg-[#FF8A00]', text: 'text-[#FF8A00]', label: 'Exposed · High Risk'  },
@@ -143,54 +229,6 @@ function toMinutesAgo(dateStr: string | null): number {
   return Math.max(0, Math.floor((Date.now() - timestamp) / 60000));
 }
 
-function inTimeframe(dateStr: string | null, timeframe: Timeframe): boolean {
-  if (timeframe === 'All') return true;
-  if (!dateStr) return false;
-  const days = timeframe === '30D' ? 30 : 90;
-  const timestamp = new Date(dateStr).getTime();
-  if (Number.isNaN(timestamp)) return false;
-  return Date.now() - timestamp <= days * 86_400_000;
-}
-
-function formatMinutesAgo(minutes: number): string {
-  if (minutes < 60) return `${Math.max(0, minutes)}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  return days === 1 ? '1d ago' : `${days}d ago`;
-}
-
-function snapshotString(snapshot: Record<string, unknown> | null, key: string): string | null {
-  if (!snapshot) return null;
-  const value = snapshot[key];
-  return typeof value === 'string' && value.trim() ? value.trim() : null;
-}
-
-function brokerNameFromSnapshot(snapshot: Record<string, unknown> | null): string {
-  return snapshotString(snapshot, 'broker_name') ?? 'Unknown Broker';
-}
-
-function initialsFromName(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length >= 2) return `${parts[0]![0] ?? ''}${parts[1]![0] ?? ''}`.toUpperCase();
-  return name.slice(0, 2).toUpperCase() || '?';
-}
-
-function exposureToBrokerStatus(status: string): BrokerStatus {
-  if (CONFIRMED_STATUSES.has(status)) return 'Removed';
-  if (status === 'queued' || status === 'removal_requested' || status === 'removal_in_progress') {
-    return 'Removal Requested';
-  }
-  return 'Exposed';
-}
-
-function countWithDelta(total: number, recent: number): { count: number; delta: string } {
-  return {
-    count: total,
-    delta: recent > 0 ? `+${recent}` : '0',
-  };
-}
-
 // ─────────────────────────────────────────────────────────────────────────────
 // DashboardHome
 // ─────────────────────────────────────────────────────────────────────────────
@@ -204,113 +242,44 @@ export function DashboardHome() {
   const [showAllCaughtUp, setShowAllCaughtUp] = useState(false);
   const prevUpdatesCountRef = useRef(0);
 
-  const [profile, setProfile]               = useState<HomeProfile | null>(null);
+  // Breach state (real DB data — feeds broker/breach list)
   const [profileId, setProfileId]           = useState<string | null>(null);
-  const [allBreaches, setAllBreaches]       = useState<DataBreach[]>([]);
-  const [exposuresList, setExposuresList]   = useState<HomeExposure[]>([]);
-  const [dataLoaded, setDataLoaded]         = useState(false);
+  const [newBreaches, setNewBreaches]       = useState<DataBreach[]>([]);
+  const [breachesLoaded, setBreachesLoaded] = useState(false);
 
+  // Updates state (real DB data — drives the Updates section)
   const [userUpdates, setUserUpdates]       = useState<UserUpdate[]>([]);
   const [updatesLoaded, setUpdatesLoaded]   = useState(false);
 
-  const newBreaches = allBreaches.filter(b => b.status === 'new');
-  const timedExposures = exposuresList.filter(e => inTimeframe(e.first_found_at, timeframe));
-  const timedBreaches = allBreaches.filter(b => inTimeframe(b.created_at, timeframe));
-  const unresolvedBreaches = timedBreaches.filter(b => b.status === 'new' || b.status === 'unresolved');
-  const weekMs = 7 * 86_400_000;
-  const recentExposureCount = timedExposures.filter(e => Date.now() - new Date(e.first_found_at).getTime() <= weekMs).length;
-  const recentBreachCount = unresolvedBreaches.filter(b => Date.now() - new Date(b.created_at).getTime() <= weekMs).length;
-  const exposures = dataLoaded
-    ? countWithDelta(timedExposures.filter(e => ACTIVE_EXPOSURE_STATUSES.has(e.status)).length, recentExposureCount)
-    : { count: 0, delta: '0' };
-  const removalsSubmitted = dataLoaded
-    ? countWithDelta(timedExposures.filter(e => SUBMITTED_STATUSES.has(e.status)).length, 0)
-    : { count: 0, delta: '0' };
-  const removalsConfirmed = dataLoaded
-    ? countWithDelta(timedExposures.filter(e => CONFIRMED_STATUSES.has(e.status)).length, 0)
-    : { count: 0, delta: '0' };
-  const breachesDelta = dataLoaded ? (recentBreachCount > 0 ? `+${recentBreachCount}` : '0') : '0';
-  const breachCount = dataLoaded ? unresolvedBreaches.length : 0;
-
-  const latestExposureAt = exposuresList.reduce<string | null>((latest, item) => {
-    if (!latest || item.first_found_at > latest) return item.first_found_at;
-    return latest;
-  }, null);
-  const latestBreachAt = allBreaches.reduce<string | null>((latest, item) => {
-    if (!latest || item.created_at > latest) return item.created_at;
-    return latest;
-  }, null);
-
-  const scanStatusItems: {
-    id: string;
-    type: ActivityType;
-    status: ActivityStatus;
-    title: string;
-    descriptor: string;
-    time: string;
-    minutesAgo: number;
-  }[] = [];
-  if (exposuresList.length > 0 && latestExposureAt) {
-    const minutesAgo = toMinutesAgo(latestExposureAt);
-    scanStatusItems.push({
-      id: 'broker-scan',
-      type: 'Broker Scan',
-      status: 'Complete',
-      title: 'Broker Scan',
-      descriptor: `${exposuresList.length} listing${exposuresList.length === 1 ? '' : 's'} found`,
-      time: formatMinutesAgo(minutesAgo),
-      minutesAgo,
-    });
-  }
-  if (allBreaches.length > 0 && latestBreachAt) {
-    const minutesAgo = toMinutesAgo(latestBreachAt);
-    scanStatusItems.push({
-      id: 'dark-web-scan',
-      type: 'Dark Web Scan',
-      status: 'Complete',
-      title: 'Dark Web Scan',
-      descriptor: `${allBreaches.length} breach${allBreaches.length === 1 ? '' : 'es'} identified`,
-      time: formatMinutesAgo(minutesAgo),
-      minutesAgo,
-    });
-  }
-  scanStatusItems.sort((a, b) => a.minutesAgo - b.minutesAgo);
-
-  const sortedRemovalItems = exposuresList
-    .filter(e => SUBMITTED_STATUSES.has(e.status) || e.status === 'found')
-    .map(e => {
-      const name = brokerNameFromSnapshot(e.data_snapshot);
-      const inProgress = e.status === 'removal_requested' || e.status === 'removal_in_progress' || e.status === 'queued';
-      return {
-        id: e.id,
-        status: (inProgress ? 'In Progress' : 'Complete') as ActivityStatus,
-        title: name,
-        descriptor: CONFIRMED_STATUSES.has(e.status)
-          ? 'Record successfully removed'
-          : inProgress
-            ? 'Opt-out submitted, awaiting confirmation'
-            : 'Listing found on a data broker',
-        time: formatMinutesAgo(toMinutesAgo(e.first_found_at)),
-        minutesAgo: toMinutesAgo(e.first_found_at),
-      };
-    })
-    .sort((a, b) => a.minutesAgo - b.minutesAgo)
-    .slice(0, 5);
-
+  const exposures  = EXPOSURES_DATA[timeframe];
+  const removalsConfirmed = REMOVALS_CONFIRMED_DATA[timeframe];
+  const breachesDelta = breachesLoaded ? (newBreaches.length > 0 ? `+${newBreaches.length}` : '0') : '—';
+  const latestScanByType = ACTIVITY_ITEMS
+    .filter(item => item.type === 'Dark Web Scan' || item.type === 'Broker Scan')
+    .reduce<Record<'Dark Web Scan' | 'Broker Scan', (typeof ACTIVITY_ITEMS)[number] | null>>(
+      (acc, item) => {
+        const key = item.type as 'Dark Web Scan' | 'Broker Scan';
+        if (!acc[key] || item.minutesAgo < acc[key]!.minutesAgo) {
+          acc[key] = item;
+        }
+        return acc;
+      },
+      { 'Dark Web Scan': null, 'Broker Scan': null },
+    );
+  const scanStatusItems = (Object.values(latestScanByType).filter(Boolean) as (typeof ACTIVITY_ITEMS)[number][])
+    .map(item => ({ ...item, title: item.type }))
+    .sort((a, b) => a.minutesAgo - b.minutesAgo);
+  const sortedRemovalItems = [...REMOVAL_ACTIVITY_ITEMS].sort((a, b) => a.minutesAgo - b.minutesAgo);
   const recentBrokerAndBreachItems = [
-    ...exposuresList.map(item => {
-      const name = brokerNameFromSnapshot(item.data_snapshot);
-      const brokerStatus = exposureToBrokerStatus(item.status);
-      return {
-        kind: 'broker' as const,
-        id: `broker-${item.id}`,
-        title: name,
-        subtitle: BROKER_STATUS_STYLES[brokerStatus].label,
-        minutesAgo: toMinutesAgo(item.first_found_at),
-        initials: initialsFromName(name),
-        brokerStatus,
-      };
-    }),
+    ...BROKER_ITEMS.map(item => ({
+      kind: 'broker' as const,
+      id: `broker-${item.broker.toLowerCase()}`,
+      title: item.broker,
+      subtitle: BROKER_STATUS_STYLES[item.status].label,
+      minutesAgo: item.minutesAgo,
+      initials: item.initials,
+      brokerStatus: item.status,
+    })),
     ...newBreaches.map(item => ({
       kind: 'breach' as const,
       id: `breach-${item.id}`,
@@ -323,59 +292,42 @@ export function DashboardHome() {
     .sort((a, b) => a.minutesAgo - b.minutesAgo)
     .slice(0, 5);
 
-  const displayName = [profile?.first_name, profile?.last_name].filter(Boolean).join(' ') || 'Account';
-  const displayFirst = profile?.first_name?.trim() || displayName.split(' ')[0] || 'Account';
-  const displayInitials = initialsFromName(displayName);
-
+  // ── Fetch new breaches on mount ──────────────────────────────────────────
   useEffect(() => {
-    async function loadDashboard() {
+    async function loadBreaches() {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        setDataLoaded(true);
-        setUpdatesLoaded(true);
-        return;
-      }
+      if (!user) { setBreachesLoaded(true); return; }
 
-      const { data: profileRow } = await supabase
+      const { data: profile } = await supabase
         .from('user_profiles')
-        .select('id, first_name, last_name, email')
+        .select('id')
         .eq('auth_user_id', user.id)
         .single();
 
-      if (!profileRow) {
-        setDataLoaded(true);
-        setUpdatesLoaded(true);
-        return;
-      }
-      setProfile(profileRow as HomeProfile);
-      setProfileId(profileRow.id);
+      if (!profile) { setBreachesLoaded(true); return; }
+      setProfileId(profile.id);
 
-      const [{ data: breachData }, { data: exposureData }, { data: updatesData }] = await Promise.all([
-        supabase
-          .from('data_breaches')
-          .select('*')
-          .eq('user_id', profileRow.id)
-          .order('created_at', { ascending: false }),
-        supabase
-          .from('exposures')
-          .select('id, status, profile_url, data_snapshot, first_found_at')
-          .eq('user_id', profileRow.id)
-          .order('first_found_at', { ascending: false }),
-        supabase
-          .from('user_updates')
-          .select('*')
-          .eq('user_id', profileRow.id)
-          .eq('status', 'unread')
-          .order('created_at', { ascending: false }),
-      ]);
+      const { data: breachData } = await supabase
+        .from('data_breaches')
+        .select('*')
+        .eq('user_id', profile.id)
+        .eq('status', 'new')
+        .order('created_at', { ascending: false });
 
-      setAllBreaches((breachData as DataBreach[]) ?? []);
-      setExposuresList((exposureData as HomeExposure[]) ?? []);
+      setNewBreaches((breachData as DataBreach[]) ?? []);
+      setBreachesLoaded(true);
+
+      const { data: updatesData } = await supabase
+        .from('user_updates')
+        .select('*')
+        .eq('user_id', profile.id)
+        .eq('status', 'unread')
+        .order('created_at', { ascending: false });
+
       setUserUpdates((updatesData as UserUpdate[]) ?? []);
-      setDataLoaded(true);
       setUpdatesLoaded(true);
     }
-    loadDashboard();
+    loadBreaches();
   }, []);
 
   // Show "all caught up" only when updates actually transition to zero.
@@ -453,9 +405,9 @@ export function DashboardHome() {
               aria-label="Open profile drawer"
             >
               <div className="w-9 h-9 rounded-full bg-[#2D3847] border border-[#2A4A68] flex items-center justify-center flex-shrink-0">
-                <span className="text-[#00BFFF] text-sm font-bold">{displayInitials}</span>
+                <span className="text-[#00BFFF] text-sm font-bold">JD</span>
               </div>
-              <span className="text-sm font-medium text-white">{displayFirst}</span>
+              <span className="text-sm font-medium text-white">James</span>
               <ChevronDown className="w-4 h-4 text-[#7A92A8]" />
             </button>
 
@@ -537,7 +489,7 @@ export function DashboardHome() {
               )}
               <div className="flex items-baseline gap-2">
                 <p className="text-3xl font-bold text-white">
-                  {dataLoaded ? breachCount : '—'}
+                  {breachesLoaded ? newBreaches.length : '—'}
                 </p>
                 <span className={`text-lg font-semibold ${getDeltaColor(breachesDelta, 'risk')}`}>{breachesDelta}</span>
               </div>
@@ -557,8 +509,8 @@ export function DashboardHome() {
                 </div>
               )}
               <div className="flex items-baseline gap-2">
-                <p className="text-3xl font-bold text-white">{removalsSubmitted.count}</p>
-                <span className={`text-lg font-semibold ${getDeltaColor(removalsSubmitted.delta, 'progress')}`}>{removalsSubmitted.delta}</span>
+                <p className="text-3xl font-bold text-white">{REMOVALS_SUBMITTED_DATA.count}</p>
+                <span className={`text-lg font-semibold ${getDeltaColor(REMOVALS_SUBMITTED_DATA.delta, 'progress')}`}>{REMOVALS_SUBMITTED_DATA.delta}</span>
               </div>
             </div>
 
@@ -654,9 +606,7 @@ export function DashboardHome() {
             </div>
 
             <div className="flex flex-col gap-2">
-              {scanStatusItems.length === 0 ? (
-                <p className="text-xs text-[#7A92A8]">No scans recorded yet.</p>
-              ) : scanStatusItems.map((item) => {
+              {scanStatusItems.map((item) => {
                 const style = ACTIVITY_STYLES[item.type];
                 const Icon  = style.Icon;
                 const chip = STATUS_CHIP_STYLES[item.status];
@@ -688,13 +638,11 @@ export function DashboardHome() {
           <section>
             <div className="flex justify-between items-center mb-3">
               <h2 className="text-base font-bold text-white">Recent Activity</h2>
-              <button className="text-xs text-[#00BFFF]" onClick={() => navigate('/dashboard/exposures')}>View All</button>
+              <button className="text-xs text-[#00BFFF]" onClick={() => console.log('view all recent removals')}>View All</button>
             </div>
 
             <div className="flex flex-col gap-2">
-              {sortedRemovalItems.length === 0 ? (
-                <p className="text-xs text-[#7A92A8]">No recent listing activity yet.</p>
-              ) : sortedRemovalItems.map((item) => {
+              {sortedRemovalItems.map((item) => {
                 const style = ACTIVITY_STYLES['Removal'];
                 const Icon = style.Icon;
                 const chip = STATUS_CHIP_STYLES[item.status];
@@ -726,7 +674,7 @@ export function DashboardHome() {
           <section>
             <div className="flex justify-between items-center mb-3">
               <h2 className="text-base font-bold text-white">Brokers & Breaches</h2>
-              <button className="text-xs text-[#00BFFF]" onClick={() => navigate('/dashboard/exposures')}>View All</button>
+              <button className="text-xs text-[#00BFFF]" onClick={() => console.log('view all brokers and breaches')}>View All</button>
             </div>
 
             <div className="flex flex-col gap-2">
@@ -737,7 +685,7 @@ export function DashboardHome() {
                     <button
                       key={item.id}
                       className="bg-[#2D3847] border border-[#2A4A68] rounded-xl px-4 py-3 flex items-center gap-3 w-full text-left"
-                      onClick={() => navigate('/dashboard/exposures')}
+                      onClick={() => console.log(`open broker: ${item.title}`)}
                     >
                       <div className="w-9 h-9 rounded-lg bg-[#022136] border border-[#2A4A68] flex items-center justify-center flex-shrink-0">
                         <span className="text-[#00BFFF] text-xs font-bold">{item.initials}</span>
@@ -807,13 +755,7 @@ export function DashboardHome() {
         </div>
       </nav>
 
-      <UserDrawer
-        isOpen={userDrawerOpen}
-        onClose={() => setUserDrawerOpen(false)}
-        firstName={profile?.first_name}
-        lastName={profile?.last_name}
-        email={profile?.email}
-      />
+      <UserDrawer isOpen={userDrawerOpen} onClose={() => setUserDrawerOpen(false)} />
 
     </div>
   );

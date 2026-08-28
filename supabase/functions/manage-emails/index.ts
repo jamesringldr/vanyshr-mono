@@ -259,6 +259,10 @@ async function handleConfirm(
 
   console.log(`✅ manage-emails confirm ${quickscanId}: ${toHolehe.length} holehe, ${toLeakcheck.length} leakcheck checked`);
 
+  const statusAction = breachCount > 0
+    ? `Found ${breachCount} data breach${breachCount !== 1 ? "es" : ""} involving your email${toHolehe.length > 1 ? "s" : ""}`
+    : `Scanned ${toHolehe.length} email${toHolehe.length !== 1 ? "s" : ""} against known breaches`;
+
   return new Response(
     JSON.stringify({
       success: true,
@@ -267,6 +271,7 @@ async function handleConfirm(
       services_found: servicesFound,
       breach_count: breachCount,
       consolidated_profile: consolidatedProfile ?? null,
+      status_action: statusAction,
     }),
     { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
   );

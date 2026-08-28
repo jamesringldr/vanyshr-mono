@@ -296,6 +296,7 @@ export function PilotLoadingPage() {
   // "Finding exposed accounts" / "Scanning Dark Web" for this phase) reads
   // as progress instead of a frozen button.
   const [isConfirming, setIsConfirming] = useState(false);
+  const [statusAction, setStatusAction] = useState<string>("");
 
   const candidatesRef = useRef<IdentifyCandidate[]>([]);
   const rejectedRef = useRef<IdentifyCandidate[]>([]);
@@ -398,6 +399,9 @@ export function PilotLoadingPage() {
         setEmailCandidates([]);
       } else {
         setEmailCandidates(emailsFrom(data));
+        if (data?.status_action) {
+          setStatusAction(String(data.status_action));
+        }
         // Report carousel (risk-summary + pre-profile) reads this back —
         // services_found/breaches aren't in it yet at this point (that's
         // manage-emails' confirm step, later); handleEmailsConfirmed()
@@ -424,9 +428,9 @@ export function PilotLoadingPage() {
   const LIST_MAX_ATTEMPTS = 75;
   const LIST_RETRY_DELAY_MS = 1000;
 
-  async function loadIdentifyList(broker: IdentifyBroker): Promise<IdentifyCandidate[] | null> {
+  async function loadIdentifyList(broker: IdentifyBroker): Promise<{ list: IdentifyCandidate[] | null; statusAction?: string }> {
     const quickscanId = quickScanIdRef.current;
-    if (!quickscanId) return [];
+    if (!quickscanId) return { list: [] };
 
     for (let attempt = 0; attempt < LIST_MAX_ATTEMPTS; attempt++) {
       const { data, error } = await supabase.functions.invoke("summary-scan", {
@@ -434,16 +438,16 @@ export function PilotLoadingPage() {
       });
       if (error || data?.error) {
         console.warn("summary-scan listBroker failed:", error?.message || data?.error);
-        return [];
+        return { list: [] };
       }
       if (data?.notReady) {
         await new Promise((resolve) => setTimeout(resolve, LIST_RETRY_DELAY_MS));
         continue;
       }
-      return candidatesFrom(data);
+      return { list: candidatesFrom(data), statusAction: String(data?.status_action || "") };
     }
     console.warn("summary-scan listBroker: background fetch never completed");
-    return [];
+    return { list: [] };
   }
 
   async function showIdentifyBroker(broker: IdentifyBroker, run = scanRunRef.current) {
@@ -452,13 +456,17 @@ export function PilotLoadingPage() {
     setIdentifyBroker(broker);
     setProfiles([]);
 
-    const list = await loadIdentifyList(broker);
+    const result = await loadIdentifyList(broker);
     if (run !== scanRunRef.current) return;
     if (phaseRef.current !== "pick" && phaseRef.current !== "searching") return;
 
-    if (list && list.length > 0) {
-      candidatesRef.current = list;
-      setProfiles(list.map((m, i) => candidateToProfile(m, i)));
+    if (result.statusAction) {
+      setStatusAction(result.statusAction);
+    }
+
+    if (result.list && result.list.length > 0) {
+      candidatesRef.current = result.list;
+      setProfiles(result.list.map((m, i) => candidateToProfile(m, i)));
       go("pick");
       return;
     }
@@ -525,6 +533,9 @@ export function PilotLoadingPage() {
         setIdentifyBroker(broker);
         candidatesRef.current = list;
         sessionStorage.removeItem("pilotScanError");
+        if (data.status_action) {
+          setStatusAction(String(data.status_action));
+        }
         if (data.unavailable) {
           setErrorMessage("We couldn't reach a people-search site. Try the scan again.");
           go("error");
@@ -632,6 +643,9 @@ export function PilotLoadingPage() {
       // Refresh the cached profile with the now-populated services_found/
       // breaches — the pick-time copy predates email confirmation, so it
       // never had these (see handlePick above).
+      if (confirmData?.status_action) {
+        setStatusAction(String(confirmData.status_action));
+      }
       if (confirmData?.consolidated_profile) {
         const stored = loadConsolidatedProfile().data;
         saveConsolidatedProfile(
@@ -685,7 +699,7 @@ export function PilotLoadingPage() {
         <div className="mb-10 min-h-[88px] w-full text-center" aria-live="polite">
           <AnimatePresence mode="wait">
             <motion.div
-              key={phase + activeStep.id + identifyBroker}
+              key={phase + activeStep.id + identifyBroker + statusAction}
               initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={prefersReducedMotion ? undefined : { opacity: 0, y: -6 }}
@@ -712,12 +726,12 @@ export function PilotLoadingPage() {
                     : phase === "pick"
                     ? pickHeadline(identifyBroker, rejectedRef.current.length === 0)
                     : phase === "full_profile"
-                      ? "Pulling your full profiles from each site"
+                      ? statusAction || "Pulling your full profiles from each site"
                       : phase === "emails"
-                        ? "Confirm the emails we found"
+                        ? statusAction || "Confirm the emails we found"
                         : allDone
                           ? "Your exposure report is ready to review"
-                          : activeStep.headline}
+                          : statusAction || activeStep.headline}
               </p>
             </motion.div>
           </AnimatePresence>

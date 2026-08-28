@@ -412,12 +412,18 @@ serve(async (req) => {
     await logTiming(supabase, quickscanId, "full_profile_scan_total", Date.now() - functionStarted, { resultCount: newRows.length });
 
     return new Response(
+      const brokersScraped = newRows.map((r) => r.broker);
+      const statusAction = brokersScraped.length > 0
+        ? `Consolidated profile from ${brokersScraped.length} broker${brokersScraped.length !== 1 ? "s" : ""}`
+        : "Building your profile...";
+
       JSON.stringify({
         success: true,
         quickscan_id: quickscanId,
-        brokers_scraped: newRows.map((r) => r.broker),
+        brokers_scraped: brokersScraped,
         broker_fields: brokerFields,
         consolidated_profile: consolidatedProfile,
+        status_action: statusAction,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
