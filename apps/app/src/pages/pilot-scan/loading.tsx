@@ -460,9 +460,12 @@ export function PilotLoadingPage() {
           return;
         }
 
+        console.log(`[Progress Poll] Found ${data?.length || 0} messages (last seen: ${lastProgressCountRef.current})`, data);
+
         if (data && data.length > lastProgressCountRef.current) {
           // Append only new messages (those we haven't seen before)
           const newMessages = data.slice(lastProgressCountRef.current);
+          console.log(`[Progress Poll] Adding ${newMessages.length} new messages`, newMessages);
           setProgressMessages((prev) => [...prev, ...newMessages]);
           lastProgressCountRef.current = data.length;
         }
