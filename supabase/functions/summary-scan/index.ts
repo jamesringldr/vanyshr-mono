@@ -184,22 +184,9 @@ serve(async (req) => {
       `🔍 summary-scan ${quickscanId}: ${input.first_name} ${input.last_name}, ${input.city}, ${input.state}`,
     );
 
-    const where = [input.city, input.state].filter(Boolean).join(", ");
-    await logProgress(
-      supabase,
-      quickscanId,
-      `Building search criteria for ${input.first_name} ${input.last_name}${where ? ` in ${where}` : ""}...`,
-      "criteria",
-    );
-    await logProgress(supabase, quickscanId, "✓ Search criteria confirmed", "criteria");
+    await logProgress(supabase, quickscanId, "Scanning for matching profiles", "confirm");
 
     // All 4 fetches start together; only FPS is awaited here.
-    await logProgress(
-      supabase,
-      quickscanId,
-      "Querying FastPeopleSearch, AnyWho, Zabasearch and NPD in parallel...",
-      "brokers",
-    );
     const brokerPromises = scrapeBrokersConcurrently(input);
 
     const fpsResult = await brokerPromises[BrokerName.FPS];
@@ -209,14 +196,19 @@ serve(async (req) => {
       status: fpsResult.status,
       error: fpsResult.error,
     });
-    await logProgress(
-      supabase,
-      quickscanId,
-      fpsResult.status === "success"
-        ? `✓ ${getBrokerDisplayName(BrokerName.FPS)} returned ${fpsResult.summaries.length} match${fpsResult.summaries.length !== 1 ? "es" : ""} in ${(fpsResult.timing_ms / 1000).toFixed(1)}s`
-        : `✗ ${getBrokerDisplayName(BrokerName.FPS)} is unavailable — falling back to the other brokers`,
-      "brokers",
-    );
+    // Stage 1's first result. An empty or failed FPS is not an error the user
+    // needs to see a broker name for -- it just means the other three decide.
+    if (fpsResult.status === "success" && fpsResult.summaries.length > 0) {
+      await logProgress(
+        supabase,
+        quickscanId,
+        `Found ${fpsResult.summaries.length} initial probable match${fpsResult.summaries.length !== 1 ? "es" : ""}`,
+        "confirm",
+        "success",
+      );
+    } else {
+      await logProgress(supabase, quickscanId, "Searching additional sources", "confirm");
+    }
 
     const stored = new Map<string, StoredRow>();
     const summaryCounts: Record<string, number> = { [BrokerName.FPS]: fpsResult.summaries.length };
@@ -378,15 +370,6 @@ async function finishScan(
         error: result.error,
       });
 
-      await logProgress(
-        supabase,
-        quickscanId,
-        result.status === "success"
-          ? `✓ ${getBrokerDisplayName(result.broker)} returned ${result.summaries.length} match${result.summaries.length !== 1 ? "es" : ""} in ${(result.timing_ms / 1000).toFixed(1)}s`
-          : `✗ ${getBrokerDisplayName(result.broker)} is unavailable`,
-        "brokers",
-      );
-
       if (result.summaries.length === 0) {
         await writePlaceholder(supabase, quickscanId, result);
         continue;
@@ -414,11 +397,15 @@ async function finishScan(
     console.log(`✅ summary-scan ${quickscanId} finish: ${stored.size} candidates stored, no grouping`);
     const backgroundMs = Date.now() - functionStarted;
     await logTiming(supabase, quickscanId, "summary_scan_background_total", backgroundMs, { resultCount: stored.size });
+    // Stage 1 stays open (no summary line) until the user actually confirms a
+    // match in the picker -- full-profile-scan closes it.
+    const brokersWithHits = Object.values(summaryCounts).filter((n) => n > 0).length;
     await logProgress(
       supabase,
       quickscanId,
-      `✓ All brokers reported — ${totalCandidates} candidate profile${totalCandidates !== 1 ? "s" : ""} found in ${(backgroundMs / 1000).toFixed(1)}s`,
-      "brokers",
+      `Found ${totalCandidates} probable match${totalCandidates !== 1 ? "es" : ""} across ${brokersWithHits} data broker${brokersWithHits !== 1 ? "s" : ""}`,
+      "confirm",
+      "success",
     );
   } catch (err) {
     // Always land on a terminal status -- full-profile-scan polls for

@@ -17,7 +17,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { scrapeBrokerDetails, detailToSummary, type BrokerDetailProfile, type BrokerDetailTiming } from "../_shared/quickscan/detail-scrapers.ts";
-import { populateFromSummaryResult, populateFromBrokerDetail, buildConsolidatedProfile, logTiming, logProgress, exposedFieldsFromDetail, exposedFieldsFromSummary } from "../_shared/quickscan/consolidation.ts";
+import { populateFromSummaryResult, populateFromBrokerDetail, buildConsolidatedProfile, logTiming, logProgress, formatElapsed, exposedFieldsFromDetail, exposedFieldsFromSummary } from "../_shared/quickscan/consolidation.ts";
 import { DedupEngine } from "../_shared/quickscan/DedupEngine.ts";
 import { BrokerName, type DedupMember, type SummaryResult } from "../_shared/quickscan/quickscan-phase1-phase2-models.ts";
 
@@ -52,12 +52,11 @@ serve(async (req) => {
     );
 
     const functionStarted = Date.now();
-    await logProgress(supabase, quickscanId, "Initiating full profile scan with selected search criteria...", "full_profile");
 
     const { data: quickscan, error: qsError } = await supabase
       .schema("quickscan")
       .from("quickscans")
-      .select("id, status, selected_full_profile_result_id, selected_summary_result_id")
+      .select("id, status, created_at, selected_full_profile_result_id, selected_summary_result_id")
       .eq("id", quickscanId)
       .maybeSingle();
 
@@ -76,13 +75,26 @@ serve(async (req) => {
     // with an incomplete match or block the pick button, this says so
     // cheaply and the frontend just retries.
     if (quickscan.status !== "summary_scan_complete") {
-      await logProgress(supabase, quickscanId, "Validating broker summary results are finished...", "full_profile");
+      // The client polls this up to 75x. Nothing is logged here -- a line per
+      // retry buried the real steps.
       return new Response(
         JSON.stringify({ success: true, notReady: true }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
-    await logProgress(supabase, quickscanId, "✓ Broker summary scan complete", "full_profile");
+
+    // Stage 1 closes: the pick is in. Timed from the scan row, not this
+    // function, so it reads as "how long until you confirmed".
+    const scanStarted = new Date(quickscan.created_at).getTime();
+    await logProgress(
+      supabase,
+      quickscanId,
+      `User confirmed match - ${formatElapsed(Date.now() - scanStarted)}`,
+      "confirm",
+      "summary",
+    );
+    const criteriaStarted = Date.now();
+    await logProgress(supabase, quickscanId, "Finishing Level 1 scan", "criteria");
 
     const selectedId = pickedId || quickscan.selected_full_profile_result_id || quickscan.selected_summary_result_id;
     if (!selectedId) {
@@ -176,7 +188,6 @@ serve(async (req) => {
     }
 
     console.log(`🔍 full-profile-scan ${quickscanId}: ${pickSummary.full_name}, resolving against pick`);
-    await logProgress(supabase, quickscanId, `Matching selected search criteria to summary results...`, "full_profile");
 
     const { data: allSummaries } = await supabase
       .schema("quickscan")
@@ -224,7 +235,6 @@ serve(async (req) => {
     // every other broker (Daniel/Michael/Lucas 2026-08-26).
     const prefetched: Record<string, BrokerDetailProfile> = {};
     if (!zabaSummary && pickSummary.profile_url) {
-      await logProgress(supabase, quickscanId, `Initiating full profile data pull from ${pickSummary.broker}...`, "full_profile");
       const { profiles, timings } = await scrapeBrokerDetails([{
         summary: pickSummary,
         match_score: 100,
@@ -258,13 +268,21 @@ serve(async (req) => {
     // both sides carry them, so whether the pick's detail scrape landed no
     // longer changes what the other brokers have to clear — it used to, and
     // a *successful* scrape was the case that matched nobody.
-    await logProgress(supabase, quickscanId, `Scoring data from sources...`, "full_profile");
+    await logProgress(supabase, quickscanId, "Scoring all probable profile results for matches", "criteria");
     const resolved = pickSummary
       ? new DedupEngine().matchReference(pickSummary, candidatesByBroker, rejected)
       : [];
 
-    const matchedBrokerCount = resolved.length;
-    await logProgress(supabase, quickscanId, `✓ Identified ${matchedBrokerCount} broker${matchedBrokerCount !== 1 ? 's' : ''} with matching profiles`, "full_profile");
+    // +1 for the pick's own broker, which is the reference rather than a match.
+    const matchedBrokerCount = resolved.length + 1;
+    await logProgress(
+      supabase,
+      quickscanId,
+      `Matched search criteria to ${matchedBrokerCount} data broker${matchedBrokerCount !== 1 ? "s" : ""} - ${formatElapsed(Date.now() - criteriaStarted)}`,
+      "criteria",
+      "summary",
+    );
+    const brokersStarted = Date.now();
 
     const { data: groupRow, error: groupError } = await supabase
       .schema("quickscan")
@@ -327,17 +345,52 @@ serve(async (req) => {
         match_score: 100,
       }));
 
+    await logProgress(
+      supabase,
+      quickscanId,
+      `Extracting user data from targets: 0 of ${members.length} complete`,
+      "brokers",
+    );
+
     const { profiles: scraped, timings: fetchTimings } = members.length
       ? await scrapeBrokerDetails(members)
       : { profiles: {} as Record<string, unknown>, timings: {} as Record<string, BrokerDetailTiming> };
 
+    // scrapeBrokerDetails runs every target in parallel and resolves as one
+    // unit, so these land together after the fact rather than streaming. Each
+    // line still reports what actually happened to that broker.
+    let extracted = 0;
     for (const [broker, timing] of Object.entries(fetchTimings)) {
       await logTiming(supabase, quickscanId, "full_profile_fetch", timing.timingMs, {
         broker,
         status: timing.status,
         error: timing.error,
       });
+      if (timing.status === "success") {
+        extracted += 1;
+        await logProgress(
+          supabase,
+          quickscanId,
+          `Extracting user data from targets: ${extracted} of ${members.length} complete`,
+          "brokers",
+          "success",
+        );
+      } else {
+        await logProgress(
+          supabase,
+          quickscanId,
+          `${getBrokerLabel(broker)} could not be reached`,
+          "brokers",
+          "failed",
+        );
+      }
     }
+    await logProgress(
+      supabase,
+      quickscanId,
+      "Extraction finished. Classifying data for Exposure Report.",
+      "brokers",
+    );
 
     const details: Record<string, unknown> = { ...scraped, ...prefetched };
 
@@ -395,8 +448,6 @@ serve(async (req) => {
       await logTiming(supabase, quickscanId, "full_profile_populate", Date.now() - populateStarted, { broker: "zaba" });
     }
 
-    await logProgress(supabase, quickscanId, `Consolidating duplicate information from ${newRows.length + (zabaSummary ? 1 : 0)} broker${(newRows.length + (zabaSummary ? 1 : 0)) !== 1 ? 's' : ''}...`, "full_profile");
-
     const rollupStarted = Date.now();
     await buildConsolidatedProfile(supabase, quickscanId, matchGroupId, {
       full_name: zabaSummary?.full_name ?? fallbackPick?.full_name,
@@ -428,13 +479,18 @@ serve(async (req) => {
     const consolidatedCount = brokersScraped.length + (zabaSummary ? 1 : 0);
     const durationFormatted = `${Math.floor(totalDurationSecs / 60)}m ${totalDurationSecs % 60}s`;
 
+    // Real count off the merged profile -- every phone, address, email,
+    // relative and alias that survived consolidation.
+    const dataPoints = Object.values((consolidatedProfile ?? {}) as Record<string, unknown>)
+      .reduce((n: number, v) => n + (Array.isArray(v) ? v.length : 0), 0);
     await logProgress(
       supabase,
       quickscanId,
-      `✓ Recovered ${consolidatedCount} unique broker profile${consolidatedCount !== 1 ? 's' : ''} - Completed in ${durationFormatted}`,
-      "full_profile"
+      `Sourced ${dataPoints} unique data point${dataPoints !== 1 ? "s" : ""} from ${consolidatedCount} broker${consolidatedCount !== 1 ? "s" : ""} - ${formatElapsed(Date.now() - brokersStarted)}`,
+      "brokers",
+      "summary",
     );
-    await logProgress(supabase, quickscanId, `Extracting emails for darkweb scan...`, "full_profile");
+    await logProgress(supabase, quickscanId, "Scanning 10m+ data breaches", "darkweb");
 
     const statusAction = brokersScraped.length > 0
       ? `Consolidated profile from ${brokersScraped.length} broker${brokersScraped.length !== 1 ? "s" : ""}`
@@ -459,6 +515,16 @@ serve(async (req) => {
     );
   }
 });
+
+function getBrokerLabel(broker: string): string {
+  const names: Record<string, string> = {
+    fps: "FastPeopleSearch",
+    anywho: "AnyWho",
+    zaba: "Zaba",
+    npd: "National Public Data",
+  };
+  return names[broker.toLowerCase()] || broker;
+}
 
 function asString(value: unknown): string {
   return value == null ? "" : String(value);

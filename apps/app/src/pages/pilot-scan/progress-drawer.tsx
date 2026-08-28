@@ -1,89 +1,85 @@
 import { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { InlineLoader } from "generative-loaders";
 import "generative-loaders/styles.css";
 import { cx } from "@/utils/cx";
 
 export type StepStatus = "pending" | "active" | "complete";
 
-export interface ProgressStep {
+/** Written by the edge functions; see logProgress in consolidation.ts. */
+export type LogStatus = "active" | "success" | "failed" | "summary";
+
+export interface ProgressMessage {
+  id: string;
+  message: string;
+  /** Stage id this line belongs to. */
+  step?: string;
+  status?: LogStatus;
+  created_at: string;
+}
+
+/** A stage heading in the drawer. Order here is display order. */
+export interface ProgressStage {
   id: string;
   label: string;
-  subtext: string;
-  result?: string;
-  completionResult?: string;
 }
 
 export interface ProgressDrawerProps {
   isOpen: boolean;
-  currentStep: string;
-  statusAction: string;
-  progressPercent: number;
-  currentStepIndex: number;
-  totalSteps: number;
-  steps: ProgressStep[];
-  stepStatuses: Record<string, StepStatus>;
-  progressMessages?: Array<{ id: string; message: string; step?: string; created_at: string }>;
+  stages: ProgressStage[];
+  progressMessages?: ProgressMessage[];
+  /** Shown in the header until the first log line lands. */
+  statusAction?: string;
   onToggle?: () => void;
 }
 
 const EASE_OUT = [0.2, 0, 0, 1] as const;
 
-function StepIndicator({ status }: { status: StepStatus }) {
-  if (status === "complete") {
-    return (
-      <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#22C55E]">
-        <Check className="h-3.5 w-3.5 text-white" strokeWidth={3} />
-      </div>
-    );
-  }
+const DOT = {
+  success: "bg-[#22C55E]",
+  failed: "bg-[#F97066]",
+  pending: "bg-[#4A5568]",
+} as const;
 
-  if (status === "active") {
-    return (
-      <div className="flex h-6 w-6 shrink-0 items-center justify-center">
-        <InlineLoader variant="orbit" size={20} color="#00BFFF" />
-      </div>
-    );
-  }
+const TEXT = {
+  active: "text-[#00BFFF]",
+  success: "text-[#22C55E]",
+  failed: "text-[#F97066]",
+} as const;
 
+/**
+ * One indicator for both rows -- a ripple while in flight, a coloured dot
+ * once settled. `box` keeps every state the same footprint so the labels
+ * beside them stay on a common left edge.
+ */
+function Indicator({
+  state,
+  box,
+  dot,
+  ripple,
+}: {
+  state: "active" | "success" | "failed" | "pending";
+  box: string;
+  dot: string;
+  ripple: number;
+}) {
   return (
-    <div className="h-6 w-6 shrink-0 rounded-full border-2 border-[#4A5568]" />
-  );
-}
-
-function TimelineStepIndicator({ status }: { status: StepStatus }) {
-  if (status === "complete") {
-    return (
-      <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#22C55E]">
-        <Check className="h-3.5 w-3.5 text-white" strokeWidth={3} />
-      </div>
-    );
-  }
-
-  if (status === "active") {
-    return (
-      <div className="flex h-6 w-6 shrink-0 items-center justify-center">
-        <InlineLoader variant="orbit" size={18} color="#00BFFF" />
-      </div>
-    );
-  }
-
-  return (
-    <div className="h-6 w-6 shrink-0 rounded-full border-2 border-[#4A5568]" />
+    <span className={cx("flex shrink-0 items-center justify-center", box)} aria-hidden>
+      {state === "active" ? (
+        <InlineLoader variant="ripple" size={ripple} />
+      ) : (
+        <span className={cx("rounded-full", dot, DOT[state])} />
+      )}
+    </span>
   );
 }
 
 export function ProgressDrawer({
   isOpen,
-  currentStep,
-  statusAction,
-  progressPercent,
-  currentStepIndex,
-  totalSteps,
-  steps,
-  stepStatuses,
+  stages,
   progressMessages = [],
+  statusAction = "",
   onToggle,
 }: ProgressDrawerProps) {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -101,9 +97,42 @@ export function ProgressDrawer({
     logEndRef.current?.scrollIntoView({ block: "end", behavior: "smooth" });
   }, [progressMessages.length, isExpanded]);
 
-  // Collapsed, the drawer is one line tall -- show what the backend is doing
-  // right now, falling back to the phase's generic copy before the first
-  // log line lands.
+  // Everything below is derived from the log rather than from `phase`.
+  // Stages 2 and 3 both run inside the full_profile phase, so phase cannot
+  // tell them apart -- and deriving the header and the body from one source
+  // means they cannot disagree.
+  const stageViews = stages.map((stage) => {
+    const rows = progressMessages.filter((m) => m.step === stage.id);
+    const summary = rows.find((m) => m.status === "summary");
+    const items = rows.filter((m) => m.status !== "summary");
+    const state: "active" | "success" | "pending" = summary
+      ? "success"
+      : rows.length > 0
+        ? "active"
+        : "pending";
+    // The newest line that has not settled is what is happening now.
+    const currentId =
+      state === "active"
+        ? items.filter((m) => (m.status ?? "active") === "active").at(-1)?.id
+        : undefined;
+    return { stage, state, summary, items, currentId };
+  });
+
+  const activeIndex = stageViews.findIndex((v) => v.state === "active");
+  const doneCount = stageViews.filter((v) => v.state === "success").length;
+  // Land on the last stage once everything has closed out.
+  const headerIndex = activeIndex >= 0 ? activeIndex : Math.max(doneCount - 1, 0);
+  const currentStage = stageViews[headerIndex];
+  const currentStepIndex = headerIndex + 1;
+  const totalSteps = stages.length;
+  // A stage in flight counts as half, so the bar moves when one opens rather
+  // than only when it closes.
+  const progressPercent = totalSteps
+    ? ((doneCount + (activeIndex >= 0 ? 0.5 : 0)) / totalSteps) * 100
+    : 0;
+
+  // Collapsed, the drawer is one line tall -- show the newest log line,
+  // falling back to the phase's generic copy before the first one lands.
   const latestMessage = progressMessages.at(-1)?.message ?? statusAction;
 
   // Closed on the phases that hand the screen to a modal (pick, no_results)
@@ -155,7 +184,7 @@ export function ProgressDrawer({
           <div className="flex w-full items-center gap-2.5">
             <InlineLoader variant="orbit" size={16} color="#00BFFF" />
             <span className="truncate text-[15px] font-bold text-white">
-              {currentStep}
+              {currentStage?.stage.label ?? ""}
             </span>
             <span className="shrink-0 text-[13px] text-[#7A92A8]">
               Step {currentStepIndex} of {totalSteps}
@@ -210,81 +239,63 @@ export function ProgressDrawer({
               transition={{ duration: 0.28, ease: EASE_OUT, delay: 0.04 }}
               className="flex-1 overflow-y-auto border-t border-[#3D4A5C] px-5 py-4 -webkit-overflow-scrolling-touch"
             >
-              {/* Show progress log if available */}
-              {progressMessages.length > 0 ? (
-                <div className="space-y-2 font-mono text-[12px]">
-                  {progressMessages.map((msg) => (
-                    <div key={msg.id} className="flex gap-3">
-                      <div className="shrink-0 text-[#7A92A8]">
-                        [{new Date(msg.created_at).toLocaleTimeString()}]
-                      </div>
-                      <div
-                        className={cx(
-                          "flex-1",
-                          msg.message.startsWith("✓")
-                            ? "text-[#22C55E]"
-                            : msg.message.startsWith("✗")
-                              ? "text-[#F97066]"
-                              : "text-[#B8C4CC]",
-                        )}
-                      >
-                        {msg.message}
-                      </div>
+              {stageViews.map(({ stage, state, summary, items, currentId }) => (
+                <div key={stage.id} className="flex gap-3">
+                  <Indicator
+                    state={state}
+                    box="mt-0.5 h-5 w-5"
+                    dot="h-3 w-3"
+                    ripple={20}
+                  />
+
+                  <div className="min-w-0 flex-1 pb-4">
+                    <div className="text-[14px] font-bold leading-tight text-white">
+                      {stage.label}
                     </div>
-                  ))}
-                  <div ref={logEndRef} />
-                </div>
-              ) : (
-                /* Fallback timeline */
-                <div className="space-y-3">
-                  {steps.map((step, index) => {
-                    const status = stepStatuses[step.id];
-                    const isActive = status === "active";
-                    const isComplete = status === "complete";
 
-                    return (
-                      <div
-                        key={step.id}
-                        className={cx(
-                          "flex gap-3 pb-3",
-                          index !== steps.length - 1 && "border-b border-[#3D4A5C]"
-                        )}
-                      >
-                        <TimelineStepIndicator status={status} />
-
-                        <div className="flex flex-1 flex-col gap-1 min-w-0 pt-0.5">
-                          <div
-                            className={cx(
-                              "text-[14px] font-semibold leading-tight",
-                              isComplete || isActive
-                                ? "text-white"
-                                : "text-[#B8C4CC]"
-                            )}
-                          >
-                            {step.label}
-                          </div>
-
-                          <div className="text-[13px] leading-snug text-[#7A92A8]">
-                            {step.subtext}
-                          </div>
-
-                          {isActive && step.result && (
-                            <div className="mt-2 text-[12px] font-mono text-[#00BFFF]/80">
-                              {step.result}
-                            </div>
-                          )}
-
-                          {isComplete && step.completionResult && (
-                            <div className="mt-2 text-[13px] font-medium text-[#22C55E]">
-                              ✓ {step.completionResult}
-                            </div>
-                          )}
-                        </div>
+                    {/* A finished stage collapses to its one-line summary. */}
+                    {summary && (
+                      <div className="mt-1.5 font-mono text-[12px] leading-snug text-[#22C55E]">
+                        {summary.message}
                       </div>
-                    );
-                  })}
+                    )}
+
+                    {/* A running stage shows its log. Stages that have not
+                        started show nothing -- just the grey dot. */}
+                    {!summary && items.length > 0 && (
+                      <div className="mt-2 space-y-2">
+                        {items.map((item) => {
+                          const itemState =
+                            item.id === currentId
+                              ? "active"
+                              : item.status === "failed"
+                                ? "failed"
+                                : "success";
+                          return (
+                            <div key={item.id} className="flex items-start gap-2.5">
+                              <Indicator
+                                state={itemState}
+                                box="mt-1 h-3.5 w-3.5"
+                                dot="h-2 w-2"
+                                ripple={14}
+                              />
+                              <span
+                                className={cx(
+                                  "min-w-0 flex-1 font-mono text-[12px] leading-snug",
+                                  TEXT[itemState],
+                                )}
+                              >
+                                {item.message}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
                 </div>
-              )}
+              ))}
+              <div ref={logEndRef} />
             </motion.div>
           )}
         </AnimatePresence>

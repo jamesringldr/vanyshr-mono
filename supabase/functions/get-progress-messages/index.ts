@@ -40,7 +40,7 @@ serve(async (req) => {
     const { data, error } = await supabase
       .schema("quickscan")
       .from("quickscan_progress")
-      .select("id, message, step, created_at")
+      .select("id, message, step, status, created_at")
       .eq("quickscans_id", quickscanId)
       .order("created_at", { ascending: true });
 
