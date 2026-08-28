@@ -436,11 +436,11 @@ serve(async (req) => {
     );
     await logProgress(supabase, quickscanId, `Extracting emails for darkweb scan...`, "full_profile");
 
-    return new Response(
-      const statusAction = brokersScraped.length > 0
-        ? `Consolidated profile from ${brokersScraped.length} broker${brokersScraped.length !== 1 ? "s" : ""}`
-        : "Building your profile...";
+    const statusAction = brokersScraped.length > 0
+      ? `Consolidated profile from ${brokersScraped.length} broker${brokersScraped.length !== 1 ? "s" : ""}`
+      : "Building your profile...";
 
+    return new Response(
       JSON.stringify({
         success: true,
         quickscan_id: quickscanId,
