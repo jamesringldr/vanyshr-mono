@@ -87,7 +87,9 @@ export function ProgressDrawer({
   statusAction = "",
   onToggle,
 }: ProgressDrawerProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
+  // Open by default: the log is the point of the drawer, and a scan runs long
+  // enough that starting collapsed hides it behind a tap most people never make.
+  const [isExpanded, setIsExpanded] = useState(true);
   const contentRef = useRef<HTMLDivElement>(null);
   const logEndRef = useRef<HTMLDivElement>(null);
 
