@@ -18,6 +18,7 @@ import type { ScanMember } from "./scan-result";
 import { EmailConfirmationModal } from "./email-confirmation";
 import { loadConsolidatedProfile, saveConsolidatedProfile, type ConsolidatedProfile } from "./consolidated-profile";
 import { ProgressDrawer, type ProgressStep } from "./progress-drawer";
+import { EducationalCards } from "./educational-cards";
 
 const EASE_OUT = [0.2, 0, 0, 1] as const;
 
@@ -726,6 +727,16 @@ export function PilotLoadingPage() {
       aria-busy={phase === "searching" || phase === "full_profile"}
     >
       <div className="relative z-10 flex w-full max-w-sm flex-col items-center">
+        {/* Educational Cards - Show during scanning phases */}
+        {(phase === "searching" || phase === "full_profile") && (
+          <EducationalCards
+            onCardClick={(cardId) => {
+              // Routing not wired yet - placeholder for future navigation
+              console.log(`Educational card clicked: ${cardId}`);
+            }}
+          />
+        )}
+
         <div className="relative mb-6 flex h-[240px] w-[240px] items-center justify-center overflow-visible">
           <div
             className="pointer-events-none absolute left-1/2 top-1/2 h-[200px] w-[200px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#00BFFF]/40 blur-[48px]"
