@@ -1,5 +1,6 @@
 export type ZabaPhoneResult = {
   phone: string;
+  source?: "rpl" | "zaba";
   source_url: string;
   name: string | null;
   age: string | null;

@@ -8,6 +8,7 @@ import PrimaryIcon from "@vanyshr/ui/assets/PrimaryIcon-Nooutline.png";
 import { cx } from "@/utils/cx";
 import { supabase } from "@/lib/supabase";
 import {
+  QSNoResultsModal,
   QSResultMultipleModal,
   QSResultSingleModal,
   type QSProfileSummary,
@@ -24,7 +25,7 @@ const EASE_OUT = [0.2, 0, 0, 1] as const;
  */
 const ACTIVE_LOADER_VARIANT = "orbit" as const;
 
-type Phase = "searching" | "pick" | "full_profile" | "emails" | "report" | "error";
+type Phase = "searching" | "pick" | "full_profile" | "emails" | "report" | "error" | "no_results";
 
 type ScanFields = {
   firstName: string;
@@ -92,7 +93,8 @@ const STEPS: LoadingStep[] = [
  *                   leakcheck server-side) is actually in flight," since both
  *                   share this one phase
  *   report        → confirm call returned, navigating to the report
- *   error         → search failed
+ *   error         → search failed (blocked / unreachable), not an empty list
+ *   no_results    → every identify list was empty or the user rejected them all
  */
 function stepStatuses(phase: Phase, isConfirming: boolean): Record<string, StepStatus> {
   if (phase === "report") {
@@ -104,7 +106,7 @@ function stepStatuses(phase: Phase, isConfirming: boolean): Record<string, StepS
       results: "active",
     };
   }
-  if (phase === "error") {
+  if (phase === "error" || phase === "no_results") {
     return { criteria: "complete", brokers: "active", accounts: "pending", darkweb: "pending", results: "pending" };
   }
 
@@ -242,6 +244,7 @@ function invokeOnce(key: string, fn: string, body: object) {
  *
  *   searching (summary-scan) → pick (FPS → AnyWho → Zaba → NPD) → full_profile
  *   → emails (manage-emails) → report
+ *   Empty lists / reject-all → no_results (QSNoResultsModal)
  */
 export function PilotLoadingPage() {
   const navigate = useNavigate();
@@ -274,11 +277,20 @@ export function PilotLoadingPage() {
   const identifyBrokerRef = useRef<IdentifyBroker>("fps");
   const [identifyBroker, setIdentifyBroker] = useState<IdentifyBroker>("fps");
   const quickScanIdRef = useRef<string | null>(null);
+  const fieldsRef = useRef<ScanFields | null>(null);
+  const scanRunRef = useRef(0);
+  const skipNoResultsExitRef = useRef(false);
+  // Tip: `/pilot-scan/loading?noresults` opens the recovery modal without a scan.
+  const previewNoResults = searchParams.has("noresults");
 
   useEffect(() => {
     if (holdMode) return;
 
-    let cancelled = false;
+    if (previewNoResults) {
+      setSearchName("Alex Rivera");
+      go("no_results");
+      return;
+    }
 
     const raw = sessionStorage.getItem("pilotScanFields");
     const quickScanId = sessionStorage.getItem("pendingScanId");
@@ -290,52 +302,11 @@ export function PilotLoadingPage() {
     }
 
     const fields = JSON.parse(raw) as ScanFields;
+    fieldsRef.current = fields;
     setSearchName(`${fields.firstName} ${fields.lastName}`.trim());
     setRegion(fields.state || "");
-    quickScanIdRef.current = quickScanId;
-
-    invokeOnce(`summary-scan:${quickScanId}`, "summary-scan", { quickscanId: quickScanId })
-      .then(({ data, error }) => {
-        if (cancelled) return;
-        if (error || !data) {
-          setErrorMessage(error?.message || "Search failed");
-          go("error");
-          return;
-        }
-        const list = candidatesFrom(data);
-        const broker = identifyBrokerFrom(data);
-        identifyBrokerRef.current = broker;
-        setIdentifyBroker(broker);
-        candidatesRef.current = list;
-        sessionStorage.removeItem("pilotScanError");
-        if (data.unavailable) {
-          setErrorMessage("We couldn't reach a people-search site. Try the scan again.");
-          go("error");
-          return;
-        }
-        if (list.length > 0) {
-          setProfiles(list.map((m, i) => candidateToProfile(m, i)));
-          go("pick");
-          return;
-        }
-        const next = nextIdentifyBroker(broker);
-        if (next) {
-          void showIdentifyBroker(next);
-          return;
-        }
-        setErrorMessage("No public records found for that name and city.");
-        go("error");
-      })
-      .catch((err) => {
-        if (cancelled) return;
-        setErrorMessage(err?.message || "Search failed");
-        go("error");
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [holdMode]);
+    beginSummaryScan(quickScanId);
+  }, [holdMode, previewNoResults]);
 
   useEffect(() => {
     if (phase !== "report") return;
@@ -437,12 +408,14 @@ export function PilotLoadingPage() {
     return [];
   }
 
-  async function showIdentifyBroker(broker: IdentifyBroker) {
+  async function showIdentifyBroker(broker: IdentifyBroker, run = scanRunRef.current) {
+    if (run !== scanRunRef.current) return;
     identifyBrokerRef.current = broker;
     setIdentifyBroker(broker);
     setProfiles([]);
 
     const list = await loadIdentifyList(broker);
+    if (run !== scanRunRef.current) return;
     if (phaseRef.current !== "pick" && phaseRef.current !== "searching") return;
 
     if (list && list.length > 0) {
@@ -454,23 +427,18 @@ export function PilotLoadingPage() {
 
     const next = nextIdentifyBroker(broker);
     if (next) {
-      await showIdentifyBroker(next);
+      await showIdentifyBroker(next, run);
       return;
     }
 
     // Never showed a card — no broker had this person. Reject-all is only
     // for the user turning down lists they actually saw.
     if (rejectedRef.current.length === 0) {
-      setErrorMessage("No public records found for that name and city.");
-      go("error");
+      openNoResults("empty");
       return;
     }
 
-    const quickscanId = quickScanIdRef.current;
-    if (quickscanId) {
-      await supabase.functions.invoke("summary-scan", { body: { quickscanId, rejectAll: true } });
-    }
-    go("report");
+    openNoResults("rejected");
   }
 
   function dismissPick() {
@@ -478,14 +446,122 @@ export function PilotLoadingPage() {
     rejectedRef.current = [...rejectedRef.current, ...candidatesRef.current];
     const next = nextIdentifyBroker(identifyBrokerRef.current);
     if (!next) {
+      openNoResults("rejected");
+      return;
+    }
+    void showIdentifyBroker(next);
+  }
+
+  function openNoResults(mode: "empty" | "rejected") {
+    skipNoResultsExitRef.current = false;
+    if (mode === "rejected") {
       const quickscanId = quickScanIdRef.current;
       if (quickscanId) {
         void supabase.functions.invoke("summary-scan", { body: { quickscanId, rejectAll: true } });
       }
-      go("report");
+    }
+    go("no_results");
+  }
+
+  function beginSummaryScan(quickScanId: string) {
+    const run = ++scanRunRef.current;
+    quickScanIdRef.current = quickScanId;
+    identifyBrokerRef.current = "fps";
+    setIdentifyBroker("fps");
+    rejectedRef.current = [];
+    candidatesRef.current = [];
+    setProfiles([]);
+    go("searching");
+
+    invokeOnce(`summary-scan:${quickScanId}`, "summary-scan", { quickscanId: quickScanId })
+      .then(({ data, error }) => {
+        if (run !== scanRunRef.current) return;
+        if (error || !data) {
+          setErrorMessage(error?.message || "Search failed");
+          go("error");
+          return;
+        }
+        const list = candidatesFrom(data);
+        const broker = identifyBrokerFrom(data);
+        identifyBrokerRef.current = broker;
+        setIdentifyBroker(broker);
+        candidatesRef.current = list;
+        sessionStorage.removeItem("pilotScanError");
+        if (data.unavailable) {
+          setErrorMessage("We couldn't reach a people-search site. Try the scan again.");
+          go("error");
+          return;
+        }
+        if (list.length > 0) {
+          setProfiles(list.map((m, i) => candidateToProfile(m, i)));
+          go("pick");
+          return;
+        }
+        const next = nextIdentifyBroker(broker);
+        if (next) {
+          void showIdentifyBroker(next, run);
+          return;
+        }
+        openNoResults("empty");
+      })
+      .catch((err) => {
+        if (run !== scanRunRef.current) return;
+        setErrorMessage(err?.message || "Search failed");
+        go("error");
+      });
+  }
+
+  async function handleScanAgain(type: "first" | "last", value: string) {
+    const trimmed = value.trim();
+    const fields = fieldsRef.current;
+    if (!trimmed || !fields) {
+      navigate("/pilot-scan", { replace: true });
       return;
     }
-    void showIdentifyBroker(next);
+
+    skipNoResultsExitRef.current = true;
+    const nextFields: ScanFields = {
+      ...fields,
+      firstName: type === "first" ? trimmed : fields.firstName,
+      lastName: type === "last" ? trimmed : fields.lastName,
+    };
+    fieldsRef.current = nextFields;
+    setSearchName(`${nextFields.firstName} ${nextFields.lastName}`.trim());
+    go("searching");
+
+    const { data, error } = await supabase.functions.invoke("intro-scan", {
+      body: nextFields,
+    });
+    if (error || data?.error || !data?.id) {
+      setErrorMessage(error?.message || data?.error || "Could not start scan");
+      go("error");
+      return;
+    }
+
+    sessionStorage.setItem("pendingScanId", data.id);
+    sessionStorage.setItem("pilotScanFields", JSON.stringify(nextFields));
+    beginSummaryScan(String(data.id));
+  }
+
+  async function handlePhoneLookup(phone: string) {
+    const quickscanId = sessionStorage.getItem("pendingScanId");
+    const { data, error } = await supabase.functions.invoke("phone-lookup", {
+      body: { phone, quickscanId },
+    });
+    if (error || !data) return { error: "fetch_failed" };
+    return data;
+  }
+
+  function handleRunFullScan() {
+    skipNoResultsExitRef.current = true;
+    navigate("/signup");
+  }
+
+  function handleNoResultsOpenChange(open: boolean) {
+    if (open) return;
+    if (skipNoResultsExitRef.current) return;
+    if (phaseRef.current !== "no_results") return;
+    navigate("/pilot-scan", { replace: true });
   }
 
   /**
@@ -580,7 +656,9 @@ export function PilotLoadingPage() {
               <p className="text-base text-[#B8C4CC]">
                 {phase === "error"
                   ? "Something stopped the scan"
-                  : phase === "pick"
+                  : phase === "no_results"
+                    ? "You're harder to find than most"
+                    : phase === "pick"
                     ? "Is this you?"
                     : phase === "emails"
                       ? "Almost done..."
@@ -591,7 +669,9 @@ export function PilotLoadingPage() {
               <p className="mt-1 text-xl font-bold leading-snug tracking-tight text-white sm:text-2xl">
                 {phase === "error"
                   ? errorMessage || "We couldn't finish this search"
-                  : phase === "pick"
+                  : phase === "no_results"
+                    ? "We didn't find a public record that looks like you"
+                    : phase === "pick"
                     ? pickHeadline(identifyBroker, rejectedRef.current.length === 0)
                     : phase === "full_profile"
                       ? "Pulling your full profiles from each site"
@@ -657,6 +737,14 @@ export function PilotLoadingPage() {
         profiles={profiles}
         onProfileSelect={handlePick}
         onNoneOfThese={dismissPick}
+      />
+      <QSNoResultsModal
+        isOpen={phase === "no_results"}
+        onOpenChange={handleNoResultsOpenChange}
+        searchName={searchName}
+        onScanAgain={handleScanAgain}
+        onPhoneLookup={handlePhoneLookup}
+        onRunFullScan={handleRunFullScan}
       />
 
       {phase === "emails" ? (
