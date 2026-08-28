@@ -1,8 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { Link, useNavigate } from "react-router";
+import { Link } from "react-router";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
-import { DollarSign } from "lucide-react";
 import {
   AlertTriangleFilled,
   ShieldFilled,
@@ -130,7 +129,6 @@ function isHttpUrl(value: string) {
  * the viewport — the portal sidesteps that entirely.
  */
 export function RiskSummaryBody({ profile }: { profile: ConsolidatedProfile }) {
-  const navigate = useNavigate();
   const prefersReducedMotion = useReducedMotion();
   const areas = useMemo(() => buildRiskAreas(profile), [profile]);
   const [activeArea, setActiveArea] = useState<AreaView | null>(null);
@@ -170,14 +168,8 @@ export function RiskSummaryBody({ profile }: { profile: ConsolidatedProfile }) {
 
   const ActiveIcon = activeArea?.Icon;
 
-  const [footerVisible, setFooterVisible] = useState(false);
-  useEffect(() => {
-    const t = window.setTimeout(() => setFooterVisible(true), 2000);
-    return () => window.clearTimeout(t);
-  }, []);
-
   return (
-    <div className="relative flex w-full flex-col items-center px-6 pb-[200px] font-ubuntu">
+    <div className="relative flex w-full flex-col items-center px-6 font-ubuntu">
       <div>
         <div className="relative mt-8 flex w-full max-w-md items-center justify-center">
           <div className="relative aspect-square w-full max-w-[340px]">
@@ -296,33 +288,6 @@ export function RiskSummaryBody({ profile }: { profile: ConsolidatedProfile }) {
             })}
           </ul>
         </section>
-      </div>
-
-      <div className="fixed inset-x-0 bottom-0 z-30 px-4">
-        <motion.footer
-          className="w-full rounded-t-[28px] bg-[#1A2E42] px-5 pb-6 pt-5 shadow-[0_0_40px_rgba(0,191,255,0.18)]"
-          initial={prefersReducedMotion ? false : { y: "100%" }}
-          animate={{ y: footerVisible ? 0 : "100%" }}
-          transition={{ duration: prefersReducedMotion ? 0 : 0.5, ease: DRAWER_EASE }}
-        >
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-[#2A4A68] bg-[#022136] px-3 py-1 text-[11px] font-medium text-[#00BFFF]">
-            <DollarSign className="h-3 w-3" />
-            No Credit Card Required
-          </span>
-          <h2 className="mt-3 text-[26px] font-bold leading-[1.15] tracking-tight text-white">
-            Time to Vanysh
-          </h2>
-          <p className="mt-1.5 text-sm leading-snug text-[#B8C4CC]">
-            Start removing your exposed data from every broker we found
-          </p>
-          <button
-            type="button"
-            onClick={() => navigate("/pilot-scan/start")}
-            className="mt-5 flex h-12 w-full items-center justify-center rounded-2xl bg-[#00BFFF] text-[17px] font-semibold text-white"
-          >
-            Start Vanyshing
-          </button>
-        </motion.footer>
       </div>
 
       {createPortal(

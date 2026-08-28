@@ -116,8 +116,10 @@ export function saveConsolidatedProfile(
 // Formatting helpers shared by both slides
 // ---------------------------------------------------------------------------
 
+/** Lowercases first -- broker data is frequently ALL CAPS, and capitalizing
+ *  just the first letter of an already-uppercase word is a no-op. */
 export function toProperCase(str: string): string {
-  return str.replace(/\b\w/g, (c) => c.toUpperCase());
+  return str.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 export function formatPhone(num: string): string {
@@ -147,16 +149,35 @@ export function formatEducation(entry: ConsolidatedProfile["education"][number])
   return entry.rawValue || "";
 }
 
-/** "413 Lovers Ln, Cameron, MO 64429" -> { street, cityStateZip } for two-line display. */
-export function parseFullAddress(fullAddr: string): { street: string; cityStateZip: string } {
+/**
+ * "413 Lovers Ln, Cameron, MO 64429" -> { street, city, state, zip }.
+ * Anchors on the first "City, ST ZIP" match rather than splitting on the
+ * last comma -- broker scrapes occasionally append a duplicated city/state
+ * tail (e.g. "413 Lovers Ln, Cameron, MO 64429, Cameron, MO 64429"), which
+ * a last-comma split turns into a garbled street and a lone zip. Anchoring
+ * on the first match finds the real boundary and drops anything after it.
+ */
+export function parseFullAddress(fullAddr: string): { street: string; city: string; state: string; zip: string } {
+  const match = /^(.*?),\s*([^,]+?),\s*([A-Za-z]{2})\s+(\d{5})(?:-\d{4})?/.exec(fullAddr.trim());
+  if (match) {
+    const [, street, city, state, zip] = match;
+    return { street: street.trim(), city: city.trim(), state: state.toUpperCase(), zip };
+  }
   const lastComma = fullAddr.lastIndexOf(",");
   if (lastComma !== -1) {
-    return {
-      street: fullAddr.slice(0, lastComma).trim(),
-      cityStateZip: fullAddr.slice(lastComma + 1).trim(),
-    };
+    return { street: fullAddr.slice(0, lastComma).trim(), city: fullAddr.slice(lastComma + 1).trim(), state: "", zip: "" };
   }
-  return { street: fullAddr, cityStateZip: "" };
+  return { street: fullAddr.trim(), city: "", state: "", zip: "" };
+}
+
+/** "Cameron, MO" -- no zip, for the address-history containers (contact card, past addresses). */
+export function cityState(a: { city: string; state: string }): string {
+  return [a.city, a.state].filter(Boolean).join(", ");
+}
+
+/** "Cameron, MO 64429" -- with zip, for the property-record container (residential details). */
+export function cityStateZip(a: { city: string; state: string; zip: string }): string {
+  return [cityState(a), a.zip].filter(Boolean).join(" ");
 }
 
 // ---------------------------------------------------------------------------

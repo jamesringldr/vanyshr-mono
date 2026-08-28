@@ -20,24 +20,40 @@ import {
     formatJob,
     formatEducation,
     parseFullAddress,
+    cityState,
+    cityStateZip,
     type ConsolidatedProfile,
 } from "./consolidated-profile";
+
+type ParsedAddress = { street: string; city: string; state: string; zip: string };
 
 interface PreProfileData {
     contact: {
         fullName: string;
         age: number | null;
-        currentAddress: string;
+        currentAddress: ParsedAddress | null;
         primaryPhone: string;
     };
     alsoKnownAs: string[];
     familyAndFriends: { name: string; age?: number; relationship?: string }[];
-    pastAddresses: Array<{ street: string; cityStateZip: string }>;
+    pastAddresses: ParsedAddress[];
     pastPhones: string[];
     employment: { label: string; isCurrent: boolean }[];
     education: string[];
-    homeSpecs: { address?: string; facts: { label: string; value: string }[] }[];
+    homeSpecs: { address?: ParsedAddress; facts: { label: string; value: string }[] }[];
     legalRecords: { county?: string; countyCount?: number; nationwideCount?: number } | null;
+}
+
+/** Common US name suffixes -- stripped before reading off a "last name" so
+ *  "Michael Scott Jr" matches on "Scott", not "Jr". */
+const NAME_SUFFIXES = new Set(["jr", "sr", "ii", "iii", "iv", "v"]);
+
+function lastNameOf(fullName: string): string {
+    const parts = fullName.trim().split(/\s+/).filter(Boolean);
+    while (parts.length > 1 && NAME_SUFFIXES.has(parts[parts.length - 1].toLowerCase().replace(/\.$/, ""))) {
+        parts.pop();
+    }
+    return parts[parts.length - 1] || "";
 }
 
 function convertToPreProfileData(profile: ConsolidatedProfile): PreProfileData {
@@ -47,15 +63,25 @@ function convertToPreProfileData(profile: ConsolidatedProfile): PreProfileData {
         contact: {
             fullName: profile.full_name || "Unknown",
             age: profile.age,
-            currentAddress: profile.primary_address || "—",
+            currentAddress: profile.primary_address ? parseFullAddress(profile.primary_address) : null,
             primaryPhone: primaryPhone ? formatPhone(primaryPhone) : "—",
         },
         alsoKnownAs: (profile.aliases || []).map(toProperCase),
-        familyAndFriends: (profile.relatives || []).map((r) => ({
-            name: toProperCase(r.name),
-            age: r.age ?? undefined,
-            relationship: r.relation ?? undefined,
-        })),
+        // Shared last name (likely immediate family, e.g. a spouse or kid) sorts
+        // first; suffix-stripped so "Michael Scott Jr" still matches "Scott".
+        familyAndFriends: (profile.relatives || [])
+            .map((r) => ({
+                name: toProperCase(r.name),
+                age: r.age ?? undefined,
+                relationship: r.relation ?? undefined,
+            }))
+            .sort((a, b) => {
+                const mainLastName = lastNameOf(profile.full_name || "").toLowerCase();
+                const aMatches = lastNameOf(a.name).toLowerCase() === mainLastName;
+                const bMatches = lastNameOf(b.name).toLowerCase() === mainLastName;
+                if (aMatches === bMatches) return 0;
+                return aMatches ? -1 : 1;
+            }),
         pastAddresses: (profile.previous_addresses || []).map(parseFullAddress),
         pastPhones: restPhones.map(formatPhone),
         employment: (profile.employment || [])
@@ -74,7 +100,7 @@ function convertToPreProfileData(profile: ConsolidatedProfile): PreProfileData {
             if (p.lastSaleDate) facts.push({ label: "Sale Date", value: p.lastSaleDate });
             if (p.landUse) facts.push({ label: "Land Use", value: p.landUse });
             if (p.occupancyType) facts.push({ label: "Occupancy", value: p.occupancyType });
-            return { address: p.address ?? undefined, facts };
+            return { address: p.address ? parseFullAddress(p.address) : undefined, facts };
         }).filter((p) => p.facts.length > 0),
         legalRecords: (profile.legal_records?.countyRecords || profile.legal_records?.nationwideCount != null)
             ? {
@@ -157,6 +183,7 @@ export function PreProfileBody({ profile }: { profile: ConsolidatedProfile }) {
     const data = useMemo(() => convertToPreProfileData(profile), [profile]);
     return (
         <div>
+            <h1 className="sr-only">Exposed Data</h1>
             <p className="text-base leading-relaxed text-[#B8C4CC]">
                 This is the personal data that's publicly available about you right now. Hackers and scammers use this information to target you and your family with sophisticated social engineering attacks—impersonating trusted companies, authorities, or loved ones. The more data they have, the more convincing their attacks become.
             </p>
@@ -184,11 +211,14 @@ export function PreProfileBody({ profile }: { profile: ConsolidatedProfile }) {
                             <p className="text-xs font-semibold uppercase tracking-wide text-[#7A92A8]">
                                 Current address
                             </p>
-                            <div className="mt-0.5 text-sm text-white">
-                                {typeof data.contact.currentAddress === 'string' && data.contact.currentAddress.split('\n').map((line, i) => (
-                                    <div key={i}>{line}</div>
-                                ))}
-                            </div>
+                            {data.contact.currentAddress ? (
+                                <div className="mt-0.5 text-sm text-white">
+                                    {data.contact.currentAddress.street && <p>{data.contact.currentAddress.street}</p>}
+                                    {cityState(data.contact.currentAddress) && <p>{cityState(data.contact.currentAddress)}</p>}
+                                </div>
+                            ) : (
+                                <p className="mt-0.5 text-sm text-white">—</p>
+                            )}
                         </div>
                     </div>
                 </section>
@@ -206,15 +236,7 @@ export function PreProfileBody({ profile }: { profile: ConsolidatedProfile }) {
                 {data.familyAndFriends.length > 0 && (
                     <DataTypeCard icon={Users} title="Family & Friends">
                         <LimitedTwoColumnGrid
-                            items={data.familyAndFriends.sort((a, b) => {
-                                // Prioritize matching last names
-                                const aLastName = a.name.split(' ').pop() || '';
-                                const bLastName = b.name.split(' ').pop() || '';
-                                const mainLastName = data.contact.fullName.split(' ').pop() || '';
-                                const aMatches = aLastName.toLowerCase() === mainLastName.toLowerCase();
-                                const bMatches = bLastName.toLowerCase() === mainLastName.toLowerCase();
-                                return bMatches ? 1 : aMatches ? -1 : 0;
-                            })}
+                            items={data.familyAndFriends}
                             renderItem={(item) => (
                                 <span className="text-sm text-white">
                                     {item.name}
@@ -229,26 +251,20 @@ export function PreProfileBody({ profile }: { profile: ConsolidatedProfile }) {
                         <LimitedTwoColumnGrid
                             items={data.pastAddresses}
                             maxVisible={3}
-                            renderItem={(addr) => {
-                                // Remove zip code from cityStateZip (format: "City, State ZIP" -> "City, State")
-                                const cityState = addr.cityStateZip
-                                    .replace(/\s+\d{5}(-\d{4})?$/, '') // Remove ZIP or ZIP+4
-                                    .trim();
-                                return (
-                                    <div>
-                                        {addr.street && (
-                                            <p className="text-sm text-white">
-                                                {addr.street}
-                                            </p>
-                                        )}
-                                        {cityState && (
-                                            <p className="text-sm text-white">
-                                                {cityState}
-                                            </p>
-                                        )}
-                                    </div>
-                                );
-                            }}
+                            renderItem={(addr) => (
+                                <div>
+                                    {addr.street && (
+                                        <p className="text-sm text-white">
+                                            {addr.street}
+                                        </p>
+                                    )}
+                                    {cityState(addr) && (
+                                        <p className="text-sm text-white">
+                                            {cityState(addr)}
+                                        </p>
+                                    )}
+                                </div>
+                            )}
                         />
                     </DataTypeCard>
                 )}
@@ -299,18 +315,12 @@ export function PreProfileBody({ profile }: { profile: ConsolidatedProfile }) {
                     <DataTypeCard icon={Home} title="Residential details">
                         <div className="space-y-4">
                             {data.homeSpecs.map((home, i) => {
-                                // Parse address into street and city,state,zip
-                                const addressParts = home.address ? parseFullAddress(home.address) : { street: '', cityStateZip: '' };
                                 return (
                                     <div key={i}>
                                         {home.address && (
                                             <div className="mb-2 text-sm text-white">
-                                                {addressParts.street && (
-                                                    <p>{addressParts.street}</p>
-                                                )}
-                                                {addressParts.cityStateZip && (
-                                                    <p>{addressParts.cityStateZip}</p>
-                                                )}
+                                                {home.address.street && <p>{home.address.street}</p>}
+                                                {cityStateZip(home.address) && <p>{cityStateZip(home.address)}</p>}
                                             </div>
                                         )}
                                         <div className="grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-3">
