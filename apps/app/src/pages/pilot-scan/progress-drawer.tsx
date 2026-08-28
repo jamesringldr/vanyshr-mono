@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check } from "lucide-react";
+import { Check, ChevronDown, ChevronUp } from "lucide-react";
 import { InlineLoader } from "generative-loaders";
 import "generative-loaders/styles.css";
 import { cx } from "@/utils/cx";
@@ -127,73 +127,76 @@ export function ProgressDrawer({
         )}
       </AnimatePresence>
 
-      {/* Drawer */}
-      <motion.div
-        layout
-        initial={false}
-        animate={{
-          maxHeight: isExpanded ? "90vh" : "120px",
-        }}
-        transition={{ duration: 0.32, ease: EASE_OUT }}
-        className="fixed bottom-0 left-0 right-0 z-40 flex flex-col border-t border-[#2A4A68] bg-[#1A2E42] rounded-t-2xl"
-      >
-        {/* Header (Always Visible) */}
+      {/* Drawer. Sized and cornered like the quick-scan form card it sits
+          under -- max-w-sm, inset from the screen edges, rounded top. */}
+      <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center px-4">
+        <motion.div
+          layout
+          initial={false}
+          animate={{
+            maxHeight: isExpanded ? "90vh" : "120px",
+          }}
+          transition={{ duration: 0.32, ease: EASE_OUT }}
+          className="pointer-events-auto flex w-full max-w-sm flex-col overflow-hidden rounded-t-xl border-x border-t border-[#2A4A68] bg-[#2D3847]"
+        >
+        {/* Header (Always Visible). The whole row is the hit target -- the
+            badge is the affordance, not a nested button. */}
         <button
           onClick={handleToggle}
           className={cx(
-            "flex flex-1 items-center gap-4 px-6 py-4",
-            "transition-all duration-200 hover:bg-[#1F3654] active:bg-[#0B3B52]",
+            "flex flex-1 flex-col gap-1.5 px-5 py-4",
+            "transition-all duration-200 hover:bg-[#354254] active:bg-[#0B3B52]",
             "cursor-pointer select-none focus:outline-none focus:ring-2 focus:ring-[#00BFFF] focus:ring-inset"
           )}
           aria-expanded={isExpanded}
-          aria-label="Toggle scan progress details"
+          aria-label={isExpanded ? "Hide scan progress details" : "Show scan progress details"}
         >
-          {/* Left Content */}
-          <div className="flex flex-1 flex-col gap-1.5 min-w-0">
-            {/* Title: Current Step */}
-            <div className="flex items-center gap-2.5">
-              <InlineLoader variant="orbit" size={16} color="#00BFFF" />
-              <span className="truncate text-[15px] font-bold text-white">
-                {currentStep}
-              </span>
-            </div>
-
-            {/* Subtitle: Current Operation + Progress */}
-            <div className="space-y-1">
-              {latestMessage && (
-                <div className="truncate text-left font-mono text-[12px] text-[#00BFFF]/80">
-                  {latestMessage}
-                </div>
+          {/* Stage row: step name, step count, and the toggle badge */}
+          <div className="flex w-full items-center gap-2.5">
+            <InlineLoader variant="orbit" size={16} color="#00BFFF" />
+            <span className="truncate text-[15px] font-bold text-white">
+              {currentStep}
+            </span>
+            <span className="shrink-0 text-[13px] text-[#7A92A8]">
+              Step {currentStepIndex} of {totalSteps}
+            </span>
+            <span
+              className={cx(
+                "ml-auto inline-flex shrink-0 items-center gap-1.5 rounded-full",
+                "border border-[#2A4A68] bg-[#022136] px-3 py-1",
+                "text-xs font-medium text-[#00BFFF]"
               )}
-              <div className="text-left text-[13px] text-[#7A92A8]">
-                Progress: {currentStepIndex} of {totalSteps}
-              </div>
-            </div>
-
-            {/* Progress Bar */}
-            <div className="flex items-center gap-3 pt-1">
-              <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-[#00BFFF]/20">
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{ width: `${progressPercent}%` }}
-                  transition={{ duration: 0.4, ease: "easeOut" }}
-                  className="h-full bg-[#00BFFF]"
-                />
-              </div>
-              <span className="text-[12px] font-medium text-[#7A92A8] min-w-fit">
-                {Math.round(progressPercent)}%
-              </span>
-            </div>
+            >
+              {isExpanded ? "Hide" : "Details"}
+              {isExpanded ? (
+                <ChevronDown className="h-3.5 w-3.5" aria-hidden />
+              ) : (
+                <ChevronUp className="h-3.5 w-3.5" aria-hidden />
+              )}
+            </span>
           </div>
 
-          {/* Chevron */}
-          <motion.div
-            animate={{ rotate: isExpanded ? 180 : 0 }}
-            transition={{ duration: 0.28, ease: EASE_OUT }}
-            className="flex h-5 w-5 shrink-0 items-center justify-center text-[#00BFFF] text-sm"
-          >
-            ▼
-          </motion.div>
+          {/* Latest line off the backend log */}
+          {latestMessage && (
+            <div className="w-full truncate text-left font-mono text-[12px] text-[#00BFFF]/80">
+              {latestMessage}
+            </div>
+          )}
+
+          {/* Progress Bar */}
+          <div className="flex w-full items-center gap-3 pt-1">
+            <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-[#00BFFF]/20">
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: `${progressPercent}%` }}
+                transition={{ duration: 0.4, ease: "easeOut" }}
+                className="h-full bg-[#00BFFF]"
+              />
+            </div>
+            <span className="min-w-fit text-[12px] font-medium text-[#7A92A8]">
+              {Math.round(progressPercent)}%
+            </span>
+          </div>
         </button>
 
         {/* Content (Hidden Until Expanded) */}
@@ -205,7 +208,7 @@ export function ProgressDrawer({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.28, ease: EASE_OUT, delay: 0.04 }}
-              className="flex-1 overflow-y-auto border-t border-[#2A4A68] px-6 py-4 -webkit-overflow-scrolling-touch"
+              className="flex-1 overflow-y-auto border-t border-[#3D4A5C] px-5 py-4 -webkit-overflow-scrolling-touch"
             >
               {/* Show progress log if available */}
               {progressMessages.length > 0 ? (
@@ -244,7 +247,7 @@ export function ProgressDrawer({
                         key={step.id}
                         className={cx(
                           "flex gap-3 pb-3",
-                          index !== steps.length - 1 && "border-b border-[#2A4A68]"
+                          index !== steps.length - 1 && "border-b border-[#3D4A5C]"
                         )}
                       >
                         <TimelineStepIndicator status={status} />
@@ -285,7 +288,8 @@ export function ProgressDrawer({
             </motion.div>
           )}
         </AnimatePresence>
-      </motion.div>
+        </motion.div>
+      </div>
     </>
   );
 }
