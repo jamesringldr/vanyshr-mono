@@ -448,26 +448,24 @@ export function PilotLoadingPage() {
 
     const pollInterval = setInterval(async () => {
       try {
-        const { data, error } = await supabase
-          .schema("quickscan")
-          .from("quickscan_progress")
-          .select("id, message, step, created_at")
-          .eq("quickscans_id", quickscanId)
-          .order("created_at", { ascending: true });
+        const { data, error } = await supabase.functions.invoke("get-progress-messages", {
+          body: { quickscanId },
+        });
 
         if (error) {
           console.warn("Failed to fetch progress messages:", error);
           return;
         }
 
-        console.log(`[Progress Poll] Found ${data?.length || 0} messages (last seen: ${lastProgressCountRef.current})`, data);
+        const messages = data?.messages || [];
+        console.log(`[Progress Poll] Found ${messages.length} messages (last seen: ${lastProgressCountRef.current})`, messages);
 
-        if (data && data.length > lastProgressCountRef.current) {
+        if (messages.length > lastProgressCountRef.current) {
           // Append only new messages (those we haven't seen before)
-          const newMessages = data.slice(lastProgressCountRef.current);
+          const newMessages = messages.slice(lastProgressCountRef.current);
           console.log(`[Progress Poll] Adding ${newMessages.length} new messages`, newMessages);
           setProgressMessages((prev) => [...prev, ...newMessages]);
-          lastProgressCountRef.current = data.length;
+          lastProgressCountRef.current = messages.length;
         }
       } catch (err) {
         console.error("Progress polling error:", err);
