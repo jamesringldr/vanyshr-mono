@@ -472,8 +472,10 @@ export function PilotEntryPage() {
                 initial={false}
                 animate={{
                   y: ghostLift ? "0vh" : "42vh",
-                  scale: phase === "expand" || phase === "slides" ? 9 : 1,
-                  opacity: phase === "expand" || phase === "slides" ? 0 : 1,
+                  // Inside the `phase !== "slides"` guard above, so the
+                  // slides case cannot arise here.
+                  scale: phase === "expand" ? 9 : 1,
+                  opacity: phase === "expand" ? 0 : 1,
                 }}
                 transition={{
                   y: {

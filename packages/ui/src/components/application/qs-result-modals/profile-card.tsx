@@ -1,5 +1,5 @@
 import type { HTMLAttributes } from "react";
-import { cx } from '@/utils/cx';
+import { cx } from "@/utils/cx";
 import type { QSProfileSummary } from "./types";
 
 export interface ProfileCardProps extends Omit<HTMLAttributes<HTMLDivElement>, "children"> {
@@ -8,8 +8,7 @@ export interface ProfileCardProps extends Omit<HTMLAttributes<HTMLDivElement>, "
 
 /**
  * Profile summary card — name, age, aliases, phones, relatives, address.
- * Light card style (bg-gray-50) designed to sit inside the white modal containers.
- * 2-column data grid matching the prototype ConfirmModal/Modal layout.
+ * Dark card for the navy QuickScan result modals.
  */
 export function ProfileCard({ profile, className, ...props }: ProfileCardProps) {
     const { fullName, age, aliases, phones, relatives, currentAddress } = profile;
@@ -22,56 +21,40 @@ export function ProfileCard({ profile, className, ...props }: ProfileCardProps) 
         <div
             role="region"
             aria-label={`Profile: ${fullName}`}
-            className={cx(
-                "rounded-lg p-5 bg-gray-50 border-2 border-[#00BFFF]/20",
-                className,
-            )}
+            className={cx("rounded-lg border border-[#2A4A68] bg-[#022136] p-5", className)}
             {...props}
         >
-            {/* Name */}
-            <h3 className="text-lg font-bold text-slate-800 mb-1">
-                {fullName}
-            </h3>
+            <h3 className="mb-1 text-lg font-bold text-white">{fullName}</h3>
 
-            {/* Age */}
-            {age != null && (
-                <p className="text-sm text-slate-500 mb-2">Age: {age}</p>
-            )}
+            {age != null && <p className="mb-2 text-sm text-[#7A92A8]">Age: {age}</p>}
 
-            {/* Aliases row */}
             {aliases?.length ? (
-                <div className="py-[5px] mb-1">
+                <div className="mb-1 py-[5px]">
                     <div className="flex items-center gap-2">
-                        <span
-                            className="font-bold text-slate-700 uppercase tracking-wide flex-shrink-0"
-                            style={{ fontSize: "0.675rem" }}
-                        >
+                        <span className="flex-shrink-0 text-[0.675rem] font-bold uppercase tracking-wide text-[#7A92A8]">
                             Aliases
                         </span>
-                        <div
-                            className="text-slate-600 font-medium flex-1 flex flex-wrap gap-x-2"
-                            style={{ fontSize: "0.675rem" }}
-                        >
+                        <div className="flex flex-1 flex-wrap gap-x-2 text-[0.675rem] font-medium text-[#B8C4CC]">
                             {aliases.slice(0, 2).map((alias, idx) => (
-                                <span key={idx} className="truncate">{alias}</span>
+                                <span key={idx} className="truncate">
+                                    {alias}
+                                </span>
                             ))}
                         </div>
                     </div>
                 </div>
             ) : null}
 
-            {/* 2-column data grid */}
             {(hasLeft || hasRight) && (
-                <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm mt-1">
-                    {/* Left column: phones, address */}
+                <div className="mt-1 grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
                     <div className="space-y-3">
                         {phones?.length ? (
                             <div>
-                                <span className="block font-bold text-slate-700 text-xs uppercase tracking-wide">
+                                <span className="block text-xs font-bold uppercase tracking-wide text-[#7A92A8]">
                                     Phones
                                 </span>
                                 {phones.slice(0, 2).map((phone, idx) => (
-                                    <span key={idx} className="block text-slate-600 font-medium">
+                                    <span key={idx} className="block font-medium text-[#B8C4CC]">
                                         {phone}
                                     </span>
                                 ))}
@@ -80,26 +63,25 @@ export function ProfileCard({ profile, className, ...props }: ProfileCardProps) 
 
                         {addressLine ? (
                             <div>
-                                <span className="block font-bold text-slate-700 text-xs uppercase tracking-wide">
+                                <span className="block text-xs font-bold uppercase tracking-wide text-[#7A92A8]">
                                     Current Address
                                 </span>
-                                <div className="text-slate-600 font-medium leading-snug">
-                                    {addressLine}
-                                </div>
+                                <div className="font-medium leading-snug text-[#B8C4CC]">{addressLine}</div>
                             </div>
                         ) : null}
                     </div>
 
-                    {/* Right column: relatives */}
                     <div className="space-y-3">
                         {relatives?.length ? (
                             <div>
-                                <span className="block font-bold text-slate-700 text-xs uppercase tracking-wide">
+                                <span className="block text-xs font-bold uppercase tracking-wide text-[#7A92A8]">
                                     Relatives
                                 </span>
-                                <div className="text-slate-600 font-medium leading-snug">
+                                <div className="font-medium leading-snug text-[#B8C4CC]">
                                     {relatives.slice(0, 3).map((rel, idx) => (
-                                        <span key={idx} className="block truncate">{rel}</span>
+                                        <span key={idx} className="block truncate">
+                                            {rel}
+                                        </span>
                                     ))}
                                 </div>
                             </div>

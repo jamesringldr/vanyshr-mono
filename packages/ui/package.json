@@ -34,7 +34,6 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@internationalized/date": "^3.8.0",
     "@react-aria/utils": "^3.28.0",
     "@react-stately/utils": "^3.10.5",
     "@react-types/overlays": "^3.8.12",
