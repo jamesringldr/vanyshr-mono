@@ -163,7 +163,7 @@ export function ProgressDrawer({
 
       {/* Drawer. Sized and cornered like the quick-scan form card it sits
           under -- max-w-sm, inset from the screen edges, rounded top. */}
-      <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center px-4">
+      <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center px-2.5">
         <motion.div
           layout
           initial={false}
@@ -178,21 +178,18 @@ export function ProgressDrawer({
         <button
           onClick={handleToggle}
           className={cx(
-            "flex flex-1 flex-col gap-1.5 px-5 py-4",
+            "flex shrink-0 flex-col gap-1.5 px-5 py-4",
             "transition-all duration-200 hover:bg-[#354254] active:bg-[#0B3B52]",
             "cursor-pointer select-none focus:outline-none focus:ring-2 focus:ring-[#00BFFF] focus:ring-inset"
           )}
           aria-expanded={isExpanded}
           aria-label={isExpanded ? "Hide scan progress details" : "Show scan progress details"}
         >
-          {/* Stage row: step name, step count, and the toggle badge */}
+          {/* Stage row: step name and the toggle badge */}
           <div className="flex w-full items-center gap-2.5">
             <InlineLoader variant="orbit" size={16} color="#00BFFF" />
             <span className="truncate text-[15px] font-bold text-white">
               {currentStage?.stage.label ?? ""}
-            </span>
-            <span className="shrink-0 text-[13px] text-[#7A92A8]">
-              Step {currentStepIndex} of {totalSteps}
             </span>
             <span
               className={cx(
@@ -228,7 +225,7 @@ export function ProgressDrawer({
               />
             </div>
             <span className="min-w-fit text-[12px] font-medium text-[#7A92A8]">
-              {Math.round(progressPercent)}%
+              Step {currentStepIndex} of {totalSteps}
             </span>
           </div>
         </button>
