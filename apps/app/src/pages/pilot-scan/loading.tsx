@@ -871,8 +871,8 @@ export function PilotLoadingPage() {
           ...step,
           // Inject live statusAction as "running command" for active steps
           result:
-            step.id === "brokers" && (phase === "searching" || phase === "full_profile") && statusAction
-              ? statusAction
+            step.id === "brokers" && (phase === "searching" || phase === "full_profile")
+              ? statusAction || (phase === "searching" ? "Querying data brokers..." : "Pulling your full profiles from each site")
               : undefined,
           // Inject completion result for finished steps
           completionResult: getStepCompletionResult(step.id, phase),
