@@ -44,6 +44,22 @@ export async function logTiming(
   if (error) console.error(`✗ scan_timings insert failed (step=${step}, scan=${quickscansId}): ${error.message}`);
 }
 
+export async function logProgress(
+  supabase: SupabaseClient,
+  quickscansId: string,
+  message: string,
+  step?: string,
+): Promise<void> {
+  // Log granular progress updates for display in the frontend progress drawer.
+  // Each message represents a sub-step completion or status update.
+  const { error } = await supabase.schema("quickscan").from("quickscan_progress").insert({
+    quickscans_id: quickscansId,
+    message,
+    step: step ?? null,
+  });
+  if (error) console.error(`✗ quickscan_progress insert failed (scan=${quickscansId}): ${error.message}`);
+}
+
 // ---------------------------------------------------------------------------
 // Normalization
 // ---------------------------------------------------------------------------

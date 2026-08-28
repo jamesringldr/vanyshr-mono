@@ -24,6 +24,7 @@ export interface ProgressDrawerProps {
   totalSteps: number;
   steps: ProgressStep[];
   stepStatuses: Record<string, StepStatus>;
+  progressMessages?: Array<{ id: string; message: string; step?: string; created_at: string }>;
   onToggle?: () => void;
 }
 
@@ -82,6 +83,7 @@ export function ProgressDrawer({
   totalSteps,
   steps,
   stepStatuses,
+  progressMessages = [],
   onToggle,
 }: ProgressDrawerProps) {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -189,54 +191,69 @@ export function ProgressDrawer({
               transition={{ duration: 0.28, ease: EASE_OUT, delay: 0.04 }}
               className="flex-1 overflow-y-auto border-t border-[#2A4A68] px-6 py-4 -webkit-overflow-scrolling-touch"
             >
-              <div className="space-y-3">
-                {steps.map((step, index) => {
-                  const status = stepStatuses[step.id];
-                  const isActive = status === "active";
-                  const isComplete = status === "complete";
-
-                  return (
-                    <div
-                      key={step.id}
-                      className={cx(
-                        "flex gap-3 pb-3",
-                        index !== steps.length - 1 && "border-b border-[#2A4A68]"
-                      )}
-                    >
-                      <TimelineStepIndicator status={status} />
-
-                      <div className="flex flex-1 flex-col gap-1 min-w-0 pt-0.5">
-                        <div
-                          className={cx(
-                            "text-[14px] font-semibold leading-tight",
-                            isComplete || isActive
-                              ? "text-white"
-                              : "text-[#B8C4CC]"
-                          )}
-                        >
-                          {step.label}
-                        </div>
-
-                        <div className="text-[13px] leading-snug text-[#7A92A8]">
-                          {step.subtext}
-                        </div>
-
-                        {isActive && step.result && (
-                          <div className="mt-2 text-[12px] font-mono text-[#00BFFF]/80">
-                            {step.result}
-                          </div>
-                        )}
-
-                        {isComplete && step.completionResult && (
-                          <div className="mt-2 text-[13px] font-medium text-[#22C55E]">
-                            ✓ {step.completionResult}
-                          </div>
-                        )}
+              {/* Show progress log if available */}
+              {progressMessages.length > 0 ? (
+                <div className="space-y-2 font-mono text-[12px]">
+                  {progressMessages.map((msg) => (
+                    <div key={msg.id} className="flex gap-3 text-[#00BFFF]/80">
+                      <div className="shrink-0 text-[#7A92A8]">
+                        [{new Date(msg.created_at).toLocaleTimeString()}]
                       </div>
+                      <div className="flex-1 text-[#B8C4CC]">{msg.message}</div>
                     </div>
-                  );
-                })}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                /* Fallback timeline */
+                <div className="space-y-3">
+                  {steps.map((step, index) => {
+                    const status = stepStatuses[step.id];
+                    const isActive = status === "active";
+                    const isComplete = status === "complete";
+
+                    return (
+                      <div
+                        key={step.id}
+                        className={cx(
+                          "flex gap-3 pb-3",
+                          index !== steps.length - 1 && "border-b border-[#2A4A68]"
+                        )}
+                      >
+                        <TimelineStepIndicator status={status} />
+
+                        <div className="flex flex-1 flex-col gap-1 min-w-0 pt-0.5">
+                          <div
+                            className={cx(
+                              "text-[14px] font-semibold leading-tight",
+                              isComplete || isActive
+                                ? "text-white"
+                                : "text-[#B8C4CC]"
+                            )}
+                          >
+                            {step.label}
+                          </div>
+
+                          <div className="text-[13px] leading-snug text-[#7A92A8]">
+                            {step.subtext}
+                          </div>
+
+                          {isActive && step.result && (
+                            <div className="mt-2 text-[12px] font-mono text-[#00BFFF]/80">
+                              {step.result}
+                            </div>
+                          )}
+
+                          {isComplete && step.completionResult && (
+                            <div className="mt-2 text-[13px] font-medium text-[#22C55E]">
+                              ✓ {step.completionResult}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>

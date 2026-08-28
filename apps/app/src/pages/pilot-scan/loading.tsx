@@ -370,6 +370,7 @@ export function PilotLoadingPage() {
   // as progress instead of a frozen button.
   const [isConfirming, setIsConfirming] = useState(false);
   const [statusAction, setStatusAction] = useState<string>("");
+  const [progressMessages, setProgressMessages] = useState<Array<{ id: string; message: string; step?: string; created_at: string }>>([]);
 
   const candidatesRef = useRef<IdentifyCandidate[]>([]);
   const rejectedRef = useRef<IdentifyCandidate[]>([]);
@@ -379,6 +380,7 @@ export function PilotLoadingPage() {
   const fieldsRef = useRef<ScanFields | null>(null);
   const scanRunRef = useRef(0);
   const skipNoResultsExitRef = useRef(false);
+  const lastProgressIdRef = useRef<string>("");
   // Tip: `/pilot-scan/loading?noresults` opens the recovery modal without a scan.
   const previewNoResults = searchParams.has("noresults");
 
@@ -427,6 +429,41 @@ export function PilotLoadingPage() {
     }, prefersReducedMotion ? 400 : 800);
     return () => window.clearTimeout(t);
   }, [phase, navigate, prefersReducedMotion]);
+
+  // Poll for progress messages from the backend
+  useEffect(() => {
+    const quickscanId = quickScanIdRef.current;
+    if (!quickscanId || (phase !== "full_profile" && phase !== "emails")) return;
+
+    const pollInterval = setInterval(async () => {
+      try {
+        const { data, error } = await supabase
+          .schema("quickscan")
+          .from("quickscan_progress")
+          .select("id, message, step, created_at")
+          .eq("quickscans_id", quickscanId)
+          .order("created_at", { ascending: true });
+
+        if (error) {
+          console.warn("Failed to fetch progress messages:", error);
+          return;
+        }
+
+        if (data && data.length > 0) {
+          // Only append new messages (those after lastProgressIdRef.current)
+          const newMessages = data.filter((msg: any) => msg.id > lastProgressIdRef.current);
+          if (newMessages.length > 0) {
+            setProgressMessages((prev) => [...prev, ...newMessages]);
+            lastProgressIdRef.current = data[data.length - 1].id;
+          }
+        }
+      } catch (err) {
+        console.error("Progress polling error:", err);
+      }
+    }, 500); // Poll every 500ms for near-real-time updates
+
+    return () => clearInterval(pollInterval);
+  }, [phase]);
 
   // summary-scan responds as soon as FPS resolves and keeps AnyWho/Zaba/NPD
   // in the background; full-profile-scan reports { notReady } instead of
@@ -878,6 +915,7 @@ export function PilotLoadingPage() {
           completionResult: getStepCompletionResult(step.id, phase),
         }))}
         stepStatuses={stepStatuses(phase, isConfirming)}
+        progressMessages={progressMessages}
       />
 
       <QSResultSingleModal
