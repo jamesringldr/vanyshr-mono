@@ -380,7 +380,7 @@ export function PilotLoadingPage() {
   const fieldsRef = useRef<ScanFields | null>(null);
   const scanRunRef = useRef(0);
   const skipNoResultsExitRef = useRef(false);
-  const lastProgressIdRef = useRef<string>("");
+  const lastProgressCountRef = useRef<number>(0);
   // Tip: `/pilot-scan/loading?noresults` opens the recovery modal without a scan.
   const previewNoResults = searchParams.has("noresults");
 
@@ -433,7 +433,18 @@ export function PilotLoadingPage() {
   // Poll for progress messages from the backend
   useEffect(() => {
     const quickscanId = quickScanIdRef.current;
-    if (!quickscanId || (phase !== "full_profile" && phase !== "emails")) return;
+    if (!quickscanId || (phase !== "full_profile" && phase !== "emails")) {
+      // Reset when phase changes away from full_profile/emails
+      if (phase !== "full_profile" && phase !== "emails") {
+        lastProgressCountRef.current = 0;
+      }
+      return;
+    }
+
+    // Reset message count when entering full_profile for a fresh scan
+    if (phase === "full_profile" && progressMessages.length === 0) {
+      lastProgressCountRef.current = 0;
+    }
 
     const pollInterval = setInterval(async () => {
       try {
@@ -449,13 +460,11 @@ export function PilotLoadingPage() {
           return;
         }
 
-        if (data && data.length > 0) {
-          // Only append new messages (those after lastProgressIdRef.current)
-          const newMessages = data.filter((msg: any) => msg.id > lastProgressIdRef.current);
-          if (newMessages.length > 0) {
-            setProgressMessages((prev) => [...prev, ...newMessages]);
-            lastProgressIdRef.current = data[data.length - 1].id;
-          }
+        if (data && data.length > lastProgressCountRef.current) {
+          // Append only new messages (those we haven't seen before)
+          const newMessages = data.slice(lastProgressCountRef.current);
+          setProgressMessages((prev) => [...prev, ...newMessages]);
+          lastProgressCountRef.current = data.length;
         }
       } catch (err) {
         console.error("Progress polling error:", err);
@@ -627,6 +636,8 @@ export function PilotLoadingPage() {
     rejectedRef.current = [];
     candidatesRef.current = [];
     setProfiles([]);
+    setProgressMessages([]);
+    lastProgressCountRef.current = 0;
     go("searching");
 
     invokeOnce(`summary-scan:${quickScanId}`, "summary-scan", { quickscanId: quickScanId })
