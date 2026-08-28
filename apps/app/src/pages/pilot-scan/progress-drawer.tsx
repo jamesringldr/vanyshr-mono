@@ -116,47 +116,42 @@ export function ProgressDrawer({
           maxHeight: isExpanded ? "90vh" : "120px",
         }}
         transition={{ duration: 0.32, ease: EASE_OUT }}
-        className="fixed bottom-0 left-0 right-0 z-40 flex flex-col border-t border-[#0d3d57] bg-[#022136]"
+        className="fixed bottom-0 left-0 right-0 z-40 flex flex-col border-t border-[#2A4A68] bg-[#1A2E42] rounded-t-2xl"
       >
         {/* Header (Always Visible) */}
         <button
           onClick={handleToggle}
           className={cx(
-            "flex flex-1 items-center gap-3 border-l-4 border-[#00BFFF] px-4 py-3",
-            "transition-colors duration-200 active:bg-[#00BFFF]/8",
-            "cursor-pointer select-none"
+            "flex flex-1 items-center gap-4 px-6 py-4",
+            "transition-all duration-200 hover:bg-[#1F3654] active:bg-[#0B3B52]",
+            "cursor-pointer select-none focus:outline-none focus:ring-2 focus:ring-[#00BFFF] focus:ring-inset"
           )}
           aria-expanded={isExpanded}
           aria-label="Toggle scan progress details"
         >
           {/* Left Content */}
-          <div className="flex flex-1 flex-col gap-2 min-w-0">
-            {/* Current Step */}
-            <div className="flex items-center gap-2">
+          <div className="flex flex-1 flex-col gap-1.5 min-w-0">
+            {/* Title: Current Step */}
+            <div className="flex items-center gap-2.5">
               <InlineLoader variant="orbit" size={16} color="#00BFFF" />
-              <span className="truncate text-[15px] font-medium text-white">
+              <span className="truncate text-[15px] font-bold text-white">
                 {currentStep}
               </span>
             </div>
 
-            {/* Status Details */}
+            {/* Subtitle: Progress Status */}
             <div className="text-[13px] leading-snug text-[#7A92A8]">
-              <div>Queried {currentStepIndex} of {totalSteps} brokers</div>
-              <div>
-                {statusAction && (
-                  <>
-                    Found profiles on{" "}
-                    <span className="font-medium text-[#00BFFF]">
-                      {statusAction.match(/\d+/)?.[0] || "0"} sites
-                    </span>
-                  </>
-                )}
-              </div>
+              <span>Progress: {currentStepIndex} of {totalSteps}</span>
+              {statusAction && (
+                <span className="ml-2 text-[#00BFFF]">
+                  • {statusAction.match(/\d+/)?.[0] || "0"} sites found
+                </span>
+              )}
             </div>
 
             {/* Progress Bar */}
-            <div className="flex items-center gap-2">
-              <div className="h-1 flex-1 overflow-hidden rounded bg-[#00BFFF]/15">
+            <div className="flex items-center gap-3 pt-1">
+              <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-[#00BFFF]/20">
                 <motion.div
                   initial={{ width: 0 }}
                   animate={{ width: `${progressPercent}%` }}
@@ -165,7 +160,7 @@ export function ProgressDrawer({
                 />
               </div>
               <span className="text-[12px] font-medium text-[#7A92A8] min-w-fit">
-                {currentStepIndex} / {totalSteps}
+                {Math.round(progressPercent)}%
               </span>
             </div>
           </div>
@@ -174,7 +169,7 @@ export function ProgressDrawer({
           <motion.div
             animate={{ rotate: isExpanded ? 180 : 0 }}
             transition={{ duration: 0.28, ease: EASE_OUT }}
-            className="flex h-6 w-6 shrink-0 items-center justify-center text-[#00BFFF]"
+            className="flex h-5 w-5 shrink-0 items-center justify-center text-[#00BFFF] text-sm"
           >
             ▼
           </motion.div>
@@ -189,9 +184,9 @@ export function ProgressDrawer({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.28, ease: EASE_OUT, delay: 0.04 }}
-              className="flex-1 overflow-y-auto border-t border-[#0d3d57] px-4 py-4 -webkit-overflow-scrolling-touch"
+              className="flex-1 overflow-y-auto border-t border-[#2A4A68] px-6 py-4 -webkit-overflow-scrolling-touch"
             >
-              <div className="space-y-0">
+              <div className="space-y-3">
                 {steps.map((step, index) => {
                   const status = stepStatuses[step.id];
                   const isActive = status === "active";
@@ -201,16 +196,16 @@ export function ProgressDrawer({
                     <div
                       key={step.id}
                       className={cx(
-                        "flex gap-3 border-b border-[#0d3d57] py-3",
-                        index === steps.length - 1 && "border-b-0"
+                        "flex gap-3 pb-3",
+                        index !== steps.length - 1 && "border-b border-[#2A4A68]"
                       )}
                     >
                       <TimelineStepIndicator status={status} />
 
-                      <div className="flex flex-1 flex-col gap-0.5 min-w-0">
+                      <div className="flex flex-1 flex-col gap-1 min-w-0 pt-0.5">
                         <div
                           className={cx(
-                            "text-[15px] font-medium leading-snug",
+                            "text-[14px] font-semibold leading-tight",
                             isComplete || isActive
                               ? "text-white"
                               : "text-[#B8C4CC]"
@@ -224,8 +219,8 @@ export function ProgressDrawer({
                         </div>
 
                         {isActive && step.result && (
-                          <div className="mt-1 text-[13px] font-medium text-[#00BFFF]">
-                            {step.result}
+                          <div className="mt-2 text-[13px] font-semibold text-[#00BFFF]">
+                            ✓ {step.result}
                           </div>
                         )}
                       </div>
