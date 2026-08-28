@@ -13,7 +13,7 @@ export function EducationalCards({ onCardClick }: EducationalCardsProps) {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: EASE_OUT, delay: 0.2 }}
-      className="w-full max-w-sm px-6 py-8"
+      className="w-full px-4 py-8"
     >
       {/* Headline */}
       <div className="mb-8 text-center">

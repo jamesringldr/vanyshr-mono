@@ -843,7 +843,7 @@ export function PilotLoadingPage() {
       aria-label="Scan in progress"
       aria-busy={phase === "searching" || phase === "full_profile"}
     >
-      <div className="relative z-10 flex w-full max-w-sm flex-col items-center">
+      <div className="relative z-10 flex w-full max-w-xl flex-col items-center">
         {/* Educational Cards - Show during scanning phases */}
         {(phase === "searching" || phase === "full_profile") && (
           <EducationalCards

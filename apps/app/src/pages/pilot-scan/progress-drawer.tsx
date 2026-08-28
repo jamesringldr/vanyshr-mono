@@ -163,7 +163,7 @@ export function ProgressDrawer({
 
       {/* Drawer. Sized and cornered like the quick-scan form card it sits
           under -- max-w-sm, inset from the screen edges, rounded top. */}
-      <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center px-2.5">
+      <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center px-4">
         <motion.div
           layout
           initial={false}
@@ -171,7 +171,7 @@ export function ProgressDrawer({
             maxHeight: isExpanded ? "90vh" : "120px",
           }}
           transition={{ duration: 0.32, ease: EASE_OUT }}
-          className="pointer-events-auto flex w-full max-w-sm flex-col overflow-hidden rounded-t-xl border-x border-t border-[#2A4A68] bg-[#2D3847]"
+          className="pointer-events-auto flex w-full max-w-xl flex-col overflow-hidden rounded-t-xl border-x border-t border-[#2A4A68] bg-[#2D3847]"
         >
         {/* Header (Always Visible). The whole row is the hit target -- the
             badge is the affordance, not a nested button. */}
