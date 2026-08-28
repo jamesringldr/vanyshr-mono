@@ -310,7 +310,7 @@ export function PilotEntryPage() {
   return (
     <>
       <div
-        className="relative flex min-h-dvh w-full flex-col overflow-hidden bg-[#022136] font-ubuntu touch-pan-y"
+        className="relative flex min-h-dvh w-full flex-col overflow-hidden bg-[#022136] font-ubuntu touch-pan-y pb-[180px]"
         role="main"
         aria-label="Pilot scan invitation"
         onPointerDown={onSwipeDown}
@@ -416,7 +416,7 @@ export function PilotEntryPage() {
           })}
         </div>
 
-        <div className="w-full shrink-0 px-4">
+        <div className="fixed inset-x-0 bottom-0 z-30 px-4">
           <footer
             className="w-full rounded-t-[28px] bg-[#1A2E42] px-5 pb-6 pt-5 shadow-[0_0_40px_rgba(0,191,255,0.18)]"
             style={{ pointerEvents: phase === "slides" ? "auto" : "none" }}
