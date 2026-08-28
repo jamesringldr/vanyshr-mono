@@ -840,7 +840,7 @@ export function PilotLoadingPage() {
               ? statusAction.match(/\d+\s+matches?/i)?.[0] || statusAction
               : undefined,
         }))}
-        stepStatuses={stepStatuses}
+        stepStatuses={stepStatuses(phase, isConfirming)}
       />
 
       <QSResultSingleModal
