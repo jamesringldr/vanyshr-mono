@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router";
+import type { Session } from "@supabase/supabase-js";
 import { Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
@@ -49,86 +50,100 @@ export function AuthCallback() {
     const handled = useRef(false);
 
     useEffect(() => {
-        // Supabase fires SIGNED_IN after processing the hash fragment.
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(
-            async (event, session) => {
-                if (handled.current) return;
-                if (event !== "SIGNED_IN" || !session) return;
+        let cancelled = false;
 
-                handled.current = true;
+        async function finish(session: Session) {
+            if (handled.current || cancelled) return;
+            handled.current = true;
 
-                // ── SIGNUP FLOW ──────────────────────────────────────────────
-                // profile_id in the URL means this link came from the QuickScan
-                // sign-up CTA (set by magic-link.tsx) or admin invite (set by admin-send-invite).
-                // Always link the account and send the user to the appropriate destination,
-                // even if the profile is already linked (e.g. they clicked the same link twice).
-                const params = new URLSearchParams(window.location.search);
-                const profileId = params.get("profile_id")
-                    ?? sessionStorage.getItem("pendingProfileId");
-                const next = params.get("next");
+            const params = new URLSearchParams(window.location.search);
+            const meta = session.user.user_metadata as Record<string, unknown> | undefined;
+            const metaProfileId =
+                typeof meta?.profile_id === "string" ? meta.profile_id : null;
+            const profileId = params.get("profile_id")
+                ?? sessionStorage.getItem("pendingProfileId")
+                ?? metaProfileId;
+            const next = params.get("next");
 
-                if (profileId) {
-                    try {
-                        const { error } = await supabase.functions.invoke("link-auth-to-profile", {
-                            body: { profile_id: profileId },
-                        });
-                        if (error) {
-                            console.error("link-auth-to-profile error:", error);
-                            // Non-fatal — profile may already be linked.
-                        }
-                    } catch (err) {
-                        console.error("AuthCallback: link error:", err);
+            if (profileId) {
+                try {
+                    const { error } = await supabase.functions.invoke("link-auth-to-profile", {
+                        body: { profile_id: profileId },
+                    });
+                    if (error) {
+                        console.error("link-auth-to-profile error:", error);
                     }
-
-                    sessionStorage.removeItem("pendingProfileId");
-                    sessionStorage.removeItem("pendingScanId");
-
-                    // For admin invite flow: redirect to next if it's safe, otherwise default to /welcome
-                    if (next && isSafeNext(next)) {
-                        navigate(next, { replace: true });
-                    } else {
-                        navigate("/welcome", { replace: true });
-                    }
-                    return;
+                } catch (err) {
+                    console.error("AuthCallback: link error:", err);
                 }
 
-                // ── RETURNING LOGIN FLOW ─────────────────────────────────────
-                // No profile_id means this is a sign-in link (not sign-up).
-                // Check if the user has finished all onboarding steps:
-                //   • profile data steps 1–5 (onboarding_step >= 5)
-                //   • removal strategy chosen
-                //   • notification tier chosen
-                // Any incomplete → progress page.
-                const { data: existingProfile } = await supabase
-                    .from("user_profiles")
-                    .select("id, onboarding_step")
-                    .eq("auth_user_id", session.user.id)
+                sessionStorage.removeItem("pendingProfileId");
+                sessionStorage.removeItem("pendingScanId");
+
+                if (cancelled) return;
+                if (next && isSafeNext(next)) {
+                    navigate(next, { replace: true });
+                } else {
+                    navigate("/welcome", { replace: true });
+                }
+                return;
+            }
+
+            const { data: existingProfile } = await supabase
+                .from("user_profiles")
+                .select("id, onboarding_step")
+                .eq("auth_user_id", session.user.id)
+                .maybeSingle();
+
+            if (cancelled) return;
+
+            if (existingProfile) {
+                const { data: prefs } = await supabase
+                    .from("user_preferences")
+                    .select("removal_strategy, notification_tier")
+                    .eq("user_id", existingProfile.id)
                     .maybeSingle();
 
-                if (existingProfile) {
-                    const { data: prefs } = await supabase
-                        .from("user_preferences")
-                        .select("removal_strategy, notification_tier")
-                        .eq("user_id", existingProfile.id)
-                        .maybeSingle();
+                const profileDone = (existingProfile.onboarding_step ?? 0) >= 5;
+                const prefsDone   = !!(prefs?.removal_strategy && prefs?.notification_tier);
 
-                    const profileDone = (existingProfile.onboarding_step ?? 0) >= 5;
-                    const prefsDone   = !!(prefs?.removal_strategy && prefs?.notification_tier);
+                navigate(
+                    profileDone && prefsDone ? "/dashboard/home" : "/onboarding/progress",
+                    { replace: true }
+                );
+                return;
+            }
 
-                    navigate(
-                        profileDone && prefsDone ? "/dashboard/home" : "/onboarding/progress",
-                        { replace: true }
-                    );
-                    return;
+            const encodedEmail = encodeURIComponent(session.user.email ?? "");
+            navigate(`/auth/wrong-email?email=${encodedEmail}`, { replace: true });
+        }
+
+        // Subscribe first so we cannot miss SIGNED_IN while getSession is in flight.
+        // Also handle INITIAL_SESSION: the hash/code is often already consumed by
+        // the time this effect runs, so SIGNED_IN never fires and the spinner hangs.
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(
+            (event, session) => {
+                if (!session) return;
+                if (event === "SIGNED_IN" || event === "INITIAL_SESSION") {
+                    void finish(session);
                 }
-
-                // No linked profile found for this auth user — wrong email.
-                const encodedEmail = encodeURIComponent(session.user.email ?? "");
-                navigate(`/auth/wrong-email?email=${encodedEmail}`, { replace: true });
             }
         );
 
-        return () => subscription.unsubscribe();
+        void supabase.auth.getSession().then(({ data }) => {
+            if (data.session) void finish(data.session);
+        });
+
+        const timeout = window.setTimeout(() => {
+            if (handled.current || cancelled) return;
+            navigate("/login", { replace: true });
+        }, 12000);
+
+        return () => {
+            cancelled = true;
+            subscription.unsubscribe();
+            window.clearTimeout(timeout);
+        };
     }, [navigate]);
 
     return (

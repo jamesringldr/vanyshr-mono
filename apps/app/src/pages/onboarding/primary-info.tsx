@@ -10,6 +10,8 @@ import { cx } from "@/utils/cx";
 import { User, Calendar } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { allowLocalRouteBypass } from "@/lib/env";
+import { patchDevProgress } from "@/lib/dev-user";
+import { loadLocalOnboardingSeed } from "@/lib/local-onboarding-seed";
 
 interface PrimaryInfoField {
     id: string;
@@ -123,25 +125,27 @@ export function VerifyPrimaryInfo() {
         async function load() {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) {
-                // Local UI preview: show sample fields so the layout isn't empty.
                 if (allowLocalRouteBypass()) {
+                    const seed = loadLocalOnboardingSeed();
+                    const first = seed?.firstName || "Alex";
+                    const last = seed?.lastName || "Rivera";
                     setFields([
                         {
                             id: "legalName",
                             label: "LEGAL NAME",
-                            value: "Alex Rivera",
+                            value: [first, last].filter(Boolean).join(" "),
                             status: "pending",
                         },
                         {
                             id: "dateOfBirth",
                             label: "DATE OF BIRTH",
-                            value: "1990-06-15",
-                            status: "pending",
+                            value: "",
+                            status: "recommended",
                         },
                     ]);
-                    setEditFirstName("Alex");
-                    setEditLastName("Rivera");
-                    setEditDob("06/15/1990");
+                    setEditFirstName(first);
+                    setEditLastName(last);
+                    setEditDob("");
                 }
                 setIsLoading(false);
                 return;
@@ -268,6 +272,7 @@ export function VerifyPrimaryInfo() {
         setEditingFieldId(null);
 
         await saveToDb(firstName, lastName, dob);
+        patchDevProgress({ step: 1 });
         setIsSaving(false);
         navigate("/onboarding/emails");
     };

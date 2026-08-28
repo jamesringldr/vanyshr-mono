@@ -35,13 +35,12 @@ export function CheckEmail() {
         if (remaining <= 0 || isResending || !email) return;
         setIsResending(true);
 
-        const profileId = sessionStorage.getItem("pendingProfileId");
-        const redirectUrl = new URL(`${window.location.origin}/auth/callback`);
-        if (profileId) redirectUrl.searchParams.set("profile_id", profileId);
-
         await supabase.auth.signInWithOtp({
             email,
-            options: { emailRedirectTo: redirectUrl.toString(), shouldCreateUser: true },
+            options: {
+                emailRedirectTo: `${window.location.origin}/auth/callback`,
+                shouldCreateUser: true,
+            },
         });
 
         setRemaining((r) => Math.max(0, r - 1));

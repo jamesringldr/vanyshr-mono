@@ -15,6 +15,8 @@ import PrimaryLogoDark from "@vanyshr/ui/assets/PrimaryLogo-DarkMode.png";
 import { cx } from "@/utils/cx";
 import { supabase } from "@/lib/supabase";
 import { markOnboardingComplete } from "@/lib/onboarding";
+import { allowLocalRouteBypass } from "@/lib/env";
+import { captureDevUserFromLocation, getDevProgress } from "@/lib/dev-user";
 
 // ---------------------------------------------------------------------------
 // Progress Ring
@@ -384,7 +386,17 @@ export function OnboardingProgress() {
     useEffect(() => {
         async function load() {
             const { data: { user } } = await supabase.auth.getUser();
-            if (!user) { setIsLoading(false); return; }
+            if (!user) {
+                if (allowLocalRouteBypass()) {
+                    captureDevUserFromLocation();
+                    const local = getDevProgress();
+                    setOnboardingStep(local.step);
+                    setRemovalStrategy(local.removalStrategy);
+                    setNotificationTier(local.notificationTier);
+                }
+                setIsLoading(false);
+                return;
+            }
 
             const { data: profile } = await supabase
                 .from("user_profiles")

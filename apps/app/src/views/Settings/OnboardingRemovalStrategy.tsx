@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { ChevronLeft, CheckCircle2, XCircle, Target } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { patchDevProgress } from '@/lib/dev-user';
 
 type RemovalStrategy = 'aggressive' | 'targeted';
 
@@ -88,6 +89,8 @@ export function OnboardingRemovalStrategy() {
         .from('user_preferences')
         .upsert({ user_id: profileId, removal_strategy: selected }, { onConflict: 'user_id' });
       if (error) console.error('Failed to save removal strategy:', error);
+    } else {
+      patchDevProgress({ removalStrategy: selected });
     }
 
     setIsSaving(false);

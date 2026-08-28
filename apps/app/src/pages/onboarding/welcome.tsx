@@ -5,6 +5,8 @@ import PrimaryLogo from "@vanyshr/ui/assets/PrimaryLogo.png";
 import PrimaryLogoDark from "@vanyshr/ui/assets/PrimaryLogo-DarkMode.png";
 import { cx } from "@/utils/cx";
 import { supabase } from "@/lib/supabase";
+import { captureDevUserFromLocation } from "@/lib/dev-user";
+import { loadLocalOnboardingSeed } from "@/lib/local-onboarding-seed";
 
 function FeatureItem({
     icon: Icon,
@@ -43,8 +45,13 @@ export function Welcome() {
 
     useEffect(() => {
         async function load() {
+            captureDevUserFromLocation();
             const { data: { user } } = await supabase.auth.getUser();
-            if (!user) return;
+            if (!user) {
+                const seed = loadLocalOnboardingSeed();
+                if (seed?.firstName) setFirstName(seed.firstName);
+                return;
+            }
             const { data: profile } = await supabase
                 .from("user_profiles")
                 .select("first_name")

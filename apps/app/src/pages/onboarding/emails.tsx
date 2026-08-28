@@ -11,6 +11,9 @@ import { cx } from "@/utils/cx";
 import { Mail, Plus } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { triggerBreachesScan } from "@/lib/breaches";
+import { allowLocalRouteBypass } from "@/lib/env";
+import { patchDevProgress } from "@/lib/dev-user";
+import { loadLocalOnboardingSeed } from "@/lib/local-onboarding-seed";
 
 export interface EmailItem {
     id: string;
@@ -39,7 +42,19 @@ export function OnboardingEmails() {
     useEffect(() => {
         async function load() {
             const { data: { user } } = await supabase.auth.getUser();
-            if (!user) { setIsLoading(false); return; }
+            if (!user) {
+                if (allowLocalRouteBypass()) {
+                    const seed = loadLocalOnboardingSeed();
+                    setItems((seed?.emails ?? []).map((email, i) => ({
+                        id: `local-email-${i}`,
+                        email,
+                        status: "pending" as BadgeStatus,
+                        isPrimary: i === 0,
+                    })));
+                }
+                setIsLoading(false);
+                return;
+            }
 
             const { data: profile } = await supabase
                 .from("user_profiles")
@@ -204,6 +219,7 @@ export function OnboardingEmails() {
 
             triggerBreachesScan(profileId);
         }
+        patchDevProgress({ step: 2 });
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
             await supabase

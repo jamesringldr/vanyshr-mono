@@ -10,6 +10,9 @@ import { cx } from "@/utils/cx";
 import { Plus } from "lucide-react";
 import { AddressAutocomplete } from "@/components/AddressAutocomplete";
 import { supabase } from "@/lib/supabase";
+import { allowLocalRouteBypass } from "@/lib/env";
+import { patchDevProgress } from "@/lib/dev-user";
+import { loadLocalOnboardingSeed } from "@/lib/local-onboarding-seed";
 
 export interface AddressItem {
     id: string;
@@ -47,7 +50,19 @@ export function OnboardingAddresses() {
     useEffect(() => {
         async function load() {
             const { data: { user } } = await supabase.auth.getUser();
-            if (!user) { setIsLoading(false); return; }
+            if (!user) {
+                if (allowLocalRouteBypass()) {
+                    const seed = loadLocalOnboardingSeed();
+                    setItems((seed?.addresses ?? []).map((address, i) => ({
+                        id: `local-address-${i}`,
+                        address,
+                        status: "pending" as BadgeStatus,
+                        isCurrent: i === 0,
+                    })));
+                }
+                setIsLoading(false);
+                return;
+            }
 
             const { data: profile } = await supabase
                 .from("user_profiles")
@@ -206,6 +221,7 @@ export function OnboardingAddresses() {
                 .update({ onboarding_completed: true, onboarding_step: 5 })
                 .eq("auth_user_id", session.user.id);
         }
+        patchDevProgress({ step: 5 });
         setActiveId(null);
         setEditingId(null);
         setIsSaving(false);
