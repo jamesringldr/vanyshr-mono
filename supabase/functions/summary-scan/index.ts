@@ -18,7 +18,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { scrapeBrokersConcurrently } from "../_shared/quickscan/html-scrapers.ts";
-import { logTiming } from "../_shared/quickscan/consolidation.ts";
+import { logTiming, logProgress } from "../_shared/quickscan/consolidation.ts";
 import {
   FIRST_IDENTIFY_BROKER,
   IDENTIFY_ORDER,
@@ -184,6 +184,8 @@ serve(async (req) => {
       `🔍 summary-scan ${quickscanId}: ${input.first_name} ${input.last_name}, ${input.city}, ${input.state}`,
     );
 
+    await logProgress(supabase, quickscanId, "Scanning for matching profiles", "confirm");
+
     // All 4 fetches start together; only FPS is awaited here.
     const brokerPromises = scrapeBrokersConcurrently(input);
 
@@ -194,6 +196,19 @@ serve(async (req) => {
       status: fpsResult.status,
       error: fpsResult.error,
     });
+    // Stage 1's first result. An empty or failed FPS is not an error the user
+    // needs to see a broker name for -- it just means the other three decide.
+    if (fpsResult.status === "success" && fpsResult.summaries.length > 0) {
+      await logProgress(
+        supabase,
+        quickscanId,
+        `Found ${fpsResult.summaries.length} initial probable match${fpsResult.summaries.length !== 1 ? "es" : ""}`,
+        "confirm",
+        "success",
+      );
+    } else {
+      await logProgress(supabase, quickscanId, "Searching additional sources", "confirm");
+    }
 
     const stored = new Map<string, StoredRow>();
     const summaryCounts: Record<string, number> = { [BrokerName.FPS]: fpsResult.summaries.length };
@@ -380,7 +395,18 @@ async function finishScan(
       .eq("id", quickscanId);
 
     console.log(`✅ summary-scan ${quickscanId} finish: ${stored.size} candidates stored, no grouping`);
-    await logTiming(supabase, quickscanId, "summary_scan_background_total", Date.now() - functionStarted, { resultCount: stored.size });
+    const backgroundMs = Date.now() - functionStarted;
+    await logTiming(supabase, quickscanId, "summary_scan_background_total", backgroundMs, { resultCount: stored.size });
+    // Stage 1 stays open (no summary line) until the user actually confirms a
+    // match in the picker -- full-profile-scan closes it.
+    const brokersWithHits = Object.values(summaryCounts).filter((n) => n > 0).length;
+    await logProgress(
+      supabase,
+      quickscanId,
+      `Found ${totalCandidates} probable match${totalCandidates !== 1 ? "es" : ""} across ${brokersWithHits} data broker${brokersWithHits !== 1 ? "s" : ""}`,
+      "confirm",
+      "success",
+    );
   } catch (err) {
     // Always land on a terminal status -- full-profile-scan polls for
     // 'summary_scan_complete' and would otherwise wait forever on a

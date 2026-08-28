@@ -17,6 +17,8 @@ import {
 import type { ScanMember } from "./scan-result";
 import { EmailConfirmationModal } from "./email-confirmation";
 import { loadConsolidatedProfile, saveConsolidatedProfile, type ConsolidatedProfile } from "./consolidated-profile";
+import { ProgressDrawer, type ProgressStage, type ProgressMessage } from "./progress-drawer";
+import { EducationalCards } from "./educational-cards";
 
 const EASE_OUT = [0.2, 0, 0, 1] as const;
 
@@ -100,6 +102,47 @@ const STEPS: LoadingStep[] = [
 ];
 
 /**
+ * Drawer stages, in order. These are the user-facing arc of the scan and do
+ * not map 1:1 to `phase` — criteria and brokers both run inside
+ * full_profile. The drawer works out which is live from each log line's
+ * stage id, so these must match what the edge functions write.
+ */
+const DRAWER_STAGES: ProgressStage[] = [
+  { id: "confirm", label: "Confirm User Search Details" },
+  { id: "criteria", label: "Building Search Criteria" },
+  { id: "brokers", label: "Scanning for Data Broker Exposures" },
+  { id: "darkweb", label: "Hunting for Breaches on Dark Web" },
+  { id: "report", label: "Finishing Up Your Risk Report" },
+];
+
+/**
+ * Stage 4 is the one span the backend cannot report incrementally: holehe
+ * and leakcheck run concurrently inside a single manage-emails "confirm"
+ * call that returns once, so there is no intermediate state to read.
+ *
+ * The bar is therefore an estimate, shaped so it cannot lie in the
+ * direction that matters — it approaches CEILING asymptotically and only
+ * reaches 100 when the call actually returns. TAU is set against measured
+ * wall time (scan_timings; leakcheck dominates at p50 36s, p90 70s, max
+ * 81s), so a median run reads ~76% at the moment it completes and a slow
+ * one keeps creeping rather than sitting pinned at the top.
+ */
+const BREACH_TAU_MS = 22_000;
+const BREACH_CEILING = 95;
+
+function breachPercent(elapsedMs: number): number {
+  return Math.round(BREACH_CEILING * (1 - Math.exp(-elapsedMs / BREACH_TAU_MS)));
+}
+
+/** "1m 04s" / "12s" — mirrors the backend's summary-line formatting. */
+function formatElapsed(ms: number): string {
+  const total = Math.round(ms / 1000);
+  const mins = Math.floor(total / 60);
+  const secs = total % 60;
+  return mins > 0 ? `${mins}m ${String(secs).padStart(2, "0")}s` : `${secs}s`;
+}
+
+/**
  * The step list is cosmetic. It is derived from the real phase — never a
  * timer.
  *
@@ -148,6 +191,7 @@ function stepStatuses(phase: Phase, isConfirming: boolean): Record<string, StepS
     results: "pending",
   };
 }
+
 
 function StepIndicator({ status }: { status: StepStatus }) {
   if (status === "complete") {
@@ -262,6 +306,11 @@ function invokeOnce(key: string, fn: string, body: object) {
 }
 
 /**
+ * Calculate progress percentage for the drawer progress bar.
+ * Adds extra visual progress during active phases to show responsiveness.
+ */
+
+/**
  * Linear scan sequence. One phase at a time. Nothing else can navigate.
  *
  *   searching (summary-scan) → pick (FPS → AnyWho → Zaba → NPD) → full_profile
@@ -283,6 +332,18 @@ export function PilotLoadingPage() {
     phaseRef.current = next;
     setPhase(next);
   }
+  /**
+   * Read the live phase inside async work.
+   *
+   * Not just sugar for `phaseRef.current`: TypeScript does not reset a
+   * narrowing of `.current` across a call, so after an early
+   * `if (phaseRef.current !== "pick") return` it still believes the value is
+   * "pick" further down — even though go() has since reassigned it. That
+   * made the mid-poll bail-outs below look like dead code to the checker
+   * (and silently disabled checking through them). A call's return value
+   * gets no such stale narrowing.
+   */
+  const currentPhase = (): Phase => phaseRef.current;
 
   const [profiles, setProfiles] = useState<QSProfileSummary[]>([]);
   const [searchName, setSearchName] = useState("");
@@ -297,12 +358,16 @@ export function PilotLoadingPage() {
   // as progress instead of a frozen button.
   const [isConfirming, setIsConfirming] = useState(false);
   const [statusAction, setStatusAction] = useState<string>("");
+  const [progressMessages, setProgressMessages] = useState<ProgressMessage[]>([]);
+  const [breachElapsed, setBreachElapsed] = useState(0);
+  const [breachSummary, setBreachSummary] = useState<string | null>(null);
 
   const candidatesRef = useRef<IdentifyCandidate[]>([]);
   const rejectedRef = useRef<IdentifyCandidate[]>([]);
   const identifyBrokerRef = useRef<IdentifyBroker>("fps");
   const [identifyBroker, setIdentifyBroker] = useState<IdentifyBroker>("fps");
   const quickScanIdRef = useRef<string | null>(null);
+  const [scanId, setScanId] = useState<string | null>(null);
   const fieldsRef = useRef<ScanFields | null>(null);
   const scanRunRef = useRef(0);
   const skipNoResultsExitRef = useRef(false);
@@ -355,6 +420,58 @@ export function PilotLoadingPage() {
     return () => window.clearTimeout(t);
   }, [phase, navigate, prefersReducedMotion]);
 
+  // Ticks stage 4's estimated bar for as long as the confirm call is out.
+  useEffect(() => {
+    if (!isConfirming) return;
+    const startedAt = Date.now();
+    setBreachElapsed(0);
+    const id = window.setInterval(() => setBreachElapsed(Date.now() - startedAt), 250);
+    return () => window.clearInterval(id);
+  }, [isConfirming]);
+
+  // The drawer's log. `searching` lines come from summary-scan, the rest
+  // from full-profile-scan.
+  //
+  // One interval for the whole scan rather than one per phase: keying this on
+  // `phase` tore the poller down and rebuilt it at every transition, and each
+  // of those is a chance to drop an in-flight response. It keeps running
+  // through `pick` too -- the drawer is hidden behind the modal there, but
+  // the background brokers are still reporting, so the log is current the
+  // moment it reopens.
+  const scanSettled = phase === "report" || phase === "error" || phase === "no_results";
+  useEffect(() => {
+    if (!scanId || scanSettled) return;
+
+    const pollInterval = setInterval(async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke("get-progress-messages", {
+          body: { quickscanId: scanId },
+        });
+
+        if (error) {
+          console.warn("Failed to fetch progress messages:", error);
+          return;
+        }
+
+        // Replace, never append. The endpoint returns the whole ordered log
+        // every time, so this is idempotent and self-healing: a dropped or
+        // out-of-order poll costs nothing, the next one re-syncs. Tracking a
+        // cursor and appending the tail is what broke this before -- once the
+        // cursor advanced past a batch that did not land, those lines were
+        // marked seen and could never come back, so the log truncated
+        // permanently mid-scan.
+        const messages: ProgressMessage[] = data?.messages ?? [];
+        setProgressMessages((prev) =>
+          prev.length === messages.length ? prev : messages,
+        );
+      } catch (err) {
+        console.error("Progress polling error:", err);
+      }
+    }, 500); // Poll every 500ms for near-real-time updates
+
+    return () => clearInterval(pollInterval);
+  }, [scanId, scanSettled]);
+
   // summary-scan responds as soon as FPS resolves and keeps AnyWho/Zaba/NPD
   // in the background; full-profile-scan reports { notReady } instead of
   // guessing with an incomplete match if the pick happens first.
@@ -365,7 +482,7 @@ export function PilotLoadingPage() {
   const FULL_PROFILE_RETRY_DELAY_MS = 1000;
 
   async function handlePick(profile: QSProfileSummary) {
-    if (phaseRef.current !== "pick") return;
+    if (currentPhase() !== "pick") return;
     go("full_profile");
 
     const quickscanId = quickScanIdRef.current;
@@ -380,7 +497,7 @@ export function PilotLoadingPage() {
       for (let attempt = 0; attempt < FULL_PROFILE_MAX_ATTEMPTS; attempt++) {
         // Cancelled/navigated away mid-poll — the already-running loading
         // screen covers this wait, so bail rather than keep invoking.
-        if (phaseRef.current !== "full_profile") return;
+        if (currentPhase() !== "full_profile") return;
         ({ data, error } = await supabase.functions.invoke("full-profile-scan", {
           body: { quickscanId, fullProfileResultId: profile.id, rejected: rejectedRef.current },
         }));
@@ -422,7 +539,7 @@ export function PilotLoadingPage() {
       setEmailCandidates([]);
     }
 
-    if (phaseRef.current === "full_profile") go("emails");
+    if (currentPhase() === "full_profile") go("emails");
   }
 
   const LIST_MAX_ATTEMPTS = 75;
@@ -512,11 +629,17 @@ export function PilotLoadingPage() {
   function beginSummaryScan(quickScanId: string) {
     const run = ++scanRunRef.current;
     quickScanIdRef.current = quickScanId;
+    // Ref too, for the async handlers below. The poll effect needs it as
+    // state: phase already starts at "searching", so go("searching") here is
+    // a no-op re-render and an effect keyed only on phase would never see
+    // the id arrive.
+    setScanId(quickScanId);
     identifyBrokerRef.current = "fps";
     setIdentifyBroker("fps");
     rejectedRef.current = [];
     candidatesRef.current = [];
     setProfiles([]);
+    setProgressMessages([]);
     go("searching");
 
     invokeOnce(`summary-scan:${quickScanId}`, "summary-scan", { quickscanId: quickScanId })
@@ -646,6 +769,12 @@ export function PilotLoadingPage() {
       if (confirmData?.status_action) {
         setStatusAction(String(confirmData.status_action));
       }
+      // The bar above is an estimate; the line it settles to is measured.
+      const accounts = Number(confirmData?.services_found ?? 0);
+      const emailCount = Number(confirmData?.holehe_checked ?? selected.length);
+      setBreachSummary(
+        `${accounts} account${accounts !== 1 ? "s" : ""} using ${emailCount} email${emailCount !== 1 ? "s" : ""} appeared in data breaches`,
+      );
       if (confirmData?.consolidated_profile) {
         const stored = loadConsolidatedProfile().data;
         saveConsolidatedProfile(
@@ -663,6 +792,43 @@ export function PilotLoadingPage() {
   }
 
   const statuses = stepStatuses(phase, isConfirming);
+
+  /**
+   * Stages 4 and 5 have no backend log — the breach scan is one opaque call
+   * (see BREACH_TAU_MS) and the report assembles client-side. These lines
+   * are synthesised rather than read back, and are never persisted. Every
+   * other stage comes off the real log.
+   */
+  const syntheticMessages: ProgressMessage[] = [];
+  if (isConfirming || breachSummary) {
+    syntheticMessages.push(
+      breachSummary
+        ? {
+            id: "darkweb-summary",
+            step: "darkweb",
+            status: "summary",
+            message: `${breachSummary} - ${formatElapsed(breachElapsed)}`,
+            created_at: new Date().toISOString(),
+          }
+        : {
+            id: "darkweb-scanning",
+            step: "darkweb",
+            status: "active",
+            message: "Scanning millions of dark web forums and breach databases",
+            percent: breachPercent(breachElapsed),
+            created_at: new Date().toISOString(),
+          },
+    );
+  }
+  if (phase === "report") {
+    syntheticMessages.push({
+      id: "report-consolidating",
+      step: "report",
+      status: "active",
+      message: "Consolidating Data",
+      created_at: new Date().toISOString(),
+    });
+  }
   const allDone = phase === "report";
   const activeStep =
     STEPS.find((s) => statuses[s.id] === "active") ??
@@ -677,7 +843,17 @@ export function PilotLoadingPage() {
       aria-label="Scan in progress"
       aria-busy={phase === "searching" || phase === "full_profile"}
     >
-      <div className="relative z-10 flex w-full max-w-sm flex-col items-center">
+      <div className="relative z-10 flex w-full max-w-xl flex-col items-center">
+        {/* Educational Cards - Show during scanning phases */}
+        {(phase === "searching" || phase === "full_profile") && (
+          <EducationalCards
+            onCardClick={(cardId) => {
+              // Routing not wired yet - placeholder for future navigation
+              console.log(`Educational card clicked: ${cardId}`);
+            }}
+          />
+        )}
+
         <div className="relative mb-6 flex h-[240px] w-[240px] items-center justify-center overflow-visible">
           <div
             className="pointer-events-none absolute left-1/2 top-1/2 h-[200px] w-[200px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#00BFFF]/40 blur-[48px]"
@@ -768,6 +944,20 @@ export function PilotLoadingPage() {
           </button>
         )}
       </div>
+
+      {/* Progress Drawer */}
+      <ProgressDrawer
+        isOpen={
+          (phase === "searching" ||
+            phase === "full_profile" ||
+            phase === "emails" ||
+            phase === "report") &&
+          !holdMode
+        }
+        stages={DRAWER_STAGES}
+        progressMessages={[...progressMessages, ...syntheticMessages]}
+        statusAction={statusAction}
+      />
 
       <QSResultSingleModal
         isOpen={pickOpen && profiles.length === 1 && Boolean(profiles[0])}

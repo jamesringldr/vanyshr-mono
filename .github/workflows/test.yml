@@ -28,6 +28,39 @@ jobs:
       - name: deno test
         run: deno test --allow-read --allow-env --no-check supabase/functions/
 
+  # `vite build` only transpiles — it never typechecks. It will happily report
+  # success on a file referencing an identifier that does not exist, which is
+  # a runtime ReferenceError on the page. That is not hypothetical: it landed
+  # on dev/quickscan-ui on 2026-08-28, where a bad edit deleted ~330 lines of
+  # loading.tsx (every type alias, HOLD_PROFILES, STEPS) and the build still
+  # went green. `tsc --noEmit` catches it instantly.
+  #
+  # The scripts already existed in every package; nothing ran them, so they
+  # had drifted red and nobody could use them as a gate. All five are clean,
+  # so this covers the whole workspace.
+  typecheck:
+    name: tsc --noEmit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 8.15.4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # No --frozen-lockfile, and no setup-node cache: pnpm-lock.yaml is
+      # gitignored in this repo (.gitignore:4), so neither the install nor the
+      # cache key has a lockfile to work from on a clean checkout. Both would
+      # fail outright. Add them together the day the lockfile is committed.
+      - run: pnpm install
+
+      - name: type-check
+        run: pnpm type-check
+
   # Guards the failure this repo actually had: both workflows shipped as
   # `echo "Add ... steps"` on 2026-01-31 and stayed that way until 2026-08-26,
   # painting a green check on every merge to main while deploying nothing.

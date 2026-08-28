@@ -8,13 +8,6 @@ export * from "./app-navigation/sidebar-navigation/sidebar-section-dividers";
 export * from "./app-navigation/sidebar-navigation/sidebar-sections-subheadings";
 
 // Date Picker
-export * from "./date-picker/date-picker";
-export * from "./date-picker/date-range-picker";
-export * from "./date-picker/calendar";
-export * from "./date-picker/range-calendar";
-export * from "./date-picker/date-input";
-export * from "./date-picker/cell";
-export * from "./date-picker/range-preset";
 
 // Empty State
 export * from "./empty-state/empty-state";

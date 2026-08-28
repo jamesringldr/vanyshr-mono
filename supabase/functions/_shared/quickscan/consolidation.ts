@@ -44,6 +44,41 @@ export async function logTiming(
   if (error) console.error(`✗ scan_timings insert failed (step=${step}, scan=${quickscansId}): ${error.message}`);
 }
 
+/** Stage ids the loading drawer groups its log under, in display order. */
+export type ProgressStage = "confirm" | "criteria" | "brokers" | "darkweb" | "report";
+
+/**
+ * One line in the loading drawer's log.
+ *
+ * `status` drives the line's indicator, and a stage is considered complete
+ * once it has a 'summary' line -- so write exactly one per stage, last.
+ * Failures are 'failed' rather than an unwritten line: a broker that went
+ * down should read as a red dot, not as silence.
+ */
+export async function logProgress(
+  supabase: SupabaseClient,
+  quickscansId: string,
+  message: string,
+  stage: ProgressStage,
+  status: "active" | "success" | "failed" | "summary" = "active",
+): Promise<void> {
+  const { error } = await supabase.schema("quickscan").from("quickscan_progress").insert({
+    quickscans_id: quickscansId,
+    message,
+    step: stage,
+    status,
+  });
+  if (error) console.error(`✗ quickscan_progress insert failed (scan=${quickscansId}): ${error.message}`);
+}
+
+/** "1m 04s" / "12s" -- for the summary lines' trailing duration. */
+export function formatElapsed(ms: number): string {
+  const total = Math.round(ms / 1000);
+  const mins = Math.floor(total / 60);
+  const secs = total % 60;
+  return mins > 0 ? `${mins}m ${String(secs).padStart(2, "0")}s` : `${secs}s`;
+}
+
 // ---------------------------------------------------------------------------
 // Normalization
 // ---------------------------------------------------------------------------
