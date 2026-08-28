@@ -36,16 +36,8 @@ jobs:
   # went green. `tsc --noEmit` catches it instantly.
   #
   # The scripts already existed in every package; nothing ran them, so they
-  # had drifted red and nobody could use them as a gate.
-  #
-  # @vanyshr/ui is excluded, not passing: calendar.tsx:26 has one pre-existing
-  # TS2322 (react-aria's CalendarContext onChange is typed to accept
-  # `readonly DateValue[]`, which the single-value setState cannot). Fixing it
-  # means changing that component's runtime behaviour, so it is deliberately
-  # left for its own change. Turbo cannot express the exclusion — type-check
-  # dependsOn ^type-check, so filtering ui out still runs it as app's
-  # dependency — hence the explicit pnpm filter list. Add ui here once
-  # calendar.tsx is clean, and drop this note.
+  # had drifted red and nobody could use them as a gate. All five are clean,
+  # so this covers the whole workspace.
   typecheck:
     name: tsc --noEmit
     runs-on: ubuntu-latest
@@ -67,13 +59,7 @@ jobs:
       - run: pnpm install
 
       - name: type-check
-        run: >
-          pnpm
-          --filter @vanyshr/app
-          --filter @vanyshr/shared
-          --filter @vanyshr/services
-          --filter @vanyshr/backend
-          run type-check
+        run: pnpm type-check
 
   # Guards the failure this repo actually had: both workflows shipped as
   # `echo "Add ... steps"` on 2026-01-31 and stayed that way until 2026-08-26,
