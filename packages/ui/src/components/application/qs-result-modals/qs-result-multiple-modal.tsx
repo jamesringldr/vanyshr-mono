@@ -73,14 +73,14 @@ export function QSResultMultipleModal({
         <QSModalFrame showContent={showContent} onClose={close}>
             <div className={qsModal.header}>
                 <h2 id="qs-multiple-modal-title" className={qsModal.title}>
-                    We found multiple records for{" "}
+                    Is this you?
+                </h2>
+                <p id="qs-multiple-modal-desc" className={qsModal.subtitle}>
+                    <span className="font-bold">We found {profiles.length} possible matches for </span>
                     <span className={qsModal.accent}>
                         {searchName}
                         {region ? ` in ${region}` : ""}
                     </span>
-                </h2>
-                <p id="qs-multiple-modal-desc" className={qsModal.subtitle}>
-                    Select the record with your data
                 </p>
             </div>
 

@@ -67,14 +67,14 @@ export function QSResultSingleModal({
         <QSModalFrame showContent={showContent} onClose={close}>
             <div className={qsModal.header}>
                 <h2 id="qs-single-modal-title" className={qsModal.title}>
-                    We found a record for{" "}
+                    Is this you?
+                </h2>
+                <p id="qs-single-modal-desc" className={qsModal.subtitle}>
+                    <span className="font-bold">We found a possible match for </span>
                     <span className={qsModal.accent}>
                         {profile.fullName}
                         {region ? ` in ${region}` : ""}
                     </span>
-                </h2>
-                <p id="qs-single-modal-desc" className={qsModal.subtitle}>
-                    Is this your profile?
                 </p>
             </div>
 

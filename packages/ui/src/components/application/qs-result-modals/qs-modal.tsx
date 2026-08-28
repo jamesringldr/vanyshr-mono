@@ -11,7 +11,7 @@ export const qsModal = {
     overlay: "fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4",
     panel: cx(
         "relative flex w-full max-w-md flex-col overflow-hidden font-ubuntu",
-        "max-h-[85vh] rounded-2xl bg-[#1A2E42] shadow-xl",
+        "max-h-[85vh] rounded-2xl bg-[#022136] shadow-xl",
         "transform transition-all duration-300 ease-out",
     ),
     header: "relative flex-shrink-0 border-b border-[#2A4A68] px-6 py-5 pr-12",
@@ -30,7 +30,7 @@ export const qsModal = {
         "outline-none transition focus:ring-2 focus:ring-[#00BFFF]",
     ),
     primaryBtn: cx(
-        "rounded-lg bg-[#00BFFF] py-2.5 font-semibold text-[#022136]",
+        "rounded-lg bg-[#00BFFF] py-2.5 font-semibold text-white",
         "transition hover:bg-[#00D4FF] active:scale-[0.98]",
     ),
     secondaryBtn: cx(
