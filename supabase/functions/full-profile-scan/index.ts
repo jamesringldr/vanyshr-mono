@@ -490,7 +490,7 @@ serve(async (req) => {
       "brokers",
       "summary",
     );
-    await logProgress(supabase, quickscanId, "Scanning 10m+ data breaches", "darkweb");
+
 
     const statusAction = brokersScraped.length > 0
       ? `Consolidated profile from ${brokersScraped.length} broker${brokersScraped.length !== 1 ? "s" : ""}`

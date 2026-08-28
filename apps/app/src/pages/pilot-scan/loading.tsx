@@ -22,6 +22,293 @@ import { EducationalCards } from "./educational-cards";
 
 const EASE_OUT = [0.2, 0, 0, 1] as const;
 
+/**
+ * generative-loaders@0.1.1 has no `vortex` yet — `orbit` is the closest
+ * circular activity indicator from the published set.
+ */
+const ACTIVE_LOADER_VARIANT = "orbit" as const;
+
+type Phase = "searching" | "pick" | "full_profile" | "emails" | "report" | "error" | "no_results";
+
+type ScanFields = {
+  firstName: string;
+  lastName: string;
+  zipCode: string;
+  city: string;
+  state: string;
+};
+
+type StepStatus = "pending" | "active" | "complete";
+
+type LoadingStep = {
+  id: string;
+  label: string;
+  eyebrow: string;
+  headline: string;
+};
+
+/** Sample cards for `?hold=single|multiple|none` so we can restyle overlays without a live scan. */
+const HOLD_PROFILES: QSProfileSummary[] = [
+  {
+    id: "hold-1",
+    fullName: "Luke Clark",
+    age: 42,
+    aliases: ["Lucas Clark"],
+    phones: ["(602) 555-0142"],
+    relatives: ["Jane Clark", "Sam Clark"],
+    currentAddress: ["Waddell, AZ"],
+  },
+  {
+    id: "hold-2",
+    fullName: "Luke A Clark",
+    age: 38,
+    phones: ["(480) 555-0199"],
+    relatives: ["Pat Clark"],
+    currentAddress: ["Phoenix, AZ"],
+  },
+];
+
+const STEPS: LoadingStep[] = [
+  {
+    id: "criteria",
+    label: "Building Search Criteria",
+    eyebrow: "Just a moment...",
+    headline: "We're mapping how to find your data",
+  },
+  {
+    id: "brokers",
+    label: "Searching Data Brokers",
+    eyebrow: "Digging in...",
+    headline: "Scanning people-search sites for your info",
+  },
+  {
+    id: "accounts",
+    label: "Finding exposed accounts",
+    eyebrow: "Still working...",
+    headline: "Looking for accounts tied to your identity",
+  },
+  {
+    id: "darkweb",
+    label: "Scanning Dark Web",
+    eyebrow: "Going deeper...",
+    headline: "Checking forums and known credential leaks",
+  },
+  {
+    id: "results",
+    label: "Building your Risk Report",
+    eyebrow: "Almost done...",
+    headline: "Assembling your exposure into a risk report",
+  },
+];
+
+/**
+ * Drawer stages, in order. These are the user-facing arc of the scan and do
+ * not map 1:1 to `phase` — criteria and brokers both run inside
+ * full_profile. The drawer works out which is live from each log line's
+ * stage id, so these must match what the edge functions write.
+ */
+const DRAWER_STAGES: ProgressStage[] = [
+  { id: "confirm", label: "Confirm User Search Details" },
+  { id: "criteria", label: "Building Search Criteria" },
+  { id: "brokers", label: "Scanning for Data Broker Exposures" },
+  { id: "darkweb", label: "Hunting for Breaches on Dark Web" },
+  { id: "report", label: "Finishing Up Your Risk Report" },
+];
+
+/**
+ * Stage 4 is the one span the backend cannot report incrementally: holehe
+ * and leakcheck run concurrently inside a single manage-emails "confirm"
+ * call that returns once, so there is no intermediate state to read.
+ *
+ * The bar is therefore an estimate, shaped so it cannot lie in the
+ * direction that matters — it approaches CEILING asymptotically and only
+ * reaches 100 when the call actually returns. TAU is set against measured
+ * wall time (scan_timings; leakcheck dominates at p50 36s, p90 70s, max
+ * 81s), so a median run reads ~76% at the moment it completes and a slow
+ * one keeps creeping rather than sitting pinned at the top.
+ */
+const BREACH_TAU_MS = 22_000;
+const BREACH_CEILING = 95;
+
+function breachPercent(elapsedMs: number): number {
+  return Math.round(BREACH_CEILING * (1 - Math.exp(-elapsedMs / BREACH_TAU_MS)));
+}
+
+/** "1m 04s" / "12s" — mirrors the backend's summary-line formatting. */
+function formatElapsed(ms: number): string {
+  const total = Math.round(ms / 1000);
+  const mins = Math.floor(total / 60);
+  const secs = total % 60;
+  return mins > 0 ? `${mins}m ${String(secs).padStart(2, "0")}s` : `${secs}s`;
+}
+
+/**
+ * The step list is cosmetic. It is derived from the real phase — never a
+ * timer.
+ *
+ *   searching     → summary-scan in flight (building/running the search)
+ *   pick          → identify list ready (FPS, then AnyWho, then Zaba, then NPD).
+ *                   Empty/blocked/failed on a broker is the same as reject.
+ *                   Other brokers' summaries land in the background.
+ *   full_profile  → full-profile-scan polling — resolve the pick against
+ *                   the other brokers, then scrape matched detail pages
+ *   emails        → email-selector modal up. `isConfirming` distinguishes
+ *                   "still the user's turn" from "Confirm tapped — the
+ *                   manage-emails 'confirm' call (which triggers holehe +
+ *                   leakcheck server-side) is actually in flight," since both
+ *                   share this one phase
+ *   report        → confirm call returned, navigating to the report
+ *   error         → search failed (blocked / unreachable), not an empty list
+ *   no_results    → every identify list was empty or the user rejected them all
+ */
+function stepStatuses(phase: Phase, isConfirming: boolean): Record<string, StepStatus> {
+  if (phase === "report") {
+    return {
+      criteria: "complete",
+      brokers: "complete",
+      accounts: "complete",
+      darkweb: "complete",
+      results: "active",
+    };
+  }
+  if (phase === "error" || phase === "no_results") {
+    return { criteria: "complete", brokers: "active", accounts: "pending", darkweb: "pending", results: "pending" };
+  }
+
+  const criteriaDone = phase !== "searching";
+  const brokersDone = phase === "emails";
+  // Holehe and leakcheck run inside one manage-emails "confirm" call, so the
+  // client only ever knows "confirmed, call in flight" vs "call returned" —
+  // not which of the two finished first. Shown active together rather than
+  // pretending to know an order the backend doesn't report.
+  const enriching = phase === "emails" && isConfirming;
+
+  return {
+    criteria: criteriaDone ? "complete" : "active",
+    brokers: !criteriaDone ? "pending" : brokersDone ? "complete" : "active",
+    accounts: !brokersDone ? "pending" : enriching ? "active" : "pending",
+    darkweb: !brokersDone ? "pending" : enriching ? "active" : "pending",
+    results: "pending",
+  };
+}
+
+
+function StepIndicator({ status }: { status: StepStatus }) {
+  if (status === "complete") {
+    return (
+      <span
+        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#22C55E]"
+        aria-hidden
+      >
+        <Check className="h-3.5 w-3.5 text-white" strokeWidth={3} />
+      </span>
+    );
+  }
+
+  if (status === "active") {
+    return (
+      <span className="flex h-6 w-6 shrink-0 items-center justify-center" aria-hidden>
+        <InlineLoader variant={ACTIVE_LOADER_VARIANT} size={24} color="#00BFFF" />
+      </span>
+    );
+  }
+
+  return (
+    <span className="h-6 w-6 shrink-0 rounded-full border-2 border-[#4A5568]" aria-hidden />
+  );
+}
+
+type IdentifyBroker = "fps" | "anywho" | "zaba" | "npd";
+// Keep in sync with supabase/functions/_shared/quickscan/identify-order.ts
+const IDENTIFY_ORDER: IdentifyBroker[] = ["fps", "anywho", "zaba", "npd"];
+
+type IdentifyCandidate = ScanMember & { result_id: string };
+
+function nextIdentifyBroker(current: IdentifyBroker): IdentifyBroker | null {
+  const i = IDENTIFY_ORDER.indexOf(current);
+  return i >= 0 ? IDENTIFY_ORDER[i + 1] ?? null : null;
+}
+
+function identifyBrokerFrom(data: { broker?: unknown } | null): IdentifyBroker {
+  const raw = String(data?.broker || "").toLowerCase();
+  if (raw === "anywho" || raw === "zaba" || raw === "npd") return raw;
+  return "fps";
+}
+
+function pickHeadline(broker: IdentifyBroker, isFirstShown: boolean): string {
+  if (isFirstShown) return "Pick the person that is you";
+  if (nextIdentifyBroker(broker) === null) return "Last list — any of these?";
+  return "Not on that list — any of these?";
+}
+
+function candidatesFrom(data: { candidates?: unknown; zaba_candidates?: unknown } | null): IdentifyCandidate[] {
+  const raw = Array.isArray(data?.candidates) && data!.candidates!.length
+    ? data!.candidates
+    : Array.isArray(data?.zaba_candidates)
+      ? data!.zaba_candidates
+      : [];
+  return raw.filter((c): c is IdentifyCandidate => Boolean(c && typeof c === "object" && (c as IdentifyCandidate).result_id));
+}
+
+function splitList(raw?: string): string[] {
+  if (!raw || typeof raw !== "string") return [];
+  return raw.split(/[,;|]|(?:\s+and\s+)/i).map((s) => s.trim()).filter((s) => s.length > 1);
+}
+
+function unique(values: string[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const v of values) {
+    const key = v.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(v);
+  }
+  return out;
+}
+
+/** Stored candidate row id -> the QSProfileSummary shape the picker modal renders. */
+function candidateToProfile(member: ScanMember, index: number): QSProfileSummary {
+  const ageRaw = member.age;
+  const age = typeof ageRaw === "number" ? ageRaw : ageRaw ? parseInt(String(ageRaw), 10) || undefined : undefined;
+  return {
+    id: member.result_id || `zaba-${index}`,
+    fullName: member.name || "Unknown",
+    age,
+    aliases: unique(splitList(member.aliases)),
+    phones: unique(splitList(member.phone)),
+    relatives: unique(splitList(member.relatives)),
+    currentAddress: member.address ? [member.address] : [],
+  };
+}
+
+function emailsFrom(data: { consolidated_profile?: { emails?: unknown } } | null): string[] {
+  const raw = data?.consolidated_profile?.emails;
+  const list = Array.isArray(raw) ? raw : [];
+  return unique(list.filter((e): e is string => typeof e === "string" && e.includes("@")))
+    .filter((e) => !/x{3,}/i.test(e));
+}
+
+/** One in-flight invoke per quickscan+function so React Strict Mode doesn't scrape twice. */
+const inflight = new Map<string, Promise<{ data: Record<string, unknown> | null; error: { message?: string } | null }>>();
+
+function invokeOnce(key: string, fn: string, body: object) {
+  const existing = inflight.get(key);
+  if (existing) return existing;
+  const pending = supabase.functions
+    .invoke(fn, { body })
+    .then(({ data, error }) => ({
+      data: error ? null : (data as Record<string, unknown>),
+      error: error ? { message: error.message } : data?.error ? { message: String(data.error) } : null,
+    }));
+  inflight.set(key, pending);
+  return pending;
+}
+
+/**
+ * Calculate progress percentage for the drawer progress bar.
+ * Adds extra visual progress during active phases to show responsiveness.
+ */
 
 /**
  * Linear scan sequence. One phase at a time. Nothing else can navigate.
@@ -60,6 +347,8 @@ export function PilotLoadingPage() {
   const [isConfirming, setIsConfirming] = useState(false);
   const [statusAction, setStatusAction] = useState<string>("");
   const [progressMessages, setProgressMessages] = useState<ProgressMessage[]>([]);
+  const [breachElapsed, setBreachElapsed] = useState(0);
+  const [breachSummary, setBreachSummary] = useState<string | null>(null);
 
   const candidatesRef = useRef<IdentifyCandidate[]>([]);
   const rejectedRef = useRef<IdentifyCandidate[]>([]);
@@ -119,6 +408,15 @@ export function PilotLoadingPage() {
     }, prefersReducedMotion ? 400 : 800);
     return () => window.clearTimeout(t);
   }, [phase, navigate, prefersReducedMotion]);
+
+  // Ticks stage 4's estimated bar for as long as the confirm call is out.
+  useEffect(() => {
+    if (!isConfirming) return;
+    const startedAt = Date.now();
+    setBreachElapsed(0);
+    const id = window.setInterval(() => setBreachElapsed(Date.now() - startedAt), 250);
+    return () => window.clearInterval(id);
+  }, [isConfirming]);
 
   // The drawer's log. Backend writes one row per sub-step; this reads them
   // back in order. Runs across every phase the drawer is open for -- the
@@ -451,6 +749,12 @@ export function PilotLoadingPage() {
       if (confirmData?.status_action) {
         setStatusAction(String(confirmData.status_action));
       }
+      // The bar above is an estimate; the line it settles to is measured.
+      const accounts = Number(confirmData?.services_found ?? 0);
+      const emailCount = Number(confirmData?.holehe_checked ?? selected.length);
+      setBreachSummary(
+        `${accounts} account${accounts !== 1 ? "s" : ""} using ${emailCount} email${emailCount !== 1 ? "s" : ""} appeared in data breaches`,
+      );
       if (confirmData?.consolidated_profile) {
         const stored = loadConsolidatedProfile().data;
         saveConsolidatedProfile(
@@ -468,6 +772,43 @@ export function PilotLoadingPage() {
   }
 
   const statuses = stepStatuses(phase, isConfirming);
+
+  /**
+   * Stages 4 and 5 have no backend log — the breach scan is one opaque call
+   * (see BREACH_TAU_MS) and the report assembles client-side. These lines
+   * are synthesised rather than read back, and are never persisted. Every
+   * other stage comes off the real log.
+   */
+  const syntheticMessages: ProgressMessage[] = [];
+  if (isConfirming || breachSummary) {
+    syntheticMessages.push(
+      breachSummary
+        ? {
+            id: "darkweb-summary",
+            step: "darkweb",
+            status: "summary",
+            message: `${breachSummary} - ${formatElapsed(breachElapsed)}`,
+            created_at: new Date().toISOString(),
+          }
+        : {
+            id: "darkweb-scanning",
+            step: "darkweb",
+            status: "active",
+            message: "Scanning millions of dark web forums and breach databases",
+            percent: breachPercent(breachElapsed),
+            created_at: new Date().toISOString(),
+          },
+    );
+  }
+  if (phase === "report") {
+    syntheticMessages.push({
+      id: "report-consolidating",
+      step: "report",
+      status: "active",
+      message: "Consolidating Data",
+      created_at: new Date().toISOString(),
+    });
+  }
   const allDone = phase === "report";
   const activeStep =
     STEPS.find((s) => statuses[s.id] === "active") ??
@@ -587,11 +928,14 @@ export function PilotLoadingPage() {
       {/* Progress Drawer */}
       <ProgressDrawer
         isOpen={
-          (phase === "searching" || phase === "full_profile" || phase === "emails") &&
+          (phase === "searching" ||
+            phase === "full_profile" ||
+            phase === "emails" ||
+            phase === "report") &&
           !holdMode
         }
         stages={DRAWER_STAGES}
-        progressMessages={progressMessages}
+        progressMessages={[...progressMessages, ...syntheticMessages]}
         statusAction={statusAction}
       />
 

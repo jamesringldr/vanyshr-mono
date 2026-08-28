@@ -17,6 +17,11 @@ export interface ProgressMessage {
   step?: string;
   status?: LogStatus;
   created_at: string;
+  /**
+   * Client-side completion estimate, 0-100. Only set on synthesised lines
+   * for work the backend cannot report incrementally -- never persisted.
+   */
+  percent?: number;
 }
 
 /** A stage heading in the drawer. Order here is display order. */
@@ -287,6 +292,11 @@ export function ProgressDrawer({
                               >
                                 {item.message}
                               </span>
+                              {item.percent !== undefined && (
+                                <span className="shrink-0 font-mono text-[12px] tabular-nums text-[#00BFFF]">
+                                  {item.percent}%
+                                </span>
+                              )}
                             </div>
                           );
                         })}
