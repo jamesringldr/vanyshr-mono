@@ -253,10 +253,10 @@ export function RiskSummaryBody({ profile }: { profile: ConsolidatedProfile }) {
 
         <section className="mt-10 w-full max-w-sm" aria-label="Your areas">
           <div className="mb-3 px-0.5">
-            <h2 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#7A92A8]">
+            <h2 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#8CA3B8]">
               Your areas
             </h2>
-            <p className="mt-0.5 text-xs text-[#7A92A8]">(tap to see what we found)</p>
+            <p className="mt-0.5 text-xs text-[#8CA3B8]">(tap to see what we found)</p>
           </div>
 
           <ul className="flex flex-col gap-2.5">
@@ -277,7 +277,7 @@ export function RiskSummaryBody({ profile }: { profile: ConsolidatedProfile }) {
                       <span className="block text-[15px] font-semibold text-white">
                         {area.label}
                       </span>
-                      <span className="mt-0.5 block text-xs text-[#7A92A8]">
+                      <span className="mt-0.5 block text-xs text-[#8CA3B8]">
                         {area.summary}
                       </span>
                     </span>
@@ -331,7 +331,7 @@ export function RiskSummaryBody({ profile }: { profile: ConsolidatedProfile }) {
                   type="button"
                   aria-label="Close"
                   onClick={() => setActiveArea(null)}
-                  className="absolute right-4 top-3 rounded-full p-1.5 text-[#7A92A8] transition hover:text-white"
+                  className="absolute right-4 top-3 rounded-full p-1.5 text-[#8CA3B8] transition hover:text-white"
                 >
                   <X size={20} />
                 </button>
@@ -346,7 +346,7 @@ export function RiskSummaryBody({ profile }: { profile: ConsolidatedProfile }) {
                     <h3 className="text-xl font-bold tracking-tight text-white">
                       {activeArea.label}
                     </h3>
-                    <p className="mt-1 text-sm text-[#7A92A8]">{activeArea.summary}</p>
+                    <p className="mt-1 text-sm text-[#8CA3B8]">{activeArea.summary}</p>
                   </div>
                   <LevelBars level={levelFromScore(activeArea.score)} />
                 </div>
@@ -357,7 +357,7 @@ export function RiskSummaryBody({ profile }: { profile: ConsolidatedProfile }) {
 
                 {activeArea.breachCards ? (
                   activeArea.breachCards.length === 0 ? (
-                    <p className="mt-5 text-sm text-[#7A92A8]">
+                    <p className="mt-5 text-sm text-[#8CA3B8]">
                       No breaches found for any confirmed email.
                     </p>
                   ) : (
@@ -367,7 +367,7 @@ export function RiskSummaryBody({ profile }: { profile: ConsolidatedProfile }) {
                           key={`${b.email}-${b.name}-${i}`}
                           className="rounded-xl bg-[#022136]/55 px-3.5 py-3"
                         >
-                          <p className="break-all text-[11px] font-semibold uppercase tracking-[0.12em] text-[#7A92A8]">
+                          <p className="break-all text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8CA3B8]">
                             {b.email}
                           </p>
                           <p className="mt-1 text-sm leading-snug text-white">
@@ -391,7 +391,7 @@ export function RiskSummaryBody({ profile }: { profile: ConsolidatedProfile }) {
                     </ul>
                   )
                 ) : activeArea.items.length === 0 ? (
-                  <p className="mt-5 text-sm text-[#7A92A8]">
+                  <p className="mt-5 text-sm text-[#8CA3B8]">
                     Nothing in this category from the current scan.
                   </p>
                 ) : (
@@ -401,7 +401,7 @@ export function RiskSummaryBody({ profile }: { profile: ConsolidatedProfile }) {
                         key={`${item.label}-${item.value}-${i}`}
                         className="rounded-xl bg-[#022136]/55 px-3.5 py-3"
                       >
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#7A92A8]">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8CA3B8]">
                           {item.label}
                           {item.source ? ` · ${item.source}` : ""}
                         </p>

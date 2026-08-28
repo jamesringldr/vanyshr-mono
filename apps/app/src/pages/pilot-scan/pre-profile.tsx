@@ -129,7 +129,7 @@ function DataTypeCard({
             className="rounded-2xl bg-[#1A2E42] p-4"
         >
             <div className="flex items-center gap-2">
-                <Icon className="h-5 w-5 shrink-0 text-[#7A92A8]" aria-hidden />
+                <Icon className="h-5 w-5 shrink-0 text-[#8CA3B8]" aria-hidden />
                 <h3 className="text-sm font-semibold text-white">{title}</h3>
             </div>
             <div className="mt-3">{children}</div>
@@ -165,7 +165,7 @@ function LimitedTwoColumnGrid<T>({
                 <li key={i}>{renderItem(item, i)}</li>
             ))}
             {remaining > 0 && (
-                <li className="text-sm font-medium text-[#7A92A8]">
+                <li className="text-sm font-medium text-[#8CA3B8]">
                     {remaining} More...
                 </li>
             )}
@@ -196,11 +196,11 @@ export function PreProfileBody({ profile }: { profile: ConsolidatedProfile }) {
                 >
                     <h2 className="text-2xl font-bold text-white">
                         {data.contact.fullName}
-                        {data.contact.age != null && <span className="text-sm text-[#7A92A8] font-normal"> ({data.contact.age})</span>}
+                        {data.contact.age != null && <span className="text-sm text-[#8CA3B8] font-normal"> ({data.contact.age})</span>}
                     </h2>
                     <div className="mt-4 grid grid-cols-2 gap-4">
                         <div>
-                            <p className="text-xs font-semibold uppercase tracking-wide text-[#7A92A8]">
+                            <p className="text-xs font-semibold uppercase tracking-wide text-[#8CA3B8]">
                                 Primary phone
                             </p>
                             <p className="mt-0.5 font-mono text-sm tabular-nums text-white">
@@ -208,7 +208,7 @@ export function PreProfileBody({ profile }: { profile: ConsolidatedProfile }) {
                             </p>
                         </div>
                         <div>
-                            <p className="text-xs font-semibold uppercase tracking-wide text-[#7A92A8]">
+                            <p className="text-xs font-semibold uppercase tracking-wide text-[#8CA3B8]">
                                 Current address
                             </p>
                             {data.contact.currentAddress ? (
@@ -289,7 +289,7 @@ export function PreProfileBody({ profile }: { profile: ConsolidatedProfile }) {
                                 <li key={i} className="text-sm text-white">
                                     {toProperCase(job.label)}
                                     {job.isCurrent && (
-                                        <span className="text-[#7A92A8] ml-1">
+                                        <span className="text-[#8CA3B8] ml-1">
                                             (Current)
                                         </span>
                                     )}
@@ -326,7 +326,7 @@ export function PreProfileBody({ profile }: { profile: ConsolidatedProfile }) {
                                         <div className="grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-3">
                                             {home.facts.map((fact, j) => (
                                                 <div key={j}>
-                                                    <p className="text-xs font-semibold uppercase tracking-wide text-[#7A92A8]">
+                                                    <p className="text-xs font-semibold uppercase tracking-wide text-[#8CA3B8]">
                                                         {fact.label}
                                                     </p>
                                                     <p className="mt-0.5 text-sm text-white">
