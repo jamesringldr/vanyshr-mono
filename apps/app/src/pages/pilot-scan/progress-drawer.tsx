@@ -12,6 +12,7 @@ export interface ProgressStep {
   label: string;
   subtext: string;
   result?: string;
+  completionResult?: string;
 }
 
 export interface ProgressDrawerProps {
@@ -139,14 +140,16 @@ export function ProgressDrawer({
               </span>
             </div>
 
-            {/* Subtitle: Progress Status */}
-            <div className="text-[13px] leading-snug text-[#7A92A8]">
-              <span>Progress: {currentStepIndex} of {totalSteps}</span>
+            {/* Subtitle: Current Operation + Progress */}
+            <div className="space-y-1">
               {statusAction && (
-                <span className="ml-2 text-[#00BFFF]">
-                  • {statusAction.match(/\d+/)?.[0] || "0"} sites found
-                </span>
+                <div className="text-[12px] font-mono text-[#00BFFF]/80 truncate">
+                  {statusAction}
+                </div>
               )}
+              <div className="text-[13px] text-[#7A92A8]">
+                Progress: {currentStepIndex} of {totalSteps}
+              </div>
             </div>
 
             {/* Progress Bar */}
@@ -219,8 +222,14 @@ export function ProgressDrawer({
                         </div>
 
                         {isActive && step.result && (
-                          <div className="mt-2 text-[13px] font-semibold text-[#00BFFF]">
-                            ✓ {step.result}
+                          <div className="mt-2 text-[12px] font-mono text-[#00BFFF]/80">
+                            {step.result}
+                          </div>
+                        )}
+
+                        {isComplete && step.completionResult && (
+                          <div className="mt-2 text-[13px] font-medium text-[#22C55E]">
+                            ✓ {step.completionResult}
                           </div>
                         )}
                       </div>

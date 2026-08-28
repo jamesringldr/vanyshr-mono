@@ -179,6 +179,30 @@ function stepStatuses(phase: Phase, isConfirming: boolean): Record<string, StepS
   };
 }
 
+function getStepCompletionResult(stepId: string, phase: Phase): string | undefined {
+  // Only return completion result when the step has moved past "active"
+  const statuses = stepStatuses(phase, false);
+  const stepStatus = statuses[stepId as keyof typeof statuses];
+
+  if (stepStatus !== "complete") return undefined;
+
+  // Generate appropriate completion message for each step
+  switch (stepId) {
+    case "criteria":
+      return "Confirmed search criteria";
+    case "brokers":
+      return `Queried all data brokers`;
+    case "accounts":
+      return "Checked for exposed accounts";
+    case "darkweb":
+      return "Completed dark web scan";
+    case "results":
+      return "Report ready";
+    default:
+      return undefined;
+  }
+}
+
 function StepIndicator({ status }: { status: StepStatus }) {
   if (status === "complete") {
     return (
@@ -845,11 +869,13 @@ export function PilotLoadingPage() {
         totalSteps={DRAWER_STEPS.length}
         steps={DRAWER_STEPS.map((step) => ({
           ...step,
-          // Inject live result into active step
+          // Inject live statusAction as "running command" for active steps
           result:
-            step.id === "brokers" && phase !== "error" && statusAction
-              ? statusAction.match(/\d+\s+matches?/i)?.[0] || statusAction
+            step.id === "brokers" && (phase === "searching" || phase === "full_profile") && statusAction
+              ? statusAction
               : undefined,
+          // Inject completion result for finished steps
+          completionResult: getStepCompletionResult(step.id, phase),
         }))}
         stepStatuses={stepStatuses(phase, isConfirming)}
       />
