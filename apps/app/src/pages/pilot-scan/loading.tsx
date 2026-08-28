@@ -377,6 +377,7 @@ export function PilotLoadingPage() {
   const identifyBrokerRef = useRef<IdentifyBroker>("fps");
   const [identifyBroker, setIdentifyBroker] = useState<IdentifyBroker>("fps");
   const quickScanIdRef = useRef<string | null>(null);
+  const [scanId, setScanId] = useState<string | null>(null);
   const fieldsRef = useRef<ScanFields | null>(null);
   const scanRunRef = useRef(0);
   const skipNoResultsExitRef = useRef(false);
@@ -436,14 +437,13 @@ export function PilotLoadingPage() {
   // full-profile-scan. beginSummaryScan() resets the cursor, so the count is
   // safe to use as "how many have I already appended".
   useEffect(() => {
-    const quickscanId = quickScanIdRef.current;
     const scanning = phase === "searching" || phase === "full_profile" || phase === "emails";
-    if (!quickscanId || !scanning) return;
+    if (!scanId || !scanning) return;
 
     const pollInterval = setInterval(async () => {
       try {
         const { data, error } = await supabase.functions.invoke("get-progress-messages", {
-          body: { quickscanId },
+          body: { quickscanId: scanId },
         });
 
         if (error) {
@@ -462,7 +462,7 @@ export function PilotLoadingPage() {
     }, 500); // Poll every 500ms for near-real-time updates
 
     return () => clearInterval(pollInterval);
-  }, [phase]);
+  }, [phase, scanId]);
 
   // summary-scan responds as soon as FPS resolves and keeps AnyWho/Zaba/NPD
   // in the background; full-profile-scan reports { notReady } instead of
@@ -621,6 +621,11 @@ export function PilotLoadingPage() {
   function beginSummaryScan(quickScanId: string) {
     const run = ++scanRunRef.current;
     quickScanIdRef.current = quickScanId;
+    // Ref too, for the async handlers below. The poll effect needs it as
+    // state: phase already starts at "searching", so go("searching") here is
+    // a no-op re-render and an effect keyed only on phase would never see
+    // the id arrive.
+    setScanId(quickScanId);
     identifyBrokerRef.current = "fps";
     setIdentifyBroker("fps");
     rejectedRef.current = [];

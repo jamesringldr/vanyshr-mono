@@ -106,6 +106,10 @@ export function ProgressDrawer({
   // log line lands.
   const latestMessage = progressMessages.at(-1)?.message ?? statusAction;
 
+  // Closed on the phases that hand the screen to a modal (pick, no_results)
+  // or navigate away (report, error). Hooks above run unconditionally.
+  if (!isOpen) return null;
+
   return (
     <>
       {/* Backdrop */}
