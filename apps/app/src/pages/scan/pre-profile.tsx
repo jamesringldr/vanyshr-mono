@@ -568,7 +568,7 @@ export function PreProfile() {
 
         setStartError(null);
         sessionStorage.setItem("pendingScanId", scanId);
-        navigate("/signup");
+        navigate(`/signup?scanId=${encodeURIComponent(scanId)}`);
     }, [scanId, navigate]);
 
 

@@ -12,6 +12,7 @@ import {
 import PrimaryLogo from "@vanyshr/ui/assets/PrimaryLogo.png";
 import PrimaryLogoDark from "@vanyshr/ui/assets/PrimaryLogo-DarkMode.png";
 import { cx } from "@/utils/cx";
+import { signupPath, stashPendingScanId } from "@/lib/pending-scan";
 
 type PlanTier = "free" | "individual" | "family";
 type BillingPeriod = "monthly" | "annual";
@@ -154,8 +155,8 @@ export function Pricing() {
     };
 
     const handleSubscribe = () => {
-        const signupUrl = scanId ? `/signup?scanId=${scanId}` : "/signup";
-        navigate(signupUrl);
+        if (scanId) stashPendingScanId(scanId);
+        navigate(signupPath());
     };
 
     return (

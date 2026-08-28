@@ -7,6 +7,7 @@ import "generative-loaders/styles.css";
 import PrimaryIcon from "@vanyshr/ui/assets/PrimaryIcon-Nooutline.png";
 import { cx } from "@/utils/cx";
 import { supabase } from "@/lib/supabase";
+import { signupPath } from "@/lib/pending-scan";
 import {
   QSNoResultsModal,
   QSResultMultipleModal,
@@ -591,7 +592,7 @@ export function PilotLoadingPage() {
 
   function handleRunFullScan() {
     skipNoResultsExitRef.current = true;
-    navigate("/signup");
+    navigate(signupPath());
   }
 
   function handleNoResultsOpenChange(open: boolean) {

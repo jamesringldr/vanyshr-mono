@@ -4,6 +4,7 @@ import PrimaryIconOutline from "@vanyshr/ui/assets/PrimaryIcon-outline.png";
 import { Mail, Check, Zap, Key } from "lucide-react";
 import { cx } from "@/utils/cx";
 import { supabase } from "@/lib/supabase";
+import { hasPilotScanSession, resolvePendingScanId } from "@/lib/pending-scan";
 
 export function AuthMagicLink() {
     const navigate = useNavigate();
@@ -13,8 +14,11 @@ export function AuthMagicLink() {
     const [showExistingModal, setShowExistingModal] = useState(false);
 
     const isValid = useMemo(() => /\S+@\S+\.\S+/.test(email.trim()), [email]);
+    const [fromPilot, setFromPilot] = useState(false);
 
     useEffect(() => {
+        resolvePendingScanId();
+        setFromPilot(hasPilotScanSession());
         const prefill = sessionStorage.getItem("invitePrefillEmail");
         if (prefill) {
             setEmail(prefill);
@@ -45,13 +49,30 @@ export function AuthMagicLink() {
             return;
         }
 
+        // shouldCreateUser:false returns an error both when the email is new
+        // ("Signups not allowed for otp") and when mail delivery fails (SMTP
+        // 500). Only the former is a new-user signal; anything else is a
+        // real send failure and must not mint another pending profile.
+        const existsMsg = existsError.message.toLowerCase();
+        const emailIsNew =
+            existsMsg.includes("signups not allowed") ||
+            existsMsg.includes("user not found") ||
+            existsMsg.includes("otp_disabled");
+        if (!emailIsNew) {
+            setAuthError(existsError.message);
+            setIsSending(false);
+            return;
+        }
+
         // Email is new — create the pending profile first so we capture the
         // email address immediately. This enables re-engagement emails for
         // users who submit here but never click the magic link (abandoned cart).
-        const scanId = sessionStorage.getItem("pendingScanId");
+        // Scan id comes from the URL (?scanId=), pendingScanId, or the
+        // pilot-scan result the funnel just wrote.
+        const scanId = resolvePendingScanId();
 
         if (!scanId) {
-            setAuthError("Session expired. Please go back and try again.");
+            setAuthError("Session expired. Please run a scan first.");
             setIsSending(false);
             return;
         }
@@ -75,7 +96,7 @@ export function AuthMagicLink() {
             sessionStorage.setItem("pendingProfileId", profileId);
         } catch (err) {
             console.error("create-pending-profile error:", err);
-            setAuthError("Something went wrong. Please try again.");
+            setAuthError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
             setIsSending(false);
             return;
         }
@@ -263,6 +284,17 @@ export function AuthMagicLink() {
                         Already have an account? Sign in here
                     </Link>
                 </div>
+
+                {fromPilot && (
+                    <div className="mt-3 text-center">
+                        <Link
+                            to="/pilot-scan/report"
+                            className="text-xs font-medium text-[#7A92A8] hover:text-[#022136] dark:hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 outline-focus-ring rounded"
+                        >
+                            Back to your report
+                        </Link>
+                    </div>
+                )}
             </div>
 
             {/* Wrong Email modal */}

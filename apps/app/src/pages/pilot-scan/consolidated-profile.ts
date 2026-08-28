@@ -4,8 +4,7 @@
  * by full-profile-scan and refreshed by manage-emails' confirm step.
  * Already deduped/merged server-side, so no client-side broker-merge logic
  * needed here (unlike the old /pilot-scan Phase 1/2 pages, which did their
- * own Zaba-match merge on raw broker data — see scan-result.ts, still used
- * by start.tsx).
+ * own Zaba-match merge on raw broker data — see scan-result.ts).
  */
 import type { Finding } from "./scan-result";
 

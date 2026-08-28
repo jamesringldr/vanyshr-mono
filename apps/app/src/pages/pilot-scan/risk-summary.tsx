@@ -16,6 +16,7 @@ import {
   type IconComponent,
 } from "@appica/icons-react";
 import { cx } from "@/utils/cx";
+import { signupPath } from "@/lib/pending-scan";
 import { buildRiskAreas, loadConsolidatedProfile, type ConsolidatedProfile, type RiskArea } from "./consolidated-profile";
 
 const DRAWER_EASE = [0.2, 0, 0, 1] as const;
@@ -317,7 +318,7 @@ export function RiskSummaryBody({ profile }: { profile: ConsolidatedProfile }) {
           </p>
           <button
             type="button"
-            onClick={() => navigate("/pilot-scan/start")}
+            onClick={() => navigate(signupPath())}
             className="mt-5 flex h-12 w-full items-center justify-center rounded-2xl bg-[#00BFFF] text-[17px] font-semibold text-white"
           >
             Start Vanyshing
