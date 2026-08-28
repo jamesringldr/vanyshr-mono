@@ -10,7 +10,7 @@ import { PreProfileBody } from "./pre-profile";
 import { BreachesBody } from "./breaches";
 import { BrokersBody } from "./brokers";
 
-const SLIDES = ["Risk Summary", "Your Data", "Breaches", "Brokers"] as const;
+const SLIDES = ["Exposed Data", "Risk Summary", "Breaches", "Brokers"] as const;
 
 function TabBar({ active, onSelect }: { active: number; onSelect: (index: number) => void }) {
   return (
@@ -124,12 +124,12 @@ export function PilotReportPage() {
         className="flex snap-x snap-mandatory overflow-x-auto scroll-smooth [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         <div className="w-full shrink-0 snap-start snap-always" aria-hidden={slide !== 0}>
-          <RiskSummaryBody profile={stored.profile} />
-        </div>
-        <div className="w-full shrink-0 snap-start snap-always" aria-hidden={slide !== 1}>
-          <div className="mx-auto max-w-3xl px-4 pb-16">
+          <div className="mx-auto max-w-3xl px-4 pb-[200px]">
             <PreProfileBody profile={stored.profile} />
           </div>
+        </div>
+        <div className="w-full shrink-0 snap-start snap-always" aria-hidden={slide !== 1}>
+          <RiskSummaryBody profile={stored.profile} />
         </div>
         <div className="w-full shrink-0 snap-start snap-always" aria-hidden={slide !== 2}>
           <div className="mx-auto max-w-3xl px-4 pb-16">
