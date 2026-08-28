@@ -371,7 +371,6 @@ export function PilotLoadingPage() {
   const fieldsRef = useRef<ScanFields | null>(null);
   const scanRunRef = useRef(0);
   const skipNoResultsExitRef = useRef(false);
-  const lastProgressCountRef = useRef<number>(0);
   // Tip: `/pilot-scan/loading?noresults` opens the recovery modal without a scan.
   const previewNoResults = searchParams.has("noresults");
 
@@ -430,14 +429,18 @@ export function PilotLoadingPage() {
     return () => window.clearInterval(id);
   }, [isConfirming]);
 
-  // The drawer's log. Backend writes one row per sub-step; this reads them
-  // back in order. Runs across every phase the drawer is open for -- the
-  // `searching` lines come from summary-scan, the rest from
-  // full-profile-scan. beginSummaryScan() resets the cursor, so the count is
-  // safe to use as "how many have I already appended".
+  // The drawer's log. `searching` lines come from summary-scan, the rest
+  // from full-profile-scan.
+  //
+  // One interval for the whole scan rather than one per phase: keying this on
+  // `phase` tore the poller down and rebuilt it at every transition, and each
+  // of those is a chance to drop an in-flight response. It keeps running
+  // through `pick` too -- the drawer is hidden behind the modal there, but
+  // the background brokers are still reporting, so the log is current the
+  // moment it reopens.
+  const scanSettled = phase === "report" || phase === "error" || phase === "no_results";
   useEffect(() => {
-    const scanning = phase === "searching" || phase === "full_profile" || phase === "emails";
-    if (!scanId || !scanning) return;
+    if (!scanId || scanSettled) return;
 
     const pollInterval = setInterval(async () => {
       try {
@@ -450,18 +453,24 @@ export function PilotLoadingPage() {
           return;
         }
 
-        const messages = data?.messages || [];
-        if (messages.length > lastProgressCountRef.current) {
-          setProgressMessages((prev) => [...prev, ...messages.slice(lastProgressCountRef.current)]);
-          lastProgressCountRef.current = messages.length;
-        }
+        // Replace, never append. The endpoint returns the whole ordered log
+        // every time, so this is idempotent and self-healing: a dropped or
+        // out-of-order poll costs nothing, the next one re-syncs. Tracking a
+        // cursor and appending the tail is what broke this before -- once the
+        // cursor advanced past a batch that did not land, those lines were
+        // marked seen and could never come back, so the log truncated
+        // permanently mid-scan.
+        const messages: ProgressMessage[] = data?.messages ?? [];
+        setProgressMessages((prev) =>
+          prev.length === messages.length ? prev : messages,
+        );
       } catch (err) {
         console.error("Progress polling error:", err);
       }
     }, 500); // Poll every 500ms for near-real-time updates
 
     return () => clearInterval(pollInterval);
-  }, [phase, scanId]);
+  }, [scanId, scanSettled]);
 
   // summary-scan responds as soon as FPS resolves and keeps AnyWho/Zaba/NPD
   // in the background; full-profile-scan reports { notReady } instead of
@@ -631,7 +640,6 @@ export function PilotLoadingPage() {
     candidatesRef.current = [];
     setProfiles([]);
     setProgressMessages([]);
-    lastProgressCountRef.current = 0;
     go("searching");
 
     invokeOnce(`summary-scan:${quickScanId}`, "summary-scan", { quickscanId: quickScanId })
