@@ -17,6 +17,7 @@ import {
 import type { ScanMember } from "./scan-result";
 import { EmailConfirmationModal } from "./email-confirmation";
 import { loadConsolidatedProfile, saveConsolidatedProfile, type ConsolidatedProfile } from "./consolidated-profile";
+import { ProgressDrawer, type ProgressStep } from "./progress-drawer";
 
 const EASE_OUT = [0.2, 0, 0, 1] as const;
 
@@ -96,6 +97,34 @@ const STEPS: LoadingStep[] = [
     label: "Building your Risk Report",
     eyebrow: "Almost done...",
     headline: "Assembling your exposure into a risk report",
+  },
+];
+
+const DRAWER_STEPS: ProgressStep[] = [
+  {
+    id: "criteria",
+    label: "Building Search Criteria",
+    subtext: "Set up search parameters for your identity",
+  },
+  {
+    id: "brokers",
+    label: "Searching Data Brokers",
+    subtext: "Querying FastPeopleSearch, AnyWho, Zaba, NPD...",
+  },
+  {
+    id: "accounts",
+    label: "Finding exposed accounts",
+    subtext: "Checking for breaches and compromised credentials",
+  },
+  {
+    id: "darkweb",
+    label: "Scanning Dark Web",
+    subtext: "Checking forums and known credential leaks",
+  },
+  {
+    id: "results",
+    label: "Building your Risk Report",
+    subtext: "Assembling findings into an exposure report",
   },
 ];
 
@@ -259,6 +288,25 @@ function invokeOnce(key: string, fn: string, body: object) {
     }));
   inflight.set(key, pending);
   return pending;
+}
+
+/**
+ * Calculate progress percentage for the drawer progress bar.
+ * Adds extra visual progress during active phases to show responsiveness.
+ */
+function getProgressPercent(phase: Phase, currentStepIndex: number, totalSteps: number): number {
+  const basePercent = (currentStepIndex / totalSteps) * 100;
+  // Add extra visual progress for active phases
+  if (phase === "searching" || phase === "full_profile") {
+    return Math.min(basePercent + 10, 95); // Cap at 95% until complete
+  }
+  if (phase === "emails") {
+    return 80;
+  }
+  if (phase === "report") {
+    return 100;
+  }
+  return basePercent;
 }
 
 /**
@@ -768,6 +816,32 @@ export function PilotLoadingPage() {
           </button>
         )}
       </div>
+
+      {/* Progress Drawer */}
+      <ProgressDrawer
+        isOpen={
+          (phase === "searching" || phase === "full_profile" || phase === "emails") &&
+          !holdMode
+        }
+        currentStep={activeStep.label}
+        statusAction={statusAction}
+        progressPercent={getProgressPercent(
+          phase,
+          DRAWER_STEPS.findIndex((s) => s.id === activeStep.id) + 1,
+          DRAWER_STEPS.length
+        )}
+        currentStepIndex={DRAWER_STEPS.findIndex((s) => s.id === activeStep.id) + 1}
+        totalSteps={DRAWER_STEPS.length}
+        steps={DRAWER_STEPS.map((step) => ({
+          ...step,
+          // Inject live result into active step
+          result:
+            step.id === "brokers" && phase !== "error" && statusAction
+              ? statusAction.match(/\d+\s+matches?/i)?.[0] || statusAction
+              : undefined,
+        }))}
+        stepStatuses={stepStatuses}
+      />
 
       <QSResultSingleModal
         isOpen={pickOpen && profiles.length === 1 && Boolean(profiles[0])}
