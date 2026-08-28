@@ -39,47 +39,48 @@ serve(async (req) => {
       );
     }
 
-    // Get the current user's profile via JWT
+    // For authenticated scans: verify ownership. Anonymous scans are accessible to anyone with the ID.
+    let currentUserId: string | null = null;
+
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ success: false, error: "Unauthorized" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    const userSupabase = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false,
-        },
-        global: {
-          headers: {
-            Authorization: authHeader,
+    if (authHeader && scan.created_by) {
+      // Only verify auth if scan has a creator (authenticated scan)
+      const userSupabase = createClient(
+        Deno.env.get("SUPABASE_URL") ?? "",
+        Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+        {
+          auth: {
+            autoRefreshToken: false,
+            persistSession: false,
           },
-        },
+          global: {
+            headers: {
+              Authorization: authHeader,
+            },
+          },
+        }
+      );
+
+      const { data: { user }, error: userError } = await userSupabase.auth.getUser();
+      if (userError || !user) {
+        console.warn(`Auth failed for authenticated scan ${quickscanId}`);
+        return new Response(
+          JSON.stringify({ success: false, error: "Unauthorized" }),
+          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
       }
-    );
+      currentUserId = user.id;
 
-    const { data: { user }, error: userError } = await userSupabase.auth.getUser();
-    if (userError || !user) {
-      return new Response(
-        JSON.stringify({ success: false, error: "Unauthorized" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      // Verify ownership for authenticated scans
+      if (scan.created_by !== currentUserId) {
+        console.warn(`Unauthorized access to scan ${quickscanId} by user ${currentUserId}`);
+        return new Response(
+          JSON.stringify({ success: false, error: "Unauthorized" }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
     }
-
-    // Verify ownership: either user created the scan OR it's an anonymous scan (created_by is null)
-    if (scan.created_by && scan.created_by !== user.id) {
-      console.warn(`Unauthorized access to scan ${quickscanId} by user ${user.id}`);
-      return new Response(
-        JSON.stringify({ success: false, error: "Unauthorized" }),
-        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    // Anonymous scans (created_by is null) are accessible to anyone with the ID
 
     // Fetch progress messages
     const { data, error } = await serviceRoleSupabase
