@@ -44,6 +44,27 @@ type LoadingStep = {
   headline: string;
 };
 
+/** Sample cards for `?hold=single|multiple|none` so we can restyle overlays without a live scan. */
+const HOLD_PROFILES: QSProfileSummary[] = [
+  {
+    id: "hold-1",
+    fullName: "Luke Clark",
+    age: 42,
+    aliases: ["Lucas Clark"],
+    phones: ["(602) 555-0142"],
+    relatives: ["Jane Clark", "Sam Clark"],
+    currentAddress: ["Waddell, AZ"],
+  },
+  {
+    id: "hold-2",
+    fullName: "Luke A Clark",
+    age: 38,
+    phones: ["(480) 555-0199"],
+    relatives: ["Pat Clark"],
+    currentAddress: ["Phoenix, AZ"],
+  },
+];
+
 const STEPS: LoadingStep[] = [
   {
     id: "criteria",
@@ -249,6 +270,9 @@ function invokeOnce(key: string, fn: string, body: object) {
 export function PilotLoadingPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const holdParam = searchParams.get("hold");
+  const holdPreview =
+    holdParam === "single" || holdParam === "multiple" || holdParam === "none" ? holdParam : null;
   const holdMode = searchParams.has("hold");
   const prefersReducedMotion = useReducedMotion();
 
@@ -282,6 +306,19 @@ export function PilotLoadingPage() {
   const skipNoResultsExitRef = useRef(false);
   // Tip: `/pilot-scan/loading?noresults` opens the recovery modal without a scan.
   const previewNoResults = searchParams.has("noresults");
+
+  useEffect(() => {
+    if (!holdPreview) return;
+    setSearchName("Luke Clark");
+    setRegion("AZ");
+    if (holdPreview === "single") {
+      setProfiles(HOLD_PROFILES.slice(0, 1));
+      go("pick");
+    } else if (holdPreview === "multiple") {
+      setProfiles(HOLD_PROFILES);
+      go("pick");
+    }
+  }, [holdPreview]);
 
   useEffect(() => {
     if (holdMode) return;
@@ -720,23 +757,28 @@ export function PilotLoadingPage() {
       <QSResultSingleModal
         isOpen={pickOpen && profiles.length === 1 && Boolean(profiles[0])}
         onOpenChange={(open) => {
-          if (!open) dismissPick();
+          if (!open && !holdPreview) dismissPick();
         }}
         profile={profiles[0] ?? { id: "none", fullName: searchName || "Unknown" }}
         region={region}
-        onThisIsMe={handlePick}
-        onThisIsNotMe={dismissPick}
+        onThisIsMe={holdPreview ? () => undefined : handlePick}
+        onThisIsNotMe={holdPreview ? () => undefined : dismissPick}
       />
       <QSResultMultipleModal
         isOpen={pickOpen && profiles.length > 1}
         onOpenChange={(open) => {
-          if (!open) dismissPick();
+          if (!open && !holdPreview) dismissPick();
         }}
         searchName={searchName}
         region={region}
         profiles={profiles}
-        onProfileSelect={handlePick}
-        onNoneOfThese={dismissPick}
+        onProfileSelect={holdPreview ? () => undefined : handlePick}
+        onNoneOfThese={holdPreview ? () => undefined : dismissPick}
+      />
+      <QSNoResultsModal
+        isOpen={holdPreview === "none"}
+        onOpenChange={() => undefined}
+        searchName={searchName || "Luke Clark"}
       />
       <QSNoResultsModal
         isOpen={phase === "no_results"}

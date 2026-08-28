@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { cx } from '@/utils/cx';
+import { cx } from "@/utils/cx";
 import { ProfileCard } from "./profile-card";
+import { QSModalFrame, qsModal } from "./qs-modal";
 import type { QSProfileSummary } from "./types";
 
 export interface QSResultMultipleModalProps {
@@ -22,8 +23,7 @@ export interface QSResultMultipleModalProps {
 
 /**
  * Multiple-users-found Quick Scan result modal.
- * White card on dark-blurred backdrop — matches prototype Modal design.
- * Profile cards highlight on hover/select with brand azure.
+ * Navy overlay matching the rest of the loading-flow modals.
  * "None of These Are Me" button delayed 2s to encourage users to review cards first.
  */
 export function QSResultMultipleModal({
@@ -70,48 +70,24 @@ export function QSResultMultipleModal({
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-            <div
-                className={cx(
-                    "bg-white w-full max-w-md rounded-xl shadow-2xl flex flex-col max-h-[85vh] overflow-hidden",
-                    "transform transition-all duration-300 ease-out",
-                    showContent ? "scale-100 opacity-100" : "scale-95 opacity-0",
-                )}
-            >
-                {/* Header */}
-                <div className="p-6 text-center border-b border-gray-100 flex-shrink-0 relative">
-                    <button
-                        onClick={close}
-                        className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors"
-                        aria-label="Close"
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </button>
+        <QSModalFrame showContent={showContent} onClose={close}>
+            <div className={qsModal.header}>
+                <h2 id="qs-multiple-modal-title" className={qsModal.title}>
+                    We found multiple records for{" "}
+                    <span className={qsModal.accent}>
+                        {searchName}
+                        {region ? ` in ${region}` : ""}
+                    </span>
+                </h2>
+                <p id="qs-multiple-modal-desc" className={qsModal.subtitle}>
+                    Select the record with your data
+                </p>
+            </div>
 
-                    <h2
-                        id="qs-multiple-modal-title"
-                        className="text-xl font-extrabold text-slate-800 leading-tight mb-2"
-                    >
-                        We Found Multiple Records For
-                        <br />
-                        <span className="text-[#00BFFF]">
-                            {searchName}
-                            {region ? ` in ${region}` : ""}
-                        </span>
-                    </h2>
-                    <p
-                        id="qs-multiple-modal-desc"
-                        className="text-sm text-slate-500 font-medium"
-                    >
-                        Select the Record with Your Data
-                    </p>
-                </div>
-
-                {/* Scrollable profile list */}
-                <div className="flex-1 overflow-y-auto p-4 bg-white space-y-4">
-                    {profiles.map((profile) => (
+            <div className={cx(qsModal.body, "space-y-3")}>
+                {profiles.map((profile) => {
+                    const selected = selectedProfileId === profile.id;
+                    return (
                         <div
                             key={profile.id}
                             onClick={() => handleSelect(profile)}
@@ -120,42 +96,37 @@ export function QSResultMultipleModal({
                             onKeyDown={(e) => e.key === "Enter" && handleSelect(profile)}
                             aria-label={`Select profile: ${profile.fullName}`}
                             className={cx(
-                                "rounded-lg cursor-pointer transition-all duration-200 group relative",
-                                selectedProfileId === profile.id
-                                    ? "bg-[#00BFFF]/10 border-2 border-[#00BFFF] shadow-md"
-                                    : "bg-gray-50 border-2 border-transparent hover:border-[#00BFFF]/50 hover:shadow-lg hover:bg-white",
+                                "cursor-pointer rounded-lg transition",
+                                selected
+                                    ? "ring-1 ring-[#00BFFF]"
+                                    : "hover:ring-1 hover:ring-[#00BFFF]/50",
                             )}
                         >
                             <ProfileCard
                                 profile={profile}
-                                className={cx(
-                                    "border-0",
-                                    selectedProfileId === profile.id
-                                        ? "bg-transparent"
-                                        : "bg-transparent",
-                                )}
+                                className={selected ? "border-[#00BFFF] bg-[#0B3B52]" : undefined}
                             />
                         </div>
-                    ))}
-                </div>
-
-                {/* Footer */}
-                <div className="p-4 bg-white border-t border-gray-100 flex-shrink-0">
-                    <button
-                        onClick={handleNoneOfThese}
-                        className={cx(
-                            "w-full py-3.5 rounded-lg font-bold text-lg text-white shadow-lg",
-                            "bg-[#00BFFF] hover:bg-[#00D4FF] active:scale-[0.98]",
-                            "transition-all duration-700 ease-in-out transform",
-                            showNoneButton
-                                ? "opacity-100 translate-y-0"
-                                : "opacity-0 translate-y-8 pointer-events-none",
-                        )}
-                    >
-                        None of These Are Me
-                    </button>
-                </div>
+                    );
+                })}
             </div>
-        </div>
+
+            <div className={qsModal.footer}>
+                <button
+                    type="button"
+                    onClick={handleNoneOfThese}
+                    className={cx(
+                        qsModal.secondaryBtn,
+                        "w-full",
+                        "duration-700 ease-in-out",
+                        showNoneButton
+                            ? "translate-y-0 opacity-100"
+                            : "pointer-events-none translate-y-8 opacity-0",
+                    )}
+                >
+                    None of these are me
+                </button>
+            </div>
+        </QSModalFrame>
     );
 }
