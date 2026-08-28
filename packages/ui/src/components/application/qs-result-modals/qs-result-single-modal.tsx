@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { cx } from '@/utils/cx';
+import { cx } from "@/utils/cx";
 import { ProfileCard } from "./profile-card";
+import { QSModalFrame, qsModal } from "./qs-modal";
 import type { QSProfileSummary } from "./types";
 
 export interface QSResultSingleModalProps {
@@ -20,8 +21,8 @@ export interface QSResultSingleModalProps {
 
 /**
  * Single-user-found Quick Scan result modal.
- * White card on dark-blurred backdrop — matches prototype ConfirmModal design.
- * Staggered entrance: modal scales in at 10ms, action buttons slide up at 500ms.
+ * Navy overlay matching the rest of the loading-flow modals.
+ * Staggered entrance: panel scales in at 10ms, action buttons slide up at 500ms.
  */
 export function QSResultSingleModal({
     isOpen,
@@ -63,82 +64,50 @@ export function QSResultSingleModal({
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-            <div
-                className={cx(
-                    "bg-white w-full max-w-md rounded-xl shadow-2xl flex flex-col max-h-[85vh] overflow-hidden",
-                    "transform transition-all duration-300 ease-out",
-                    showContent ? "scale-100 opacity-100" : "scale-95 opacity-0",
-                )}
-            >
-                {/* Header */}
-                <div className="p-6 text-center border-b border-gray-100 flex-shrink-0 relative">
-                    <button
-                        onClick={close}
-                        className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors"
-                        aria-label="Close"
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </button>
-
-                    <h2
-                        id="qs-single-modal-title"
-                        className="text-xl font-extrabold text-slate-800 leading-tight mb-2"
-                    >
-                        We Found A Record For
-                        <br />
-                        <span className="text-[#00BFFF]">
-                            {profile.fullName}
-                            {region ? ` in ${region}` : ""}
-                        </span>
-                    </h2>
-                    <p
-                        id="qs-single-modal-desc"
-                        className="text-sm text-slate-500 font-medium"
-                    >
-                        Is This Your Profile?
-                    </p>
-                </div>
-
-                {/* Profile card */}
-                <div className="flex-1 overflow-y-auto p-4 bg-white">
-                    <ProfileCard profile={profile} />
-                </div>
-
-                {/* Footer */}
-                <div className="p-4 bg-white border-t border-gray-100 flex-shrink-0">
-                    <div className="flex gap-3">
-                        <button
-                            onClick={handleThisIsNotMe}
-                            className={cx(
-                                "flex-1 py-3.5 rounded-lg font-bold text-lg text-slate-800 shadow-lg",
-                                "bg-gray-100 hover:bg-gray-200 active:scale-[0.98]",
-                                "transition-all duration-700 ease-in-out transform",
-                                showButtons
-                                    ? "opacity-100 translate-y-0"
-                                    : "opacity-0 translate-y-8 pointer-events-none",
-                            )}
-                        >
-                            This Isn&apos;t Me
-                        </button>
-                        <button
-                            onClick={handleThisIsMe}
-                            className={cx(
-                                "flex-1 py-3.5 rounded-lg font-bold text-lg text-white shadow-lg",
-                                "bg-[#00BFFF] hover:bg-[#00D4FF] active:scale-[0.98]",
-                                "transition-all duration-700 ease-in-out transform",
-                                showButtons
-                                    ? "opacity-100 translate-y-0"
-                                    : "opacity-0 translate-y-8 pointer-events-none",
-                            )}
-                        >
-                            Yes, This Is Me
-                        </button>
-                    </div>
-                </div>
+        <QSModalFrame showContent={showContent} onClose={close}>
+            <div className={qsModal.header}>
+                <h2 id="qs-single-modal-title" className={qsModal.title}>
+                    We found a record for{" "}
+                    <span className={qsModal.accent}>
+                        {profile.fullName}
+                        {region ? ` in ${region}` : ""}
+                    </span>
+                </h2>
+                <p id="qs-single-modal-desc" className={qsModal.subtitle}>
+                    Is this your profile?
+                </p>
             </div>
-        </div>
+
+            <div className={qsModal.body}>
+                <ProfileCard profile={profile} />
+            </div>
+
+            <div className={qsModal.footer}>
+                <button
+                    type="button"
+                    onClick={handleThisIsNotMe}
+                    className={cx(
+                        qsModal.secondaryBtn,
+                        "flex-1",
+                        "duration-700 ease-in-out",
+                        showButtons ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-8 opacity-0",
+                    )}
+                >
+                    This isn&apos;t me
+                </button>
+                <button
+                    type="button"
+                    onClick={handleThisIsMe}
+                    className={cx(
+                        qsModal.primaryBtn,
+                        "flex-1",
+                        "duration-700 ease-in-out",
+                        showButtons ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-8 opacity-0",
+                    )}
+                >
+                    Yes, this is me
+                </button>
+            </div>
+        </QSModalFrame>
     );
 }

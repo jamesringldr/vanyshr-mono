@@ -8,6 +8,7 @@ import PrimaryIcon from "@vanyshr/ui/assets/PrimaryIcon-Nooutline.png";
 import { cx } from "@/utils/cx";
 import { supabase } from "@/lib/supabase";
 import {
+  QSNoResultsModal,
   QSResultMultipleModal,
   QSResultSingleModal,
   type QSProfileSummary,
@@ -42,6 +43,27 @@ type LoadingStep = {
   eyebrow: string;
   headline: string;
 };
+
+/** Sample cards for `?hold=single|multiple|none` so we can restyle overlays without a live scan. */
+const HOLD_PROFILES: QSProfileSummary[] = [
+  {
+    id: "hold-1",
+    fullName: "Luke Clark",
+    age: 42,
+    aliases: ["Lucas Clark"],
+    phones: ["(602) 555-0142"],
+    relatives: ["Jane Clark", "Sam Clark"],
+    currentAddress: ["Waddell, AZ"],
+  },
+  {
+    id: "hold-2",
+    fullName: "Luke A Clark",
+    age: 38,
+    phones: ["(480) 555-0199"],
+    relatives: ["Pat Clark"],
+    currentAddress: ["Phoenix, AZ"],
+  },
+];
 
 const STEPS: LoadingStep[] = [
   {
@@ -246,6 +268,9 @@ function invokeOnce(key: string, fn: string, body: object) {
 export function PilotLoadingPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const holdParam = searchParams.get("hold");
+  const holdPreview =
+    holdParam === "single" || holdParam === "multiple" || holdParam === "none" ? holdParam : null;
   const holdMode = searchParams.has("hold");
   const prefersReducedMotion = useReducedMotion();
 
@@ -274,6 +299,19 @@ export function PilotLoadingPage() {
   const identifyBrokerRef = useRef<IdentifyBroker>("fps");
   const [identifyBroker, setIdentifyBroker] = useState<IdentifyBroker>("fps");
   const quickScanIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!holdPreview) return;
+    setSearchName("Luke Clark");
+    setRegion("AZ");
+    if (holdPreview === "single") {
+      setProfiles(HOLD_PROFILES.slice(0, 1));
+      go("pick");
+    } else if (holdPreview === "multiple") {
+      setProfiles(HOLD_PROFILES);
+      go("pick");
+    }
+  }, [holdPreview]);
 
   useEffect(() => {
     if (holdMode) return;
@@ -640,23 +678,28 @@ export function PilotLoadingPage() {
       <QSResultSingleModal
         isOpen={pickOpen && profiles.length === 1 && Boolean(profiles[0])}
         onOpenChange={(open) => {
-          if (!open) dismissPick();
+          if (!open && !holdPreview) dismissPick();
         }}
         profile={profiles[0] ?? { id: "none", fullName: searchName || "Unknown" }}
         region={region}
-        onThisIsMe={handlePick}
-        onThisIsNotMe={dismissPick}
+        onThisIsMe={holdPreview ? () => undefined : handlePick}
+        onThisIsNotMe={holdPreview ? () => undefined : dismissPick}
       />
       <QSResultMultipleModal
         isOpen={pickOpen && profiles.length > 1}
         onOpenChange={(open) => {
-          if (!open) dismissPick();
+          if (!open && !holdPreview) dismissPick();
         }}
         searchName={searchName}
         region={region}
         profiles={profiles}
-        onProfileSelect={handlePick}
-        onNoneOfThese={dismissPick}
+        onProfileSelect={holdPreview ? () => undefined : handlePick}
+        onNoneOfThese={holdPreview ? () => undefined : dismissPick}
+      />
+      <QSNoResultsModal
+        isOpen={holdPreview === "none"}
+        onOpenChange={() => undefined}
+        searchName={searchName || "Luke Clark"}
       />
 
       {phase === "emails" ? (
