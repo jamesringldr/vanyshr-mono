@@ -18,7 +18,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { scrapeBrokersConcurrently } from "../_shared/quickscan/html-scrapers.ts";
-import { logTiming } from "../_shared/quickscan/consolidation.ts";
+import { logTiming, logProgress } from "../_shared/quickscan/consolidation.ts";
 import {
   FIRST_IDENTIFY_BROKER,
   IDENTIFY_ORDER,
@@ -184,7 +184,22 @@ serve(async (req) => {
       `🔍 summary-scan ${quickscanId}: ${input.first_name} ${input.last_name}, ${input.city}, ${input.state}`,
     );
 
+    const where = [input.city, input.state].filter(Boolean).join(", ");
+    await logProgress(
+      supabase,
+      quickscanId,
+      `Building search criteria for ${input.first_name} ${input.last_name}${where ? ` in ${where}` : ""}...`,
+      "criteria",
+    );
+    await logProgress(supabase, quickscanId, "✓ Search criteria confirmed", "criteria");
+
     // All 4 fetches start together; only FPS is awaited here.
+    await logProgress(
+      supabase,
+      quickscanId,
+      "Querying FastPeopleSearch, AnyWho, Zabasearch and NPD in parallel...",
+      "brokers",
+    );
     const brokerPromises = scrapeBrokersConcurrently(input);
 
     const fpsResult = await brokerPromises[BrokerName.FPS];
@@ -194,6 +209,14 @@ serve(async (req) => {
       status: fpsResult.status,
       error: fpsResult.error,
     });
+    await logProgress(
+      supabase,
+      quickscanId,
+      fpsResult.status === "success"
+        ? `✓ ${getBrokerDisplayName(BrokerName.FPS)} returned ${fpsResult.summaries.length} match${fpsResult.summaries.length !== 1 ? "es" : ""} in ${(fpsResult.timing_ms / 1000).toFixed(1)}s`
+        : `✗ ${getBrokerDisplayName(BrokerName.FPS)} is unavailable — falling back to the other brokers`,
+      "brokers",
+    );
 
     const stored = new Map<string, StoredRow>();
     const summaryCounts: Record<string, number> = { [BrokerName.FPS]: fpsResult.summaries.length };
@@ -355,6 +378,15 @@ async function finishScan(
         error: result.error,
       });
 
+      await logProgress(
+        supabase,
+        quickscanId,
+        result.status === "success"
+          ? `✓ ${getBrokerDisplayName(result.broker)} returned ${result.summaries.length} match${result.summaries.length !== 1 ? "es" : ""} in ${(result.timing_ms / 1000).toFixed(1)}s`
+          : `✗ ${getBrokerDisplayName(result.broker)} is unavailable`,
+        "brokers",
+      );
+
       if (result.summaries.length === 0) {
         await writePlaceholder(supabase, quickscanId, result);
         continue;
@@ -380,7 +412,14 @@ async function finishScan(
       .eq("id", quickscanId);
 
     console.log(`✅ summary-scan ${quickscanId} finish: ${stored.size} candidates stored, no grouping`);
-    await logTiming(supabase, quickscanId, "summary_scan_background_total", Date.now() - functionStarted, { resultCount: stored.size });
+    const backgroundMs = Date.now() - functionStarted;
+    await logTiming(supabase, quickscanId, "summary_scan_background_total", backgroundMs, { resultCount: stored.size });
+    await logProgress(
+      supabase,
+      quickscanId,
+      `✓ All brokers reported — ${totalCandidates} candidate profile${totalCandidates !== 1 ? "s" : ""} found in ${(backgroundMs / 1000).toFixed(1)}s`,
+      "brokers",
+    );
   } catch (err) {
     // Always land on a terminal status -- full-profile-scan polls for
     // 'summary_scan_complete' and would otherwise wait forever on a

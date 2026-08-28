@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Check } from "lucide-react";
 import { InlineLoader } from "generative-loaders";
@@ -88,11 +88,23 @@ export function ProgressDrawer({
 }: ProgressDrawerProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
+  const logEndRef = useRef<HTMLDivElement>(null);
 
   const handleToggle = () => {
     setIsExpanded(!isExpanded);
     onToggle?.();
   };
+
+  // The log only ever appends, so pin the view to the newest line.
+  useEffect(() => {
+    if (!isExpanded) return;
+    logEndRef.current?.scrollIntoView({ block: "end", behavior: "smooth" });
+  }, [progressMessages.length, isExpanded]);
+
+  // Collapsed, the drawer is one line tall -- show what the backend is doing
+  // right now, falling back to the phase's generic copy before the first
+  // log line lands.
+  const latestMessage = progressMessages.at(-1)?.message ?? statusAction;
 
   return (
     <>
@@ -144,12 +156,12 @@ export function ProgressDrawer({
 
             {/* Subtitle: Current Operation + Progress */}
             <div className="space-y-1">
-              {statusAction && (
-                <div className="text-[12px] font-mono text-[#00BFFF]/80 truncate">
-                  {statusAction}
+              {latestMessage && (
+                <div className="truncate text-left font-mono text-[12px] text-[#00BFFF]/80">
+                  {latestMessage}
                 </div>
               )}
-              <div className="text-[13px] text-[#7A92A8]">
+              <div className="text-left text-[13px] text-[#7A92A8]">
                 Progress: {currentStepIndex} of {totalSteps}
               </div>
             </div>
@@ -195,13 +207,25 @@ export function ProgressDrawer({
               {progressMessages.length > 0 ? (
                 <div className="space-y-2 font-mono text-[12px]">
                   {progressMessages.map((msg) => (
-                    <div key={msg.id} className="flex gap-3 text-[#00BFFF]/80">
+                    <div key={msg.id} className="flex gap-3">
                       <div className="shrink-0 text-[#7A92A8]">
                         [{new Date(msg.created_at).toLocaleTimeString()}]
                       </div>
-                      <div className="flex-1 text-[#B8C4CC]">{msg.message}</div>
+                      <div
+                        className={cx(
+                          "flex-1",
+                          msg.message.startsWith("✓")
+                            ? "text-[#22C55E]"
+                            : msg.message.startsWith("✗")
+                              ? "text-[#F97066]"
+                              : "text-[#B8C4CC]",
+                        )}
+                      >
+                        {msg.message}
+                      </div>
                     </div>
                   ))}
+                  <div ref={logEndRef} />
                 </div>
               ) : (
                 /* Fallback timeline */

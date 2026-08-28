@@ -405,6 +405,9 @@ verify_jwt = false
 [functions.full-profile-scan]
 verify_jwt = false
 
+[functions.get-progress-messages]
+verify_jwt = false
+
 [functions.manage-emails]
 verify_jwt = false
 

@@ -430,21 +430,15 @@ export function PilotLoadingPage() {
     return () => window.clearTimeout(t);
   }, [phase, navigate, prefersReducedMotion]);
 
-  // Poll for progress messages from the backend
+  // The drawer's log. Backend writes one row per sub-step; this reads them
+  // back in order. Runs across every phase the drawer is open for -- the
+  // `searching` lines come from summary-scan, the rest from
+  // full-profile-scan. beginSummaryScan() resets the cursor, so the count is
+  // safe to use as "how many have I already appended".
   useEffect(() => {
     const quickscanId = quickScanIdRef.current;
-    if (!quickscanId || (phase !== "full_profile" && phase !== "emails")) {
-      // Reset when phase changes away from full_profile/emails
-      if (phase !== "full_profile" && phase !== "emails") {
-        lastProgressCountRef.current = 0;
-      }
-      return;
-    }
-
-    // Reset message count when entering full_profile for a fresh scan
-    if (phase === "full_profile" && progressMessages.length === 0) {
-      lastProgressCountRef.current = 0;
-    }
+    const scanning = phase === "searching" || phase === "full_profile" || phase === "emails";
+    if (!quickscanId || !scanning) return;
 
     const pollInterval = setInterval(async () => {
       try {
@@ -458,13 +452,8 @@ export function PilotLoadingPage() {
         }
 
         const messages = data?.messages || [];
-        console.log(`[Progress Poll] Found ${messages.length} messages (last seen: ${lastProgressCountRef.current})`, messages);
-
         if (messages.length > lastProgressCountRef.current) {
-          // Append only new messages (those we haven't seen before)
-          const newMessages = messages.slice(lastProgressCountRef.current);
-          console.log(`[Progress Poll] Adding ${newMessages.length} new messages`, newMessages);
-          setProgressMessages((prev) => [...prev, ...newMessages]);
+          setProgressMessages((prev) => [...prev, ...messages.slice(lastProgressCountRef.current)]);
           lastProgressCountRef.current = messages.length;
         }
       } catch (err) {
