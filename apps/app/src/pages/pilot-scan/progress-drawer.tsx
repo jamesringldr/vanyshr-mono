@@ -147,23 +147,23 @@ export function ProgressDrawer({
   if (!isOpen) return null;
 
   return (
-    /* Docked in-flow, not a fixed overlay -- it sits below whatever the
-        page put above it (educational cards, status text) instead of
-        covering it, so both are visible and usable at the same time. */
-    <div className="mt-8 flex w-full justify-center">
+    // Pinned to the actual bottom of the viewport -- not in document flow,
+    // so it can't drift away from the screen edge. Capped well under full
+    // height so the educational cards above stay visible instead of getting
+    // covered.
+    <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center px-4">
       <motion.div
-        layout
         initial={false}
         animate={{
-          // Fixed, not content-driven -- a growing log (e.g. stage 3's
-          // per-broker lines) must never nudge the drawer's top edge.
-          // Exactly two resting positions: open and closed. Open is
-          // capped well under full height so it never crowds out
-          // whatever is above it in the flow.
-          height: isExpanded ? "55vh" : "120px",
+          // No `layout` prop here -- combining it with an explicit `height`
+          // animation made Framer Motion fight itself, re-measuring the
+          // box from its content on every log update and producing a
+          // visible bounce. `height` alone is the single source of truth:
+          // exactly two resting positions, open and closed, full stop.
+          height: isExpanded ? "60vh" : "120px",
         }}
         transition={{ duration: 0.32, ease: EASE_OUT }}
-        className="flex w-full max-w-xl flex-col overflow-hidden rounded-xl border border-[#2A4A68] bg-[#2D3847]"
+        className="pointer-events-auto flex w-full max-w-xl flex-col overflow-hidden rounded-t-xl border-x border-t border-[#2A4A68] bg-[#2D3847]"
       >
         {/* Header (Always Visible). The whole row is the hit target -- the
             badge is the affordance, not a nested button. */}

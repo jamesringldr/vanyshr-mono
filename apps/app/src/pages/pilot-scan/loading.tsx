@@ -918,12 +918,18 @@ export function PilotLoadingPage() {
           },
     );
   }
-  const allDone = phase === "report";
   const activeStep =
     STEPS.find((s) => statuses[s.id] === "active") ??
     STEPS.find((s) => statuses[s.id] === "pending") ??
     STEPS[STEPS.length - 1]!;
   const pickOpen = phase === "pick";
+  // The drawer's own header carries stage name + latest log line for these
+  // phases -- showing the eyebrow/headline block on top of it duplicated
+  // the same status. Kept for error/pick/no_results, where the drawer is
+  // closed and this text is the only explanation on screen.
+  const drawerOpen =
+    (phase === "searching" || phase === "full_profile" || phase === "emails" || phase === "report") &&
+    !holdMode;
 
   return (
     <div
@@ -943,46 +949,38 @@ export function PilotLoadingPage() {
           />
         )}
 
-        <div className="mb-10 mt-6 min-h-[88px] w-full text-center" aria-live="polite">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={phase + activeStep.id + identifyBroker + statusAction}
-              initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={prefersReducedMotion ? undefined : { opacity: 0, y: -6 }}
-              transition={{ duration: 0.28, ease: EASE_OUT }}
-            >
-              <p className="text-base text-[#B8C4CC]">
-                {phase === "error"
-                  ? "Something stopped the scan"
-                  : phase === "no_results"
-                    ? "You're harder to find than most"
-                    : phase === "pick"
-                    ? "Is this you?"
-                    : phase === "emails"
-                      ? "Almost done..."
-                      : allDone
-                        ? "All set..."
-                        : activeStep.eyebrow}
-              </p>
-              <p className="mt-1 text-xl font-bold leading-snug tracking-tight text-white sm:text-2xl">
-                {phase === "error"
-                  ? errorMessage || "We couldn't finish this search"
-                  : phase === "no_results"
-                    ? "We didn't find a public record that looks like you"
-                    : phase === "pick"
-                    ? pickHeadline(identifyBroker, rejectedRef.current.length === 0)
-                    : phase === "full_profile"
-                      ? statusAction || "Pulling your full profiles from each site"
-                      : phase === "emails"
-                        ? statusAction || "Confirm the emails we found"
-                        : allDone
-                          ? "Your exposure report is ready to review"
-                          : statusAction || activeStep.headline}
-              </p>
-            </motion.div>
-          </AnimatePresence>
-        </div>
+        {!drawerOpen && (
+          <div className="mb-10 mt-6 min-h-[88px] w-full text-center" aria-live="polite">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={phase + activeStep.id + identifyBroker + statusAction}
+                initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={prefersReducedMotion ? undefined : { opacity: 0, y: -6 }}
+                transition={{ duration: 0.28, ease: EASE_OUT }}
+              >
+                <p className="text-base text-[#B8C4CC]">
+                  {phase === "error"
+                    ? "Something stopped the scan"
+                    : phase === "no_results"
+                      ? "You're harder to find than most"
+                      : phase === "pick"
+                      ? "Is this you?"
+                      : activeStep.eyebrow}
+                </p>
+                <p className="mt-1 text-xl font-bold leading-snug tracking-tight text-white sm:text-2xl">
+                  {phase === "error"
+                    ? errorMessage || "We couldn't finish this search"
+                    : phase === "no_results"
+                      ? "We didn't find a public record that looks like you"
+                      : phase === "pick"
+                      ? pickHeadline(identifyBroker, rejectedRef.current.length === 0)
+                      : statusAction || activeStep.headline}
+                </p>
+              </motion.div>
+            </AnimatePresence>
+          </div>
+        )}
 
         {phase === "error" && (
           <button
@@ -993,23 +991,17 @@ export function PilotLoadingPage() {
             Continue anyway
           </button>
         )}
-
-        {/* Progress Drawer -- docked in-flow below the educational cards and
-            status text, not a fixed overlay, so opening it never covers
-            them; the page scrolls if the two together exceed the viewport. */}
-        <ProgressDrawer
-          isOpen={
-            (phase === "searching" ||
-              phase === "full_profile" ||
-              phase === "emails" ||
-              phase === "report") &&
-            !holdMode
-          }
-          stages={DRAWER_STAGES}
-          progressMessages={[...loggedMessages, ...syntheticMessages]}
-          statusAction={statusAction}
-        />
       </div>
+
+      {/* Progress Drawer -- fixed to the bottom of the viewport, capped
+          well under full height so it never covers the educational cards
+          above it. */}
+      <ProgressDrawer
+        isOpen={drawerOpen}
+        stages={DRAWER_STAGES}
+        progressMessages={[...loggedMessages, ...syntheticMessages]}
+        statusAction={statusAction}
+      />
 
       <QSResultSingleModal
         isOpen={pickOpen && profiles.length === 1 && Boolean(profiles[0])}
