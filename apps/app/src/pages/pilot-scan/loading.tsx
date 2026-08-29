@@ -626,7 +626,7 @@ export function PilotLoadingPage() {
           data?.broker_fields && typeof data.broker_fields === "object" ? data.broker_fields : {};
         const brokers = Object.keys(brokerFields);
         if (data?.consolidated_profile) {
-          saveConsolidatedProfile(data.consolidated_profile as ConsolidatedProfile, brokers.length, brokers, brokerFields);
+          saveConsolidatedProfile(data.consolidated_profile as ConsolidatedProfile, brokers.length, brokers, brokerFields, quickscanId);
         }
       }
     } catch (err) {
@@ -878,6 +878,7 @@ export function PilotLoadingPage() {
           stored?.brokerCount ?? 1,
           stored?.brokers,
           stored?.brokerFields,
+          stored?.quick_scan_id,
         );
       }
     } catch (err) {
