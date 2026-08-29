@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import { cx } from "@/utils/cx";
 import { supabase } from "@/lib/supabase";
 import { signupPath } from "@/lib/pending-scan";
 import {
@@ -933,12 +934,21 @@ export function PilotLoadingPage() {
 
   return (
     <div
-      className="relative flex min-h-screen w-full flex-col items-center justify-center overflow-x-hidden bg-[#022136] px-6 py-12 font-ubuntu"
+      className="relative flex min-h-screen w-full flex-col items-center overflow-x-hidden bg-[#022136] px-6 py-12 font-ubuntu"
       role="main"
       aria-label="Scan in progress"
       aria-busy={phase === "searching" || phase === "full_profile"}
     >
-      <div className="relative z-10 flex w-full max-w-xl flex-col items-center">
+      <div
+        className={cx(
+          "relative z-10 flex w-full max-w-xl flex-col items-center",
+          // Reserve room for the drawer's open height so the cards can
+          // never end up physically behind it -- the drawer is `fixed`,
+          // so it draws over whatever content shares its band on screen
+          // regardless of where that content sits in the document.
+          drawerOpen && "pb-[62vh]",
+        )}
+      >
         {/* Educational Cards - Show during scanning phases */}
         {(phase === "searching" || phase === "full_profile") && (
           <EducationalCards
