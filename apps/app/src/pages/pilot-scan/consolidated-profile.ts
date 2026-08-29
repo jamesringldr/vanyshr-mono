@@ -149,6 +149,16 @@ export function formatEducation(entry: ConsolidatedProfile["education"][number])
   return entry.rawValue || "";
 }
 
+/** Common street-type suffixes -- used to find the street/city boundary
+ *  when no comma marks it at all (see parseFullAddress below). */
+const STREET_SUFFIX_SPLIT =
+  /^(.*?\b(?:St|Street|Ave|Avenue|Rd|Road|Dr|Drive|Ln|Lane|Ct|Court|Blvd|Boulevard|Way|Pl|Place|Cir|Circle|Ter|Terrace|Pkwy|Parkway|Hwy|Highway))\s+(\S.+)$/i;
+
+function splitTrailingCity(street: string): { street: string; city: string } {
+  const m = STREET_SUFFIX_SPLIT.exec(street);
+  return m ? { street: m[1].trim(), city: m[2].trim() } : { street, city: "" };
+}
+
 /**
  * "413 Lovers Ln, Cameron, MO, 64429" -> { street, city, state, zip }.
  * addrFromParts (detail-scrapers.ts) joins street/city/state/zip with ", "
@@ -156,23 +166,55 @@ export function formatEducation(entry: ConsolidatedProfile["education"][number])
  * just whitespace -- both are accepted here since not every broker path
  * goes through that helper. Anchors on the first "City, ST[, ]ZIP" match
  * rather than splitting on the last comma -- broker scrapes occasionally
- * append a duplicated city/state tail (e.g. "..., Cameron, MO, 64429,
- * Cameron, MO, 64429"), which a last-comma split turns into a garbled
- * street and a lone zip. Anchoring on the first match finds the real
- * boundary and drops anything after it. Zip is optional -- some broker
- * addresses have no zip at all.
+ * append a duplicated city/state tail, which a last-comma split turns into
+ * a garbled street and a lone zip. Anchoring on the first match finds the
+ * real boundary and drops anything after it. Zip is optional -- some
+ * broker addresses have no zip at all.
+ *
+ * Some records duplicate the *whole* address within one raw string: once
+ * mashed together with no street/city comma, then again properly
+ * comma-delimited but missing the house number (confirmed against a real
+ * raw_value: "413 Lovers Ln Cameron MO 64429, Lovers Ln Cameron, MO,
+ * 64429" -- the comma-anchored regex above happily parses the *second*
+ * copy's city/state/zip while swallowing the entire first copy as
+ * "street"). A repeated 5-digit zip is a reliable signal of that -- when
+ * found, only the text up to its first occurrence is parsed, and since
+ * that text then has no comma left to mark the city boundary, a trailing
+ * "ST ZIP" is split off directly and the street/city boundary within
+ * what's left is found by the nearest recognizable street-type suffix.
  */
 export function parseFullAddress(fullAddr: string): { street: string; city: string; state: string; zip: string } {
-  const match = /^(.*?),\s*([^,]+?),\s*([A-Za-z]{2})(?:[,\s]+(\d{5})(?:-\d{4})?)?/.exec(fullAddr.trim());
+  const trimmed = fullAddr.trim();
+
+  const zipMatches = [...trimmed.matchAll(/\b(\d{5})(?:-\d{4})?\b/g)];
+  const firstZip = zipMatches[0];
+  const input =
+    firstZip && zipMatches.slice(1).some((m) => m[1] === firstZip[1])
+      ? trimmed.slice(0, firstZip.index + firstZip[0].length)
+      : trimmed;
+
+  const match = /^(.*?),\s*([^,]+?),\s*([A-Za-z]{2})(?:[,\s]+(\d{5})(?:-\d{4})?)?/.exec(input);
   if (match) {
     const [, street, city, state, zip] = match;
     return { street: street.trim(), city: city.trim(), state: state.toUpperCase(), zip: zip || "" };
   }
-  const lastComma = fullAddr.lastIndexOf(",");
-  if (lastComma !== -1) {
-    return { street: fullAddr.slice(0, lastComma).trim(), city: fullAddr.slice(lastComma + 1).trim(), state: "", zip: "" };
+
+  const trailingWithZip = /^(.*?)\s+([A-Za-z]{2})\s+(\d{5})(?:-\d{4})?$/.exec(input);
+  if (trailingWithZip) {
+    const [, rest, state, zip] = trailingWithZip;
+    return { ...splitTrailingCity(rest), state: state.toUpperCase(), zip };
   }
-  return { street: fullAddr.trim(), city: "", state: "", zip: "" };
+  const trailingNoZip = /^(.*?)\s+([A-Za-z]{2})$/.exec(input);
+  if (trailingNoZip) {
+    const [, rest, state] = trailingNoZip;
+    return { ...splitTrailingCity(rest), state: state.toUpperCase(), zip: "" };
+  }
+
+  const lastComma = input.lastIndexOf(",");
+  if (lastComma !== -1) {
+    return { street: input.slice(0, lastComma).trim(), city: input.slice(lastComma + 1).trim(), state: "", zip: "" };
+  }
+  return { street: input.trim(), city: "", state: "", zip: "" };
 }
 
 /** "Cameron, MO" -- no zip, for the address-history containers (contact card, past addresses). */
