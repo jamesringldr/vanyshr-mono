@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
-import { cx } from "@/utils/cx";
 import { supabase } from "@/lib/supabase";
 import { signupPath } from "@/lib/pending-scan";
 import {
@@ -934,21 +933,17 @@ export function PilotLoadingPage() {
 
   return (
     <div
-      className="relative flex min-h-screen w-full flex-col items-center overflow-x-hidden bg-[#022136] px-6 py-12 font-ubuntu"
+      className="relative flex h-screen w-full flex-col items-center overflow-hidden bg-[#022136] font-ubuntu"
       role="main"
       aria-label="Scan in progress"
       aria-busy={phase === "searching" || phase === "full_profile"}
     >
-      <div
-        className={cx(
-          "relative z-10 flex w-full max-w-xl flex-col items-center",
-          // Reserve room for the drawer's open height so the cards can
-          // never end up physically behind it -- the drawer is `fixed`,
-          // so it draws over whatever content shares its band on screen
-          // regardless of where that content sits in the document.
-          drawerOpen && "pb-[62vh]",
-        )}
-      >
+      {/* Top zone takes whatever height the drawer below doesn't -- flexbox
+          allocates the split exactly, so the cards can never end up behind
+          the drawer the way approximating it with padding did. This zone
+          scrolls on its own if its content is taller than what's left. */}
+      <div className="relative z-10 flex w-full min-h-0 flex-1 flex-col items-center overflow-y-auto px-6 py-12">
+        <div className="flex w-full max-w-xl flex-col items-center">
         {/* Educational Cards - Show during scanning phases */}
         {(phase === "searching" || phase === "full_profile") && (
           <EducationalCards
@@ -1001,11 +996,12 @@ export function PilotLoadingPage() {
             Continue anyway
           </button>
         )}
+        </div>
       </div>
 
-      {/* Progress Drawer -- fixed to the bottom of the viewport, capped
-          well under full height so it never covers the educational cards
-          above it. */}
+      {/* Progress Drawer -- last child of this h-screen column, so its own
+          static height (open/closed) is simply subtracted from the zone
+          above by flexbox. No overlap is possible; nothing to calculate. */}
       <ProgressDrawer
         isOpen={drawerOpen}
         stages={DRAWER_STAGES}

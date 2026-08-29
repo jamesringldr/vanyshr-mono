@@ -147,11 +147,13 @@ export function ProgressDrawer({
   if (!isOpen) return null;
 
   return (
-    // Pinned to the actual bottom of the viewport -- not in document flow,
-    // so it can't drift away from the screen edge. Capped well under full
-    // height so the educational cards above stay visible instead of getting
-    // covered.
-    <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center px-4">
+    // A normal flex child, last in the page's h-screen column -- not
+    // `position: fixed`. That gets it both things at once: its bottom edge
+    // lands exactly on the viewport edge (nothing renders after it), and
+    // the zone above it gets the rest of the height from flexbox itself,
+    // so overlap with that content isn't something to calculate, it's
+    // structurally impossible.
+    <div className="flex w-full shrink-0 justify-center px-4">
       <motion.div
         initial={false}
         animate={{
@@ -160,10 +162,16 @@ export function ProgressDrawer({
           // box from its content on every log update and producing a
           // visible bounce. `height` alone is the single source of truth:
           // exactly two resting positions, open and closed, full stop.
-          height: isExpanded ? "60vh" : "120px",
+          //
+          // Pixels, not vh: this is sized to fit the log's real content
+          // (header + 5 stages, one of them expanded to its 3-line cap) --
+          // about 420px -- not a fraction of whatever screen it's on. vh
+          // either left dead space below the log on tall screens or ran
+          // short on small ones.
+          height: isExpanded ? "420px" : "120px",
         }}
         transition={{ duration: 0.32, ease: EASE_OUT }}
-        className="pointer-events-auto flex w-full max-w-xl flex-col overflow-hidden rounded-t-xl border-x border-t border-[#2A4A68] bg-[#2D3847]"
+        className="flex w-full max-w-xl flex-col overflow-hidden rounded-t-xl border-x border-t border-[#2A4A68] bg-[#2D3847]"
       >
         {/* Header (Always Visible). The whole row is the hit target -- the
             badge is the affordance, not a nested button. */}
