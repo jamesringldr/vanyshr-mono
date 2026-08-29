@@ -98,13 +98,13 @@ export function QSResultMultipleModal({
                             className={cx(
                                 "cursor-pointer rounded-lg transition",
                                 selected
-                                    ? "ring-1 ring-[#00BFFF]"
-                                    : "hover:ring-1 hover:ring-[#00BFFF]/50",
+                                    ? "ring-1 ring-[#14ABFE]"
+                                    : "hover:ring-1 hover:ring-[#14ABFE]/50",
                             )}
                         >
                             <ProfileCard
                                 profile={profile}
-                                className={selected ? "border-[#00BFFF] bg-[#0B3B52]" : undefined}
+                                className={selected ? "border-[#14ABFE] bg-[#0B3B52]" : undefined}
                             />
                         </div>
                     );

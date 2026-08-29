@@ -67,8 +67,8 @@ function ToggleSwitch({ isOn, onToggle }: { isOn: boolean; onToggle: () => void 
       onClick={onToggle}
       className={[
         'relative w-11 h-6 rounded-full transition-colors duration-150 cursor-pointer flex-shrink-0',
-        'focus:outline-none focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2 focus-visible:ring-offset-[#2D3847]',
-        isOn ? 'bg-[#00BFFF]' : 'bg-[#4A5568]',
+        'focus:outline-none focus-visible:ring-2 focus-visible:ring-[#14ABFE] focus-visible:ring-offset-2 focus-visible:ring-offset-[#112538]',
+        isOn ? 'bg-[#14ABFE]' : 'bg-[#4A5568]',
       ].join(' ')}
     >
       <span
@@ -91,7 +91,7 @@ function PillSelector<T extends string>({
   onChange: (v: T) => void;
 }) {
   return (
-    <div className="flex bg-[#022136] rounded-lg p-0.5 gap-0.5">
+    <div className="flex bg-[#0B1B2B] rounded-lg p-0.5 gap-0.5">
       {options.map((opt) => (
         <button
           key={opt.value}
@@ -99,8 +99,8 @@ function PillSelector<T extends string>({
           className={[
             'flex-1 text-xs font-medium py-1.5 px-1 rounded-md transition-colors duration-150 cursor-pointer',
             value === opt.value
-              ? 'bg-[#2D3847] text-white shadow-sm'
-              : 'text-[#7A92A8] hover:text-[#B8C4CC]',
+              ? 'bg-[#112538] text-white shadow-sm'
+              : 'text-[#7A92A8] hover:text-[#94A3B8]',
           ].join(' ')}
         >
           {opt.label}
@@ -116,7 +116,7 @@ function Group({ title, children }: { title: string; children: React.ReactNode }
       <h2 className="text-[11px] font-medium tracking-wide uppercase text-[#7A92A8] px-1">
         {title}
       </h2>
-      <div className="bg-[#2D3847] border border-[#2A4A68] rounded-2xl overflow-hidden divide-y divide-[#2A4A68]">
+      <div className="bg-[#112538] border border-[#1E3A52] rounded-2xl overflow-hidden divide-y divide-[#1E3A52]">
         {children}
       </div>
     </div>
@@ -246,7 +246,7 @@ export function ManualNotifications() {
   const { alerts, scanActivity, removalActivity, recapReports, productUpdates, newsInfo } = settings;
 
   return (
-    <div className="min-h-screen bg-[#022136] font-ubuntu">
+    <div className="min-h-screen bg-[#0B1B2B] font-ubuntu">
       <div className="pb-36 overflow-y-auto">
         <div className="flex flex-col gap-6 py-6 px-6">
 
@@ -254,10 +254,10 @@ export function ManualNotifications() {
           <div className="flex items-center gap-3">
             <button
               onClick={() => navigate(-1)}
-              className="w-9 h-9 rounded-full bg-[#2D3847] border border-[#2A4A68] flex items-center justify-center flex-shrink-0 cursor-pointer hover:border-[#3A5A78] transition-colors duration-150"
+              className="w-9 h-9 rounded-full bg-[#112538] border border-[#1E3A52] flex items-center justify-center flex-shrink-0 cursor-pointer hover:border-[#3A5A78] transition-colors duration-150"
               aria-label="Go back"
             >
-              <ChevronLeft className="w-5 h-5 text-[#B8C4CC]" />
+              <ChevronLeft className="w-5 h-5 text-[#94A3B8]" />
             </button>
             <div>
               <h1 className="text-xl font-bold text-white">Custom Notifications</h1>
@@ -267,15 +267,15 @@ export function ManualNotifications() {
 
           {/* ── DARK WEB BREACH NUDGE BANNER ───────────────────────────────── */}
           {showBreachNudge && (
-            <div className="bg-[#022136] border border-[#FFB81C]/40 rounded-xl px-4 py-3 flex items-start gap-3">
+            <div className="bg-[#0B1B2B] border border-[#FFB81C]/40 rounded-xl px-4 py-3 flex items-start gap-3">
               <Shield className="w-4 h-4 text-[#FFB81C] flex-shrink-0 mt-0.5" />
-              <p className="text-xs text-[#B8C4CC] leading-relaxed flex-1">
+              <p className="text-xs text-[#94A3B8] leading-relaxed flex-1">
                 <span className="text-[#FFB81C] font-medium">Dark Web Breach alerts are off.</span>
                 {' '}These are the most time-sensitive notifications we send. We strongly recommend keeping them enabled.
               </p>
               <button
                 onClick={() => update('alerts', { darkWebBreach: true })}
-                className="text-xs text-[#00BFFF] font-medium hover:text-[#00D4FF] transition-colors duration-150 flex-shrink-0 cursor-pointer"
+                className="text-xs text-[#14ABFE] font-medium hover:text-[#00D4FF] transition-colors duration-150 flex-shrink-0 cursor-pointer"
               >
                 Turn On
               </button>
@@ -478,11 +478,11 @@ export function ManualNotifications() {
       </div>
 
       {/* ── STICKY SAVE BUTTON ─────────────────────────────────────────────── */}
-      <div className="fixed bottom-0 left-0 right-0 bg-[#022136] border-t border-[#2A4A68] px-6 py-5">
+      <div className="fixed bottom-0 left-0 right-0 bg-[#0B1B2B] border-t border-[#1E3A52] px-6 py-5">
         <button
           onClick={handleSave}
           disabled={isSaving}
-          className="w-full h-[52px] rounded-xl bg-[#00BFFF] text-[#022136] font-bold text-base hover:bg-[#00D4FF] active:bg-[#0099CC] active:text-white transition-colors duration-150 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+          className="w-full h-[52px] rounded-xl bg-[#14ABFE] text-[#0B1B2B] font-bold text-base hover:bg-[#00D4FF] active:bg-[#0099CC] active:text-white transition-colors duration-150 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
         >
           {isSaving ? 'Saving...' : 'Save Preferences'}
         </button>

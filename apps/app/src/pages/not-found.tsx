@@ -8,7 +8,7 @@ export function NotFound() {
     return (
         <div
             className="min-h-screen flex flex-col items-center justify-center px-6"
-            style={{ backgroundColor: "#022136", fontFamily: "’Ubuntu’, sans-serif" }}
+            style={{ backgroundColor: "#0B1B2B", fontFamily: "’Ubuntu’, sans-serif" }}
         >
             {/* 4 [logo] 4 */}
             <motion.div
@@ -68,14 +68,14 @@ export function NotFound() {
                 transition={{ duration: 0.5, delay: 0.1, ease: "easeOut" }}
             >
                 Uh oh — this page has{" "}
-                <span style={{ color: "#00BFFF" }}>vanyshed</span>.
+                <span style={{ color: "#14ABFE" }}>vanyshed</span>.
             </motion.h1>
 
             {/* Supporting copy */}
             <motion.p
                 className="text-center mt-3"
                 style={{
-                    color: "#B8C4CC",
+                    color: "#94A3B8",
                     fontSize: "16px",
                     lineHeight: "1.6",
                     maxWidth: "380px",
@@ -104,13 +104,13 @@ export function NotFound() {
                         width: "100%",
                         height: "52px",
                         borderRadius: "12px",
-                        backgroundColor: "#00BFFF",
-                        color: "#022136",
+                        backgroundColor: "#14ABFE",
+                        color: "#0B1B2B",
                         fontSize: "16px",
                         border: "none",
                     }}
                     onMouseEnter={e => (e.currentTarget.style.backgroundColor = "#00D4FF")}
-                    onMouseLeave={e => (e.currentTarget.style.backgroundColor = "#00BFFF")}
+                    onMouseLeave={e => (e.currentTarget.style.backgroundColor = "#14ABFE")}
                 >
                     Go to Dashboard
                 </button>
@@ -120,7 +120,7 @@ export function NotFound() {
                     <p className="font-bold" style={{ color: "#FFFFFF", fontSize: "14px" }}>
                         Don't have an account?
                     </p>
-                    <p className="text-center" style={{ color: "#B8C4CC", fontSize: "13px", lineHeight: "1.5" }}>
+                    <p className="text-center" style={{ color: "#94A3B8", fontSize: "13px", lineHeight: "1.5" }}>
                         Start with a QuickScan to see if your data is exposed.
                     </p>
                 </div>
@@ -136,14 +136,14 @@ export function NotFound() {
                         backgroundColor: "transparent",
                         color: "#FFFFFF",
                         fontSize: "16px",
-                        border: "1px solid #2A4A68",
+                        border: "1px solid #1E3A52",
                     }}
                     onMouseEnter={e => {
-                        e.currentTarget.style.borderColor = "#00BFFF";
-                        e.currentTarget.style.color = "#00BFFF";
+                        e.currentTarget.style.borderColor = "#14ABFE";
+                        e.currentTarget.style.color = "#14ABFE";
                     }}
                     onMouseLeave={e => {
-                        e.currentTarget.style.borderColor = "#2A4A68";
+                        e.currentTarget.style.borderColor = "#1E3A52";
                         e.currentTarget.style.color = "#FFFFFF";
                     }}
                 >

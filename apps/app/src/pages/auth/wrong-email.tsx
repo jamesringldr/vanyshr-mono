@@ -23,7 +23,7 @@ export function WrongEmail() {
         <div
             className={cx(
                 "min-h-screen w-full font-sans transition-colors duration-200",
-                "bg-[#F0F4F8] dark:bg-[#022136]",
+                "bg-[#F0F4F8] dark:bg-[#0B1B2B]",
             )}
             role="main"
             aria-label="Account not found"
@@ -38,7 +38,7 @@ export function WrongEmail() {
                     />
                 </div>
 
-                <h1 className="mt-5 text-center text-2xl font-bold tracking-tight text-[#022136] dark:text-white">
+                <h1 className="mt-5 text-center text-2xl font-bold tracking-tight text-[#0B1B2B] dark:text-white">
                     Wrong Email?
                 </h1>
 
@@ -47,7 +47,7 @@ export function WrongEmail() {
                     {email && (
                         <>
                             {" "}to{" "}
-                            <span className="font-semibold text-[#022136] dark:text-white">
+                            <span className="font-semibold text-[#0B1B2B] dark:text-white">
                                 {email}
                             </span>
                         </>
@@ -58,11 +58,11 @@ export function WrongEmail() {
                 <div
                     className={cx(
                         "mt-6 rounded-xl border p-4 flex flex-col gap-3",
-                        "bg-[var(--bg-surface)] dark:bg-[#2D3847]",
-                        "border-[var(--border-subtle)] dark:border-[#2A4A68]",
+                        "bg-[var(--bg-surface)] dark:bg-[#112538]",
+                        "border-[var(--border-subtle)] dark:border-[#1E3A52]",
                     )}
                 >
-                    <p className="text-sm font-semibold text-[#022136] dark:text-white">
+                    <p className="text-sm font-semibold text-[#0B1B2B] dark:text-white">
                         If you already have a Vanyshr account, sign in with the correct email.
                     </p>
 
@@ -70,9 +70,9 @@ export function WrongEmail() {
                         to="/dashboard/login"
                         className={cx(
                             "flex h-[52px] w-full items-center justify-center rounded-xl text-sm font-semibold outline-none transition",
-                            "bg-[#00BFFF] text-[#022136]",
+                            "bg-[#14ABFE] text-[#0B1B2B]",
                             "hover:bg-[#00D4FF]",
-                            "focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#022136]",
+                            "focus-visible:ring-2 focus-visible:ring-[#14ABFE] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#0B1B2B]",
                         )}
                     >
                         Try a Different Email
@@ -84,7 +84,7 @@ export function WrongEmail() {
                         New to Vanyshr?{" "}
                         <Link
                             to="/"
-                            className="font-medium text-[#00BFFF] hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 rounded"
+                            className="font-medium text-[#14ABFE] hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 rounded"
                         >
                             Run a free QuickScan to get started
                         </Link>

@@ -32,7 +32,7 @@ export function BreachesBody({ profile }: { profile: ConsolidatedProfile }) {
             <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">
                 Breaches
             </h1>
-            <p className="mt-1.5 text-sm text-[#B8C4CC]">
+            <p className="mt-1.5 text-sm text-[#94A3B8]">
                 {breachCards.length === 0
                     ? "No breaches found for any confirmed email"
                     : `${breachCards.length} breach${breachCards.length === 1 ? "" : "es"} across ${emailCount} email${emailCount === 1 ? "" : "s"}`}
@@ -68,7 +68,7 @@ export function BreachesBody({ profile }: { profile: ConsolidatedProfile }) {
                                         {b.fieldsExposed.map((field) => (
                                             <span
                                                 key={field}
-                                                className="rounded-full bg-white/10 px-2 py-0.5 text-[11px] text-[#B8C4CC]"
+                                                className="rounded-full bg-white/10 px-2 py-0.5 text-[11px] text-[#94A3B8]"
                                             >
                                                 {field}
                                             </span>

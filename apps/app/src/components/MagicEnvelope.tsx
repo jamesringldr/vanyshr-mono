@@ -162,10 +162,10 @@ export function MagicEnvelope({ className }: { className?: string }) {
               left: TAP_POINT.x + sp.x,
               top: TAP_POINT.y + sp.y,
               zIndex: 40,
-              background: i % 2 === 0 ? "#00BFFF" : "#FFB81C",
+              background: i % 2 === 0 ? "#14ABFE" : "#FFB81C",
               boxShadow: `0 0 6px 2px ${
                 i % 2 === 0
-                  ? "rgba(0,191,255,0.5)"
+                  ? "rgba(20,171,254,0.5)"
                   : "rgba(255,184,28,0.5)"
               }`,
             }}
@@ -205,7 +205,7 @@ export function MagicEnvelope({ className }: { className?: string }) {
               right: 20,
               height: 18,
               background:
-                "radial-gradient(ellipse at center top, rgba(0,191,255,0.35) 0%, transparent 80%)",
+                "radial-gradient(ellipse at center top, rgba(20,171,254,0.35) 0%, transparent 80%)",
               zIndex: 2,
             }}
             animate={{ opacity: ENV_GLOW.opacity }}
@@ -261,11 +261,11 @@ function EnvelopeInner() {
 function EnvelopeBody() {
   return (
     <div
-      className="absolute inset-x-0 bottom-0 overflow-hidden rounded-b-lg border border-[#2A4A68]"
+      className="absolute inset-x-0 bottom-0 overflow-hidden rounded-b-lg border border-[#1E3A52]"
       style={{
         height: 50,
         background:
-          "linear-gradient(170deg, #3B4D5E 0%, #2D3847 40%, #263340 100%)",
+          "linear-gradient(170deg, #3B4D5E 0%, #112538 40%, #263340 100%)",
         zIndex: 20,
       }}
     >
@@ -276,7 +276,7 @@ function EnvelopeBody() {
       >
         <path
           d="M0 0 L75 30 L150 0"
-          stroke="#2A4A68"
+          stroke="#1E3A52"
           strokeWidth="0.75"
           opacity="0.6"
         />
@@ -349,7 +349,7 @@ function WandSvg() {
       {/* Glowing star tip at bottom */}
       <path
         d="M10 48 L12 55 L19 57.5 L12 60 L10 67 L8 60 L1 57.5 L8 55 Z"
-        fill="#00BFFF"
+        fill="#14ABFE"
         filter="url(#wand-tap-glow)"
       />
     </svg>

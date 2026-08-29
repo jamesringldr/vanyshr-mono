@@ -139,21 +139,21 @@ const STATUS_CONFIG: Record<TaskStatus, {
   border: string;
   Icon: React.ElementType;
 }> = {
-  'todo':        { label: 'To Do',       color: 'text-[#B8C4CC]', bg: 'bg-[#B8C4CC]/10', border: 'border-[#B8C4CC]/30', Icon: Circle      },
-  'in-progress': { label: 'In Progress', color: 'text-[#00BFFF]', bg: 'bg-[#00BFFF]/10', border: 'border-[#00BFFF]/30', Icon: Clock       },
+  'todo':        { label: 'To Do',       color: 'text-[#94A3B8]', bg: 'bg-[#94A3B8]/10', border: 'border-[#94A3B8]/30', Icon: Circle      },
+  'in-progress': { label: 'In Progress', color: 'text-[#14ABFE]', bg: 'bg-[#14ABFE]/10', border: 'border-[#14ABFE]/30', Icon: Clock       },
   'done':        { label: 'Done',        color: 'text-[#00D4AA]', bg: 'bg-[#00D4AA]/10', border: 'border-[#00D4AA]/30', Icon: CheckCircle },
 };
 
 const PRIORITY_DOT: Record<Task['priority'], string> = {
-  high:   'bg-[#FF8A00]',
+  high:   'bg-[#FF8400]',
   medium: 'bg-[#FFB81C]',
   low:    'bg-[#7A92A8]',
 };
 
 const PROJECT_CONFIG: Record<Project, { color: string; bg: string }> = {
-  Privacy:  { color: 'text-[#00BFFF]', bg: 'bg-[#00BFFF]/10' },
-  Security: { color: 'text-[#FF8A00]', bg: 'bg-[#FF8A00]/10' },
-  Profile:  { color: 'text-[#B8C4CC]', bg: 'bg-[#B8C4CC]/10' },
+  Privacy:  { color: 'text-[#14ABFE]', bg: 'bg-[#14ABFE]/10' },
+  Security: { color: 'text-[#FF8400]', bg: 'bg-[#FF8400]/10' },
+  Profile:  { color: 'text-[#94A3B8]', bg: 'bg-[#94A3B8]/10' },
   General:  { color: 'text-[#7A92A8]', bg: 'bg-[#7A92A8]/10' },
 };
 
@@ -167,9 +167,9 @@ const ALL_STATUSES: TaskStatus[] = ['todo', 'in-progress', 'done'];
 function BottomNav() {
   const navigate = useNavigate();
   return (
-    <nav className="fixed bottom-0 left-0 right-0 px-4 pb-4 pt-2 bg-gradient-to-t from-[#022136] to-transparent z-50" aria-label="Main navigation">
+    <nav className="fixed bottom-0 left-0 right-0 px-4 pb-4 pt-2 bg-gradient-to-t from-[#0B1B2B] to-transparent z-50" aria-label="Main navigation">
       <div className="max-w-lg mx-auto">
-        <div className="flex items-center justify-around bg-[#2D3847] rounded-full px-4 py-2 border border-[#2A4A68]">
+        <div className="flex items-center justify-around bg-[#112538] rounded-full px-4 py-2 border border-[#1E3A52]">
           {[
             { label: 'Home',      Icon: Home,         path: '/dashboard/home',      active: false },
             { label: 'Exposures', Icon: AlertTriangle,  path: '/dashboard/exposures', active: false },
@@ -183,10 +183,10 @@ function BottomNav() {
               aria-current={active ? 'page' : undefined}
               onClick={() => navigate(path)}
               className={`relative flex items-center justify-center w-14 h-10 rounded-full transition-colors cursor-pointer ${
-                active ? 'bg-[#022136]' : 'hover:bg-[#022136]/50'
+                active ? 'bg-[#0B1B2B]' : 'hover:bg-[#0B1B2B]/50'
               }`}
             >
-              <Icon className={`w-6 h-6 ${active ? 'text-[#00BFFF]' : 'text-[#7A92A8]'}`} />
+              <Icon className={`w-6 h-6 ${active ? 'text-[#14ABFE]' : 'text-[#7A92A8]'}`} />
             </button>
           ))}
         </div>
@@ -238,7 +238,7 @@ export function TodoView() {
 
   // ─────────────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-[#022136] font-ubuntu">
+    <div className="min-h-screen bg-[#0B1B2B] font-ubuntu">
       <main className="px-4 pb-24 space-y-4">
 
         {/* ── PAGE TITLE ──────────────────────────────────────────────────── */}
@@ -258,8 +258,8 @@ export function TodoView() {
                 onClick={() => setProjectFilter(p)}
                 className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors cursor-pointer ${
                   isActive
-                    ? 'bg-[#00BFFF] text-[#022136]'
-                    : 'bg-[#2D3847] border border-[#2A4A68] text-[#B8C4CC]'
+                    ? 'bg-[#14ABFE] text-[#0B1B2B]'
+                    : 'bg-[#112538] border border-[#1E3A52] text-[#94A3B8]'
                 }`}
               >
                 {label}
@@ -270,15 +270,15 @@ export function TodoView() {
 
         {/* ── STATS STRIP — updates with project chip ──────────────────────── */}
         <div className="grid grid-cols-3 gap-3">
-          <div className="bg-[#2D3847] border border-[#2A4A68] rounded-2xl p-3 flex flex-col gap-1">
+          <div className="bg-[#112538] border border-[#1E3A52] rounded-2xl p-3 flex flex-col gap-1">
             <span className="text-[10px] font-medium text-[#7A92A8] uppercase tracking-wide">To Do</span>
             <span className="text-2xl font-bold text-white">{todoCount}</span>
           </div>
-          <div className="bg-[#2D3847] border border-[#2A4A68] rounded-2xl p-3 flex flex-col gap-1">
+          <div className="bg-[#112538] border border-[#1E3A52] rounded-2xl p-3 flex flex-col gap-1">
             <span className="text-[10px] font-medium text-[#7A92A8] uppercase tracking-wide">In Progress</span>
-            <span className="text-2xl font-bold text-[#00BFFF]">{inProgressCount}</span>
+            <span className="text-2xl font-bold text-[#14ABFE]">{inProgressCount}</span>
           </div>
-          <div className="bg-[#2D3847] border border-[#2A4A68] rounded-2xl p-3 flex flex-col gap-1">
+          <div className="bg-[#112538] border border-[#1E3A52] rounded-2xl p-3 flex flex-col gap-1">
             <span className="text-[10px] font-medium text-[#7A92A8] uppercase tracking-wide">Done</span>
             <span className="text-2xl font-bold text-[#00D4AA]">{doneCount}</span>
           </div>
@@ -298,8 +298,8 @@ export function TodoView() {
                 onClick={() => setStatusFilter(s)}
                 className={`flex-shrink-0 text-xs font-medium px-3 py-1.5 rounded-full border transition-colors duration-150 cursor-pointer ${
                   isActive
-                    ? 'bg-[#00BFFF]/20 border-[#00BFFF] text-[#00BFFF]'
-                    : 'bg-transparent border-[#2A4A68] text-[#7A92A8] hover:border-[#4A6A88] hover:text-[#B8C4CC]'
+                    ? 'bg-[#14ABFE]/20 border-[#14ABFE] text-[#14ABFE]'
+                    : 'bg-transparent border-[#1E3A52] text-[#7A92A8] hover:border-[#4A6A88] hover:text-[#94A3B8]'
                 }`}
               >
                 {label}
@@ -311,7 +311,7 @@ export function TodoView() {
 
         {/* ── TASK LIST ─────────────────────────────────────────────────────── */}
         {filtered.length === 0 ? (
-          <div className="bg-[#2D3847] border border-[#2A4A68] rounded-xl px-6 py-10 flex flex-col items-center gap-3 text-center">
+          <div className="bg-[#112538] border border-[#1E3A52] rounded-xl px-6 py-10 flex flex-col items-center gap-3 text-center">
             <ClipboardList className="w-8 h-8 text-[#7A92A8]" />
             <p className="text-sm font-bold text-white">No tasks match these filters</p>
             <p className="text-xs text-[#7A92A8]">Try adjusting the project or status filter above.</p>
@@ -325,7 +325,7 @@ export function TodoView() {
               return (
                 <div
                   key={task.id}
-                  className={`bg-[#2D3847] border border-[#2A4A68] rounded-xl px-4 py-4 flex items-start gap-3 transition-opacity duration-200 ${
+                  className={`bg-[#112538] border border-[#1E3A52] rounded-xl px-4 py-4 flex items-start gap-3 transition-opacity duration-200 ${
                     task.status === 'done' ? 'opacity-60' : ''
                   }`}
                 >
@@ -341,7 +341,7 @@ export function TodoView() {
                   >
                     {task.status === 'done'
                       ? <CheckCircle className="w-5 h-5 text-[#00D4AA]" />
-                      : <Circle      className="w-5 h-5 text-[#2A4A68] hover:text-[#7A92A8] transition-colors" />
+                      : <Circle      className="w-5 h-5 text-[#1E3A52] hover:text-[#7A92A8] transition-colors" />
                     }
                   </button>
 
@@ -363,7 +363,7 @@ export function TodoView() {
                         <span className="text-[10px] text-[#7A92A8]">Due {task.dueDate}</span>
                       )}
                       {task.priority === 'high' && task.status !== 'done' && (
-                        <span className="flex items-center gap-1 text-[10px] text-[#B8C4CC]">
+                        <span className="flex items-center gap-1 text-[10px] text-[#94A3B8]">
                           <span className={`w-1.5 h-1.5 rounded-full inline-block ${PRIORITY_DOT[task.priority]}`} />
                           High
                         </span>

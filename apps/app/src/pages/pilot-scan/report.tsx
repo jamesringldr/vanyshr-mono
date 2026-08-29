@@ -37,7 +37,7 @@ function TabBar({ active, onSelect }: { active: number; onSelect: (index: number
             {isActive && (
               <motion.span
                 layoutId="report-tab-indicator"
-                className="absolute inset-x-0 -bottom-0.5 h-[2px] rounded-full bg-[#00BFFF]"
+                className="absolute inset-x-0 -bottom-0.5 h-[2px] rounded-full bg-[#14ABFE]"
                 transition={{ type: "spring", stiffness: 380, damping: 32 }}
               />
             )}
@@ -78,18 +78,18 @@ export function PilotReportPage() {
   if (!stored) {
     return (
       <div
-        className="flex min-h-screen w-full flex-col items-center justify-center bg-[#022136] p-4 font-ubuntu"
+        className="flex min-h-screen w-full flex-col items-center justify-center bg-[#0B1B2B] p-4 font-ubuntu"
         role="main"
         aria-label="Error loading report"
       >
         <div className="w-full max-w-md text-center">
           <h1 className="mb-2 text-xl font-bold text-white">No scan data found</h1>
-          <p className="mb-6 text-sm text-[#B8C4CC]">
+          <p className="mb-6 text-sm text-[#94A3B8]">
             Nothing came through from this scan — run it again from the start.
           </p>
           <Link
             to="/pilot-scan"
-            className="inline-flex h-[44px] items-center justify-center rounded-xl bg-[#00BFFF] px-6 font-semibold text-white transition-all hover:bg-[#1196E0]"
+            className="inline-flex h-[44px] items-center justify-center rounded-xl bg-[#14ABFE] px-6 font-semibold text-white transition-all hover:bg-[#1196E0]"
           >
             Start over
           </Link>
@@ -99,7 +99,7 @@ export function PilotReportPage() {
   }
 
   return (
-    <div className="min-h-screen w-full bg-[#022136] font-ubuntu" role="main" aria-label="Scan report">
+    <div className="min-h-screen w-full bg-[#0B1B2B] font-ubuntu" role="main" aria-label="Scan report">
       <div className="mx-auto max-w-3xl px-4 pt-4 sm:pt-6">
         <header className="flex h-14 items-center justify-between gap-4">
           <div className="w-10 shrink-0" aria-hidden />

@@ -4,7 +4,7 @@
 export function RiskSummarySkeleton() {
   return (
     <div
-      className="flex min-h-screen w-full flex-col items-center bg-[#022136] px-6 pb-12 pt-12 font-ubuntu"
+      className="flex min-h-screen w-full flex-col items-center bg-[#0B1B2B] px-6 pb-12 pt-12 font-ubuntu"
       role="main"
       aria-label="Loading risk summary"
     >

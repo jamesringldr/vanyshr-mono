@@ -23,7 +23,7 @@ export function LoadingPreProfilePage() {
 
     return (
         <div
-            className="min-h-screen w-full flex flex-col items-center justify-center bg-[#022136] font-ubuntu overflow-hidden"
+            className="min-h-screen w-full flex flex-col items-center justify-center bg-[#0B1B2B] font-ubuntu overflow-hidden"
             role="main"
             aria-label="Finalizing report"
         >
@@ -46,7 +46,7 @@ export function LoadingPreProfilePage() {
                     <h1 className="text-2xl font-bold font-ubuntu text-white leading-snug">
                         We Found Your Multiple Brokers Exposing Your Data
                     </h1>
-                    <p className="text-base font-normal font-ubuntu text-[#B8C4CC] leading-relaxed">
+                    <p className="text-base font-normal font-ubuntu text-[#94A3B8] leading-relaxed">
                         Compiling and building your report now
                         <span
                             aria-hidden

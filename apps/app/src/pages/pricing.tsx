@@ -137,8 +137,8 @@ const SAVINGS_PERCENT = 25;
 /** Card surface: Vanyshr tokens, rounded-xl, border-subtle. */
 const cardClasses = cx(
     "rounded-xl border",
-    "bg-[var(--bg-surface)] dark:bg-[#2D3847]",
-    "border-[var(--border-subtle)] dark:border-[#2A4A68]",
+    "bg-[var(--bg-surface)] dark:bg-[#112538]",
+    "border-[var(--border-subtle)] dark:border-[#1E3A52]",
 );
 
 export function Pricing() {
@@ -163,7 +163,7 @@ export function Pricing() {
         <div
             className={cx(
                 "min-h-screen w-full font-sans transition-colors duration-200",
-                "bg-[#F0F4F8] dark:bg-[#022136]",
+                "bg-[#F0F4F8] dark:bg-[#0B1B2B]",
             )}
             role="main"
             aria-label="Subscribe to a plan"
@@ -178,8 +178,8 @@ export function Pricing() {
                             className={cx(
                                 "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl outline-none transition",
                                 "text-[var(--text-primary)] dark:text-white",
-                                "hover:bg-[#F0F4F8]/80 dark:hover:bg-[#022136]/80",
-                                "focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#022136]",
+                                "hover:bg-[#F0F4F8]/80 dark:hover:bg-[#0B1B2B]/80",
+                                "focus-visible:ring-2 focus-visible:ring-[#14ABFE] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#0B1B2B]",
                             )}
                             aria-label="Close"
                         >
@@ -199,7 +199,7 @@ export function Pricing() {
                         </div>
                         <div className="w-10 shrink-0" aria-hidden />
                     </div>
-                    <h1 className="text-center text-2xl font-bold tracking-tight text-[#022136] dark:text-white sm:text-3xl">
+                    <h1 className="text-center text-2xl font-bold tracking-tight text-[#0B1B2B] dark:text-white sm:text-3xl">
                         Subscribe to {currentPlan.label}
                     </h1>
                 </header>
@@ -214,8 +214,8 @@ export function Pricing() {
                     <div
                         className={cx(
                             "inline-flex rounded-xl p-1",
-                            "bg-[#F0F4F8]/50 dark:bg-[#022136]/50",
-                            "border border-[var(--border-subtle)] dark:border-[#2A4A68]",
+                            "bg-[#F0F4F8]/50 dark:bg-[#0B1B2B]/50",
+                            "border border-[var(--border-subtle)] dark:border-[#1E3A52]",
                         )}
                     >
                         {(Object.keys(plansConfig) as PlanTier[]).map(
@@ -235,10 +235,10 @@ export function Pricing() {
                                         }
                                         className={cx(
                                             "rounded-lg px-4 py-2.5 text-sm font-medium outline-none transition",
-                                            "focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2 focus-visible:ring-offset-[#F0F4F8] dark:focus-visible:ring-offset-[#022136]",
+                                            "focus-visible:ring-2 focus-visible:ring-[#14ABFE] focus-visible:ring-offset-2 focus-visible:ring-offset-[#F0F4F8] dark:focus-visible:ring-offset-[#0B1B2B]",
                                             isSelected
-                                                ? "bg-[#00BFFF]/20 dark:bg-[#00BFFF]/25 text-[#022136] dark:text-white shadow-sm"
-                                                : "text-[var(--text-secondary)] dark:text-[#B8C4CC] hover:text-[#022136] dark:hover:text-white",
+                                                ? "bg-[#14ABFE]/20 dark:bg-[#14ABFE]/25 text-[#0B1B2B] dark:text-white shadow-sm"
+                                                : "text-[var(--text-secondary)] dark:text-[#94A3B8] hover:text-[#0B1B2B] dark:hover:text-white",
                                         )}
                                     >
                                         {plan.id === "free" ? (
@@ -263,7 +263,7 @@ export function Pricing() {
                     aria-labelledby={`plan-tab-${currentPlan.id}`}
                     className={cx(cardClasses, "p-4 sm:p-5")}
                 >
-                    <ul className="divide-y divide-[var(--border-subtle)] dark:divide-[#2A4A68]">
+                    <ul className="divide-y divide-[var(--border-subtle)] dark:divide-[#1E3A52]">
                         {currentPlan.features.map((feature, index) => {
                             const Icon = feature.icon;
                             return (
@@ -274,8 +274,8 @@ export function Pricing() {
                                     <div
                                         className={cx(
                                             "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl",
-                                            "bg-[#F0F4F8]/50 dark:bg-[#022136]/50",
-                                            "border border-[var(--border-subtle)] dark:border-[#2A4A68]",
+                                            "bg-[#F0F4F8]/50 dark:bg-[#0B1B2B]/50",
+                                            "border border-[var(--border-subtle)] dark:border-[#1E3A52]",
                                         )}
                                     >
                                         <Icon
@@ -284,10 +284,10 @@ export function Pricing() {
                                         />
                                     </div>
                                     <div className="min-w-0 flex-1">
-                                        <h3 className="text-sm font-semibold text-[#022136] dark:text-white">
+                                        <h3 className="text-sm font-semibold text-[#0B1B2B] dark:text-white">
                                             {feature.title}
                                         </h3>
-                                        <p className="mt-0.5 text-sm leading-relaxed text-[var(--text-secondary)] dark:text-[#B8C4CC]">
+                                        <p className="mt-0.5 text-sm leading-relaxed text-[var(--text-secondary)] dark:text-[#94A3B8]">
                                             {feature.description}
                                         </p>
                                     </div>
@@ -319,16 +319,16 @@ export function Pricing() {
                                     "relative rounded-xl border p-4 text-left outline-none transition",
                                     cardClasses,
                                     billingPeriod === "monthly"
-                                        ? "ring-2 ring-[#00BFFF] ring-offset-2 ring-offset-[#F0F4F8] dark:ring-offset-[#022136]"
-                                        : "hover:border-[#00BFFF]/50",
-                                    "focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#022136]",
+                                        ? "ring-2 ring-[#14ABFE] ring-offset-2 ring-offset-[#F0F4F8] dark:ring-offset-[#0B1B2B]"
+                                        : "hover:border-[#14ABFE]/50",
+                                    "focus-visible:ring-2 focus-visible:ring-[#14ABFE] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#0B1B2B]",
                                 )}
                             >
-                                <div className="text-sm font-semibold text-[#022136] dark:text-white">
+                                <div className="text-sm font-semibold text-[#0B1B2B] dark:text-white">
                                     Monthly
                                 </div>
                                 <div className="mt-1 flex items-baseline gap-1">
-                                    <span className="text-2xl font-bold text-[#022136] dark:text-white">
+                                    <span className="text-2xl font-bold text-[#0B1B2B] dark:text-white">
                                         ${currentPlan.monthlyPrice}
                                     </span>
                                     <span className="text-sm text-[var(--text-muted)] dark:text-[#7A92A8]">
@@ -345,9 +345,9 @@ export function Pricing() {
                                     "relative rounded-xl border p-4 text-left outline-none transition",
                                     cardClasses,
                                     billingPeriod === "annual"
-                                        ? "ring-2 ring-[#00BFFF] ring-offset-2 ring-offset-[#F0F4F8] dark:ring-offset-[#022136]"
-                                        : "hover:border-[#00BFFF]/50",
-                                    "focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#022136]",
+                                        ? "ring-2 ring-[#14ABFE] ring-offset-2 ring-offset-[#F0F4F8] dark:ring-offset-[#0B1B2B]"
+                                        : "hover:border-[#14ABFE]/50",
+                                    "focus-visible:ring-2 focus-visible:ring-[#14ABFE] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#0B1B2B]",
                                 )}
                             >
                                 <span
@@ -359,11 +359,11 @@ export function Pricing() {
                                 >
                                     SAVE {SAVINGS_PERCENT}%
                                 </span>
-                                <div className="text-sm font-semibold text-[#022136] dark:text-white">
+                                <div className="text-sm font-semibold text-[#0B1B2B] dark:text-white">
                                     Annual
                                 </div>
                                 <div className="mt-1 flex items-baseline gap-1">
-                                    <span className="text-2xl font-bold text-[#022136] dark:text-white">
+                                    <span className="text-2xl font-bold text-[#0B1B2B] dark:text-white">
                                         ${currentPlan.annualPrice}
                                     </span>
                                     <span className="text-sm text-[var(--text-muted)] dark:text-[#7A92A8]">
@@ -387,8 +387,8 @@ export function Pricing() {
                         onClick={handleSubscribe}
                         className={cx(
                             "flex h-[52px] w-full items-center justify-center rounded-xl font-semibold text-white outline-none transition",
-                            "bg-[#00BFFF] hover:bg-[#0E9AE8]",
-                            "focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#022136]",
+                            "bg-[#14ABFE] hover:bg-[#0E9AE8]",
+                            "focus-visible:ring-2 focus-visible:ring-[#14ABFE] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#0B1B2B]",
                         )}
                         aria-label={
                             currentPlan.monthlyPrice === 0
@@ -403,19 +403,19 @@ export function Pricing() {
                 </div>
 
                 {/* Legal text */}
-                <div className="mt-6 rounded-xl border-l-2 border-[var(--border-subtle)] dark:border-[#2A4A68] pl-4">
+                <div className="mt-6 rounded-xl border-l-2 border-[var(--border-subtle)] dark:border-[#1E3A52] pl-4">
                     <p className="text-xs leading-relaxed text-[var(--text-muted)] dark:text-[#7A92A8]">
                         By subscribing, you agree to our{" "}
                         <Link
                             to="/terms"
-                            className="font-medium text-[#00BFFF] underline underline-offset-2 outline-none hover:no-underline focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-1 rounded"
+                            className="font-medium text-[#14ABFE] underline underline-offset-2 outline-none hover:no-underline focus-visible:ring-2 focus-visible:ring-[#14ABFE] focus-visible:ring-offset-1 rounded"
                         >
                             Terms of Service
                         </Link>
                         , and that subscriptions auto-renew until you cancel.{" "}
                         <Link
                             to="/terms"
-                            className="font-medium text-[#00BFFF] underline underline-offset-2 outline-none hover:no-underline focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-1 rounded"
+                            className="font-medium text-[#14ABFE] underline underline-offset-2 outline-none hover:no-underline focus-visible:ring-2 focus-visible:ring-[#14ABFE] focus-visible:ring-offset-1 rounded"
                         >
                             Cancel anytime
                         </Link>
@@ -436,13 +436,13 @@ export function Pricing() {
                 >
                     <Link
                         to="/privacy"
-                        className="text-xs font-medium text-[#00BFFF] outline-none hover:underline focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2 rounded"
+                        className="text-xs font-medium text-[#14ABFE] outline-none hover:underline focus-visible:ring-2 focus-visible:ring-[#14ABFE] focus-visible:ring-offset-2 rounded"
                     >
                         Privacy Policy
                     </Link>
                     <Link
                         to="/terms"
-                        className="text-xs font-medium text-[#00BFFF] outline-none hover:underline focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2 rounded"
+                        className="text-xs font-medium text-[#14ABFE] outline-none hover:underline focus-visible:ring-2 focus-visible:ring-[#14ABFE] focus-visible:ring-offset-2 rounded"
                     >
                         Terms of Service
                     </Link>

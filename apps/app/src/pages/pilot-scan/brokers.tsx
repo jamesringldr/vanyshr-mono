@@ -27,7 +27,7 @@ export function BrokersBody({
             <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">
                 Brokers
             </h1>
-            <p className="mt-1.5 text-sm text-[#B8C4CC]">
+            <p className="mt-1.5 text-sm text-[#94A3B8]">
                 {unique.length} data broker{unique.length === 1 ? "" : "s"} had a listing for you
             </p>
 
@@ -57,7 +57,7 @@ export function BrokersBody({
                                             {fields.map((field) => (
                                                 <span
                                                     key={field}
-                                                    className="rounded-full bg-white/10 px-2 py-0.5 text-[11px] text-[#B8C4CC]"
+                                                    className="rounded-full bg-white/10 px-2 py-0.5 text-[11px] text-[#94A3B8]"
                                                 >
                                                     {field}
                                                 </span>

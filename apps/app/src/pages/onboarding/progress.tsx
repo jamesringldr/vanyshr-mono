@@ -39,7 +39,7 @@ function ProgressRing({ progress }: { progress: number }) {
                     cy="50"
                     r={r}
                     fill="none"
-                    stroke="#2A4A68"
+                    stroke="#1E3A52"
                     strokeWidth="8"
                 />
                 {/* Fill */}
@@ -48,7 +48,7 @@ function ProgressRing({ progress }: { progress: number }) {
                     cy="50"
                     r={r}
                     fill="none"
-                    stroke={isComplete ? "#00D4AA" : "#00BFFF"}
+                    stroke={isComplete ? "#00D4AA" : "#14ABFE"}
                     strokeWidth="8"
                     strokeDasharray={`${filled} ${circ}`}
                     strokeLinecap="round"
@@ -89,10 +89,10 @@ function SubTaskRow({
             disabled={isComplete}
             className={cx(
                 "flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left transition-colors duration-150 outline-none",
-                "focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-inset",
+                "focus-visible:ring-2 focus-visible:ring-[#14ABFE] focus-visible:ring-inset",
                 isComplete
                     ? "cursor-default opacity-60"
-                    : "cursor-pointer hover:bg-[#022136]/60",
+                    : "cursor-pointer hover:bg-[#0B1B2B]/60",
             )}
             aria-label={`${label} — ${isComplete ? "complete" : "go to step"}`}
         >
@@ -100,13 +100,13 @@ function SubTaskRow({
             <div
                 className={cx(
                     "flex h-8 w-8 shrink-0 items-center justify-center rounded-full",
-                    isComplete ? "bg-[#00D4AA]/20" : "bg-[#00BFFF]/10",
+                    isComplete ? "bg-[#00D4AA]/20" : "bg-[#14ABFE]/10",
                 )}
             >
                 {isComplete ? (
                     <Check className="h-4 w-4 text-[#00D4AA]" aria-hidden />
                 ) : (
-                    <Icon className="h-4 w-4 text-[#00BFFF]" aria-hidden />
+                    <Icon className="h-4 w-4 text-[#14ABFE]" aria-hidden />
                 )}
             </div>
 
@@ -124,7 +124,7 @@ function SubTaskRow({
 
             {/* Arrow for incomplete */}
             {!isComplete && (
-                <ArrowRight className="h-4 w-4 text-[#00BFFF] shrink-0" aria-hidden />
+                <ArrowRight className="h-4 w-4 text-[#14ABFE] shrink-0" aria-hidden />
             )}
         </button>
     );
@@ -162,8 +162,8 @@ function StepCard({
         <div
             className={cx(
                 "rounded-2xl border transition-colors duration-200",
-                "bg-[#2D3847]",
-                isComplete ? "border-[#00D4AA]/40" : "border-[#2A4A68]",
+                "bg-[#112538]",
+                isComplete ? "border-[#00D4AA]/40" : "border-[#1E3A52]",
             )}
         >
             {/* Card header — always visible */}
@@ -172,7 +172,7 @@ function StepCard({
                 onClick={handleClick}
                 className={cx(
                     "flex w-full items-center gap-4 p-5 text-left outline-none transition-colors duration-150 rounded-2xl",
-                    "focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-inset",
+                    "focus-visible:ring-2 focus-visible:ring-[#14ABFE] focus-visible:ring-inset",
                     !isComplete && "cursor-pointer",
                     isComplete && !hasSubTasks && "cursor-default",
                 )}
@@ -184,8 +184,8 @@ function StepCard({
                     className={cx(
                         "flex h-10 w-10 shrink-0 items-center justify-center rounded-full font-bold text-sm transition-colors duration-200",
                         isComplete
-                            ? "bg-[#00D4AA] text-[#022136]"
-                            : "border-2 border-[#2A4A68] text-[#7A92A8]",
+                            ? "bg-[#00D4AA] text-[#0B1B2B]"
+                            : "border-2 border-[#1E3A52] text-[#7A92A8]",
                     )}
                     aria-hidden
                 >
@@ -229,7 +229,7 @@ function StepCard({
                     />
                 ) : !isComplete ? (
                     <ChevronRight
-                        className="h-5 w-5 text-[#00BFFF] shrink-0"
+                        className="h-5 w-5 text-[#14ABFE] shrink-0"
                         aria-hidden
                     />
                 ) : null}
@@ -237,7 +237,7 @@ function StepCard({
 
             {/* Expandable sub-tasks */}
             {hasSubTasks && isExpanded && (
-                <div className="border-t border-[#2A4A68] px-2 pb-2 pt-1">
+                <div className="border-t border-[#1E3A52] px-2 pb-2 pt-1">
                     {children}
                 </div>
             )}
@@ -263,13 +263,13 @@ function AreYouSureModal({
             aria-label="Incomplete setup warning"
         >
             <div
-                className="absolute inset-0 bg-[#022136]/80 backdrop-blur-sm"
+                className="absolute inset-0 bg-[#0B1B2B]/80 backdrop-blur-sm"
                 onClick={onCompleteSetUp}
             />
-            <div className="relative w-full max-w-lg rounded-t-3xl bg-[#2D3847] border border-[#2A4A68] border-b-0 px-6 pt-8 pb-10 flex flex-col items-center gap-4">
+            <div className="relative w-full max-w-lg rounded-t-3xl bg-[#112538] border border-[#1E3A52] border-b-0 px-6 pt-8 pb-10 flex flex-col items-center gap-4">
                 <div className="text-center">
                     <h2 className="text-xl font-bold text-white font-ubuntu">Are you sure?</h2>
-                    <p className="mt-2 text-sm text-[#B8C4CC] font-ubuntu leading-relaxed">
+                    <p className="mt-2 text-sm text-[#94A3B8] font-ubuntu leading-relaxed">
                         Your profile set up is not complete. You will need to complete your set up before we can start removing your data
                     </p>
                     <p className="mt-3 text-sm font-bold text-white font-ubuntu">
@@ -281,9 +281,9 @@ function AreYouSureModal({
                     onClick={onCompleteSetUp}
                     className={cx(
                         "mt-1 flex h-[52px] w-full items-center justify-center rounded-xl font-ubuntu",
-                        "text-sm font-semibold text-[#022136] bg-[#00BFFF] hover:bg-[#00D4FF]",
+                        "text-sm font-semibold text-[#0B1B2B] bg-[#14ABFE] hover:bg-[#00D4FF]",
                         "transition-colors duration-150 outline-none",
-                        "focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2 focus-visible:ring-offset-[#2D3847]",
+                        "focus-visible:ring-2 focus-visible:ring-[#14ABFE] focus-visible:ring-offset-2 focus-visible:ring-offset-[#112538]",
                     )}
                 >
                     Complete Set Up
@@ -291,7 +291,7 @@ function AreYouSureModal({
                 <button
                     type="button"
                     onClick={onContinueToDashboard}
-                    className="text-sm font-semibold text-[#00BFFF] hover:text-[#00D4FF] transition-colors duration-150 font-ubuntu cursor-pointer outline-none focus-visible:underline"
+                    className="text-sm font-semibold text-[#14ABFE] hover:text-[#00D4FF] transition-colors duration-150 font-ubuntu cursor-pointer outline-none focus-visible:underline"
                 >
                     Continue to Dashboard &gt;
                 </button>
@@ -312,10 +312,10 @@ function CompletionModal({ onDashboard }: { onDashboard: () => void }) {
             aria-label="Setup complete"
         >
             {/* Backdrop */}
-            <div className="absolute inset-0 bg-[#022136]/80 backdrop-blur-sm" />
+            <div className="absolute inset-0 bg-[#0B1B2B]/80 backdrop-blur-sm" />
 
             {/* Sheet */}
-            <div className="relative w-full max-w-lg rounded-t-3xl bg-[#2D3847] border border-[#2A4A68] border-b-0 px-6 pt-8 pb-10 flex flex-col items-center gap-5">
+            <div className="relative w-full max-w-lg rounded-t-3xl bg-[#112538] border border-[#1E3A52] border-b-0 px-6 pt-8 pb-10 flex flex-col items-center gap-5">
                 {/* Glow ring */}
                 <div className="flex h-20 w-20 items-center justify-center rounded-full bg-[#00D4AA]/15 border-2 border-[#00D4AA]/40">
                     <Check className="h-9 w-9 text-[#00D4AA]" aria-hidden />
@@ -325,9 +325,9 @@ function CompletionModal({ onDashboard }: { onDashboard: () => void }) {
                     <h2 className="text-xl font-bold text-white font-ubuntu">
                         Setup is Complete!
                     </h2>
-                    <p className="mt-2 text-sm text-[#B8C4CC] font-ubuntu leading-relaxed">
+                    <p className="mt-2 text-sm text-[#94A3B8] font-ubuntu leading-relaxed">
                         You have officially started{" "}
-                        <span className="text-[#00BFFF] font-semibold">Vanyshing!</span>
+                        <span className="text-[#14ABFE] font-semibold">Vanyshing!</span>
                         <br />
                         We have started your first scans and removals.
                         <br />
@@ -340,9 +340,9 @@ function CompletionModal({ onDashboard }: { onDashboard: () => void }) {
                     onClick={onDashboard}
                     className={cx(
                         "mt-1 flex h-[52px] w-full items-center justify-center rounded-xl font-ubuntu",
-                        "text-sm font-semibold text-[#022136] bg-[#00BFFF] hover:bg-[#00D4FF]",
+                        "text-sm font-semibold text-[#0B1B2B] bg-[#14ABFE] hover:bg-[#00D4FF]",
                         "transition-colors duration-150 outline-none",
-                        "focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2 focus-visible:ring-offset-[#2D3847]",
+                        "focus-visible:ring-2 focus-visible:ring-[#14ABFE] focus-visible:ring-offset-2 focus-visible:ring-offset-[#112538]",
                     )}
                 >
                     Dashboard
@@ -494,8 +494,8 @@ export function OnboardingProgress() {
 
     if (isLoading) {
         return (
-            <div className="flex min-h-screen items-center justify-center bg-[#022136]">
-                <div className="h-6 w-6 rounded-full border-2 border-[#00BFFF] border-t-transparent animate-spin" />
+            <div className="flex min-h-screen items-center justify-center bg-[#0B1B2B]">
+                <div className="h-6 w-6 rounded-full border-2 border-[#14ABFE] border-t-transparent animate-spin" />
             </div>
         );
     }
@@ -524,7 +524,7 @@ export function OnboardingProgress() {
     }
 
     return (
-        <div className="flex min-h-screen flex-col bg-[#022136]">
+        <div className="flex min-h-screen flex-col bg-[#0B1B2B]">
             {showModal && <CompletionModal onDashboard={handleDashboard} />}
             {showAreYouSure && (
                 <AreYouSureModal
@@ -554,7 +554,7 @@ export function OnboardingProgress() {
                     className={cx(
                         "flex h-10 items-center justify-center rounded-xl px-4 text-sm font-semibold font-ubuntu outline-none transition-colors duration-150",
                         "text-white bg-white/5 hover:bg-white/10",
-                        "focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2 focus-visible:ring-offset-[#022136]",
+                        "focus-visible:ring-2 focus-visible:ring-[#14ABFE] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0B1B2B]",
                     )}
                 >
                     Dashboard
@@ -577,8 +577,8 @@ export function OnboardingProgress() {
                         <ProgressRing progress={progressPercent} />
 
                         {/* Completion pill — below ring */}
-                        <div className="rounded-full bg-[#2D3847] border border-[#2A4A68] px-4 py-1.5">
-                            <span className="text-xs font-medium text-[#B8C4CC] font-ubuntu">
+                        <div className="rounded-full bg-[#112538] border border-[#1E3A52] px-4 py-1.5">
+                            <span className="text-xs font-medium text-[#94A3B8] font-ubuntu">
                                 <span className="text-white font-bold">{totalCompleted}</span>
                                 {" "}of{" "}
                                 <span className="text-white font-bold">7</span>
@@ -587,7 +587,7 @@ export function OnboardingProgress() {
                         </div>
 
                         {/* Subtext */}
-                        <p className="text-sm text-[#B8C4CC] font-ubuntu text-center">
+                        <p className="text-sm text-[#94A3B8] font-ubuntu text-center">
                             3 steps to start Vanyshing
                         </p>
                     </div>
@@ -661,8 +661,8 @@ export function OnboardingProgress() {
                     </div>
 
                     {/* Privacy reassurance */}
-                    <div className="mt-6 rounded-xl bg-[#00BFFF]/10 px-4 py-3">
-                        <p className="text-xs text-[#00BFFF] font-ubuntu">
+                    <div className="mt-6 rounded-xl bg-[#14ABFE]/10 px-4 py-3">
+                        <p className="text-xs text-[#14ABFE] font-ubuntu">
                             <strong>Why this matters:</strong> The more info you confirm, the more
                             thoroughly we can find and remove your data from broker sites.
                         </p>
@@ -676,7 +676,7 @@ export function OnboardingProgress() {
             <footer
                 className={cx(
                     "fixed bottom-0 left-0 right-0 border-t px-4 py-4",
-                    "border-[#2A4A68] bg-[#2D3847]",
+                    "border-[#1E3A52] bg-[#112538]",
                     "shadow-[0_-8px_24px_rgba(0,0,0,0.45)]",
                 )}
             >
@@ -689,10 +689,10 @@ export function OnboardingProgress() {
                             className={cx(
                                 "flex h-[52px] w-full items-center justify-center rounded-xl text-sm font-semibold outline-none transition-colors duration-150 font-ubuntu",
                                 isApplyingDefaults
-                                    ? "bg-[#00BFFF]/60 cursor-not-allowed"
-                                    : "bg-[#00BFFF] hover:bg-[#00D4FF]",
-                                "text-[#022136]",
-                                "focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2 focus-visible:ring-offset-[#2D3847]",
+                                    ? "bg-[#14ABFE]/60 cursor-not-allowed"
+                                    : "bg-[#14ABFE] hover:bg-[#00D4FF]",
+                                "text-[#0B1B2B]",
+                                "focus-visible:ring-2 focus-visible:ring-[#14ABFE] focus-visible:ring-offset-2 focus-visible:ring-offset-[#112538]",
                             )}
                         >
                             {isApplyingDefaults ? "Saving..." : "Use Default Settings"}
@@ -703,8 +703,8 @@ export function OnboardingProgress() {
                             onClick={() => setShowAreYouSure(true)}
                             className={cx(
                                 "flex h-[52px] w-full items-center justify-center rounded-xl text-sm font-semibold outline-none transition-colors duration-150 font-ubuntu",
-                                "bg-[#00BFFF] text-[#022136] hover:bg-[#00D4FF]",
-                                "focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2 focus-visible:ring-offset-[#2D3847]",
+                                "bg-[#14ABFE] text-[#0B1B2B] hover:bg-[#00D4FF]",
+                                "focus-visible:ring-2 focus-visible:ring-[#14ABFE] focus-visible:ring-offset-2 focus-visible:ring-offset-[#112538]",
                             )}
                         >
                             Skip For Now
@@ -735,7 +735,7 @@ export function OnboardingProgress() {
                     <h2 className="text-xl font-bold text-white font-ubuntu">
                         Set Up Complete!
                     </h2>
-                    <p className="text-sm text-[#B8C4CC] font-ubuntu">
+                    <p className="text-sm text-[#94A3B8] font-ubuntu">
                         Let's start Vanyshing!
                     </p>
                     <button
@@ -743,7 +743,7 @@ export function OnboardingProgress() {
                         onClick={handleDashboard}
                         className={cx(
                             "mt-2 flex h-[52px] w-full items-center justify-center rounded-xl font-ubuntu",
-                            "text-sm font-semibold text-[#022136] bg-[#00D4AA] hover:bg-[#00E8BB]",
+                            "text-sm font-semibold text-[#0B1B2B] bg-[#00D4AA] hover:bg-[#00E8BB]",
                             "transition-colors duration-150 outline-none",
                             "focus-visible:ring-2 focus-visible:ring-[#00D4AA] focus-visible:ring-offset-2 focus-visible:ring-offset-[#1A2B3C]",
                         )}

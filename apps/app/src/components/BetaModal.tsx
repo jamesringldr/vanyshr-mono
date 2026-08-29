@@ -115,7 +115,7 @@ export default function BetaModal({ isOpen, onClose }: BetaModalProps) {
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         transition={{ duration: 0.2 }}
-                        className="fixed inset-0 z-[100] bg-[#022136]/80 backdrop-blur-sm"
+                        className="fixed inset-0 z-[100] bg-[#0B1B2B]/80 backdrop-blur-sm"
                         onClick={handleClose}
                     />
 
@@ -126,8 +126,8 @@ export default function BetaModal({ isOpen, onClose }: BetaModalProps) {
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.96, y: 20 }}
                             transition={{ duration: 0.25, ease: 'easeOut' }}
-                            className="relative w-full max-w-md bg-[#022136] rounded-2xl border border-[#2A4A68] shadow-[0_24px_80px_rgba(0,0,0,0.7)]"
-                            style={{ borderTopColor: '#00BFFF', borderTopWidth: 2 }}
+                            className="relative w-full max-w-md bg-[#0B1B2B] rounded-2xl border border-[#1E3A52] shadow-[0_24px_80px_rgba(0,0,0,0.7)]"
+                            style={{ borderTopColor: '#14ABFE', borderTopWidth: 2 }}
                             onClick={(e) => e.stopPropagation()}
                         >
                             {/* Close */}
@@ -155,7 +155,7 @@ export default function BetaModal({ isOpen, onClose }: BetaModalProps) {
                                 </h2>
 
                                 {/* Body */}
-                                <p className="text-[#B8C4CC] text-sm text-center leading-relaxed mb-8 font-ubuntu">
+                                <p className="text-[#94A3B8] text-sm text-center leading-relaxed mb-8 font-ubuntu">
                                     Vanyshr is in private beta. We're onboarding a limited number of users
                                     every day to keep things stable. Secure your spot in line and we'll
                                     notify you as soon as your seat is ready.
@@ -182,7 +182,7 @@ export default function BetaModal({ isOpen, onClose }: BetaModalProps) {
                                                 initial={{ opacity: 0 }}
                                                 animate={{ opacity: 1 }}
                                                 onClick={() => setReserveOpen(true)}
-                                                className="w-full h-[52px] rounded-xl bg-[#00BFFF] hover:bg-[#00D4FF] active:bg-[#0099CC] text-[#022136] font-bold text-base transition-colors duration-150 cursor-pointer flex items-center justify-center gap-2 shadow-[0_0_24px_rgba(0,191,255,0.3)]"
+                                                className="w-full h-[52px] rounded-xl bg-[#14ABFE] hover:bg-[#00D4FF] active:bg-[#0099CC] text-[#0B1B2B] font-bold text-base transition-colors duration-150 cursor-pointer flex items-center justify-center gap-2 shadow-[0_0_24px_rgba(20,171,254,0.3)]"
                                             >
                                                 Reserve My Spot
                                                 <ArrowRight className="w-4 h-4" />
@@ -205,12 +205,12 @@ export default function BetaModal({ isOpen, onClose }: BetaModalProps) {
                                                         required
                                                         autoFocus
                                                         disabled={waitlistLoading}
-                                                        className="flex-1 h-[52px] rounded-xl border border-[#2A4A68] focus:border-[#00BFFF] focus:ring-1 focus:ring-[#00BFFF] px-4 bg-[#2D3847] text-white placeholder:text-[#7A92A8] text-sm outline-none transition-colors duration-150 disabled:opacity-60"
+                                                        className="flex-1 h-[52px] rounded-xl border border-[#1E3A52] focus:border-[#14ABFE] focus:ring-1 focus:ring-[#14ABFE] px-4 bg-[#112538] text-white placeholder:text-[#7A92A8] text-sm outline-none transition-colors duration-150 disabled:opacity-60"
                                                     />
                                                     <button
                                                         type="submit"
                                                         disabled={waitlistLoading}
-                                                        className="h-[52px] px-5 rounded-xl bg-[#00BFFF] hover:bg-[#00D4FF] text-[#022136] font-bold text-sm transition-colors duration-150 cursor-pointer whitespace-nowrap disabled:opacity-60 disabled:cursor-not-allowed"
+                                                        className="h-[52px] px-5 rounded-xl bg-[#14ABFE] hover:bg-[#00D4FF] text-[#0B1B2B] font-bold text-sm transition-colors duration-150 cursor-pointer whitespace-nowrap disabled:opacity-60 disabled:cursor-not-allowed"
                                                     >
                                                         {waitlistLoading ? '…' : 'Reserve'}
                                                     </button>
@@ -225,9 +225,9 @@ export default function BetaModal({ isOpen, onClose }: BetaModalProps) {
 
                                 {/* Divider */}
                                 <div className="flex items-center gap-3 mb-5">
-                                    <div className="flex-1 h-px bg-[#2A4A68]" />
+                                    <div className="flex-1 h-px bg-[#1E3A52]" />
                                     <span className="text-[#7A92A8] text-xs">or</span>
-                                    <div className="flex-1 h-px bg-[#2A4A68]" />
+                                    <div className="flex-1 h-px bg-[#1E3A52]" />
                                 </div>
 
                                 {/* Access code */}
@@ -239,12 +239,12 @@ export default function BetaModal({ isOpen, onClose }: BetaModalProps) {
                                             onChange={(e) => setAccessCode(e.target.value)}
                                             placeholder="Enter access code"
                                             disabled={accessLoading}
-                                            className="flex-1 h-[52px] rounded-xl border border-[#2A4A68] focus:border-[#00BFFF] focus:ring-1 focus:ring-[#00BFFF] px-4 bg-[#2D3847] text-white placeholder:text-[#7A92A8] text-sm outline-none transition-colors duration-150 disabled:opacity-60"
+                                            className="flex-1 h-[52px] rounded-xl border border-[#1E3A52] focus:border-[#14ABFE] focus:ring-1 focus:ring-[#14ABFE] px-4 bg-[#112538] text-white placeholder:text-[#7A92A8] text-sm outline-none transition-colors duration-150 disabled:opacity-60"
                                         />
                                         <button
                                             type="submit"
                                             disabled={accessLoading || !accessCode.trim()}
-                                            className="h-[52px] px-5 rounded-xl border border-[#2A4A68] hover:border-[#00BFFF] text-[#B8C4CC] hover:text-white font-semibold text-sm transition-colors duration-150 cursor-pointer whitespace-nowrap disabled:opacity-60 disabled:cursor-not-allowed"
+                                            className="h-[52px] px-5 rounded-xl border border-[#1E3A52] hover:border-[#14ABFE] text-[#94A3B8] hover:text-white font-semibold text-sm transition-colors duration-150 cursor-pointer whitespace-nowrap disabled:opacity-60 disabled:cursor-not-allowed"
                                         >
                                             {accessLoading ? '…' : 'Submit'}
                                         </button>

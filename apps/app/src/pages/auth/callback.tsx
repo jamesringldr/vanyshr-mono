@@ -133,12 +133,12 @@ export function AuthCallback() {
 
     return (
         <div
-            className="min-h-screen w-full flex flex-col items-center justify-center bg-[#F0F4F8] dark:bg-[#022136] font-sans"
+            className="min-h-screen w-full flex flex-col items-center justify-center bg-[#F0F4F8] dark:bg-[#0B1B2B] font-sans"
             role="main"
             aria-label="Completing sign in"
         >
-            <Loader2 className="w-10 h-10 text-[#00BFFF] animate-spin mb-4" />
-            <p className="text-base font-semibold text-[#022136] dark:text-white">
+            <Loader2 className="w-10 h-10 text-[#14ABFE] animate-spin mb-4" />
+            <p className="text-base font-semibold text-[#0B1B2B] dark:text-white">
                 Completing sign in...
             </p>
             <p className="mt-1 text-sm text-[#7A92A8]">

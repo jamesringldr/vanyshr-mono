@@ -21,7 +21,7 @@ export function ProfileCard({ profile, className, ...props }: ProfileCardProps) 
         <div
             role="region"
             aria-label={`Profile: ${fullName}`}
-            className={cx("rounded-lg border border-[#2A4A68] bg-[#022136] p-5", className)}
+            className={cx("rounded-lg border border-[#1E3A52] bg-[#0B1B2B] p-5", className)}
             {...props}
         >
             <h3 className="mb-1 text-lg font-bold text-white">{fullName}</h3>
@@ -34,7 +34,7 @@ export function ProfileCard({ profile, className, ...props }: ProfileCardProps) 
                         <span className="flex-shrink-0 text-[0.675rem] font-bold uppercase tracking-wide text-[#7A92A8]">
                             Aliases
                         </span>
-                        <div className="flex flex-1 flex-wrap gap-x-2 text-[0.675rem] font-medium text-[#B8C4CC]">
+                        <div className="flex flex-1 flex-wrap gap-x-2 text-[0.675rem] font-medium text-[#94A3B8]">
                             {aliases.slice(0, 2).map((alias, idx) => (
                                 <span key={idx} className="truncate">
                                     {alias}
@@ -54,7 +54,7 @@ export function ProfileCard({ profile, className, ...props }: ProfileCardProps) 
                                     Phones
                                 </span>
                                 {phones.slice(0, 2).map((phone, idx) => (
-                                    <span key={idx} className="block font-medium text-[#B8C4CC]">
+                                    <span key={idx} className="block font-medium text-[#94A3B8]">
                                         {phone}
                                     </span>
                                 ))}
@@ -66,7 +66,7 @@ export function ProfileCard({ profile, className, ...props }: ProfileCardProps) 
                                 <span className="block text-xs font-bold uppercase tracking-wide text-[#7A92A8]">
                                     Current Address
                                 </span>
-                                <div className="font-medium leading-snug text-[#B8C4CC]">{addressLine}</div>
+                                <div className="font-medium leading-snug text-[#94A3B8]">{addressLine}</div>
                             </div>
                         ) : null}
                     </div>
@@ -77,7 +77,7 @@ export function ProfileCard({ profile, className, ...props }: ProfileCardProps) 
                                 <span className="block text-xs font-bold uppercase tracking-wide text-[#7A92A8]">
                                     Relatives
                                 </span>
-                                <div className="font-medium leading-snug text-[#B8C4CC]">
+                                <div className="font-medium leading-snug text-[#94A3B8]">
                                     {relatives.slice(0, 3).map((rel, idx) => (
                                         <span key={idx} className="block truncate">
                                             {rel}

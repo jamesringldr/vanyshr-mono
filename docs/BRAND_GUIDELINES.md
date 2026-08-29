@@ -1,7 +1,7 @@
 # Vanyshr Brand Guidelines
 
-*Last Updated: February 20, 2026*
-*Version: 4.0 - Charcoal Night Palette (Dark Mode Only — MVP/Pilot)*
+*Last Updated: August 29, 2026*
+*Version: 5.0 - Deep Navy Palette (Dark Mode Only — MVP/Pilot)*
 
 ---
 
@@ -11,15 +11,16 @@
 
 | Token | Value | Role |
 |---|---|---|
-| **Brand Primary (Azure)** | `#00BFFF` | Buttons, links, CTAs, interactive elements, sticky CTA border |
-| **Brand Dark** | `#022136` | Deep navy — logo color, used for `--brand-dark` token only |
-| **Page Background** | `#022136` | Main app background — replaces old `#022136` bg role |
-| **Accent Risk** | `#FF8A00` | **Semantic only** — risk words, exposure states, threat highlights (e.g. "Exposed") |
+| **Brand Primary (Azure)** | `#14ABFE` | Buttons, links, CTAs, interactive elements, sticky CTA border |
+| **Brand Dark** | `#0B1B2B` | Deep navy — logo color, page background, `--brand-dark` |
+| **Page Background** | `#0B1B2B` | Main app background |
+| **Accent Orange** | `#FF8400` | Badges, security alerts, key highlights |
+| **Accent Risk** | `#FF8400` | **Semantic only** — risk words, exposure states, threat highlights (e.g. "Exposed"). Same value as Accent Orange. |
 | **Accent Hover** | `#00D4FF` | Hover state for primary interactive elements |
 
-> ⚠️ **Amber `#FF8A00` usage rule:** This color is reserved exclusively for words and UI states that communicate risk, exposure, or threat. Do not use it for positive states, feature names, benefit copy, or decorative emphasis. If you are unsure whether a use case qualifies, it does not.
+> ⚠️ **Amber `#FF8400` usage rule:** This color is reserved exclusively for words and UI states that communicate risk, exposure, or threat. Do not use it for positive states, feature names, benefit copy, or decorative emphasis. If you are unsure whether a use case qualifies, it does not.
 
-> ⚠️ **Amber + Azure adjacency rule:** Never place `#FF8A00` and `#00BFFF` as adjacent text in the same line or sentence. They have a 1.11:1 contrast ratio against each other and will visually vibrate without legible separation.
+> ⚠️ **Amber + Azure adjacency rule:** Never place `#FF8400` and `#14ABFE` as adjacent text in the same line or sentence. They have a 1.11:1 contrast ratio against each other and will visually vibrate without legible separation.
 
 ---
 
@@ -30,9 +31,9 @@
 | **Success** | `#00D4AA` | Teal-green — removal confirmed, scan clean, positive states |
 | **Warning** | `#FFB81C` | Golden amber — cautionary states, non-critical alerts |
 | **Error** | `#FF5757` | Coral-red — errors, destructive actions, critical failures |
-| **Info** | `#00BFFF` | Azure — informational highlights, neutral notices |
+| **Info** | `#14ABFE` | Azure — informational highlights, neutral notices |
 | **Disabled** | `#4A5568` | Mid-gray — disabled states on dark backgrounds |
-| **Accent Risk** | `#FF8A00` | Vivid amber — risk/exposure semantic highlights only (see rule above) |
+| **Accent Risk** | `#FF8400` | Vivid amber — risk/exposure semantic highlights only (see rule above) |
 
 ---
 
@@ -40,22 +41,23 @@
 
 > Light mode is **not implemented** for MVP/Pilot. All tokens below are the single active theme. The `[data-theme="light"]` block has been removed.
 
-| Token | Value | Contrast on `#022136` | Usage |
+| Token | Value | Contrast on `#0B1B2B` | Usage |
 |---|---|---|---|
-| `--bg-page` | `#022136` | — | Main app background |
-| `--bg-surface` | `#2D3847` | 1.17:1 (depth via border/shadow) | Cards, panels, content containers |
-| `--bg-surface-secondary` | `#2D3847` | 1.09:1 (nested depth) | Nested cards, modals, secondary panels |
-| `--brand-primary` | `#00BFFF` | 7.72:1 ✅ | CTAs, links, active elements, sticky border |
-| `--accent-hover` | `#00D4FF` | 8.59:1 ✅ | Hover state for primary elements |
-| `--accent-risk` | `#FF8A00` | 6.93:1 ✅ | Risk/exposure semantic text only |
-| `--brand-dark` | `#022136` | — | Logo color reference — do not use as bg |
-| `--text-primary` | `#FFFFFF` | 16.38:1 ✅ | Headlines, primary body, key labels |
-| `--text-secondary` | `#B8C4CC` | 9.21:1 ✅ | Supporting body copy, descriptions |
-| `--text-tertiary` | `#7A92A8` | 5.07:1 ✅ | Captions, helper text, fine print, reassurance copy |
-| `--border-subtle` | `#2A4A68` | — | Subtle dividers, card outlines |
-| `--border-brand` | `#00BFFF` | — | Sticky CTA top border, focus rings, active separators |
+| `--bg-page` | `#0B1B2B` | — | Main app background |
+| `--bg-surface` | `#112538` | depth via border/shadow | Cards, panels, content containers |
+| `--bg-surface-secondary` | `#182E42` | nested depth | Nested cards, modals, input fields |
+| `--brand-primary` | `#14ABFE` | re-verify | CTAs, links, active elements, sticky border |
+| `--accent-hover` | `#00D4FF` | re-verify | Hover state for primary elements |
+| `--accent-orange` | `#FF8400` | re-verify | Badges, security alerts, key highlights |
+| `--accent-risk` | `#FF8400` | re-verify | Risk/exposure semantic text only (same as `--accent-orange`) |
+| `--brand-dark` | `#0B1B2B` | — | Logo color / dark-field reference |
+| `--text-primary` | `#FFFFFF` | re-verify | Headlines, primary body, key labels |
+| `--text-secondary` | `#94A3B8` | re-verify | Supporting body copy, descriptions |
+| `--text-tertiary` | `#7A92A8` | re-verify | Captions, helper text, fine print, reassurance copy |
+| `--border-subtle` | `#1E3A52` | — | Subtle dividers, card outlines |
+| `--border-brand` | `#14ABFE` | — | Sticky CTA top border, focus rings, active separators |
 
-> **Previously broken token — now resolved:** `--text-secondary` was `#476B84` (2.91:1 — WCAG FAIL). Replaced with `#B8C4CC` (9.21:1 — WCAG AA Pass).
+> Contrast ratios from v4.0 were measured against `#022136` and are stale after this palette shift. Re-measure against `#0B1B2B` before treating any pair as WCAG-certified.
 
 ---
 
@@ -64,21 +66,21 @@
 Use this hierarchy in order. Do not skip levels or use accent colors as general text.
 
 1. **`#FFFFFF`** — Headlines, hero titles, primary CTA labels
-2. **`#B8C4CC`** — Body copy, supporting descriptions, secondary labels
+2. **`#94A3B8`** — Body copy, supporting descriptions, secondary labels
 3. **`#7A92A8`** — Captions, fine print, "No Credit Card Required" type reassurance lines
-4. **`#00BFFF`** — Brand accent — links, "FREE" callouts, highlighted feature names, CTA inline emphasis
-5. **`#FF8A00`** — Risk accent — "Exposed", "Found", threat-state words only
+4. **`#14ABFE`** — Brand accent — links, "FREE" callouts, highlighted feature names, CTA inline emphasis
+5. **`#FF8400`** — Risk accent — "Exposed", "Found", threat-state words only
 
 ---
 
 ### Sticky CTA Container
 
-The sticky footer CTA uses border-based separation rather than a contrasting background fill, because no dark surface value achieves sufficient luminance contrast (>3:1) against `#022136` to be perceptible as a distinct layer.
+The sticky footer CTA uses border-based separation rather than a contrasting background fill, because no dark surface value achieves sufficient luminance contrast (>3:1) against `#0B1B2B` to be perceptible as a distinct layer.
 
 ```css
 .sticky-cta {
-  background: #022136;                          /* --bg-page — no change */
-  border-top: 2px solid #00BFFF;               /* --border-brand */
+  background: #0B1B2B;                          /* --bg-page — no change */
+  border-top: 2px solid #14ABFE;               /* --border-brand */
   backdrop-filter: blur(12px);
   box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.45);
 }
@@ -154,11 +156,11 @@ These changes will tighten the above-fold content into a more intentional layout
 
 | State | Background | Text | Border |
 |---|---|---|---|
-| Default | `#00BFFF` | `#022136` | none |
-| Hover | `#00D4FF` | `#022136` | none |
+| Default | `#14ABFE` | `#0B1B2B` | none |
+| Hover | `#00D4FF` | `#0B1B2B` | none |
 | Active/Pressed | `#0099CC` | `#FFFFFF` | none |
 | Disabled | `#4A5568` | `#7A92A8` | none |
-| Secondary (outline) | transparent | `#00BFFF` | `2px solid #00BFFF` |
+| Secondary (outline) | transparent | `#14ABFE` | `2px solid #14ABFE` |
 
 ---
 
@@ -169,31 +171,32 @@ These changes will tighten the above-fold content into a more intentional layout
 ```css
 :root {
   /* Brand Core */
-  --brand-primary: #00BFFF;
-  --brand-dark: #022136;
+  --brand-primary: #14ABFE;
+  --brand-dark: #0B1B2B;
   --accent-hover: #00D4FF;
-  --accent-risk: #FF8A00;
+  --accent-orange: #FF8400;
+  --accent-risk: #FF8400;
 
   /* Semantic */
   --success: #00D4AA;
   --error: #FF5757;
   --warning: #FFB81C;
-  --info: #00BFFF;
+  --info: #14ABFE;
   --disabled: #4A5568;
 
   /* Backgrounds */
-  --bg-page: #022136;
-  --bg-surface: #2D3847;
-  --bg-surface-secondary: #2D3847;
+  --bg-page: #0B1B2B;
+  --bg-surface: #112538;
+  --bg-surface-secondary: #182E42;
 
   /* Text */
   --text-primary: #FFFFFF;
-  --text-secondary: #B8C4CC;
+  --text-secondary: #94A3B8;
   --text-tertiary: #7A92A8;
 
   /* Borders */
-  --border-subtle: #2A4A68;
-  --border-brand: #00BFFF;
+  --border-subtle: #1E3A52;
+  --border-brand: #14ABFE;
 
   /* Spacing */
   --space-1: 4px;
@@ -216,7 +219,7 @@ These changes will tighten the above-fold content into a more intentional layout
 const theme = {
   palette: {
     primary: {
-      main: '#00BFFF',
+      main: '#14ABFE',
       dark: '#0099CC',
       light: '#00D4FF',
     },
@@ -231,12 +234,12 @@ const theme = {
     },
     text: {
       primary: '#FFFFFF',
-      secondary: '#B8C4CC',
+      secondary: '#94A3B8',
       disabled: '#7A92A8',
     },
     background: {
-      default: '#022136',
-      paper: '#2D3847',
+      default: '#0B1B2B',
+      paper: '#112538',
     },
   },
 };
@@ -247,17 +250,17 @@ const theme = {
 ## Brand Consistency
 
 ### Do's
-- ✅ Use `#00BFFF` for all primary actions, CTAs, links, and interactive brand elements
-- ✅ Use `#FF8A00` exclusively for risk/exposure/threat semantic words
-- ✅ Use `#B8C4CC` for supporting body copy — never `#476B84` (fails WCAG on dark bg)
+- ✅ Use `#14ABFE` for all primary actions, CTAs, links, and interactive brand elements
+- ✅ Use `#FF8400` (`--accent-orange` / `--accent-risk`) for badges, security alerts, key highlights, and risk/exposure words
+- ✅ Use `#94A3B8` for supporting body copy — never `#476B84` (fails WCAG on dark bg)
 - ✅ Use `#7A92A8` for fine print, reassurance copy, captions
-- ✅ Use `--border-brand` (`#00BFFF`) top border on sticky CTA for layer separation
+- ✅ Use `--border-brand` (`#14ABFE`) top border on sticky CTA for layer separation
 - ✅ Maintain 4px-base spacing system throughout
 
 ### Don'ts
 - ❌ Don't use `#476B84` for any text — it fails WCAG AA on all current backgrounds
-- ❌ Don't place `#FF8A00` and `#00BFFF` adjacent in the same text line
-- ❌ Don't use `#FF8A00` for positive states, feature copy, or decorative emphasis
+- ❌ Don't place `#FF8400` and `#14ABFE` adjacent in the same text line
+- ❌ Don't use `#FF8400` for positive states or feature copy
 - ❌ Don't use colors outside the defined palette
 - ❌ Don't implement light mode components — dark only for MVP
 
@@ -266,17 +269,17 @@ const theme = {
 ## Examples
 
 ### QuickScan Hero Page
-- **Tagline** ("AI Powered Data Privacy"): `#00BFFF` — `text-xs font-medium tracking-wide uppercase`
+- **Tagline** ("AI Powered Data Privacy"): `#14ABFE` — `text-xs font-medium tracking-wide uppercase`
 - **Headline** ("Your Personal Data Is"): `#FFFFFF` — Display style
-- **Risk word** ("Exposed"): `#FF8A00` italic — same Display size
-- **Body copy** ("Data Brokers harvest..."): `#B8C4CC` — Body Large
+- **Risk word** ("Exposed"): `#FF8400` italic — same Display size
+- **Body copy** ("Data Brokers harvest..."): `#94A3B8` — Body Large
 - **Threat emphasis** ("Scammers, Spammers & Stalkers"): `#FFFFFF` bold italic
 - **Sticky CTA headline**: `#FFFFFF` bold
-- **Sticky CTA "FREE" inline**: `#00BFFF`
+- **Sticky CTA "FREE" inline**: `#14ABFE`
 - **Sticky CTA fine print** ("No Credit Card or Sign Up Required"): `#7A92A8`
-- **CTA Button**: `#00BFFF` background, `#022136` text
+- **CTA Button**: `#14ABFE` background, `#0B1B2B` text
 
 ### Navigation
-- **Active Links**: `#00BFFF` text
-- **Inactive Links**: `#B8C4CC` text, `#00BFFF` on hover
-- **Background**: `#022136`
+- **Active Links**: `#14ABFE` text
+- **Inactive Links**: `#94A3B8` text, `#14ABFE` on hover
+- **Background**: `#0B1B2B`

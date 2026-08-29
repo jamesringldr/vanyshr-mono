@@ -44,8 +44,8 @@ function Slide1() {
       className="w-full h-full flex flex-col items-center justify-start pt-1 px-6 gap-5"
     >
       {/* Badge */}
-      <div className="px-3.5 py-1.5 rounded-full bg-[#00BFFF]/10 border border-[#00BFFF]/20">
-        <span className="text-[#00BFFF] text-[11px] font-medium tracking-wide uppercase">
+      <div className="px-3.5 py-1.5 rounded-full bg-[#14ABFE]/10 border border-[#14ABFE]/20">
+        <span className="text-[#14ABFE] text-[11px] font-medium tracking-wide uppercase">
           AI-Powered Personal Data Privacy
         </span>
       </div>
@@ -55,7 +55,7 @@ function Slide1() {
         <h1 className="text-[clamp(26px,8vw,40px)] font-extrabold text-white leading-[1.05] flex flex-col items-center text-center">
           <span>Your Personal Data</span>
           <span>
-            Is <span className="text-[#FF8A00] italic">Exposed</span>
+            Is <span className="text-[#FF8400] italic">Exposed</span>
           </span>
         </h1>
         <p className="text-xl font-bold text-white tracking-tight">
@@ -64,7 +64,7 @@ function Slide1() {
       </div>
 
       {/* Subtext */}
-      <p className="text-base text-[#B8C4CC] leading-relaxed text-center">
+      <p className="text-base text-[#94A3B8] leading-relaxed text-center">
         Phone numbers, home addresses, family members — all publicly listed on
         data broker sites that anyone can search right now.
       </p>
@@ -81,7 +81,7 @@ function Slide1() {
           (tag) => (
             <span
               key={tag}
-              className="px-3 py-1 rounded-full bg-[#2D3847] border border-[#2A4A68] text-[#B8C4CC] text-xs font-medium"
+              className="px-3 py-1 rounded-full bg-[#112538] border border-[#1E3A52] text-[#94A3B8] text-xs font-medium"
             >
               {tag}
             </span>
@@ -165,7 +165,7 @@ function SlideWithMockup({
             }}
             className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${
               i === current
-                ? "w-6 bg-[#00BFFF]"
+                ? "w-6 bg-[#14ABFE]"
                 : "w-1.5 bg-white/25 hover:bg-white/40"
             }`}
           />
@@ -177,7 +177,7 @@ function SlideWithMockup({
         <h2 className="text-[clamp(18px,5vw,24px)] font-bold text-white tracking-tight leading-snug">
           {heading}
         </h2>
-        <p className="text-[13px] text-[#B8C4CC] leading-relaxed">{subtext}</p>
+        <p className="text-[13px] text-[#94A3B8] leading-relaxed">{subtext}</p>
       </div>
     </div>
   );
@@ -200,7 +200,7 @@ function Slide2({
       heading={
         <>
           Your private data{" "}
-          <span className="text-[#FF8A00] italic">isn't</span> private
+          <span className="text-[#FF8400] italic">isn't</span> private
         </>
       }
       subtext={
@@ -237,7 +237,7 @@ function Slide3({
       heading={
         <>
           Tired of endless{" "}
-          <span className="text-[#FF8A00] italic">spam</span>{" "}
+          <span className="text-[#FF8400] italic">spam</span>{" "}
           calls &amp; texts?
         </>
       }
@@ -270,9 +270,9 @@ function Slide4({
       heading={
         <>
           Intel for{" "}
-          <span className="text-[#FF8A00] italic">scammers</span>{" "}
+          <span className="text-[#FF8400] italic">scammers</span>{" "}
           &amp;{" "}
-          <span className="text-[#FF8A00] italic">identity thieves</span>
+          <span className="text-[#FF8400] italic">identity thieves</span>
         </>
       }
       subtext={
@@ -308,7 +308,7 @@ function Slide5({
       heading={
         <>
           We help you{" "}
-          <span className="text-[#00BFFF] italic">Vanysh</span>
+          <span className="text-[#14ABFE] italic">Vanysh</span>
         </>
       }
       subtext={
@@ -404,7 +404,7 @@ export function ReferralSlider() {
 
   return (
     <div
-      className="relative h-screen w-full overflow-hidden bg-[#022136] font-ubuntu select-none flex flex-col"
+      className="relative h-screen w-full overflow-hidden bg-[#0B1B2B] font-ubuntu select-none flex flex-col"
       aria-label="Vanyshr onboarding"
       role="main"
     >
@@ -454,14 +454,14 @@ export function ReferralSlider() {
 
       {/* ── Sticky CTA footer (scan-now style) ── */}
       <footer className="fixed bottom-0 left-0 right-0 z-50 px-3">
-        <div className="bg-[#022136] rounded-t-[28px] backdrop-blur-md shadow-[0_0_40px_rgba(0,191,255,0.4),0_0_80px_rgba(0,191,255,0.22),0_-8px_24px_rgba(0,0,0,0.6)] pt-6 pb-6 px-6 flex flex-col gap-1 relative max-w-lg mx-auto">
+        <div className="bg-[#0B1B2B] rounded-t-[28px] backdrop-blur-md shadow-[0_0_40px_rgba(20,171,254,0.4),0_0_80px_rgba(20,171,254,0.22),0_-8px_24px_rgba(0,0,0,0.6)] pt-6 pb-6 px-6 flex flex-col gap-1 relative max-w-lg mx-auto">
           <div className="flex flex-col gap-1 text-center">
             <p className="text-white font-bold text-[18px] leading-tight">
               Is your data exposed?
             </p>
             <p className="text-white font-bold text-[22px] leading-tight">
               Run a QuickScan —{" "}
-              <span className="text-[#00BFFF] italic">FREE</span>
+              <span className="text-[#14ABFE] italic">FREE</span>
             </p>
           </div>
 
@@ -469,7 +469,7 @@ export function ReferralSlider() {
             <button
               type="button"
               onClick={() => setIsDrawerOpen(true)}
-              className="w-full h-[52px] rounded-xl bg-[#00BFFF] text-[#022136] font-bold text-xl hover:bg-[#00D4FF] active:bg-[#0099CC] active:text-white transition-colors duration-150 shadow-md cursor-pointer"
+              className="w-full h-[52px] rounded-xl bg-[#14ABFE] text-[#0B1B2B] font-bold text-xl hover:bg-[#00D4FF] active:bg-[#0099CC] active:text-white transition-colors duration-150 shadow-md cursor-pointer"
             >
               Scan Now
             </button>
@@ -504,9 +504,9 @@ export function ReferralSlider() {
               }}
               className="fixed bottom-0 left-0 right-0 z-50 flex justify-center"
             >
-              <div className="w-full max-w-md bg-[#2D3847] rounded-t-[32px] overflow-hidden max-h-[90vh] flex flex-col relative shadow-[0_0_40px_rgba(0,191,255,0.35),0_0_80px_rgba(0,191,255,0.18),0_25px_50px_-12px_rgba(0,0,0,0.25)]">
+              <div className="w-full max-w-md bg-[#112538] rounded-t-[32px] overflow-hidden max-h-[90vh] flex flex-col relative shadow-[0_0_40px_rgba(20,171,254,0.35),0_0_80px_rgba(20,171,254,0.18),0_25px_50px_-12px_rgba(0,0,0,0.25)]">
                 <div className="w-full h-8 flex items-center justify-center shrink-0">
-                  <div className="w-12 h-1.5 bg-[#2A4A68] rounded-full" />
+                  <div className="w-12 h-1.5 bg-[#1E3A52] rounded-full" />
                 </div>
                 <button
                   type="button"
