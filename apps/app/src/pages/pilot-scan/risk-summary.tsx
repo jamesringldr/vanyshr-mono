@@ -1,8 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { Link, useNavigate } from "react-router";
+import { Link } from "react-router";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
-import { DollarSign } from "lucide-react";
 import {
   AlertTriangleFilled,
   ShieldFilled,
@@ -130,7 +129,6 @@ function isHttpUrl(value: string) {
  * the viewport — the portal sidesteps that entirely.
  */
 export function RiskSummaryBody({ profile }: { profile: ConsolidatedProfile }) {
-  const navigate = useNavigate();
   const prefersReducedMotion = useReducedMotion();
   const areas = useMemo(() => buildRiskAreas(profile), [profile]);
   const [activeArea, setActiveArea] = useState<AreaView | null>(null);
@@ -170,14 +168,8 @@ export function RiskSummaryBody({ profile }: { profile: ConsolidatedProfile }) {
 
   const ActiveIcon = activeArea?.Icon;
 
-  const [footerVisible, setFooterVisible] = useState(false);
-  useEffect(() => {
-    const t = window.setTimeout(() => setFooterVisible(true), 2000);
-    return () => window.clearTimeout(t);
-  }, []);
-
   return (
-    <div className="relative flex w-full flex-col items-center px-6 pb-[200px] font-ubuntu">
+    <div className="relative flex w-full flex-col items-center px-6 font-ubuntu">
       <div>
         <div className="relative mt-8 flex w-full max-w-md items-center justify-center">
           <div className="relative aspect-square w-full max-w-[340px]">
@@ -261,10 +253,10 @@ export function RiskSummaryBody({ profile }: { profile: ConsolidatedProfile }) {
 
         <section className="mt-10 w-full max-w-sm" aria-label="Your areas">
           <div className="mb-3 px-0.5">
-            <h2 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#7A92A8]">
+            <h2 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#8CA3B8]">
               Your areas
             </h2>
-            <p className="mt-0.5 text-xs text-[#7A92A8]">(tap to see what we found)</p>
+            <p className="mt-0.5 text-xs text-[#8CA3B8]">(tap to see what we found)</p>
           </div>
 
           <ul className="flex flex-col gap-2.5">
@@ -285,7 +277,7 @@ export function RiskSummaryBody({ profile }: { profile: ConsolidatedProfile }) {
                       <span className="block text-[15px] font-semibold text-white">
                         {area.label}
                       </span>
-                      <span className="mt-0.5 block text-xs text-[#7A92A8]">
+                      <span className="mt-0.5 block text-xs text-[#8CA3B8]">
                         {area.summary}
                       </span>
                     </span>
@@ -296,33 +288,6 @@ export function RiskSummaryBody({ profile }: { profile: ConsolidatedProfile }) {
             })}
           </ul>
         </section>
-      </div>
-
-      <div className="fixed inset-x-0 bottom-0 z-30 px-4">
-        <motion.footer
-          className="w-full rounded-t-[28px] bg-[#1A2E42] px-5 pb-6 pt-5 shadow-[0_0_40px_rgba(0,191,255,0.18)]"
-          initial={prefersReducedMotion ? false : { y: "100%" }}
-          animate={{ y: footerVisible ? 0 : "100%" }}
-          transition={{ duration: prefersReducedMotion ? 0 : 0.5, ease: DRAWER_EASE }}
-        >
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-[#2A4A68] bg-[#022136] px-3 py-1 text-[11px] font-medium text-[#00BFFF]">
-            <DollarSign className="h-3 w-3" />
-            No Credit Card Required
-          </span>
-          <h2 className="mt-3 text-[26px] font-bold leading-[1.15] tracking-tight text-white">
-            Time to Vanysh
-          </h2>
-          <p className="mt-1.5 text-sm leading-snug text-[#B8C4CC]">
-            Start removing your exposed data from every broker we found
-          </p>
-          <button
-            type="button"
-            onClick={() => navigate("/pilot-scan/start")}
-            className="mt-5 flex h-12 w-full items-center justify-center rounded-2xl bg-[#00BFFF] text-[17px] font-semibold text-white"
-          >
-            Start Vanyshing
-          </button>
-        </motion.footer>
       </div>
 
       {createPortal(
@@ -366,7 +331,7 @@ export function RiskSummaryBody({ profile }: { profile: ConsolidatedProfile }) {
                   type="button"
                   aria-label="Close"
                   onClick={() => setActiveArea(null)}
-                  className="absolute right-4 top-3 rounded-full p-1.5 text-[#7A92A8] transition hover:text-white"
+                  className="absolute right-4 top-3 rounded-full p-1.5 text-[#8CA3B8] transition hover:text-white"
                 >
                   <X size={20} />
                 </button>
@@ -381,7 +346,7 @@ export function RiskSummaryBody({ profile }: { profile: ConsolidatedProfile }) {
                     <h3 className="text-xl font-bold tracking-tight text-white">
                       {activeArea.label}
                     </h3>
-                    <p className="mt-1 text-sm text-[#7A92A8]">{activeArea.summary}</p>
+                    <p className="mt-1 text-sm text-[#8CA3B8]">{activeArea.summary}</p>
                   </div>
                   <LevelBars level={levelFromScore(activeArea.score)} />
                 </div>
@@ -392,7 +357,7 @@ export function RiskSummaryBody({ profile }: { profile: ConsolidatedProfile }) {
 
                 {activeArea.breachCards ? (
                   activeArea.breachCards.length === 0 ? (
-                    <p className="mt-5 text-sm text-[#7A92A8]">
+                    <p className="mt-5 text-sm text-[#8CA3B8]">
                       No breaches found for any confirmed email.
                     </p>
                   ) : (
@@ -402,7 +367,7 @@ export function RiskSummaryBody({ profile }: { profile: ConsolidatedProfile }) {
                           key={`${b.email}-${b.name}-${i}`}
                           className="rounded-xl bg-[#022136]/55 px-3.5 py-3"
                         >
-                          <p className="break-all text-[11px] font-semibold uppercase tracking-[0.12em] text-[#7A92A8]">
+                          <p className="break-all text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8CA3B8]">
                             {b.email}
                           </p>
                           <p className="mt-1 text-sm leading-snug text-white">
@@ -426,7 +391,7 @@ export function RiskSummaryBody({ profile }: { profile: ConsolidatedProfile }) {
                     </ul>
                   )
                 ) : activeArea.items.length === 0 ? (
-                  <p className="mt-5 text-sm text-[#7A92A8]">
+                  <p className="mt-5 text-sm text-[#8CA3B8]">
                     Nothing in this category from the current scan.
                   </p>
                 ) : (
@@ -436,7 +401,7 @@ export function RiskSummaryBody({ profile }: { profile: ConsolidatedProfile }) {
                         key={`${item.label}-${item.value}-${i}`}
                         className="rounded-xl bg-[#022136]/55 px-3.5 py-3"
                       >
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#7A92A8]">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8CA3B8]">
                           {item.label}
                           {item.source ? ` · ${item.source}` : ""}
                         </p>

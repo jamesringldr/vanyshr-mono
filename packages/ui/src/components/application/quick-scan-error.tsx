@@ -81,7 +81,7 @@ export function QuickScanError({
             </p>
             <button
               onClick={onDismiss}
-              className="w-full h-[52px] bg-[#00BFFF] hover:bg-[#00D4FF] active:bg-[#0099CC] text-[#022136] active:text-white font-bold text-base rounded-xl transition-all duration-150 shadow-md active:scale-[0.98] font-ubuntu"
+              className="w-full h-[52px] bg-[#00BFFF] hover:bg-[#00D4FF] active:bg-[#0099CC] text-white font-bold text-base rounded-xl transition-all duration-150 shadow-md active:scale-[0.98] font-ubuntu"
             >
               Learn More
             </button>
@@ -145,7 +145,7 @@ export function QuickScanError({
             className={cx(
               "w-full h-[52px] font-bold text-base rounded-xl transition-all duration-150 shadow-md active:scale-[0.98] font-ubuntu",
               email && !isSubmitting && !isLoading
-                ? "bg-[#00BFFF] hover:bg-[#00D4FF] active:bg-[#0099CC] text-[#022136] active:text-white"
+                ? "bg-[#00BFFF] hover:bg-[#00D4FF] active:bg-[#0099CC] text-white"
                 : "bg-[#4A5568] text-[#7A92A8] cursor-not-allowed"
             )}
           >
