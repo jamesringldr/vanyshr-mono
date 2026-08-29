@@ -224,7 +224,7 @@ export function PilotStartPage() {
             className={cx(
               "h-12 rounded-lg font-semibold transition outline-none",
               isValid && !isSending
-                ? "bg-[#00BFFF] text-[#022136] hover:bg-[#00D4FF] focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#022136]"
+                ? "bg-[#00BFFF] text-white hover:bg-[#00D4FF] focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#022136]"
                 : "bg-[#D1D5DB] dark:bg-[#2A4A68] text-[#7A92A8] cursor-not-allowed",
             )}
           >

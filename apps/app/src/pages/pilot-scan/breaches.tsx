@@ -41,7 +41,7 @@ export function BreachesBody({ profile }: { profile: ConsolidatedProfile }) {
             <div className="mt-6">
                 {breachCards.length === 0 ? (
                     <div className="rounded-2xl bg-[#1A2E42] p-4 sm:p-5">
-                        <p className="text-sm text-[#7A92A8]">
+                        <p className="text-sm text-[#8CA3B8]">
                             No breaches found for any confirmed email.
                         </p>
                     </div>
@@ -56,11 +56,11 @@ export function BreachesBody({ profile }: { profile: ConsolidatedProfile }) {
                                     <p className="truncate text-[15px] font-semibold text-white">
                                         {b.name}
                                     </p>
-                                    <p className="shrink-0 text-xs text-[#7A92A8]">
+                                    <p className="shrink-0 text-xs text-[#8CA3B8]">
                                         {formatBreachDate(b.date, b.year)}
                                     </p>
                                 </div>
-                                <p className="mt-0.5 truncate text-xs text-[#7A92A8]">
+                                <p className="mt-0.5 truncate text-xs text-[#8CA3B8]">
                                     {b.email}
                                 </p>
                                 {b.fieldsExposed.length > 0 && (
