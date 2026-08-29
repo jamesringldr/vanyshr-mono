@@ -1,10 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
-import { Check } from "lucide-react";
-import { InlineLoader } from "generative-loaders";
-import "generative-loaders/styles.css";
-import { cx } from "@/utils/cx";
 import { supabase } from "@/lib/supabase";
 import { signupPath } from "@/lib/pending-scan";
 import {
@@ -20,12 +16,6 @@ import { ProgressDrawer, type ProgressStage, type ProgressMessage } from "./prog
 import { EducationalCards } from "./educational-cards";
 
 const EASE_OUT = [0.2, 0, 0, 1] as const;
-
-/**
- * generative-loaders@0.1.1 has no `vortex` yet — `orbit` is the closest
- * circular activity indicator from the published set.
- */
-const ACTIVE_LOADER_VARIANT = "orbit" as const;
 
 type Phase = "searching" | "pick" | "full_profile" | "emails" | "report" | "error" | "no_results";
 
@@ -225,32 +215,6 @@ function stepStatuses(phase: Phase, isConfirming: boolean): Record<string, StepS
     darkweb: !brokersDone ? "pending" : enriching ? "active" : "pending",
     results: "pending",
   };
-}
-
-
-function StepIndicator({ status }: { status: StepStatus }) {
-  if (status === "complete") {
-    return (
-      <span
-        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#22C55E]"
-        aria-hidden
-      >
-        <Check className="h-3.5 w-3.5 text-white" strokeWidth={3} />
-      </span>
-    );
-  }
-
-  if (status === "active") {
-    return (
-      <span className="flex h-6 w-6 shrink-0 items-center justify-center" aria-hidden>
-        <InlineLoader variant={ACTIVE_LOADER_VARIANT} size={24} color="#00BFFF" />
-      </span>
-    );
-  }
-
-  return (
-    <span className="h-6 w-6 shrink-0 rounded-full border-2 border-[#4A5568]" aria-hidden />
-  );
 }
 
 type IdentifyBroker = "fps" | "anywho" | "zaba" | "npd";
@@ -1020,27 +984,6 @@ export function PilotLoadingPage() {
           </AnimatePresence>
         </div>
 
-        <ol className="flex w-full max-w-[280px] flex-col gap-4" aria-label="Scan progress">
-          {STEPS.map((step) => {
-            const status = statuses[step.id]!;
-            return (
-              <li key={step.id} className="flex items-center gap-3">
-                <StepIndicator status={status} />
-                <span
-                  className={cx(
-                    "text-[15px] leading-snug transition-colors duration-200",
-                    status === "pending" && "text-[#7A92A8]",
-                    status === "active" && "font-medium text-white",
-                    status === "complete" && "text-[#B8C4CC]",
-                  )}
-                >
-                  {step.label}
-                </span>
-              </li>
-            );
-          })}
-        </ol>
-
         {phase === "error" && (
           <button
             type="button"
@@ -1050,21 +993,23 @@ export function PilotLoadingPage() {
             Continue anyway
           </button>
         )}
-      </div>
 
-      {/* Progress Drawer */}
-      <ProgressDrawer
-        isOpen={
-          (phase === "searching" ||
-            phase === "full_profile" ||
-            phase === "emails" ||
-            phase === "report") &&
-          !holdMode
-        }
-        stages={DRAWER_STAGES}
-        progressMessages={[...loggedMessages, ...syntheticMessages]}
-        statusAction={statusAction}
-      />
+        {/* Progress Drawer -- docked in-flow below the educational cards and
+            status text, not a fixed overlay, so opening it never covers
+            them; the page scrolls if the two together exceed the viewport. */}
+        <ProgressDrawer
+          isOpen={
+            (phase === "searching" ||
+              phase === "full_profile" ||
+              phase === "emails" ||
+              phase === "report") &&
+            !holdMode
+          }
+          stages={DRAWER_STAGES}
+          progressMessages={[...loggedMessages, ...syntheticMessages]}
+          statusAction={statusAction}
+        />
+      </div>
 
       <QSResultSingleModal
         isOpen={pickOpen && profiles.length === 1 && Boolean(profiles[0])}
