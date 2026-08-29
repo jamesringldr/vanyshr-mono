@@ -50,7 +50,7 @@ function Initials({
     <div
       className={cx(
         "flex items-center justify-center rounded-full font-semibold tracking-tight",
-        tint === "azure" ? "bg-[#00BFFF]/20 text-[#7ADFFF]" : "bg-[#022136] text-[#B8C4CC]",
+        tint === "azure" ? "bg-[#14ABFE]/20 text-[#7ADFFF]" : "bg-[#0B1B2B] text-[#94A3B8]",
         className,
       )}
     >
@@ -62,15 +62,15 @@ function Initials({
 function ProfileArt() {
   return (
     <div className={cx(shell, tones.profile)}>
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_28%,rgba(0,191,255,0.22),transparent_58%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_28%,rgba(20,171,254,0.22),transparent_58%)]" />
       <Initials
         letters="JM"
         className="absolute left-1/2 top-[16%] h-[38%] w-[38%] -translate-x-1/2 text-[13cqw]"
       />
       <div className="relative px-[12%] pb-[12%]">
         <p className="text-[13cqw] font-bold leading-none tracking-tight text-white">J. MORENO</p>
-        <p className="mt-[0.4em] text-[8cqw] text-[#B8C4CC]">34 · Austin, TX</p>
-        <p className="mt-[0.25em] text-[8cqw] font-medium text-[#00BFFF]">47 listings</p>
+        <p className="mt-[0.4em] text-[8cqw] text-[#94A3B8]">34 · Austin, TX</p>
+        <p className="mt-[0.25em] text-[8cqw] font-medium text-[#14ABFE]">47 listings</p>
       </div>
     </div>
   );
@@ -107,15 +107,15 @@ function AddressArt() {
         className="absolute inset-x-[10%] top-[10%] h-[46%] w-[80%]"
         aria-hidden
       >
-        <rect x="2" y="4" width="76" height="48" rx="6" fill="#022136" />
+        <rect x="2" y="4" width="76" height="48" rx="6" fill="#0B1B2B" />
         {[16, 32, 48].map((y) => (
-          <line key={y} x1="8" y1={y} x2="72" y2={y} stroke="#2A4A68" strokeWidth="1" />
+          <line key={y} x1="8" y1={y} x2="72" y2={y} stroke="#1E3A52" strokeWidth="1" />
         ))}
         {[22, 40, 58].map((x) => (
-          <line key={x} x1={x} y1="10" x2={x} y2="46" stroke="#2A4A68" strokeWidth="1" />
+          <line key={x} x1={x} y1="10" x2={x} y2="46" stroke="#1E3A52" strokeWidth="1" />
         ))}
-        <rect x="38" y="22" width="16" height="12" fill="#00BFFF" opacity="0.85" />
-        <circle cx="46" cy="20" r="3.2" fill="#00BFFF" />
+        <rect x="38" y="22" width="16" height="12" fill="#14ABFE" opacity="0.85" />
+        <circle cx="46" cy="20" r="3.2" fill="#14ABFE" />
       </svg>
       <div className="relative px-[12%] pb-[12%]">
         <p className="text-[12cqw] font-semibold leading-none text-white">412 Oak St</p>
@@ -130,11 +130,11 @@ function AddressArt() {
 function EmailArt() {
   return (
     <div className={cx(shell, tones.email)}>
-      <div className="absolute left-[16%] top-[16%] h-[28%] w-[68%] rounded-[18%] border border-white/15 bg-[#022136]" />
-      <div className="absolute left-[20%] top-[22%] h-[28%] w-[68%] rounded-[18%] border border-[#00BFFF]/35 bg-[#16384C]" />
+      <div className="absolute left-[16%] top-[16%] h-[28%] w-[68%] rounded-[18%] border border-white/15 bg-[#0B1B2B]" />
+      <div className="absolute left-[20%] top-[22%] h-[28%] w-[68%] rounded-[18%] border border-[#14ABFE]/35 bg-[#16384C]" />
       <div className="relative px-[10%] pb-[12%]">
         <p className="text-[9.5cqw] font-medium tracking-tight text-white">j.m••@gmail.com</p>
-        <p className="mt-[0.45em] text-[8cqw] font-medium text-[#00BFFF]">12 breaches</p>
+        <p className="mt-[0.45em] text-[8cqw] font-medium text-[#14ABFE]">12 breaches</p>
       </div>
     </div>
   );
@@ -165,7 +165,7 @@ function SsnArt() {
         <p className="text-[14cqw] font-semibold tabular-nums tracking-wider text-white">•• 4821</p>
       </div>
       <div className="relative px-[12%] pb-[12%]">
-        <p className="text-[9cqw] font-semibold uppercase tracking-[0.16em] text-[#FF8A00]">
+        <p className="text-[9cqw] font-semibold uppercase tracking-[0.16em] text-[#FF8400]">
           Exposed
         </p>
         <p className="mt-[0.35em] text-[7.5cqw] text-[#7A92A8]">SSN on file</p>
@@ -177,8 +177,8 @@ function SsnArt() {
 function SocialArt() {
   return (
     <div className={cx(shell, tones.social)}>
-      <div className="absolute inset-0 bg-[linear-gradient(160deg,rgba(0,191,255,0.18),transparent_55%)]" />
-      <p className="absolute left-[12%] top-[12%] text-[26cqw] font-bold leading-none text-[#00BFFF]/75">
+      <div className="absolute inset-0 bg-[linear-gradient(160deg,rgba(20,171,254,0.18),transparent_55%)]" />
+      <p className="absolute left-[12%] top-[12%] text-[26cqw] font-bold leading-none text-[#14ABFE]/75">
         @
       </p>
       <div className="relative px-[12%] pb-[12%]">
@@ -216,8 +216,8 @@ function PropertyArt() {
         className="absolute left-[18%] top-[14%] h-[40%] w-[64%]"
         aria-hidden
       >
-        <path d="M8 22 L32 6 L56 22 V40 H8 Z" fill="#022136" stroke="#00BFFF" strokeWidth="1.6" />
-        <rect x="26" y="26" width="12" height="14" fill="#00BFFF" opacity="0.7" />
+        <path d="M8 22 L32 6 L56 22 V40 H8 Z" fill="#0B1B2B" stroke="#14ABFE" strokeWidth="1.6" />
+        <rect x="26" y="26" width="12" height="14" fill="#14ABFE" opacity="0.7" />
       </svg>
       <div className="relative px-[12%] pb-[12%]">
         <p className="text-[7.5cqw] uppercase tracking-[0.14em] text-[#7A92A8]">Est. value</p>
@@ -234,7 +234,7 @@ function LocationArt() {
         <path
           d="M8 36 C22 10, 38 40, 52 16 S72 8, 74 20"
           fill="none"
-          stroke="#2A4A68"
+          stroke="#1E3A52"
           strokeWidth="2"
         />
         {[
@@ -243,8 +243,8 @@ function LocationArt() {
           [64, 16],
         ].map(([pinX, pinY]) => (
           <g key={`${pinX}-${pinY}`}>
-            <circle cx={pinX} cy={pinY} r="4" fill="#00BFFF" />
-            <circle cx={pinX} cy={pinY} r="8" fill="#00BFFF" opacity="0.18" />
+            <circle cx={pinX} cy={pinY} r="4" fill="#14ABFE" />
+            <circle cx={pinX} cy={pinY} r="8" fill="#14ABFE" opacity="0.18" />
           </g>
         ))}
       </svg>
@@ -265,7 +265,7 @@ function DobArt() {
             key={i}
             className={cx(
               "aspect-square rounded-[20%] bg-white/[0.06]",
-              i === 5 && "bg-[#00BFFF]/80",
+              i === 5 && "bg-[#14ABFE]/80",
             )}
           />
         ))}
@@ -283,13 +283,13 @@ function DobArt() {
 function SearchArt() {
   return (
     <div className={cx(shell, tones.search)}>
-      <p className="absolute left-[12%] top-[14%] text-[7cqw] font-medium uppercase tracking-[0.16em] text-[#00BFFF]">
+      <p className="absolute left-[12%] top-[14%] text-[7cqw] font-medium uppercase tracking-[0.16em] text-[#14ABFE]">
         People search
       </p>
       <div className="relative px-[12%] pb-[12%]">
         <p className="text-[12cqw] font-bold leading-none text-white">M. Harris, 41</p>
-        <p className="mt-[0.45em] text-[9cqw] text-[#B8C4CC]">Dallas, TX</p>
-        <p className="mt-[0.45em] text-[8cqw] font-medium text-[#00BFFF]">Full report →</p>
+        <p className="mt-[0.45em] text-[9cqw] text-[#94A3B8]">Dallas, TX</p>
+        <p className="mt-[0.45em] text-[8cqw] font-medium text-[#14ABFE]">Full report →</p>
       </div>
     </div>
   );

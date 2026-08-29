@@ -10,7 +10,7 @@ export function PilotExpiredPage() {
 
   return (
     <div
-      className="flex min-h-screen w-full flex-col items-center justify-center gap-6 bg-[#022136] px-6 font-ubuntu"
+      className="flex min-h-screen w-full flex-col items-center justify-center gap-6 bg-[#0B1B2B] px-6 font-ubuntu"
       role="main"
       aria-label="Scan expired"
     >
@@ -23,7 +23,7 @@ export function PilotExpiredPage() {
         <h1 className="text-2xl font-bold tracking-tight text-white">
           Report expired
         </h1>
-        <p className="mt-3 text-sm leading-relaxed text-[#B8C4CC]">
+        <p className="mt-3 text-sm leading-relaxed text-[#94A3B8]">
           Your scan results are kept for 7 days to protect your privacy. This report has
           expired and is no longer available.
         </p>
@@ -34,7 +34,7 @@ export function PilotExpiredPage() {
       <button
         type="button"
         onClick={() => navigate("/pilot-scan")}
-        className="h-12 px-8 rounded-full bg-white text-[#022136] font-semibold outline-none transition hover:bg-[#E8F7FF] focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2 focus-visible:ring-offset-[#022136]"
+        className="h-12 px-8 rounded-full bg-white text-[#0B1B2B] font-semibold outline-none transition hover:bg-[#E8F7FF] focus-visible:ring-2 focus-visible:ring-[#14ABFE] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0B1B2B]"
       >
         Run new scan
       </button>

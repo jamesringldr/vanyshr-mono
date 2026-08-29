@@ -49,11 +49,11 @@ function DarkOption({
             <span
                 className={cx(
                     "flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition",
-                    selected ? "border-[#00BFFF] bg-[#00BFFF]" : "border-[#2A4A68] bg-transparent",
+                    selected ? "border-[#14ABFE] bg-[#14ABFE]" : "border-[#1E3A52] bg-transparent",
                 )}
                 aria-hidden
             >
-                {selected ? <span className="h-1.5 w-1.5 rounded-full bg-[#022136]" /> : null}
+                {selected ? <span className="h-1.5 w-1.5 rounded-full bg-[#0B1B2B]" /> : null}
             </span>
             {children}
         </button>
@@ -217,7 +217,7 @@ export function QSNoResultsModal({
                             <button
                                 type="button"
                                 onClick={() => setShowAlternateField(true)}
-                                className="flex h-[52px] w-full items-center justify-center gap-2 rounded-lg border border-dashed border-[#2A4A68] text-[#7A92A8] transition-colors hover:border-[#00BFFF]/50 hover:text-[#00BFFF] focus:outline-none focus:ring-2 focus:ring-[#00BFFF]"
+                                className="flex h-[52px] w-full items-center justify-center gap-2 rounded-lg border border-dashed border-[#1E3A52] text-[#7A92A8] transition-colors hover:border-[#14ABFE]/50 hover:text-[#14ABFE] focus:outline-none focus:ring-2 focus:ring-[#14ABFE]"
                             >
                                 <Plus className="size-5" aria-hidden />
                                 <span className="text-sm font-medium">Add name</span>
@@ -285,7 +285,7 @@ export function QSNoResultsModal({
 
                 {step === "phone-loading" && (
                     <div className="space-y-4 py-6 text-center">
-                        <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-[#00BFFF]/20 border-t-[#00BFFF]" />
+                        <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-[#14ABFE]/20 border-t-[#14ABFE]" />
                         <p className={cx(qsModal.muted, "font-medium")}>Searching phone records...</p>
                     </div>
                 )}
@@ -305,28 +305,28 @@ export function QSNoResultsModal({
                         <div className="space-y-2 text-sm">
                             {phoneResult.location && (
                                 <div className="flex items-start gap-2">
-                                    <span className="w-20 shrink-0 font-semibold text-[#00BFFF]">Location</span>
-                                    <span className="text-[#B8C4CC]">{phoneResult.location}</span>
+                                    <span className="w-20 shrink-0 font-semibold text-[#14ABFE]">Location</span>
+                                    <span className="text-[#94A3B8]">{phoneResult.location}</span>
                                 </div>
                             )}
                             {(phoneResult.line_type || phoneResult.carrier) && (
                                 <div className="flex items-start gap-2">
-                                    <span className="w-20 shrink-0 font-semibold text-[#00BFFF]">Line Type</span>
-                                    <span className="text-[#B8C4CC]">
+                                    <span className="w-20 shrink-0 font-semibold text-[#14ABFE]">Line Type</span>
+                                    <span className="text-[#94A3B8]">
                                         {[phoneResult.line_type, phoneResult.carrier].filter(Boolean).join(" · ")}
                                     </span>
                                 </div>
                             )}
                             {phoneResult.most_recent_address && (
                                 <div className="flex items-start gap-2">
-                                    <span className="w-20 shrink-0 font-semibold text-[#00BFFF]">Address</span>
-                                    <span className="text-[#B8C4CC]">{phoneResult.most_recent_address}</span>
+                                    <span className="w-20 shrink-0 font-semibold text-[#14ABFE]">Address</span>
+                                    <span className="text-[#94A3B8]">{phoneResult.most_recent_address}</span>
                                 </div>
                             )}
                             {phoneResult.previous_phones.length > 0 && (
                                 <div className="flex items-start gap-2">
-                                    <span className="w-20 shrink-0 font-semibold text-[#00BFFF]">Also Used</span>
-                                    <span className="text-[#B8C4CC]">{phoneResult.previous_phones.join(", ")}</span>
+                                    <span className="w-20 shrink-0 font-semibold text-[#14ABFE]">Also Used</span>
+                                    <span className="text-[#94A3B8]">{phoneResult.previous_phones.join(", ")}</span>
                                 </div>
                             )}
                         </div>
@@ -339,12 +339,12 @@ export function QSNoResultsModal({
                                 <button
                                     type="button"
                                     onClick={() => setShowMoreDetails((v) => !v)}
-                                    className="text-sm font-semibold text-[#00BFFF] transition-colors hover:text-[#00D4FF]"
+                                    className="text-sm font-semibold text-[#14ABFE] transition-colors hover:text-[#00D4FF]"
                                 >
                                     {showMoreDetails ? "Show less ↑" : "Show more details ↓"}
                                 </button>
                                 {showMoreDetails && (
-                                    <div className="mt-3 space-y-3 text-sm text-[#B8C4CC]">
+                                    <div className="mt-3 space-y-3 text-sm text-[#94A3B8]">
                                         {phoneResult.aliases.length > 0 && (
                                             <div>
                                                 <p className="mb-0.5 font-semibold text-white">Also known as</p>
@@ -414,24 +414,24 @@ export function QSNoResultsModal({
                 {step === "signup-cta" && (
                     <div className="space-y-5">
                         <div className={qsModal.card}>
-                            <p className="text-sm leading-relaxed text-[#B8C4CC]">
+                            <p className="text-sm leading-relaxed text-[#94A3B8]">
                                 Our QuickScan searches the most common brokers — that&apos;s less than 5% of all the brokers and sources we monitor.
                             </p>
                         </div>
 
                         <div>
                             <p className="mb-3 text-sm font-semibold text-white">Sign up for a Forever Free account to:</p>
-                            <ul className="space-y-2 text-sm text-[#B8C4CC]">
+                            <ul className="space-y-2 text-sm text-[#94A3B8]">
                                 <li className="flex gap-2">
-                                    <span className="flex-shrink-0 font-bold text-[#00BFFF]">•</span>
+                                    <span className="flex-shrink-0 font-bold text-[#14ABFE]">•</span>
                                     <span>Scan 300+ additional brokers</span>
                                 </li>
                                 <li className="flex gap-2">
-                                    <span className="flex-shrink-0 font-bold text-[#00BFFF]">•</span>
+                                    <span className="flex-shrink-0 font-bold text-[#14ABFE]">•</span>
                                     <span>Dark Web Data Breach Scan</span>
                                 </li>
                                 <li className="flex gap-2">
-                                    <span className="flex-shrink-0 font-bold text-[#00BFFF]">•</span>
+                                    <span className="flex-shrink-0 font-bold text-[#14ABFE]">•</span>
                                     <span>Access to manually scan brokers once a month</span>
                                 </li>
                             </ul>

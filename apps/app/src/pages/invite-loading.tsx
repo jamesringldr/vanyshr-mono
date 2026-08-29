@@ -40,7 +40,7 @@ export function InviteLoading() {
 
     return (
         <div
-            className="min-h-screen w-full flex flex-col bg-[#F0F4F8] dark:bg-[#022136] transition-colors duration-200"
+            className="min-h-screen w-full flex flex-col bg-[#F0F4F8] dark:bg-[#0B1B2B] transition-colors duration-200"
             role="main"
             aria-label={isScanning ? "Preparing your scan" : "Compiling your results"}
         >
@@ -53,12 +53,12 @@ export function InviteLoading() {
             </div>
 
             <div className="flex flex-1 flex-col items-center px-4 pb-8 md:px-6">
-                <h1 className="text-center text-xl font-bold text-[#022136] dark:text-white md:text-2xl mt-2 mb-2 max-w-lg">
+                <h1 className="text-center text-xl font-bold text-[#0B1B2B] dark:text-white md:text-2xl mt-2 mb-2 max-w-lg">
                     {isScanning
                         ? "Prowling the deepest parts of the web to find who has your data..."
                         : "We found a broker selling your data!"}
                 </h1>
-                <p className="text-center text-sm text-[#B8C4CC] md:text-base max-w-lg mb-6 leading-relaxed">
+                <p className="text-center text-sm text-[#94A3B8] md:text-base max-w-lg mb-6 leading-relaxed">
                     {isScanning
                         ? "We are targeting known data brokers and crawling their databases to identify if they have your data and exactly what data they have."
                         : "We are collecting all the data this broker has for you and pinpointing the extent of your exposure."}

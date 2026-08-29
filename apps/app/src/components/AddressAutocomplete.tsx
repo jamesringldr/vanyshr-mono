@@ -64,7 +64,7 @@ export function AddressAutocomplete({
         <div className="space-y-1.5">
             <label
                 htmlFor={id}
-                className="block text-sm font-medium text-[#022136] dark:text-white"
+                className="block text-sm font-medium text-[#0B1B2B] dark:text-white"
             >
                 Address
             </label>
@@ -84,10 +84,10 @@ export function AddressAutocomplete({
                     autoComplete="off"
                     className={cx(
                         "h-[52px] w-full rounded-xl border py-3 pl-12 pr-4 text-base outline-none transition",
-                        "bg-[#022136]/50 dark:bg-[#022136]/50",
-                        "border-[#2A4A68]",
+                        "bg-[#0B1B2B]/50 dark:bg-[#0B1B2B]/50",
+                        "border-[#1E3A52]",
                         "text-white placeholder:text-[#7A92A8]",
-                        "focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2 focus-visible:ring-offset-[#022136]",
+                        "focus-visible:ring-2 focus-visible:ring-[#14ABFE] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0B1B2B]",
                     )}
                 />
             </div>
@@ -95,7 +95,7 @@ export function AddressAutocomplete({
             {isOpen && suggestions.length > 0 && createPortal(
                 <div
                     style={dropdownStyle}
-                    className="z-[9999] overflow-hidden rounded-xl border border-[#2A4A68] bg-[#2D3847] shadow-xl"
+                    className="z-[9999] overflow-hidden rounded-xl border border-[#1E3A52] bg-[#112538] shadow-xl"
                 >
                     {suggestions.map((s, i) => (
                         <button
@@ -104,8 +104,8 @@ export function AddressAutocomplete({
                             onMouseDown={() => handleSelect(s.formatted)}
                             className={cx(
                                 "flex w-full items-start gap-3 px-4 py-3 text-left text-sm transition",
-                                "border-b border-[#2A4A68] last:border-0",
-                                "hover:bg-[#00BFFF]/10 active:bg-[#00BFFF]/20",
+                                "border-b border-[#1E3A52] last:border-0",
+                                "hover:bg-[#14ABFE]/10 active:bg-[#14ABFE]/20",
                             )}
                         >
                             <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#7A92A8]" aria-hidden />

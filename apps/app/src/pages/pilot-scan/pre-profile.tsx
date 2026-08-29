@@ -259,7 +259,7 @@ export function PreProfileBody({ profile }: { profile: ConsolidatedProfile }) {
                                         </p>
                                     )}
                                     {cityState(addr) && (
-                                        <p className="text-sm text-white">
+                                        <p className="text-sm font-normal text-[#94A3B8]">
                                             {cityState(addr)}
                                         </p>
                                     )}
@@ -375,18 +375,18 @@ export function PilotPreProfilePage() {
     if (!stored) {
         return (
             <div
-                className="flex min-h-screen w-full flex-col items-center justify-center bg-[#022136] p-4 font-sans"
+                className="flex min-h-screen w-full flex-col items-center justify-center bg-[#0B1B2B] p-4 font-sans"
                 role="main"
                 aria-label="Error loading profile"
             >
                 <div className="w-full max-w-md text-center">
                     <h1 className="mb-2 text-xl font-bold text-white">No profile data found</h1>
-                    <p className="mb-6 text-sm text-[#B8C4CC]">
+                    <p className="mb-6 text-sm text-[#94A3B8]">
                         Nothing came through from this scan — run it again from the start.
                     </p>
                     <Link
                         to="/pilot-scan"
-                        className="inline-flex h-[44px] items-center justify-center rounded-xl bg-[#00BFFF] px-6 font-semibold text-white transition-all hover:bg-[#1196E0]"
+                        className="inline-flex h-[44px] items-center justify-center rounded-xl bg-[#14ABFE] px-6 font-semibold text-white transition-all hover:bg-[#1196E0]"
                         onClick={() => navigate("/pilot-scan")}
                     >
                         Start over
@@ -398,7 +398,7 @@ export function PilotPreProfilePage() {
 
     return (
         <div
-            className="min-h-screen w-full bg-[#022136] font-sans"
+            className="min-h-screen w-full bg-[#0B1B2B] font-sans"
             role="main"
             aria-label="Pre-profile exposure summary"
         >

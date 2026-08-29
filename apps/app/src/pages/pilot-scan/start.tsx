@@ -5,6 +5,7 @@ import PrimaryIconOutline from "@vanyshr/ui/assets/PrimaryIcon-outline.png";
 import { cx } from "@/utils/cx";
 import { supabase } from "@/lib/supabase";
 import { usePilotScanResult } from "./use-pilot-scan-result";
+import { loadConsolidatedProfile } from "./consolidated-profile";
 
 /**
  * Pilot scan conversion screen — email capture and magic link signup.
@@ -16,7 +17,10 @@ import { usePilotScanResult } from "./use-pilot-scan-result";
 export function PilotStartPage() {
   const navigate = useNavigate();
   const { result } = usePilotScanResult();
-  const scanId = result?.quick_scan_id;
+  // Fallback to consolidated profile if the scan result hook didn't find it
+  // (this handles the case where user navigates from report page to start page)
+  const consolidatedData = useMemo(() => loadConsolidatedProfile().data, []);
+  const scanId = result?.quick_scan_id || consolidatedData?.quick_scan_id;
 
   const [email, setEmail] = useState("");
   const [isSending, setIsSending] = useState(false);

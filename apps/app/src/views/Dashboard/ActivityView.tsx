@@ -130,16 +130,16 @@ const MOCK_ACTIVITIES: ActivityItem[] = [
 // ─────────────────────────────────────────────────────────────────────────────
 
 const TYPE_CONFIG: Record<ActivityType, { bg: string; iconColor: string; Icon: React.ElementType }> = {
-  'Broker Scan':   { bg: 'bg-[#00BFFF]/10', iconColor: 'text-[#00BFFF]', Icon: Search        },
+  'Broker Scan':   { bg: 'bg-[#14ABFE]/10', iconColor: 'text-[#14ABFE]', Icon: Search        },
   'Dark Web Scan': { bg: 'bg-[#7A92A8]/10', iconColor: 'text-[#7A92A8]', Icon: Shield        },
   'Removal':       { bg: 'bg-[#00D4AA]/10', iconColor: 'text-[#00D4AA]', Icon: CheckCircle   },
-  'Breach':        { bg: 'bg-[#FF8A00]/10', iconColor: 'text-[#FF8A00]', Icon: AlertTriangle },
-  'Exposure':      { bg: 'bg-[#FF8A00]/10', iconColor: 'text-[#FF8A00]', Icon: AlertTriangle },
+  'Breach':        { bg: 'bg-[#FF8400]/10', iconColor: 'text-[#FF8400]', Icon: AlertTriangle },
+  'Exposure':      { bg: 'bg-[#FF8400]/10', iconColor: 'text-[#FF8400]', Icon: AlertTriangle },
 };
 
 const STATUS_CONFIG: Record<ActivityStatus, { color: string; bg: string; label: string }> = {
-  'New':         { color: 'text-[#FF8A00]', bg: 'bg-[#FF8A00]/15', label: 'NEW'         },
-  'In Progress': { color: 'text-[#00BFFF]', bg: 'bg-[#00BFFF]/15', label: 'IN PROGRESS' },
+  'New':         { color: 'text-[#FF8400]', bg: 'bg-[#FF8400]/15', label: 'NEW'         },
+  'In Progress': { color: 'text-[#14ABFE]', bg: 'bg-[#14ABFE]/15', label: 'IN PROGRESS' },
   'Complete':    { color: 'text-[#00D4AA]', bg: 'bg-[#00D4AA]/15', label: 'COMPLETE'    },
 };
 
@@ -232,7 +232,7 @@ export function ActivityView() {
 
   // ─────────────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-[#022136] font-ubuntu">
+    <div className="min-h-screen bg-[#0B1B2B] font-ubuntu">
       <div className="pb-24 overflow-y-auto">
         <div className="flex flex-col gap-5 py-6 px-6">
 
@@ -240,7 +240,7 @@ export function ActivityView() {
           <div className="flex items-center gap-3">
             <button
               onClick={() => navigate('/dashboard/home')}
-              className="p-1 rounded-lg hover:bg-[#2D3847] transition-colors cursor-pointer"
+              className="p-1 rounded-lg hover:bg-[#112538] transition-colors cursor-pointer"
               aria-label="Go back"
             >
               <ChevronLeft className="w-5 h-5 text-[#7A92A8]" />
@@ -264,8 +264,8 @@ export function ActivityView() {
                   onClick={() => setTypeFilter(opt.key)}
                   className={`flex-shrink-0 text-xs font-medium px-3 py-1.5 rounded-full border transition-colors duration-150 cursor-pointer ${
                     typeFilter === opt.key
-                      ? 'bg-[#00BFFF]/20 border-[#00BFFF] text-[#00BFFF]'
-                      : 'bg-transparent border-[#2A4A68] text-[#7A92A8] hover:border-[#4A6A88] hover:text-[#B8C4CC]'
+                      ? 'bg-[#14ABFE]/20 border-[#14ABFE] text-[#14ABFE]'
+                      : 'bg-transparent border-[#1E3A52] text-[#7A92A8] hover:border-[#4A6A88] hover:text-[#94A3B8]'
                   }`}
                 >
                   {opt.label}
@@ -284,8 +284,8 @@ export function ActivityView() {
                   onClick={() => setStatusFilter(opt.key)}
                   className={`flex-shrink-0 text-xs font-medium px-3 py-1.5 rounded-full border transition-colors duration-150 cursor-pointer ${
                     statusFilter === opt.key
-                      ? 'bg-[#00BFFF]/20 border-[#00BFFF] text-[#00BFFF]'
-                      : 'bg-transparent border-[#2A4A68] text-[#7A92A8] hover:border-[#4A6A88] hover:text-[#B8C4CC]'
+                      ? 'bg-[#14ABFE]/20 border-[#14ABFE] text-[#14ABFE]'
+                      : 'bg-transparent border-[#1E3A52] text-[#7A92A8] hover:border-[#4A6A88] hover:text-[#94A3B8]'
                   }`}
                 >
                   {opt.label}
@@ -296,7 +296,7 @@ export function ActivityView() {
 
           {/* ── ACTIVITY LIST ───────────────────────────────────────────── */}
           {filtered.length === 0 ? (
-            <div className="bg-[#2D3847] border border-[#2A4A68] rounded-xl px-6 py-12 flex flex-col items-center gap-3 text-center mt-2">
+            <div className="bg-[#112538] border border-[#1E3A52] rounded-xl px-6 py-12 flex flex-col items-center gap-3 text-center mt-2">
               <Activity className="w-8 h-8 text-[#7A92A8]" />
               <p className="text-sm font-bold text-white">No activity found</p>
               <p className="text-xs text-[#7A92A8]">
@@ -313,7 +313,7 @@ export function ActivityView() {
                     <span className="text-[10px] font-medium tracking-widest uppercase text-[#7A92A8] flex-shrink-0">
                       {group}
                     </span>
-                    <div className="flex-1 h-px bg-[#2A4A68]" />
+                    <div className="flex-1 h-px bg-[#1E3A52]" />
                   </div>
 
                   {/* Activity items */}
@@ -326,7 +326,7 @@ export function ActivityView() {
                       return (
                         <button
                           key={item.id}
-                          className="bg-[#2D3847] border border-[#2A4A68] rounded-xl px-4 py-3 flex items-start gap-3 w-full text-left cursor-pointer hover:border-[#3A5A78] transition-colors duration-150"
+                          className="bg-[#112538] border border-[#1E3A52] rounded-xl px-4 py-3 flex items-start gap-3 w-full text-left cursor-pointer hover:border-[#3A5A78] transition-colors duration-150"
                           onClick={() => console.log(`open activity: ${item.id}`)}
                         >
                           {/* Type icon */}
@@ -344,7 +344,7 @@ export function ActivityView() {
                               </span>
                             </div>
 
-                            <p className="text-xs text-[#B8C4CC] mt-0.5 leading-snug">{item.summary}</p>
+                            <p className="text-xs text-[#94A3B8] mt-0.5 leading-snug">{item.summary}</p>
 
                             {/* Meta row */}
                             <div className="flex items-center gap-2 mt-1.5">
@@ -367,7 +367,7 @@ export function ActivityView() {
       </div>
 
       {/* ── FIXED BOTTOM NAV ──────────────────────────────────────────────── */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-[#022136] border-t border-[#2A4A68] h-16 px-2 flex items-center justify-around z-50">
+      <nav className="fixed bottom-0 left-0 right-0 bg-[#0B1B2B] border-t border-[#1E3A52] h-16 px-2 flex items-center justify-around z-50">
         {[
           { label: 'Home',      Icon: Home,          path: '/dashboard/home',     active: false },
           { label: 'Exposures', Icon: Shield,         path: '/dashboard/exposures', active: false },
@@ -379,8 +379,8 @@ export function ActivityView() {
             className="flex flex-col items-center gap-1 flex-1 py-2 cursor-pointer"
             onClick={() => navigate(path)}
           >
-            <Icon className={`w-5 h-5 ${active ? 'text-[#00BFFF]' : 'text-[#7A92A8]'}`} />
-            <span className={`text-[10px] font-medium ${active ? 'text-[#00BFFF]' : 'text-[#7A92A8]'}`}>{label}</span>
+            <Icon className={`w-5 h-5 ${active ? 'text-[#14ABFE]' : 'text-[#7A92A8]'}`} />
+            <span className={`text-[10px] font-medium ${active ? 'text-[#14ABFE]' : 'text-[#7A92A8]'}`}>{label}</span>
           </button>
         ))}
       </nav>

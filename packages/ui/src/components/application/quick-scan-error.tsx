@@ -45,7 +45,7 @@ export function QuickScanError({
   // Success state
   if (emailSubmitted) {
     return (
-      <div className={cx("w-full bg-[#2D3847] rounded-xl overflow-hidden", className)}>
+      <div className={cx("w-full bg-[#112538] rounded-xl overflow-hidden", className)}>
         <div className="p-6 pt-8 flex flex-col gap-8 items-center text-center min-h-[500px] flex flex-col items-center justify-center">
           {/* Success icon/graphic */}
           <div className="flex flex-col gap-4 items-center">
@@ -68,7 +68,7 @@ export function QuickScanError({
               <h2 className="text-2xl font-bold text-white font-ubuntu">
                 Got It!
               </h2>
-              <p className="text-[#B8C4CC] text-base font-ubuntu">
+              <p className="text-[#94A3B8] text-base font-ubuntu">
                 We'll send results to <span className="font-bold text-white">{email}</span> once our agents are back online.
               </p>
             </div>
@@ -81,7 +81,7 @@ export function QuickScanError({
             </p>
             <button
               onClick={onDismiss}
-              className="w-full h-[52px] bg-[#00BFFF] hover:bg-[#00D4FF] active:bg-[#0099CC] text-white font-bold text-base rounded-xl transition-all duration-150 shadow-md active:scale-[0.98] font-ubuntu"
+              className="w-full h-[52px] bg-[#14ABFE] hover:bg-[#00D4FF] active:bg-[#0099CC] text-[#0B1B2B] active:text-white font-bold text-base rounded-xl transition-all duration-150 shadow-md active:scale-[0.98] font-ubuntu"
             >
               Learn More
             </button>
@@ -93,7 +93,7 @@ export function QuickScanError({
 
   // Error state
   return (
-    <div className={cx("w-full bg-[#2D3847] rounded-xl overflow-hidden", className)}>
+    <div className={cx("w-full bg-[#112538] rounded-xl overflow-hidden", className)}>
       <div className="p-6 pt-8 flex flex-col gap-8">
         {/* Heading */}
         <div className="flex flex-col gap-3 text-center">
@@ -104,7 +104,7 @@ export function QuickScanError({
 
         {/* Body copy */}
         <div className="flex flex-col gap-4 text-center">
-          <p className="text-[#B8C4CC] text-base font-normal font-ubuntu leading-[1.5]">
+          <p className="text-[#94A3B8] text-base font-normal font-ubuntu leading-[1.5]">
             We are actively working on fixing our search agents
           </p>
           <p className="text-white font-bold text-base font-ubuntu leading-[1.5]">
@@ -126,10 +126,10 @@ export function QuickScanError({
               }}
               disabled={isSubmitting || isLoading}
               className={cx(
-                "h-[52px] w-full rounded-xl border px-4 py-3 text-base bg-[#022136]/50 text-white placeholder:text-[#7A92A8] font-ubuntu outline-none transition-colors duration-150 disabled:opacity-50",
+                "h-[52px] w-full rounded-xl border px-4 py-3 text-base bg-[#0B1B2B]/50 text-white placeholder:text-[#7A92A8] font-ubuntu outline-none transition-colors duration-150 disabled:opacity-50",
                 emailError
                   ? "border-[#FF5757] focus:border-[#FF5757] focus:ring-1 focus:ring-[#FF5757]"
-                  : "border-[#2A4A68] focus:border-[#00BFFF] focus:ring-1 focus:ring-[#00BFFF]"
+                  : "border-[#1E3A52] focus:border-[#14ABFE] focus:ring-1 focus:ring-[#14ABFE]"
               )}
             />
             {emailError && (
@@ -145,7 +145,7 @@ export function QuickScanError({
             className={cx(
               "w-full h-[52px] font-bold text-base rounded-xl transition-all duration-150 shadow-md active:scale-[0.98] font-ubuntu",
               email && !isSubmitting && !isLoading
-                ? "bg-[#00BFFF] hover:bg-[#00D4FF] active:bg-[#0099CC] text-white"
+                ? "bg-[#14ABFE] hover:bg-[#00D4FF] active:bg-[#0099CC] text-[#0B1B2B] active:text-white"
                 : "bg-[#4A5568] text-[#7A92A8] cursor-not-allowed"
             )}
           >
@@ -160,7 +160,7 @@ export function QuickScanError({
           </p>
           <button
             onClick={onDismiss}
-            className="text-[#7A92A8] text-xs leading-relaxed hover:text-[#B8C4CC] transition-colors duration-150 font-ubuntu"
+            className="text-[#7A92A8] text-xs leading-relaxed hover:text-[#94A3B8] transition-colors duration-150 font-ubuntu"
           >
             No Worries! Your search won't be queued and will be completely wiped from our database
           </button>

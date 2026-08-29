@@ -119,7 +119,7 @@ export function VanishingPiiField({ onComplete, onVanishStart }: VanishingPiiFie
         transition={{ duration: 0.9, ease: EASE }}
         style={{
           background:
-            "radial-gradient(ellipse 70% 48% at 50% 40%, rgba(0,191,255,0.16), transparent 70%)",
+            "radial-gradient(ellipse 70% 48% at 50% 40%, rgba(20,171,254,0.16), transparent 70%)",
         }}
       />
 

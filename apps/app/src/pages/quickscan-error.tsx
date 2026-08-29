@@ -32,7 +32,7 @@ export function QuickScanErrorPage() {
   }, [navigate]);
 
   return (
-    <div className="min-h-screen w-full flex flex-col items-center justify-center p-4 bg-[#F0F4F8] dark:bg-[#022136] font-sans transition-colors duration-200">
+    <div className="min-h-screen w-full flex flex-col items-center justify-center p-4 bg-[#F0F4F8] dark:bg-[#0B1B2B] font-sans transition-colors duration-200">
 
       {/* Logo - Positioned above container */}
       <div className="mb-8">
@@ -51,7 +51,7 @@ export function QuickScanErrorPage() {
       <QuickScanError
         onQueueWithEmail={handleQueueWithEmail}
         onDismiss={handleDismiss}
-        className="max-w-md border border-[#D4DFE8] dark:border-[#2A4A68] shadow-lg"
+        className="max-w-md border border-[#D4DFE8] dark:border-[#1E3A52] shadow-lg"
       />
     </div>
   );

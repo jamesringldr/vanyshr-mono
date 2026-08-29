@@ -55,15 +55,15 @@ const MOCK_ACTIVITIES: ActivityItem[] = [
 // ─────────────────────────────────────────────────────────────────────────────
 
 const TYPE_CONFIG: Record<ActivityType, { bg: string; iconColor: string; Icon: React.ElementType }> = {
-  'Scan':     { bg: 'bg-[#00BFFF]/10', iconColor: 'text-[#00BFFF]', Icon: Activity      },
-  'Exposure': { bg: 'bg-[#FF8A00]/10', iconColor: 'text-[#FF8A00]', Icon: AlertTriangle },
+  'Scan':     { bg: 'bg-[#14ABFE]/10', iconColor: 'text-[#14ABFE]', Icon: Activity      },
+  'Exposure': { bg: 'bg-[#FF8400]/10', iconColor: 'text-[#FF8400]', Icon: AlertTriangle },
   'Breach':   { bg: 'bg-[#7A92A8]/10', iconColor: 'text-[#7A92A8]', Icon: Shield        },
 };
 
 const STATUS_CONFIG: Record<ActivityStatus, { color: string; bg: string; label: string }> = {
-  'New':        { color: 'text-[#FF8A00]', bg: 'bg-[#FF8A00]/15', label: 'New'        },
+  'New':        { color: 'text-[#FF8400]', bg: 'bg-[#FF8400]/15', label: 'New'        },
   'Unresolved': { color: 'text-[#FFB81C]', bg: 'bg-[#FFB81C]/15', label: 'Unresolved' },
-  'Requested':  { color: 'text-[#00BFFF]', bg: 'bg-[#00BFFF]/15', label: 'Requested'  },
+  'Requested':  { color: 'text-[#14ABFE]', bg: 'bg-[#14ABFE]/15', label: 'Requested'  },
   'Resolved':   { color: 'text-[#00D4AA]', bg: 'bg-[#00D4AA]/15', label: 'Resolved'   },
 };
 
@@ -128,7 +128,7 @@ export const Transactions = () => {
 
   // ─────────────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-[#022136] font-ubuntu">
+    <div className="min-h-screen bg-[#0B1B2B] font-ubuntu">
 
       {/* ── MAIN CONTENT ────────────────────────────────────────────────── */}
       <main className="px-4 pb-24 space-y-4">
@@ -149,8 +149,8 @@ export const Transactions = () => {
                 onClick={() => setTypeFilter(f.key)}
                 className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors cursor-pointer ${
                   isActive
-                    ? 'bg-[#00BFFF] text-[#022136]'
-                    : 'bg-[#2D3847] border border-[#2A4A68] text-[#B8C4CC]'
+                    ? 'bg-[#14ABFE] text-[#0B1B2B]'
+                    : 'bg-[#112538] border border-[#1E3A52] text-[#94A3B8]'
                 }`}
               >
                 {f.label}
@@ -182,16 +182,16 @@ export const Transactions = () => {
                         onClick={() => setShowStatusMenu(s => !s)}
                         className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors cursor-pointer ${
                           isStatusFiltered
-                            ? 'bg-[#00BFFF]/20 border border-[#00BFFF]'
-                            : 'bg-[#2D3847] border border-[#2A4A68]'
+                            ? 'bg-[#14ABFE]/20 border border-[#14ABFE]'
+                            : 'bg-[#112538] border border-[#1E3A52]'
                         }`}
                       >
-                        <Filter className={`w-4 h-4 ${isStatusFiltered ? 'text-[#00BFFF]' : 'text-[#7A92A8]'}`} />
+                        <Filter className={`w-4 h-4 ${isStatusFiltered ? 'text-[#14ABFE]' : 'text-[#7A92A8]'}`} />
                       </button>
 
                       {/* Status dropdown */}
                       {showStatusMenu && (
-                        <div className="absolute right-0 top-10 z-20 bg-[#2D3847] border border-[#2A4A68] rounded-xl overflow-hidden shadow-xl min-w-[148px]">
+                        <div className="absolute right-0 top-10 z-20 bg-[#112538] border border-[#1E3A52] rounded-xl overflow-hidden shadow-xl min-w-[148px]">
                           {STATUS_FILTERS.map((opt) => {
                             const isSelected = statusFilter === opt.key;
                             const cfg = opt.key !== 'All' ? STATUS_CONFIG[opt.key as ActivityStatus] : null;
@@ -202,8 +202,8 @@ export const Transactions = () => {
                                 onClick={() => { setStatusFilter(opt.key); setShowStatusMenu(false); }}
                                 className={`w-full text-left flex items-center gap-2.5 px-4 py-2.5 text-xs font-medium transition-colors cursor-pointer ${
                                   isSelected
-                                    ? 'bg-[#00BFFF]/15 text-[#00BFFF]'
-                                    : 'text-[#B8C4CC] hover:bg-[#022136]/50 hover:text-white'
+                                    ? 'bg-[#14ABFE]/15 text-[#14ABFE]'
+                                    : 'text-[#94A3B8] hover:bg-[#0B1B2B]/50 hover:text-white'
                                 }`}
                               >
                                 {cfg && (
@@ -229,7 +229,7 @@ export const Transactions = () => {
                     return (
                       <div
                         key={item.id}
-                        className="flex items-center justify-between bg-[#2D3847] rounded-xl border border-[#2A4A68] p-4"
+                        className="flex items-center justify-between bg-[#112538] rounded-xl border border-[#1E3A52] p-4"
                       >
                         {/* Left: Icon + Details */}
                         <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -238,7 +238,7 @@ export const Transactions = () => {
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium text-white truncate">{item.title}</p>
-                            <p className="text-xs text-[#B8C4CC] mt-0.5 truncate">{item.description}</p>
+                            <p className="text-xs text-[#94A3B8] mt-0.5 truncate">{item.description}</p>
                           </div>
                         </div>
 
@@ -259,7 +259,7 @@ export const Transactions = () => {
 
           {/* Empty state */}
           {filtered.length === 0 && (
-            <div className="bg-[#2D3847] border border-[#2A4A68] rounded-xl px-6 py-12 flex flex-col items-center gap-3 text-center">
+            <div className="bg-[#112538] border border-[#1E3A52] rounded-xl px-6 py-12 flex flex-col items-center gap-3 text-center">
               <CheckCircle className="w-8 h-8 text-[#7A92A8]" />
               <p className="text-sm font-bold text-white">No activity found</p>
               <p className="text-xs text-[#7A92A8]">Try adjusting your filters.</p>
@@ -270,9 +270,9 @@ export const Transactions = () => {
       </main>
 
       {/* ── BOTTOM NAV — matches /dashboard/home ──────────────────────────── */}
-      <nav className="fixed bottom-0 left-0 right-0 px-4 pb-4 pt-2 bg-gradient-to-t from-[#022136] to-transparent z-50" aria-label="Main navigation">
+      <nav className="fixed bottom-0 left-0 right-0 px-4 pb-4 pt-2 bg-gradient-to-t from-[#0B1B2B] to-transparent z-50" aria-label="Main navigation">
         <div className="max-w-lg mx-auto">
-          <div className="flex items-center justify-around bg-[#2D3847] rounded-full px-4 py-2 border border-[#2A4A68]">
+          <div className="flex items-center justify-around bg-[#112538] rounded-full px-4 py-2 border border-[#1E3A52]">
             {[
               { label: 'Home',      Icon: Home,         path: '/dashboard/home',      active: false },
               { label: 'Exposures', Icon: AlertTriangle,  path: '/dashboard/exposures', active: false },
@@ -286,10 +286,10 @@ export const Transactions = () => {
                 aria-current={active ? 'page' : undefined}
                 onClick={() => navigate(path)}
                 className={`relative flex items-center justify-center w-14 h-10 rounded-full transition-colors cursor-pointer ${
-                  active ? 'bg-[#022136]' : 'hover:bg-[#022136]/50'
+                  active ? 'bg-[#0B1B2B]' : 'hover:bg-[#0B1B2B]/50'
                 }`}
               >
-                <Icon className={`w-6 h-6 ${active ? 'text-[#00BFFF]' : 'text-[#7A92A8]'}`} />
+                <Icon className={`w-6 h-6 ${active ? 'text-[#14ABFE]' : 'text-[#7A92A8]'}`} />
               </button>
             ))}
           </div>

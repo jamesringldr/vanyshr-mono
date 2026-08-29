@@ -244,7 +244,7 @@ function StepIndicator({ status }: { status: StepStatus }) {
   if (status === "active") {
     return (
       <span className="flex h-6 w-6 shrink-0 items-center justify-center" aria-hidden>
-        <InlineLoader variant={ACTIVE_LOADER_VARIANT} size={24} color="#00BFFF" />
+        <InlineLoader variant={ACTIVE_LOADER_VARIANT} size={24} color="#14ABFE" />
       </span>
     );
   }
@@ -626,7 +626,7 @@ export function PilotLoadingPage() {
           data?.broker_fields && typeof data.broker_fields === "object" ? data.broker_fields : {};
         const brokers = Object.keys(brokerFields);
         if (data?.consolidated_profile) {
-          saveConsolidatedProfile(data.consolidated_profile as ConsolidatedProfile, brokers.length, brokers, brokerFields);
+          saveConsolidatedProfile(data.consolidated_profile as ConsolidatedProfile, brokers.length, brokers, brokerFields, quickscanId);
         }
       }
     } catch (err) {
@@ -878,6 +878,7 @@ export function PilotLoadingPage() {
           stored?.brokerCount ?? 1,
           stored?.brokers,
           stored?.brokerFields,
+          stored?.quick_scan_id,
         );
       }
     } catch (err) {
@@ -964,7 +965,7 @@ export function PilotLoadingPage() {
 
   return (
     <div
-      className="relative flex min-h-screen w-full flex-col items-center justify-center overflow-x-hidden bg-[#022136] px-6 py-12 font-ubuntu"
+      className="relative flex min-h-screen w-full flex-col items-center justify-center overflow-x-hidden bg-[#0B1B2B] px-6 py-12 font-ubuntu"
       role="main"
       aria-label="Scan in progress"
       aria-busy={phase === "searching" || phase === "full_profile"}
@@ -982,7 +983,7 @@ export function PilotLoadingPage() {
 
         <div className="relative mb-6 flex h-[240px] w-[240px] items-center justify-center overflow-visible">
           <div
-            className="pointer-events-none absolute left-1/2 top-1/2 h-[200px] w-[200px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#00BFFF]/40 blur-[48px]"
+            className="pointer-events-none absolute left-1/2 top-1/2 h-[200px] w-[200px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#14ABFE]/40 blur-[48px]"
             aria-hidden
           />
           <motion.img
@@ -1007,7 +1008,7 @@ export function PilotLoadingPage() {
               exit={prefersReducedMotion ? undefined : { opacity: 0, y: -6 }}
               transition={{ duration: 0.28, ease: EASE_OUT }}
             >
-              <p className="text-base text-[#B8C4CC]">
+              <p className="text-base text-[#94A3B8]">
                 {phase === "error"
                   ? "Something stopped the scan"
                   : phase === "no_results"
@@ -1050,7 +1051,7 @@ export function PilotLoadingPage() {
                     "text-[15px] leading-snug transition-colors duration-200",
                     status === "pending" && "text-[#7A92A8]",
                     status === "active" && "font-medium text-white",
-                    status === "complete" && "text-[#B8C4CC]",
+                    status === "complete" && "text-[#94A3B8]",
                   )}
                 >
                   {step.label}
@@ -1064,7 +1065,7 @@ export function PilotLoadingPage() {
           <button
             type="button"
             onClick={() => go("report")}
-            className="mt-8 rounded-lg bg-[#00BFFF] px-5 py-2.5 text-sm font-semibold text-white"
+            className="mt-8 rounded-lg bg-[#14ABFE] px-5 py-2.5 text-sm font-semibold text-[#0B1B2B]"
           >
             Continue anyway
           </button>

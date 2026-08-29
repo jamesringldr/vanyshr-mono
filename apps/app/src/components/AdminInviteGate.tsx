@@ -36,7 +36,7 @@ export function AdminInviteGate({ emailHint }: AdminInviteGateProps) {
     <div
       className={cx(
         "min-h-screen w-full font-sans transition-colors duration-200",
-        "bg-[#F0F4F8] dark:bg-[#022136]",
+        "bg-[#F0F4F8] dark:bg-[#0B1B2B]",
       )}
       role="main"
       aria-label="Email verification gate"
@@ -51,18 +51,18 @@ export function AdminInviteGate({ emailHint }: AdminInviteGateProps) {
           />
         </div>
 
-        <h1 className="mt-3 text-center text-2xl font-bold tracking-tight text-[#022136] dark:text-white">
+        <h1 className="mt-3 text-center text-2xl font-bold tracking-tight text-[#0B1B2B] dark:text-white">
           Your privacy report is ready
         </h1>
         <p className="mt-2 text-center text-sm text-[var(--text-muted)] dark:text-[#7A92A8]">
           We sent a secure link to
           <br />
-          <span className="font-semibold text-[#022136] dark:text-white">
+          <span className="font-semibold text-[#0B1B2B] dark:text-white">
             {maskedEmail}
           </span>
         </p>
 
-        <p className="mt-5 text-center text-sm font-bold text-[#022136] dark:text-white">
+        <p className="mt-5 text-center text-sm font-bold text-[#0B1B2B] dark:text-white">
           Open it on this device to view your report.
           <br />
           No password needed.
@@ -71,12 +71,12 @@ export function AdminInviteGate({ emailHint }: AdminInviteGateProps) {
         <div
           className={cx(
             "mt-4 rounded-xl border p-4",
-            "bg-[var(--bg-surface)] dark:bg-[#2D3847]",
-            "border-[var(--border-subtle)] dark:border-[#2A4A68]",
+            "bg-[var(--bg-surface)] dark:bg-[#112538]",
+            "border-[var(--border-subtle)] dark:border-[#1E3A52]",
           )}
         >
           <div className="text-center">
-            <p className="text-sm font-bold text-[#022136] dark:text-white">
+            <p className="text-sm font-bold text-[#0B1B2B] dark:text-white">
               Didn&apos;t get it?
             </p>
             <p className="mt-1 text-xs text-[#7A92A8]">
@@ -86,12 +86,12 @@ export function AdminInviteGate({ emailHint }: AdminInviteGateProps) {
         </div>
 
         <div className="mt-6 text-center">
-          <p className="text-sm font-bold text-[#022136] dark:text-white">
+          <p className="text-sm font-bold text-[#0B1B2B] dark:text-white">
             Still having issues?
           </p>
           <a
             href="mailto:support@vanyshr.com"
-            className="mt-1 inline-block text-xs font-medium text-[#00BFFF] hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 outline-focus-ring rounded"
+            className="mt-1 inline-block text-xs font-medium text-[#14ABFE] hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 outline-focus-ring rounded"
           >
             Send to Support
           </a>

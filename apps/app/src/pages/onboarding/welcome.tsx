@@ -20,13 +20,13 @@ function FeatureItem({
             <div
                 className={cx(
                     "flex h-10 w-10 shrink-0 items-center justify-center rounded-full",
-                    "bg-[#00BFFF]/10 dark:bg-[#00BFFF]/15",
+                    "bg-[#14ABFE]/10 dark:bg-[#14ABFE]/15",
                 )}
             >
-                <Icon className="h-5 w-5 text-[#00BFFF]" aria-hidden />
+                <Icon className="h-5 w-5 text-[#14ABFE]" aria-hidden />
             </div>
             <div className="min-w-0">
-                <h3 className="text-sm font-semibold text-[#022136] dark:text-white">
+                <h3 className="text-sm font-semibold text-[#0B1B2B] dark:text-white">
                     {title}
                 </h3>
                 <p className="mt-0.5 text-xs text-[var(--text-muted)] dark:text-[#7A92A8]">
@@ -59,7 +59,7 @@ export function Welcome() {
         <div
             className={cx(
                 "min-h-screen w-full font-sans transition-colors duration-200",
-                "bg-[#F0F4F8] dark:bg-[#022136]",
+                "bg-[#F0F4F8] dark:bg-[#0B1B2B]",
             )}
             role="main"
             aria-label="Welcome"
@@ -83,9 +83,9 @@ export function Welcome() {
                     aria-label="Open menu"
                     className={cx(
                         "flex h-10 w-10 items-center justify-center rounded-xl outline-none transition",
-                        "text-[#022136] dark:text-white",
-                        "hover:bg-[#F0F4F8]/80 dark:hover:bg-[#022136]/80",
-                        "focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#022136]",
+                        "text-[#0B1B2B] dark:text-white",
+                        "hover:bg-[#F0F4F8]/80 dark:hover:bg-[#0B1B2B]/80",
+                        "focus-visible:ring-2 focus-visible:ring-[#14ABFE] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#0B1B2B]",
                     )}
                 >
                     <Menu className="h-6 w-6" aria-hidden />
@@ -96,7 +96,7 @@ export function Welcome() {
             <main className="mx-auto flex w-full max-w-lg flex-col px-4 pb-28">
                 {/* Welcome */}
                 <div className="mt-2 text-center">
-                    <h1 className="text-2xl font-bold tracking-tight text-[#022136] dark:text-white">
+                    <h1 className="text-2xl font-bold tracking-tight text-[#0B1B2B] dark:text-white">
                         Welcome{firstName ? `, ${firstName}` : ""}!
                     </h1>
                     <p className="mt-2 text-sm text-[var(--text-muted)] dark:text-[#7A92A8]">
@@ -109,12 +109,12 @@ export function Welcome() {
                 <section
                     className={cx(
                         "mt-6 rounded-xl border p-4",
-                        "bg-[var(--bg-surface)] dark:bg-[#2D3847]",
-                        "border-[var(--border-subtle)] dark:border-[#2A4A68]",
+                        "bg-[var(--bg-surface)] dark:bg-[#112538]",
+                        "border-[var(--border-subtle)] dark:border-[#1E3A52]",
                     )}
                     aria-label="What we'll need from you"
                 >
-                    <h2 className="text-base font-semibold text-[#022136] dark:text-white">
+                    <h2 className="text-base font-semibold text-[#0B1B2B] dark:text-white">
                         What we&apos;ll need from you
                     </h2>
                     <p className="mt-2 text-sm text-[var(--text-muted)] dark:text-[#7A92A8]">
@@ -133,7 +133,7 @@ export function Welcome() {
                                     className="mt-0.5 h-4 w-4 shrink-0 text-[#00D4AA]"
                                     aria-hidden
                                 />
-                                <span className="text-[var(--text-secondary)] dark:text-[#B8C4CC]">
+                                <span className="text-[var(--text-secondary)] dark:text-[#94A3B8]">
                                     {t}
                                 </span>
                             </li>
@@ -143,7 +143,7 @@ export function Welcome() {
 
                 {/* Why we need this */}
                 <section className="mt-6" aria-label="Why we need this information">
-                    <h2 className="text-base font-semibold text-[#022136] dark:text-white">
+                    <h2 className="text-base font-semibold text-[#0B1B2B] dark:text-white">
                         Why we need this information
                     </h2>
                     <div className="mt-4 space-y-4">
@@ -169,11 +169,11 @@ export function Welcome() {
                 <section
                     className={cx(
                         "mt-6 rounded-xl p-3",
-                        "bg-[#00BFFF]/10 dark:bg-[#00BFFF]/10",
+                        "bg-[#14ABFE]/10 dark:bg-[#14ABFE]/10",
                     )}
                     aria-label="Privacy notice"
                 >
-                    <p className="text-xs text-[#00BFFF]">
+                    <p className="text-xs text-[#14ABFE]">
                         <strong>Your privacy matters:</strong> We only use your information to
                         protect you. We never sell or share your data with third parties.
                     </p>
@@ -184,8 +184,8 @@ export function Welcome() {
             <footer
                 className={cx(
                     "fixed bottom-0 left-0 right-0 border-t px-4 py-4",
-                    "border-[var(--border-subtle)] dark:border-[#2A4A68]",
-                    "bg-[var(--bg-surface)] dark:bg-[#2D3847]",
+                    "border-[var(--border-subtle)] dark:border-[#1E3A52]",
+                    "bg-[var(--bg-surface)] dark:bg-[#112538]",
                 )}
                 role="contentinfo"
             >
@@ -195,8 +195,8 @@ export function Welcome() {
                         onClick={() => navigate("/onboarding/primary-info")}
                         className={cx(
                             "flex h-[52px] w-full items-center justify-center rounded-xl text-sm font-semibold text-white outline-none transition",
-                            "bg-[#00BFFF] hover:bg-[#0E9AE8]",
-                            "focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#022136]",
+                            "bg-[#14ABFE] hover:bg-[#0E9AE8]",
+                            "focus-visible:ring-2 focus-visible:ring-[#14ABFE] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#0B1B2B]",
                         )}
                         aria-label="Get started"
                     >

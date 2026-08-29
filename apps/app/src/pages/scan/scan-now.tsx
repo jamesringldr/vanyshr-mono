@@ -27,7 +27,7 @@ export function ScanNow() {
     }, [navigate]);
 
     return (
-        <div className="min-h-screen bg-[#022136] flex flex-col items-center overflow-x-hidden">
+        <div className="min-h-screen bg-[#0B1B2B] flex flex-col items-center overflow-x-hidden">
             {/* Header */}
             <header className="w-full max-w-lg flex items-center justify-between px-6 py-4 z-10 shrink-0">
                 <div className="flex items-center">
@@ -46,12 +46,12 @@ export function ScanNow() {
             <main className="w-full max-w-lg px-6 flex flex-col items-center text-center flex-1 pb-[280px]">
                 {/* Hero section */}
                 <div className="flex flex-col items-center mt-1">
-                    <p className="text-[#00BFFF] text-base sm:text-lg font-bold tracking-wide uppercase mb-3">
+                    <p className="text-[#14ABFE] text-base sm:text-lg font-bold tracking-wide uppercase mb-3">
                         AI Powered Data Privacy
                     </p>
                     <h1 className="text-[40px] sm:text-[48px] font-extrabold text-white leading-[1.05] flex flex-col items-center mb-5">
                         <span className="whitespace-nowrap">Your Personal Data</span>
-                        <span className="whitespace-nowrap">Is <span className="text-[#FF8A00] italic">Exposed</span></span>
+                        <span className="whitespace-nowrap">Is <span className="text-[#FF8400] italic">Exposed</span></span>
                     </h1>
                 </div>
 
@@ -62,7 +62,7 @@ export function ScanNow() {
 
                 {/* Description */}
                 <div className="max-w-[400px] mb-0">
-                    <p className="text-[#B8C4CC] text-xl font-medium leading-tight">
+                    <p className="text-[#94A3B8] text-xl font-medium leading-tight">
                         Data Brokers harvest your personal data from private sources and expose it to
                         <span className="block mt-1 text-[22px] font-bold italic text-white">Scammers, Spammers & Stalkers</span>
                     </p>
@@ -70,9 +70,9 @@ export function ScanNow() {
 
                 <div className="flex flex-col items-center mt-12 w-full">
                     <h2 className="text-[36px] sm:text-[48px] font-extrabold text-white leading-[1.05] mb-2 whitespace-nowrap">
-                        We Help You <span className="text-[#00BFFF] italic">Vanysh</span>
+                        We Help You <span className="text-[#14ABFE] italic">Vanysh</span>
                     </h2>
-                    <p className="text-[#B8C4CC] text-xl font-medium leading-tight mb-8">
+                    <p className="text-[#94A3B8] text-xl font-medium leading-tight mb-8">
                         Removing your data from these Brokers
                     </p>
                     
@@ -82,7 +82,7 @@ export function ScanNow() {
                                 <Check className="w-4 h-4 text-[#00D4AA]" strokeWidth={3} />
                             </div>
                             <p className="text-white text-lg leading-snug">
-                                Continuously Scan 500+ Data Brokers and Dark Web for <span className="text-[#FF8A00] font-bold">Exposures & Breaches</span>
+                                Continuously Scan 500+ Data Brokers and Dark Web for <span className="text-[#FF8400] font-bold">Exposures & Breaches</span>
                             </p>
                         </li>
                         <li className="flex items-start gap-4">
@@ -111,10 +111,10 @@ export function ScanNow() {
               z-50 px-3
             ">
                 <div className="
-                  bg-[#022136]
+                  bg-[#0B1B2B]
                   rounded-t-[28px]
                   backdrop-blur-md
-                  shadow-[0_0_40px_rgba(0,191,255,0.4),0_0_80px_rgba(0,191,255,0.22),0_-8px_24px_rgba(0,0,0,0.6)]
+                  shadow-[0_0_40px_rgba(20,171,254,0.4),0_0_80px_rgba(20,171,254,0.22),0_-8px_24px_rgba(0,0,0,0.6)]
                   pt-6 pb-6 px-6
                   flex flex-col gap-1 relative
                   max-w-lg mx-auto
@@ -124,7 +124,7 @@ export function ScanNow() {
                             Check If Your Data Is Exposed
                         </p>
                         <p className="text-white font-bold text-[22px] leading-tight text-center">
-                            Run a QuickScan - <span className="text-[#00BFFF] italic">FREE</span>
+                            Run a QuickScan - <span className="text-[#14ABFE] italic">FREE</span>
                         </p>
                     </div>
 
@@ -138,7 +138,7 @@ export function ScanNow() {
                             >
                                 <button 
                                     onClick={() => setIsDrawerOpen(true)}
-                                    className="w-full h-[52px] rounded-xl bg-[#00BFFF] text-[#022136] font-bold text-xl hover:bg-[#00D4FF] active:bg-[#0099CC] active:text-white transition-colors duration-150 shadow-md"
+                                    className="w-full h-[52px] rounded-xl bg-[#14ABFE] text-[#0B1B2B] font-bold text-xl hover:bg-[#00D4FF] active:bg-[#0099CC] active:text-white transition-colors duration-150 shadow-md"
                                 >
                                     Scan Now
                                 </button>
@@ -179,10 +179,10 @@ export function ScanNow() {
                             }}
                             className="fixed bottom-0 left-0 right-0 z-50 flex justify-center"
                         >
-                            <div className="w-full max-w-md bg-[#2D3847] rounded-t-[32px] overflow-hidden max-h-[90vh] flex flex-col relative shadow-[0_0_40px_rgba(0,191,255,0.35),0_0_80px_rgba(0,191,255,0.18),0_25px_50px_-12px_rgba(0,0,0,0.25)]">
+                            <div className="w-full max-w-md bg-[#112538] rounded-t-[32px] overflow-hidden max-h-[90vh] flex flex-col relative shadow-[0_0_40px_rgba(20,171,254,0.35),0_0_80px_rgba(20,171,254,0.18),0_25px_50px_-12px_rgba(0,0,0,0.25)]">
                                 {/* Drawer Handle */}
                                 <div className="w-full h-8 flex items-center justify-center shrink-0">
-                                    <div className="w-12 h-1.5 bg-[#2A4A68] rounded-full" />
+                                    <div className="w-12 h-1.5 bg-[#1E3A52] rounded-full" />
                                 </div>
                                 
                                 {/* Form Content */}

@@ -23,8 +23,8 @@ const STATUS_CONFIG: Record<
     },
     new: {
         label: "NEW",
-        bgClass: "bg-[var(--text-secondary)]/20 dark:bg-[#B8C4CC]/20",
-        textClass: "text-[var(--text-secondary)] dark:text-[#B8C4CC]",
+        bgClass: "bg-[var(--text-secondary)]/20 dark:bg-[#94A3B8]/20",
+        textClass: "text-[var(--text-secondary)] dark:text-[#94A3B8]",
     },
     action_required: {
         label: "ACTION REQUIRED",
@@ -38,8 +38,8 @@ const STATUS_CONFIG: Record<
     },
     recommended: {
         label: "RECOMMENDED",
-        bgClass: "bg-[#00BFFF]/10 dark:bg-[#00BFFF]/15",
-        textClass: "text-[#0099CC] dark:text-[#00BFFF]",
+        bgClass: "bg-[#14ABFE]/10 dark:bg-[#14ABFE]/15",
+        textClass: "text-[#0099CC] dark:text-[#14ABFE]",
     },
 };
 

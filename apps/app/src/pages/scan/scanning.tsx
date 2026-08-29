@@ -11,7 +11,7 @@ export function QSScanning() {
 
   return (
     <div
-      className="min-h-screen w-full flex flex-col bg-[#F0F4F8] dark:bg-[#022136] transition-colors duration-200"
+      className="min-h-screen w-full flex flex-col bg-[#F0F4F8] dark:bg-[#0B1B2B] transition-colors duration-200"
       role="main"
       aria-label="Scanning in progress"
     >
@@ -27,10 +27,10 @@ export function QSScanning() {
       {/* Scrollable content — mobile-first */}
       <div className="flex flex-1 flex-col items-center px-4 pb-8 md:px-6">
         {/* Heading */}
-        <h1 className="text-center text-xl font-bold text-[#022136] dark:text-white md:text-2xl mt-2 mb-2 max-w-lg">
+        <h1 className="text-center text-xl font-bold text-[#0B1B2B] dark:text-white md:text-2xl mt-2 mb-2 max-w-lg">
           Prowling the deepest parts of the web to find who has your data...
         </h1>
-        <p className="text-center text-sm text-[#B8C4CC] dark:text-[#B8C4CC] md:text-base max-w-lg mb-6 leading-relaxed">
+        <p className="text-center text-sm text-[#94A3B8] dark:text-[#94A3B8] md:text-base max-w-lg mb-6 leading-relaxed">
           We are targeting known data brokers and crawling their databases to identify if they have your data and exactly what data they have..
         </p>
 
@@ -52,12 +52,12 @@ export function QSScanning() {
         <button
           type="button"
           onClick={() => navigate("/quick-scan")}
-          className="w-full max-w-sm h-[52px] rounded-xl border-2 border-[#022136] dark:border-white bg-transparent text-[#022136] dark:text-white font-semibold text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2 hover:opacity-90 active:scale-[0.98]"
+          className="w-full max-w-sm h-[52px] rounded-xl border-2 border-[#0B1B2B] dark:border-white bg-transparent text-[#0B1B2B] dark:text-white font-semibold text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14ABFE] focus-visible:ring-offset-2 hover:opacity-90 active:scale-[0.98]"
           aria-label="Cancel search and return to quick scan"
         >
           Cancel Search
         </button>
-        <p className="text-center text-xs text-[#B8C4CC] dark:text-[#B8C4CC] mt-3 max-w-sm">
+        <p className="text-center text-xs text-[#94A3B8] dark:text-[#94A3B8] mt-3 max-w-sm">
           {CANCEL_DISCLAIMER}
         </p>
       </div>

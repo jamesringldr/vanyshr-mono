@@ -95,7 +95,7 @@ export function OnboardingRemovalStrategy() {
   }
 
   return (
-    <div className="min-h-screen bg-[#022136] font-ubuntu">
+    <div className="min-h-screen bg-[#0B1B2B] font-ubuntu">
       <div className="pb-36 overflow-y-auto">
         <div className="flex flex-col gap-6 py-6 px-6">
 
@@ -103,10 +103,10 @@ export function OnboardingRemovalStrategy() {
           <div className="flex items-center gap-3">
             <button
               onClick={() => navigate(-1)}
-              className="w-9 h-9 rounded-full bg-[#2D3847] border border-[#2A4A68] flex items-center justify-center flex-shrink-0 cursor-pointer hover:border-[#3A5A78] transition-colors duration-150"
+              className="w-9 h-9 rounded-full bg-[#112538] border border-[#1E3A52] flex items-center justify-center flex-shrink-0 cursor-pointer hover:border-[#3A5A78] transition-colors duration-150"
               aria-label="Go back"
             >
-              <ChevronLeft className="w-5 h-5 text-[#B8C4CC]" />
+              <ChevronLeft className="w-5 h-5 text-[#94A3B8]" />
             </button>
             <div>
               <h1 className="text-xl font-bold text-white">Removal Strategy</h1>
@@ -127,8 +127,8 @@ export function OnboardingRemovalStrategy() {
                   className={[
                     'w-full text-left rounded-2xl p-5 border transition-all duration-150 cursor-pointer',
                     isSelected
-                      ? 'bg-[#2D3847] border-[#00BFFF] shadow-[0_0_0_1px_rgba(0,191,255,0.2)]'
-                      : 'bg-[#2D3847] border-[#2A4A68] hover:border-[#3A5A78]',
+                      ? 'bg-[#112538] border-[#14ABFE] shadow-[0_0_0_1px_rgba(20,171,254,0.2)]'
+                      : 'bg-[#112538] border-[#1E3A52] hover:border-[#3A5A78]',
                   ].join(' ')}
                 >
                   {/* Card Header */}
@@ -140,8 +140,8 @@ export function OnboardingRemovalStrategy() {
                           className={[
                             'text-[11px] font-medium tracking-wide uppercase px-2 py-0.5 rounded-full border transition-all duration-150',
                             isSelected
-                              ? 'bg-[#00BFFF]/15 text-[#00BFFF] border-[#00BFFF]/40'
-                              : 'bg-[#2A4A68] text-[#7A92A8] border-[#2A4A68]',
+                              ? 'bg-[#14ABFE]/15 text-[#14ABFE] border-[#14ABFE]/40'
+                              : 'bg-[#1E3A52] text-[#7A92A8] border-[#1E3A52]',
                           ].join(' ')}
                         >
                           Recommended
@@ -153,20 +153,20 @@ export function OnboardingRemovalStrategy() {
                     <div
                       className={[
                         'w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5 transition-all duration-150',
-                        isSelected ? 'border-[#00BFFF] bg-[#00BFFF]' : 'border-[#4A5568]',
+                        isSelected ? 'border-[#14ABFE] bg-[#14ABFE]' : 'border-[#4A5568]',
                       ].join(' ')}
                     >
-                      {isSelected && <div className="w-2 h-2 rounded-full bg-[#022136]" />}
+                      {isSelected && <div className="w-2 h-2 rounded-full bg-[#0B1B2B]" />}
                     </div>
                   </div>
 
                   {/* Description */}
-                  <p className="text-sm text-[#B8C4CC] leading-relaxed mb-4">
+                  <p className="text-sm text-[#94A3B8] leading-relaxed mb-4">
                     {strategy.description}
                   </p>
 
                   {/* Divider */}
-                  <div className="h-px bg-[#2A4A68] mb-4" />
+                  <div className="h-px bg-[#1E3A52] mb-4" />
 
                   {/* Pros */}
                   <div className="flex gap-2.5 mb-3">
@@ -175,7 +175,7 @@ export function OnboardingRemovalStrategy() {
                       <span className="text-[11px] font-medium tracking-wide uppercase text-[#00D4AA] block mb-0.5">
                         Pros
                       </span>
-                      <p className="text-xs text-[#B8C4CC] leading-relaxed">{strategy.pros}</p>
+                      <p className="text-xs text-[#94A3B8] leading-relaxed">{strategy.pros}</p>
                     </div>
                   </div>
 
@@ -192,12 +192,12 @@ export function OnboardingRemovalStrategy() {
 
                   {/* Best For */}
                   <div className="flex gap-2.5">
-                    <Target className="w-4 h-4 text-[#00BFFF] flex-shrink-0 mt-0.5" aria-hidden />
+                    <Target className="w-4 h-4 text-[#14ABFE] flex-shrink-0 mt-0.5" aria-hidden />
                     <div className="min-w-0">
-                      <span className="text-[11px] font-medium tracking-wide uppercase text-[#00BFFF] block mb-0.5">
+                      <span className="text-[11px] font-medium tracking-wide uppercase text-[#14ABFE] block mb-0.5">
                         Best For
                       </span>
-                      <p className="text-xs text-[#B8C4CC] leading-relaxed">{strategy.bestFor}</p>
+                      <p className="text-xs text-[#94A3B8] leading-relaxed">{strategy.bestFor}</p>
                     </div>
                   </div>
                 </button>
@@ -209,11 +209,11 @@ export function OnboardingRemovalStrategy() {
       </div>
 
       {/* ── STICKY CONFIRM FOOTER ──────────────────────────────────────────── */}
-      <div className="fixed bottom-0 left-0 right-0 bg-[#022136] border-t border-[#2A4A68] px-6 py-5">
+      <div className="fixed bottom-0 left-0 right-0 bg-[#0B1B2B] border-t border-[#1E3A52] px-6 py-5">
         <button
           onClick={handleConfirm}
           disabled={isSaving}
-          className="w-full h-[52px] rounded-xl bg-[#00BFFF] text-[#022136] font-bold text-base hover:bg-[#00D4FF] active:bg-[#0099CC] active:text-white transition-colors duration-150 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+          className="w-full h-[52px] rounded-xl bg-[#14ABFE] text-[#0B1B2B] font-bold text-base hover:bg-[#00D4FF] active:bg-[#0099CC] active:text-white transition-colors duration-150 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
         >
           {isSaving ? 'Saving...' : 'Confirm & Continue'}
         </button>

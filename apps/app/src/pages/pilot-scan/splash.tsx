@@ -107,7 +107,7 @@ export function PilotSplashPage() {
 
   return (
     <div
-      className="relative flex min-h-screen w-full items-center justify-center overflow-hidden bg-[#022136] font-ubuntu"
+      className="relative flex min-h-screen w-full items-center justify-center overflow-hidden bg-[#0B1B2B] font-ubuntu"
       role="main"
       aria-label="Vanyshr pilot scan splash"
     >

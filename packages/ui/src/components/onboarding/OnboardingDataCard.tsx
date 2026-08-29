@@ -62,9 +62,9 @@ export function OnboardingDataCard({
             }}
             className={cx(
                 "rounded-xl border p-4 outline-none transition-colors cursor-pointer",
-                "bg-[var(--bg-surface)] dark:bg-[#2D3847]",
-                "border-[var(--border-subtle)] dark:border-[#2A4A68]",
-                "focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#022136]",
+                "bg-[var(--bg-surface)] dark:bg-[#112538]",
+                "border-[var(--border-subtle)] dark:border-[#1E3A52]",
+                "focus-visible:ring-2 focus-visible:ring-[#14ABFE] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#0B1B2B]",
             )}
             aria-expanded={isExpanded}
         >
@@ -98,10 +98,10 @@ export function OnboardingDataCard({
                                 }}
                                 className={cx(
                                     "relative h-6 w-11 shrink-0 rounded-full outline-none transition-colors duration-200 overflow-hidden",
-                                    "focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2",
+                                    "focus-visible:ring-2 focus-visible:ring-[#14ABFE] focus-visible:ring-offset-2",
                                     toggleValue
-                                        ? "bg-[#00BFFF]"
-                                        : "bg-[var(--border-subtle)] dark:bg-[#2A4A68]",
+                                        ? "bg-[#14ABFE]"
+                                        : "bg-[var(--border-subtle)] dark:bg-[#1E3A52]",
                                 )}
                             >
                                 <span
@@ -123,7 +123,7 @@ export function OnboardingDataCard({
                             className={cx(
                                 "flex h-8 w-8 items-center justify-center rounded-full outline-none transition",
                                 "text-[#FF5757]/80 hover:bg-[#FF5757]/10 hover:text-[#FF5757]",
-                                "focus-visible:ring-2 focus-visible:ring-[#FF5757] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#022136]",
+                                "focus-visible:ring-2 focus-visible:ring-[#FF5757] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#0B1B2B]",
                             )}
                             title="Delete"
                             aria-label="Delete"
@@ -143,7 +143,7 @@ export function OnboardingDataCard({
 
             {/* Row 2: Value (always visible so data is on the card) */}
             {shownValue !== undefined && !isExpanded && (
-                <p className="mt-3 text-lg font-bold tracking-tight text-[#022136] dark:text-white">
+                <p className="mt-3 text-lg font-bold tracking-tight text-[#0B1B2B] dark:text-white">
                     {shownValue}
                 </p>
             )}
@@ -157,7 +157,7 @@ export function OnboardingDataCard({
                         </div>
                     ) : (
                         shownValue !== undefined && (
-                            <p className="mt-4 text-center text-2xl font-bold tracking-tight text-[#022136] dark:text-white sm:text-3xl">
+                            <p className="mt-4 text-center text-2xl font-bold tracking-tight text-[#0B1B2B] dark:text-white sm:text-3xl">
                                 {shownValue}
                             </p>
                         )
@@ -171,8 +171,8 @@ export function OnboardingDataCard({
                             }}
                             className={cx(
                                 "flex flex-1 items-center justify-center rounded-xl py-3 text-sm font-semibold text-white outline-none transition",
-                                "bg-[#00BFFF] hover:bg-[#0E9AE8]",
-                                "focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#022136]",
+                                "bg-[#14ABFE] hover:bg-[#0E9AE8]",
+                                "focus-visible:ring-2 focus-visible:ring-[#14ABFE] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#0B1B2B]",
                             )}
                         >
                             Save

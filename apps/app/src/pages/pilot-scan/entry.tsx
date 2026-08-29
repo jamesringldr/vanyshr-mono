@@ -310,7 +310,7 @@ export function PilotEntryPage() {
   return (
     <>
       <div
-        className="relative flex min-h-dvh w-full flex-col overflow-hidden bg-[#022136] font-ubuntu touch-pan-y pb-[180px]"
+        className="relative flex min-h-dvh w-full flex-col overflow-hidden bg-[#0B1B2B] font-ubuntu touch-pan-y pb-[180px]"
         role="main"
         aria-label="Pilot scan invitation"
         onPointerDown={onSwipeDown}
@@ -418,33 +418,33 @@ export function PilotEntryPage() {
 
         <div className="fixed inset-x-0 bottom-0 z-30 px-4">
           <footer
-            className="w-full rounded-t-[28px] bg-[#1A2E42] px-5 pb-6 pt-5 shadow-[0_0_40px_rgba(0,191,255,0.18)]"
+            className="w-full rounded-t-[28px] bg-[#1A2E42] px-5 pb-6 pt-5 shadow-[0_0_40px_rgba(20,171,254,0.18)]"
             style={{ pointerEvents: phase === "slides" ? "auto" : "none" }}
           >
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-[#2A4A68] bg-[#022136] px-3 py-1 text-[11px] font-medium text-[#00BFFF]">
-              <Zap className="h-3 w-3 fill-[#00BFFF]" />
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-[#1E3A52] bg-[#0B1B2B] px-3 py-1 text-[11px] font-medium text-[#14ABFE]">
+              <Zap className="h-3 w-3 fill-[#14ABFE]" />
               Real results in ~3 minutes
             </span>
             <h2 className="mt-3 text-[26px] font-bold leading-[1.15] tracking-tight text-white">
               See your exposed data
             </h2>
-            <p className="mt-1.5 text-sm leading-snug text-[#B8C4CC]">
+            <p className="mt-1.5 text-sm leading-snug text-[#94A3B8]">
               We DO NOT save personal data from QuickScan results
             </p>
             <button
               type="button"
               onClick={() => setIsDrawerOpen(true)}
-              className="mt-5 flex h-12 w-full items-center justify-center rounded-2xl bg-[#00BFFF] text-[17px] font-semibold text-white"
+              className="mt-5 flex h-12 w-full items-center justify-center rounded-2xl bg-[#14ABFE] text-[17px] font-semibold text-white"
             >
               Run QuickScan
             </button>
-            <ul className="mt-3 flex justify-center gap-4 text-[12px] font-medium text-[#B8C4CC]">
+            <ul className="mt-3 flex justify-center gap-4 text-[12px] font-medium text-[#94A3B8]">
               <li className="flex items-center gap-1.5">
-                <span className="h-1 w-1 rounded-full bg-[#00BFFF]" />
+                <span className="h-1 w-1 rounded-full bg-[#14ABFE]" />
                 No Paywall
               </li>
               <li className="flex items-center gap-1.5">
-                <span className="h-1 w-1 rounded-full bg-[#00BFFF]" />
+                <span className="h-1 w-1 rounded-full bg-[#14ABFE]" />
                 No Sign Up
               </li>
             </ul>
@@ -571,9 +571,9 @@ export function PilotEntryPage() {
               }}
               className="fixed bottom-0 left-0 right-0 z-50 flex justify-center"
             >
-              <div className="relative flex max-h-[90vh] w-full max-w-md flex-col overflow-hidden rounded-t-[32px] bg-[#2D3847] shadow-[0_0_40px_rgba(0,191,255,0.35),0_0_80px_rgba(0,191,255,0.18),0_25px_50px_-12px_rgba(0,0,0,0.25)]">
+              <div className="relative flex max-h-[90vh] w-full max-w-md flex-col overflow-hidden rounded-t-[32px] bg-[#112538] shadow-[0_0_40px_rgba(20,171,254,0.35),0_0_80px_rgba(20,171,254,0.18),0_25px_50px_-12px_rgba(0,0,0,0.25)]">
                 <div className="flex h-8 w-full shrink-0 items-center justify-center">
-                  <div className="h-1.5 w-12 rounded-full bg-[#2A4A68]" />
+                  <div className="h-1.5 w-12 rounded-full bg-[#1E3A52]" />
                 </div>
                 <button
                   type="button"
@@ -754,8 +754,8 @@ function ListedSlide({
             transition={{ duration: 0.42, ease: REVEAL_EASE }}
           >
             <div className="flex items-center gap-2">
-              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#00BFFF]/15">
-                <Search className="h-4 w-4 text-[#00BFFF]" />
+              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#14ABFE]/15">
+                <Search className="h-4 w-4 text-[#14ABFE]" />
               </span>
               <div>
                 <p className="text-[13px] font-semibold text-white">People search</p>
@@ -807,10 +807,10 @@ function ListedSlide({
                 transition={{ duration: POP_MS / 1000, ease: REVEAL_EASE }}
               >
                 <div className="flex items-center gap-1.5">
-                  <card.Icon className="h-3.5 w-3.5 text-[#00BFFF]" />
+                  <card.Icon className="h-3.5 w-3.5 text-[#14ABFE]" />
                   <p className="text-[11px] font-semibold text-white">{card.label}</p>
                 </div>
-                <p className="mt-1.5 text-[10px] leading-snug text-[#B8C4CC]">{card.detail}</p>
+                <p className="mt-1.5 text-[10px] leading-snug text-[#94A3B8]">{card.detail}</p>
               </motion.div>
             );
           })}
@@ -934,11 +934,11 @@ function ScanSlide({
       <div className="relative mt-6 flex w-full flex-1 items-center justify-center">
         <div className="relative w-full max-w-[300px] overflow-hidden rounded-[20px] border border-white/10 bg-[#24384C] px-4 py-4 shadow-[0_16px_36px_rgba(0,0,0,0.32)]">
           <div className="flex items-center gap-2">
-            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#00BFFF]/15">
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#14ABFE]/15">
               {cleared ? (
-                <Search className="h-4 w-4 text-[#00BFFF]" />
+                <Search className="h-4 w-4 text-[#14ABFE]" />
               ) : (
-                <Loader2 className="h-4 w-4 animate-spin text-[#00BFFF]" />
+                <Loader2 className="h-4 w-4 animate-spin text-[#14ABFE]" />
               )}
             </span>
             <div>
@@ -994,7 +994,7 @@ function ScanSlide({
                           <p className="text-[12px] font-semibold text-white">{hit.name}</p>
                           <p className="text-[10px] font-semibold text-[#22C55E]">Profile Found!</p>
                         </div>
-                        <p className="mt-0.5 text-[10px] leading-snug text-[#B8C4CC]">{hit.fields}</p>
+                        <p className="mt-0.5 text-[10px] leading-snug text-[#94A3B8]">{hit.fields}</p>
                       </>
                     )}
                   </motion.div>
@@ -1121,18 +1121,18 @@ function HexPreview({ reduced, play }: { reduced: boolean; play: boolean }) {
         })}
         <polygon
           points={fillPoints}
-          fill="rgba(0, 191, 255, 0.22)"
-          stroke="#00BFFF"
+          fill="rgba(20,171,254, 0.22)"
+          stroke="#14ABFE"
           strokeWidth={1.5}
           strokeLinejoin="round"
         />
         {HEX_MINI.map((item) => {
           const pt = hexPolar(HEX_AXIS * item.score * plot, item.angle);
           return (
-            <circle key={`d-${item.id}`} cx={pt.x} cy={pt.y} r={3.2} fill="#00BFFF" />
+            <circle key={`d-${item.id}`} cx={pt.x} cy={pt.y} r={3.2} fill="#14ABFE" />
           );
         })}
-        <circle cx={HEX_CENTER} cy={HEX_CENTER} r={3.5} fill="#00BFFF" />
+        <circle cx={HEX_CENTER} cy={HEX_CENTER} r={3.5} fill="#14ABFE" />
       </svg>
       {HEX_MINI.map((item) => {
         const pt = hexPolar(HEX_LABEL, item.angle);
@@ -1146,7 +1146,7 @@ function HexPreview({ reduced, play }: { reduced: boolean; play: boolean }) {
               top: `${(pt.y / HEX_VIEW) * 100}%`,
             }}
           >
-            <span className="flex h-11 w-11 items-center justify-center rounded-full border-2 border-white/35 bg-[#022136] text-white shadow-[0_0_10px_rgba(255,255,255,0.2)]">
+            <span className="flex h-11 w-11 items-center justify-center rounded-full border-2 border-white/35 bg-[#0B1B2B] text-white shadow-[0_0_10px_rgba(255,255,255,0.2)]">
               <Icon size={20} />
             </span>
             <span className="max-w-[72px] text-center text-[9px] font-medium leading-tight text-white">
@@ -1167,7 +1167,7 @@ function PreProfilePreview() {
         <>
           <div className="flex items-end justify-between">
             <p className="text-[13px] font-bold text-white">Michael Scott</p>
-            <p className="text-[11px] text-[#B8C4CC]">62 years old</p>
+            <p className="text-[11px] text-[#94A3B8]">62 years old</p>
           </div>
           <div className="mt-2 grid grid-cols-2 gap-2">
             <div>
@@ -1191,7 +1191,7 @@ function PreProfilePreview() {
       body: (
         <>
           <div className="flex items-center gap-1.5">
-            <Mail className="h-3.5 w-3.5 text-[#00BFFF]" />
+            <Mail className="h-3.5 w-3.5 text-[#14ABFE]" />
             <p className="text-[10px] font-semibold uppercase tracking-wide text-[#7A92A8]">Email</p>
           </div>
           <p className="mt-1 text-[11px] text-white">mscott@dundermifflin.com</p>
@@ -1209,7 +1209,7 @@ function PreProfilePreview() {
             {["Caleb Crawdad", "Michael Scarn", "Prison Mike"].map((alias) => (
               <span
                 key={alias}
-                className="rounded-lg border border-[#2A4A68] bg-[#022136]/50 px-2 py-0.5 text-[10px] text-white"
+                className="rounded-lg border border-[#1E3A52] bg-[#0B1B2B]/50 px-2 py-0.5 text-[10px] text-white"
               >
                 {alias}
               </span>
@@ -1223,7 +1223,7 @@ function PreProfilePreview() {
       body: (
         <>
           <div className="flex items-center gap-1.5">
-            <Users className="h-3.5 w-3.5 text-[#00BFFF]" />
+            <Users className="h-3.5 w-3.5 text-[#14ABFE]" />
             <p className="text-[10px] font-semibold uppercase tracking-wide text-[#7A92A8]">
               Friends &amp; family
             </p>
@@ -1241,7 +1241,7 @@ function PreProfilePreview() {
       body: (
         <>
           <div className="flex items-center gap-1.5">
-            <Briefcase className="h-3.5 w-3.5 text-[#00BFFF]" />
+            <Briefcase className="h-3.5 w-3.5 text-[#14ABFE]" />
             <p className="text-[10px] font-semibold uppercase tracking-wide text-[#7A92A8]">
               Job history
             </p>
@@ -1267,7 +1267,7 @@ function PreProfilePreview() {
       {sections.map((section, i) => (
         <motion.div
           key={section.key}
-          className="rounded-xl border border-[#2A4A68] bg-[#2D3847] px-3 py-2.5"
+          className="rounded-xl border border-[#1E3A52] bg-[#112538] px-3 py-2.5"
           initial={{ opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{
@@ -1335,7 +1335,7 @@ function ReportSlide({
           <AnimatePresence mode="wait">
             <motion.p
               key={beat}
-              className="text-[18px] font-semibold leading-snug tracking-tight text-[#B8C4CC] sm:text-[20px]"
+              className="text-[18px] font-semibold leading-snug tracking-tight text-[#94A3B8] sm:text-[20px]"
               initial={reduced ? false : { opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={reduced ? undefined : { opacity: 0, y: -8 }}

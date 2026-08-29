@@ -84,6 +84,8 @@ export interface StoredConsolidatedProfile {
   brokers?: string[];
   /** Per-broker field types exposed (e.g. { fps: ["Phone Numbers", "Current Address"] }) — for the Brokers page. */
   brokerFields?: Record<string, string[]>;
+  /** The quick_scan_id for creating the pending profile — needed when navigating from report to start page. */
+  quick_scan_id?: string;
 }
 
 /** Read the profile loading.tsx stored after the pick, or manage-emails refreshed after confirm. */
@@ -108,8 +110,9 @@ export function saveConsolidatedProfile(
   brokerCount: number,
   brokers?: string[],
   brokerFields?: Record<string, string[]>,
+  quickScanId?: string,
 ): void {
-  sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ profile, brokerCount, brokers, brokerFields }));
+  sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ profile, brokerCount, brokers, brokerFields, quick_scan_id: quickScanId }));
 }
 
 // ---------------------------------------------------------------------------

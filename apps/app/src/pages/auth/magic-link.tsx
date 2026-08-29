@@ -110,7 +110,7 @@ export function AuthMagicLink() {
         <div
             className={cx(
                 "min-h-screen w-full font-sans transition-colors duration-200",
-                "bg-[#F0F4F8] dark:bg-[#022136]",
+                "bg-[#F0F4F8] dark:bg-[#0B1B2B]",
             )}
             role="main"
             aria-label="Send secure magic link"
@@ -128,16 +128,16 @@ export function AuthMagicLink() {
                 </div>
 
                 {/* Hero copy */}
-                <h1 className="mt-6 text-center text-4xl font-bold tracking-tighter text-[#022136] dark:text-white font-ubuntu">
-                    Time to <span className="text-[#00BFFF] italic">Vanysh.</span>
+                <h1 className="mt-6 text-center text-4xl font-bold tracking-tighter text-[#0B1B2B] dark:text-white font-ubuntu">
+                    Time to <span className="text-[#14ABFE] italic">Vanysh.</span>
                 </h1>
-                <p className="mt-3 text-center text-base text-[#B8C4CC] font-ubuntu">
+                <p className="mt-3 text-center text-base text-[#94A3B8] font-ubuntu">
                     Add your email to create your account.
                 </p>
 
                 {/* Setup time chip */}
                 <div className="mt-6 flex justify-center">
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-[#00BFFF]/10 border border-[#00BFFF]/30 px-3 py-1.5 text-xs font-medium text-[#00BFFF] font-ubuntu">
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-[#14ABFE]/10 border border-[#14ABFE]/30 px-3 py-1.5 text-xs font-medium text-[#14ABFE] font-ubuntu">
                         <Zap className="w-3.5 h-3.5" aria-hidden />
                         2 mins to complete setup
                     </span>
@@ -150,7 +150,7 @@ export function AuthMagicLink() {
                             <Check className="w-4 h-4 text-[#00D4AA]" strokeWidth={3} aria-hidden />
                         </div>
                         <p className="text-white text-sm leading-snug font-ubuntu">
-                            Scan <span className="font-bold text-[#00BFFF]">500+ data brokers</span> and people search sites — continuously, not just once
+                            Scan <span className="font-bold text-[#14ABFE]">500+ data brokers</span> and people search sites — continuously, not just once
                         </p>
                     </li>
                     <li className="flex items-start gap-4">
@@ -158,7 +158,7 @@ export function AuthMagicLink() {
                             <Check className="w-4 h-4 text-[#00D4AA]" strokeWidth={3} aria-hidden />
                         </div>
                         <p className="text-sm leading-snug font-ubuntu text-white">
-                            <span className="font-bold text-[#00BFFF]">Automated removal requests</span> sent on your behalf — no tedious opt-out forms
+                            <span className="font-bold text-[#14ABFE]">Automated removal requests</span> sent on your behalf — no tedious opt-out forms
                         </p>
                     </li>
                     <li className="flex items-start gap-4">
@@ -166,7 +166,7 @@ export function AuthMagicLink() {
                             <Check className="w-4 h-4 text-[#00D4AA]" strokeWidth={3} aria-hidden />
                         </div>
                         <p className="text-white text-sm leading-snug font-ubuntu">
-                            <span className="font-bold text-[#00BFFF]">Dark web monitoring</span> with instant breach alerts
+                            <span className="font-bold text-[#14ABFE]">Dark web monitoring</span> with instant breach alerts
                         </p>
                     </li>
                     <li className="flex items-start gap-4">
@@ -183,13 +183,13 @@ export function AuthMagicLink() {
                 <div
                     className={cx(
                         "mt-8 rounded-xl border p-4",
-                        "bg-[var(--bg-surface)] dark:bg-[#2D3847]",
-                        "border-[var(--border-subtle)] dark:border-[#2A4A68]",
+                        "bg-[var(--bg-surface)] dark:bg-[#112538]",
+                        "border-[var(--border-subtle)] dark:border-[#1E3A52]",
                     )}
                 >
                     <label
                         htmlFor="email"
-                        className="block text-sm font-semibold text-[#022136] dark:text-white"
+                        className="block text-sm font-semibold text-[#0B1B2B] dark:text-white"
                     >
                         Email Address
                     </label>
@@ -204,10 +204,10 @@ export function AuthMagicLink() {
                             disabled={isSending}
                             className={cx(
                                 "h-[52px] w-full rounded-xl border py-3 pl-12 pr-4 text-sm outline-none transition",
-                                "bg-[#F0F4F8]/50 dark:bg-[#022136]/50",
-                                "border-[var(--border-subtle)] dark:border-[#2A4A68]",
-                                "text-[#022136] dark:text-white placeholder:text-[var(--text-muted)] dark:placeholder:text-[#7A92A8]",
-                                "focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#022136]",
+                                "bg-[#F0F4F8]/50 dark:bg-[#0B1B2B]/50",
+                                "border-[var(--border-subtle)] dark:border-[#1E3A52]",
+                                "text-[#0B1B2B] dark:text-white placeholder:text-[var(--text-muted)] dark:placeholder:text-[#7A92A8]",
+                                "focus-visible:ring-2 focus-visible:ring-[#14ABFE] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#0B1B2B]",
                                 "disabled:opacity-50",
                             )}
                             placeholder="you@example.com"
@@ -231,9 +231,9 @@ export function AuthMagicLink() {
                         disabled={!isValid || isSending}
                         className={cx(
                             "mt-4 flex h-[52px] w-full items-center justify-center rounded-xl text-sm font-semibold text-white outline-none transition",
-                            "bg-[#00BFFF] hover:bg-[#0E9AE8]",
-                            "focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#022136]",
-                            (!isValid || isSending) && "cursor-not-allowed opacity-50 hover:bg-[#00BFFF]",
+                            "bg-[#14ABFE] hover:bg-[#0E9AE8]",
+                            "focus-visible:ring-2 focus-visible:ring-[#14ABFE] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#0B1B2B]",
+                            (!isValid || isSending) && "cursor-not-allowed opacity-50 hover:bg-[#14ABFE]",
                         )}
                         aria-label="Send secure link"
                     >
@@ -258,7 +258,7 @@ export function AuthMagicLink() {
                 <div className="mt-4 text-center">
                     <Link
                         to="/login"
-                        className="text-xs font-medium text-[#00BFFF] hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 outline-focus-ring rounded"
+                        className="text-xs font-medium text-[#14ABFE] hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 outline-focus-ring rounded"
                     >
                         Already have an account? Sign in here
                     </Link>
@@ -273,7 +273,7 @@ export function AuthMagicLink() {
                     aria-modal="true"
                     aria-labelledby="wrong-email-title"
                 >
-                    <div className="w-full max-w-sm rounded-2xl bg-[#2D3847] border border-[#2A4A68] p-6 flex flex-col gap-4 shadow-xl">
+                    <div className="w-full max-w-sm rounded-2xl bg-[#112538] border border-[#1E3A52] p-6 flex flex-col gap-4 shadow-xl">
                         <div className="flex flex-col gap-2">
                             <h2
                                 id="wrong-email-title"
@@ -281,7 +281,7 @@ export function AuthMagicLink() {
                             >
                                 Wrong Email?
                             </h2>
-                            <p className="text-sm text-[#B8C4CC]">
+                            <p className="text-sm text-[#94A3B8]">
                                 We found an existing Vanyshr account for{" "}
                                 <span className="font-semibold text-white">{email.trim()}</span>.
                             </p>
@@ -293,7 +293,7 @@ export function AuthMagicLink() {
                         <button
                             type="button"
                             onClick={() => navigate("/signup")}
-                            className="w-full h-[52px] rounded-xl bg-[#00BFFF] text-[#022136] font-bold text-base hover:bg-[#00D4FF] active:bg-[#0099CC] transition-colors duration-150 cursor-pointer"
+                            className="w-full h-[52px] rounded-xl bg-[#14ABFE] text-[#0B1B2B] font-bold text-base hover:bg-[#00D4FF] active:bg-[#0099CC] transition-colors duration-150 cursor-pointer"
                         >
                             Change Email
                         </button>

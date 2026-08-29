@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
-import { Plus } from "lucide-react";
+import { Plus, Check } from "lucide-react";
 import { cx } from "@/utils/cx";
 
 export type EmailConfirmationModalProps = {
@@ -161,7 +161,7 @@ export function EmailConfirmationModal({
         transition={{ duration: 0.2 }}
         className="relative w-full max-w-md rounded-2xl bg-[#1A2E42] shadow-xl"
       >
-        <div className="border-b border-[#2A4A68] px-6 py-5">
+        <div className="border-b border-[#1E3A52] px-6 py-5">
           <h2 className="text-xl font-bold text-white">Choose emails for Dark Web scan</h2>
           <p className="mt-1 text-sm text-[#7A92A8]">
             Instantly search millions dark web forums, breach databases, and leak announcements to
@@ -177,7 +177,7 @@ export function EmailConfirmationModal({
             <span
               className={cx(
                 "text-xs font-semibold tabular-nums",
-                atLimit ? "text-[#00BFFF]" : "text-[#7A92A8]",
+                atLimit ? "text-[#14ABFE]" : "text-[#7A92A8]",
               )}
             >
               {selectedCount} of {MAX_SELECTED} selected
@@ -197,28 +197,39 @@ export function EmailConfirmationModal({
                     aria-checked={isSelected}
                     onClick={() => toggleEmail(email.id)}
                     className={cx(
-                      "flex w-full items-center rounded-lg px-4 py-3 text-left transition",
-                      "outline-none focus-visible:ring-2 focus-visible:ring-[#00BFFF]",
+                      "flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left transition",
+                      "outline-none focus-visible:ring-2 focus-visible:ring-[#14ABFE]",
                       isSelected
-                        ? "bg-[#0B3B52] ring-1 ring-[#00BFFF]"
-                        : "bg-[#022136] hover:bg-[#0f1f2e]",
+                        ? "bg-[#0B3B52] ring-1 ring-[#14ABFE]"
+                        : "bg-[#0B1B2B] hover:bg-[#0f1f2e]",
                       !isSelected && atLimit && "opacity-60",
                     )}
                   >
+                    <span
+                      className={cx(
+                        "flex h-5 w-5 shrink-0 items-center justify-center rounded border transition",
+                        isSelected
+                          ? "border-[#14ABFE] bg-[#14ABFE] text-[#0B1B2B]"
+                          : "border-[#1E3A52] bg-transparent",
+                      )}
+                      aria-hidden
+                    >
+                      {isSelected ? <Check size={14} strokeWidth={3} /> : null}
+                    </span>
                     <span className="flex-1 break-all text-sm text-white">{email.value}</span>
                   </button>
                 );
               })}
             </div>
           ) : (
-            <p className="rounded-lg bg-[#022136] px-4 py-3 text-sm text-[#7A92A8]">
+            <p className="rounded-lg bg-[#0B1B2B] px-4 py-3 text-sm text-[#7A92A8]">
               We didn't find any emails on your broker profiles. Add one below to scan it.
             </p>
           )}
         </div>
 
         {/* Always visible -- not part of the scrollable email list above. */}
-        <div className="border-t border-[#2A4A68] px-6 py-4">
+        <div className="border-t border-[#1E3A52] px-6 py-4">
           <label
             htmlFor="add-email"
             className="mb-2 block text-xs font-semibold uppercase tracking-wider text-[#7A92A8]"
@@ -237,9 +248,9 @@ export function EmailConfirmationModal({
               placeholder="another@email.com"
               className={cx(
                 "flex-1 rounded-lg border px-3 py-2.5 text-sm",
-                "bg-[#022136] text-white placeholder-[#7A92A8]",
-                "border-[#2A4A68] outline-none transition",
-                "focus:ring-2 focus:ring-[#00BFFF]",
+                "bg-[#0B1B2B] text-white placeholder-[#7A92A8]",
+                "border-[#1E3A52] outline-none transition",
+                "focus:ring-2 focus:ring-[#14ABFE]",
               )}
             />
             <button
@@ -249,8 +260,8 @@ export function EmailConfirmationModal({
               className={cx(
                 "flex h-10 w-10 items-center justify-center rounded-lg font-semibold transition",
                 newEmailInput.trim()
-                  ? "bg-[#00BFFF] text-white hover:bg-[#00D4FF]"
-                  : "bg-[#2A4A68] text-[#7A92A8] cursor-not-allowed",
+                  ? "bg-[#14ABFE] text-[#0B1B2B] hover:bg-[#00D4FF]"
+                  : "bg-[#1E3A52] text-[#7A92A8] cursor-not-allowed",
               )}
               aria-label="Add email"
             >
@@ -265,7 +276,7 @@ export function EmailConfirmationModal({
                 animate={{ opacity: 1, y: 0 }}
                 exit={prefersReducedMotion ? undefined : { opacity: 0, y: -6 }}
                 transition={{ duration: 0.18 }}
-                className="mt-3 rounded-lg border border-[#FF8A00]/40 bg-[#4A2A28] p-3 text-sm text-[#FFB86B]"
+                className="mt-3 rounded-lg border border-[#FF8400]/40 bg-[#4A2A28] p-3 text-sm text-[#FFB86B]"
                 role="alert"
               >
                 {error}
@@ -274,11 +285,11 @@ export function EmailConfirmationModal({
           </AnimatePresence>
         </div>
 
-        <div className="flex gap-3 border-t border-[#2A4A68] px-6 py-4">
+        <div className="flex gap-3 border-t border-[#1E3A52] px-6 py-4">
           <button
             type="button"
             onClick={onCancel}
-            className="flex-1 rounded-lg border border-[#2A4A68] py-2.5 font-semibold text-[#B8C4CC] hover:bg-[#022136] transition"
+            className="flex-1 rounded-lg border border-[#1E3A52] py-2.5 font-semibold text-[#94A3B8] hover:bg-[#0B1B2B] transition"
           >
             Skip Breach Scan
           </button>
@@ -289,7 +300,7 @@ export function EmailConfirmationModal({
             className={cx(
               "flex-1 rounded-lg py-2.5 font-semibold transition",
               selectedCount > 0
-                ? "bg-[#00BFFF] text-white hover:bg-[#00D4FF]"
+                ? "bg-[#14ABFE] text-[#0B1B2B] hover:bg-[#00D4FF]"
                 : "bg-[#1B4A63] text-[#5A7A94] cursor-not-allowed",
             )}
           >
