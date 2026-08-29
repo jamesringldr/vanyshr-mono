@@ -7,7 +7,7 @@ import { Menu } from "lucide-react";
  */
 export function UnauthNav() {
     return (
-        <header className="w-full flex items-center justify-between px-6 h-14 shrink-0">
+        <header className="w-full flex items-center justify-between px-6 h-14 shrink-0 text-white">
             <img
                 src={PrimaryLogoDark}
                 alt="Vanyshr"

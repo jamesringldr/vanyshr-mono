@@ -147,34 +147,32 @@ export function ProgressDrawer({
   if (!isOpen) return null;
 
   return (
-    <>
-      {/* Backdrop */}
-      <AnimatePresence>
-        {isExpanded && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.28, ease: EASE_OUT }}
-            onClick={handleToggle}
-            className="fixed inset-0 z-30 bg-black/20 backdrop-blur-[4px]"
-            aria-hidden
-          />
-        )}
-      </AnimatePresence>
-
-      {/* Drawer. Sized and cornered like the quick-scan form card it sits
-          under -- max-w-sm, inset from the screen edges, rounded top. */}
-      <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center px-4">
-        <motion.div
-          layout
-          initial={false}
-          animate={{
-            maxHeight: isExpanded ? "90vh" : "120px",
-          }}
-          transition={{ duration: 0.32, ease: EASE_OUT }}
-          className="pointer-events-auto flex w-full max-w-xl flex-col overflow-hidden rounded-t-xl border-x border-t border-[#2A4A68] bg-[#2D3847]"
-        >
+    // A normal flex child, last in the page's h-screen column -- not
+    // `position: fixed`. That gets it both things at once: its bottom edge
+    // lands exactly on the viewport edge (nothing renders after it), and
+    // the zone above it gets the rest of the height from flexbox itself,
+    // so overlap with that content isn't something to calculate, it's
+    // structurally impossible.
+    <div className="flex w-full shrink-0 justify-center px-4">
+      <motion.div
+        initial={false}
+        animate={{
+          // No `layout` prop here -- combining it with an explicit `height`
+          // animation made Framer Motion fight itself, re-measuring the
+          // box from its content on every log update and producing a
+          // visible bounce. `height` alone is the single source of truth:
+          // exactly two resting positions, open and closed, full stop.
+          //
+          // Pixels, not vh: this is sized to fit the log's real content
+          // (header + 5 stages, one of them expanded to its 3-line cap) --
+          // about 420px -- not a fraction of whatever screen it's on. vh
+          // either left dead space below the log on tall screens or ran
+          // short on small ones.
+          height: isExpanded ? "420px" : "120px",
+        }}
+        transition={{ duration: 0.32, ease: EASE_OUT }}
+        className="flex w-full max-w-xl flex-col overflow-hidden rounded-t-xl border-x border-t border-[#2A4A68] bg-[#2D3847]"
+      >
         {/* Header (Always Visible). The whole row is the hit target -- the
             badge is the affordance, not a nested button. */}
         <button
@@ -264,41 +262,56 @@ export function ProgressDrawer({
                       </div>
                     )}
 
-                    {/* A running stage shows its log. Stages that have not
-                        started show nothing -- just the grey dot. */}
+                    {/* A running stage shows its log, windowed to the 3
+                        newest lines -- as a 4th arrives, the oldest of the
+                        3 fades and slides up off the top, rolodex-style,
+                        rather than the list growing without bound (that
+                        growth was what pushed the drawer's own position
+                        around). Stages that have not started show nothing
+                        -- just the grey dot. */}
                     {!summary && items.length > 0 && (
                       <div className="mt-2 space-y-2">
-                        {items.map((item) => {
-                          const itemState =
-                            item.id === currentId
-                              ? "active"
-                              : item.status === "failed"
-                                ? "failed"
-                                : "success";
-                          return (
-                            <div key={item.id} className="flex items-start gap-2.5">
-                              <Indicator
-                                state={itemState}
-                                box="mt-1 h-3.5 w-3.5"
-                                dot="h-2 w-2"
-                                ripple={14}
-                              />
-                              <span
-                                className={cx(
-                                  "min-w-0 flex-1 font-mono text-[12px] leading-snug",
-                                  TEXT[itemState],
-                                )}
+                        <AnimatePresence initial={false} mode="popLayout">
+                          {items.slice(-3).map((item) => {
+                            const itemState =
+                              item.id === currentId
+                                ? "active"
+                                : item.status === "failed"
+                                  ? "failed"
+                                  : "success";
+                            return (
+                              <motion.div
+                                key={item.id}
+                                layout
+                                initial={{ opacity: 0, y: 12 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -12 }}
+                                transition={{ duration: 0.24, ease: EASE_OUT }}
+                                className="flex items-start gap-2.5"
                               >
-                                {item.message}
-                              </span>
-                              {item.percent !== undefined && (
-                                <span className="shrink-0 font-mono text-[12px] tabular-nums text-[#00BFFF]">
-                                  {item.percent}%
+                                <Indicator
+                                  state={itemState}
+                                  box="mt-1 h-3.5 w-3.5"
+                                  dot="h-2 w-2"
+                                  ripple={14}
+                                />
+                                <span
+                                  className={cx(
+                                    "min-w-0 flex-1 font-mono text-[12px] leading-snug",
+                                    TEXT[itemState],
+                                  )}
+                                >
+                                  {item.message}
                                 </span>
-                              )}
-                            </div>
-                          );
-                        })}
+                                {item.percent !== undefined && (
+                                  <span className="shrink-0 font-mono text-[12px] tabular-nums text-[#00BFFF]">
+                                    {item.percent}%
+                                  </span>
+                                )}
+                              </motion.div>
+                            );
+                          })}
+                        </AnimatePresence>
                       </div>
                     )}
                   </div>
@@ -308,8 +321,7 @@ export function ProgressDrawer({
             </motion.div>
           )}
         </AnimatePresence>
-        </motion.div>
-      </div>
-    </>
+      </motion.div>
+    </div>
   );
 }

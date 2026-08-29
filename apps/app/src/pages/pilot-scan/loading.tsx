@@ -1,11 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
-import { Check } from "lucide-react";
-import { InlineLoader } from "generative-loaders";
-import "generative-loaders/styles.css";
-import PrimaryIcon from "@vanyshr/ui/assets/PrimaryIcon-Nooutline.png";
-import { cx } from "@/utils/cx";
 import { supabase } from "@/lib/supabase";
 import { signupPath } from "@/lib/pending-scan";
 import {
@@ -19,14 +14,9 @@ import { EmailConfirmationModal } from "./email-confirmation";
 import { loadConsolidatedProfile, saveConsolidatedProfile, type ConsolidatedProfile } from "./consolidated-profile";
 import { ProgressDrawer, type ProgressStage, type ProgressMessage } from "./progress-drawer";
 import { EducationalCards } from "./educational-cards";
+import { UnauthNav } from "@/components/UnauthNav";
 
 const EASE_OUT = [0.2, 0, 0, 1] as const;
-
-/**
- * generative-loaders@0.1.1 has no `vortex` yet — `orbit` is the closest
- * circular activity indicator from the published set.
- */
-const ACTIVE_LOADER_VARIANT = "orbit" as const;
 
 type Phase = "searching" | "pick" | "full_profile" | "emails" | "report" | "error" | "no_results";
 
@@ -226,32 +216,6 @@ function stepStatuses(phase: Phase, isConfirming: boolean): Record<string, StepS
     darkweb: !brokersDone ? "pending" : enriching ? "active" : "pending",
     results: "pending",
   };
-}
-
-
-function StepIndicator({ status }: { status: StepStatus }) {
-  if (status === "complete") {
-    return (
-      <span
-        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#22C55E]"
-        aria-hidden
-      >
-        <Check className="h-3.5 w-3.5 text-white" strokeWidth={3} />
-      </span>
-    );
-  }
-
-  if (status === "active") {
-    return (
-      <span className="flex h-6 w-6 shrink-0 items-center justify-center" aria-hidden>
-        <InlineLoader variant={ACTIVE_LOADER_VARIANT} size={24} color="#14ABFE" />
-      </span>
-    );
-  }
-
-  return (
-    <span className="h-6 w-6 shrink-0 rounded-full border-2 border-[#4A5568]" aria-hidden />
-  );
 }
 
 type IdentifyBroker = "fps" | "anywho" | "zaba" | "npd";
@@ -956,21 +920,34 @@ export function PilotLoadingPage() {
           },
     );
   }
-  const allDone = phase === "report";
   const activeStep =
     STEPS.find((s) => statuses[s.id] === "active") ??
     STEPS.find((s) => statuses[s.id] === "pending") ??
     STEPS[STEPS.length - 1]!;
   const pickOpen = phase === "pick";
+  // The drawer's own header carries stage name + latest log line for these
+  // phases -- showing the eyebrow/headline block on top of it duplicated
+  // the same status. Kept for error/pick/no_results, where the drawer is
+  // closed and this text is the only explanation on screen.
+  const drawerOpen =
+    (phase === "searching" || phase === "full_profile" || phase === "emails" || phase === "report") &&
+    !holdMode;
 
   return (
     <div
-      className="relative flex min-h-screen w-full flex-col items-center justify-center overflow-x-hidden bg-[#0B1B2B] px-6 py-12 font-ubuntu"
+      className="relative flex h-screen w-full flex-col items-center overflow-hidden bg-[#0B1B2B] font-ubuntu"
       role="main"
       aria-label="Scan in progress"
       aria-busy={phase === "searching" || phase === "full_profile"}
     >
-      <div className="relative z-10 flex w-full max-w-xl flex-col items-center">
+      <UnauthNav />
+
+      {/* Top zone takes whatever height the drawer below doesn't -- flexbox
+          allocates the split exactly, so the cards can never end up behind
+          the drawer the way approximating it with padding did. This zone
+          scrolls on its own if its content is taller than what's left. */}
+      <div className="relative z-10 flex w-full min-h-0 flex-1 flex-col items-center overflow-y-auto px-6 py-12">
+        <div className="flex w-full max-w-xl flex-col items-center">
         {/* Educational Cards - Show during scanning phases */}
         {(phase === "searching" || phase === "full_profile") && (
           <EducationalCards
@@ -981,85 +958,38 @@ export function PilotLoadingPage() {
           />
         )}
 
-        <div className="relative mb-6 flex h-[240px] w-[240px] items-center justify-center overflow-visible">
-          <div
-            className="pointer-events-none absolute left-1/2 top-1/2 h-[200px] w-[200px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#14ABFE]/40 blur-[48px]"
-            aria-hidden
-          />
-          <motion.img
-            src={PrimaryIcon}
-            alt=""
-            className="relative z-10 h-[88px] w-[88px] object-contain"
-            animate={prefersReducedMotion ? undefined : { y: [0, -14, 0] }}
-            transition={
-              prefersReducedMotion
-                ? undefined
-                : { duration: 2.4, repeat: Infinity, ease: [0.45, 0, 0.55, 1] }
-            }
-          />
-        </div>
-
-        <div className="mb-10 min-h-[88px] w-full text-center" aria-live="polite">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={phase + activeStep.id + identifyBroker + statusAction}
-              initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={prefersReducedMotion ? undefined : { opacity: 0, y: -6 }}
-              transition={{ duration: 0.28, ease: EASE_OUT }}
-            >
-              <p className="text-base text-[#94A3B8]">
-                {phase === "error"
-                  ? "Something stopped the scan"
-                  : phase === "no_results"
-                    ? "You're harder to find than most"
-                    : phase === "pick"
-                    ? "Is this you?"
-                    : phase === "emails"
-                      ? "Almost done..."
-                      : allDone
-                        ? "All set..."
-                        : activeStep.eyebrow}
-              </p>
-              <p className="mt-1 text-xl font-bold leading-snug tracking-tight text-white sm:text-2xl">
-                {phase === "error"
-                  ? errorMessage || "We couldn't finish this search"
-                  : phase === "no_results"
-                    ? "We didn't find a public record that looks like you"
-                    : phase === "pick"
-                    ? pickHeadline(identifyBroker, rejectedRef.current.length === 0)
-                    : phase === "full_profile"
-                      ? statusAction || "Pulling your full profiles from each site"
-                      : phase === "emails"
-                        ? statusAction || "Confirm the emails we found"
-                        : allDone
-                          ? "Your exposure report is ready to review"
-                          : statusAction || activeStep.headline}
-              </p>
-            </motion.div>
-          </AnimatePresence>
-        </div>
-
-        <ol className="flex w-full max-w-[280px] flex-col gap-4" aria-label="Scan progress">
-          {STEPS.map((step) => {
-            const status = statuses[step.id]!;
-            return (
-              <li key={step.id} className="flex items-center gap-3">
-                <StepIndicator status={status} />
-                <span
-                  className={cx(
-                    "text-[15px] leading-snug transition-colors duration-200",
-                    status === "pending" && "text-[#7A92A8]",
-                    status === "active" && "font-medium text-white",
-                    status === "complete" && "text-[#94A3B8]",
-                  )}
-                >
-                  {step.label}
-                </span>
-              </li>
-            );
-          })}
-        </ol>
+        {!drawerOpen && (
+          <div className="mb-10 mt-6 min-h-[88px] w-full text-center" aria-live="polite">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={phase + activeStep.id + identifyBroker + statusAction}
+                initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={prefersReducedMotion ? undefined : { opacity: 0, y: -6 }}
+                transition={{ duration: 0.28, ease: EASE_OUT }}
+              >
+                <p className="text-base text-[#94A3B8]">
+                  {phase === "error"
+                    ? "Something stopped the scan"
+                    : phase === "no_results"
+                      ? "You're harder to find than most"
+                      : phase === "pick"
+                      ? "Is this you?"
+                      : activeStep.eyebrow}
+                </p>
+                <p className="mt-1 text-xl font-bold leading-snug tracking-tight text-white sm:text-2xl">
+                  {phase === "error"
+                    ? errorMessage || "We couldn't finish this search"
+                    : phase === "no_results"
+                      ? "We didn't find a public record that looks like you"
+                      : phase === "pick"
+                      ? pickHeadline(identifyBroker, rejectedRef.current.length === 0)
+                      : statusAction || activeStep.headline}
+                </p>
+              </motion.div>
+            </AnimatePresence>
+          </div>
+        )}
 
         {phase === "error" && (
           <button
@@ -1070,17 +1000,14 @@ export function PilotLoadingPage() {
             Continue anyway
           </button>
         )}
+        </div>
       </div>
 
-      {/* Progress Drawer */}
+      {/* Progress Drawer -- last child of this h-screen column, so its own
+          static height (open/closed) is simply subtracted from the zone
+          above by flexbox. No overlap is possible; nothing to calculate. */}
       <ProgressDrawer
-        isOpen={
-          (phase === "searching" ||
-            phase === "full_profile" ||
-            phase === "emails" ||
-            phase === "report") &&
-          !holdMode
-        }
+        isOpen={drawerOpen}
         stages={DRAWER_STAGES}
         progressMessages={[...loggedMessages, ...syntheticMessages]}
         statusAction={statusAction}
