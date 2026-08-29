@@ -4,7 +4,6 @@ import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { Check } from "lucide-react";
 import { InlineLoader } from "generative-loaders";
 import "generative-loaders/styles.css";
-import PrimaryIcon from "@vanyshr/ui/assets/PrimaryIcon-Nooutline.png";
 import { cx } from "@/utils/cx";
 import { supabase } from "@/lib/supabase";
 import { signupPath } from "@/lib/pending-scan";
@@ -980,25 +979,7 @@ export function PilotLoadingPage() {
           />
         )}
 
-        <div className="relative mb-6 flex h-[240px] w-[240px] items-center justify-center overflow-visible">
-          <div
-            className="pointer-events-none absolute left-1/2 top-1/2 h-[200px] w-[200px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#00BFFF]/40 blur-[48px]"
-            aria-hidden
-          />
-          <motion.img
-            src={PrimaryIcon}
-            alt=""
-            className="relative z-10 h-[88px] w-[88px] object-contain"
-            animate={prefersReducedMotion ? undefined : { y: [0, -14, 0] }}
-            transition={
-              prefersReducedMotion
-                ? undefined
-                : { duration: 2.4, repeat: Infinity, ease: [0.45, 0, 0.55, 1] }
-            }
-          />
-        </div>
-
-        <div className="mb-10 min-h-[88px] w-full text-center" aria-live="polite">
+        <div className="mb-10 mt-6 min-h-[88px] w-full text-center" aria-live="polite">
           <AnimatePresence mode="wait">
             <motion.div
               key={phase + activeStep.id + identifyBroker + statusAction}

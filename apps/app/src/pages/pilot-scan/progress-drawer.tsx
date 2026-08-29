@@ -170,7 +170,10 @@ export function ProgressDrawer({
           layout
           initial={false}
           animate={{
-            maxHeight: isExpanded ? "90vh" : "120px",
+            // Fixed, not content-driven -- a growing log (e.g. stage 3's
+            // per-broker lines) must never nudge the drawer's top edge.
+            // Exactly two resting positions: open and closed.
+            height: isExpanded ? "90vh" : "120px",
           }}
           transition={{ duration: 0.32, ease: EASE_OUT }}
           className="pointer-events-auto flex w-full max-w-xl flex-col overflow-hidden rounded-t-xl border-x border-t border-[#2A4A68] bg-[#2D3847]"
@@ -264,41 +267,56 @@ export function ProgressDrawer({
                       </div>
                     )}
 
-                    {/* A running stage shows its log. Stages that have not
-                        started show nothing -- just the grey dot. */}
+                    {/* A running stage shows its log, windowed to the 3
+                        newest lines -- as a 4th arrives, the oldest of the
+                        3 fades and slides up off the top, rolodex-style,
+                        rather than the list growing without bound (that
+                        growth was what pushed the drawer's own position
+                        around). Stages that have not started show nothing
+                        -- just the grey dot. */}
                     {!summary && items.length > 0 && (
                       <div className="mt-2 space-y-2">
-                        {items.map((item) => {
-                          const itemState =
-                            item.id === currentId
-                              ? "active"
-                              : item.status === "failed"
-                                ? "failed"
-                                : "success";
-                          return (
-                            <div key={item.id} className="flex items-start gap-2.5">
-                              <Indicator
-                                state={itemState}
-                                box="mt-1 h-3.5 w-3.5"
-                                dot="h-2 w-2"
-                                ripple={14}
-                              />
-                              <span
-                                className={cx(
-                                  "min-w-0 flex-1 font-mono text-[12px] leading-snug",
-                                  TEXT[itemState],
-                                )}
+                        <AnimatePresence initial={false} mode="popLayout">
+                          {items.slice(-3).map((item) => {
+                            const itemState =
+                              item.id === currentId
+                                ? "active"
+                                : item.status === "failed"
+                                  ? "failed"
+                                  : "success";
+                            return (
+                              <motion.div
+                                key={item.id}
+                                layout
+                                initial={{ opacity: 0, y: 12 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -12 }}
+                                transition={{ duration: 0.24, ease: EASE_OUT }}
+                                className="flex items-start gap-2.5"
                               >
-                                {item.message}
-                              </span>
-                              {item.percent !== undefined && (
-                                <span className="shrink-0 font-mono text-[12px] tabular-nums text-[#00BFFF]">
-                                  {item.percent}%
+                                <Indicator
+                                  state={itemState}
+                                  box="mt-1 h-3.5 w-3.5"
+                                  dot="h-2 w-2"
+                                  ripple={14}
+                                />
+                                <span
+                                  className={cx(
+                                    "min-w-0 flex-1 font-mono text-[12px] leading-snug",
+                                    TEXT[itemState],
+                                  )}
+                                >
+                                  {item.message}
                                 </span>
-                              )}
-                            </div>
-                          );
-                        })}
+                                {item.percent !== undefined && (
+                                  <span className="shrink-0 font-mono text-[12px] tabular-nums text-[#00BFFF]">
+                                    {item.percent}%
+                                  </span>
+                                )}
+                              </motion.div>
+                            );
+                          })}
+                        </AnimatePresence>
                       </div>
                     )}
                   </div>
