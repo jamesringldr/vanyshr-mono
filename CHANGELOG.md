@@ -37,6 +37,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `quickscan.scan_timings` — per-step/per-broker duration and result-count logging across intro-scan, summary-scan, and full-profile-scan, for diagnosing where a scan spends its time
 - `supabase/scripts/purge-quickscan-test-data.sql` — manual dev/test utility to wipe all `quickscan.*` tables between test passes
 - `quickscan.quickscans.selected_summary_result_id` — holds a fallback (non-Zaba) pick when Zaba returns no results for a scan
+- `testing.phone_results` table and `scripts/phone-lookup-study.ts` — accuracy sweep comparing reversephonelookup/usphonebook/anywho/fps phone-number lookups against `test_subjects` with a known real number
+- `phone-page-parser.ts` — per-broker phone-lookup extractors: schema.org Person JSON-LD for reversephonelookup/fps, AnyWho's blurred "potential owners" field (reuses `deblurAnywhoHtml()`), usphonebook's schema.org Microdata
 
 ### Changed
 
@@ -67,6 +69,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `scan_timings.duration_ms` → `duration_s` (numeric seconds, easier to read)
 - `summary-scan` now responds as soon as Zaba resolves instead of waiting on all 4 brokers — the selection modal used to take 50s+ because it waited on the slowest/most failure-prone broker (NPD) too; FPS/NPD/AnyWho now finish matching in the background, and `full-profile-scan` holds the pick until that background match completes instead of proceeding on an incomplete one
 - `summary-scan` now falls back to fps/npd/anywho's own matched results as selection-modal candidates when Zaba itself found nothing for a scan, instead of surfacing an empty "no results" list
+- `phone-lookup` now scrapes AnyWho instead of Zaba (whose live fetch has been dead-ended for a while — `fetchWithProxy()` always returned `null`). A 28-subject accuracy study (`testing.phone_results`, run 25) found AnyWho the clear single-source pick over reversephonelookup/usphonebook/fps: highest match rate, lowest miss rate, and the only source that ever uniquely caught a match the others missed. Also now populates `line_type`/`carrier`, fields the response shape has always carried but never had a live source for
 
 ### Fixed
 
