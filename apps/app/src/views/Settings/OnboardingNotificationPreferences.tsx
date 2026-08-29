@@ -159,7 +159,7 @@ export function OnboardingNotificationPreferences() {
   }
 
   return (
-    <div className="min-h-screen bg-[#022136] font-ubuntu">
+    <div className="min-h-screen bg-[#0B1B2B] font-ubuntu">
       <div className="pb-36 overflow-y-auto">
         <div className="flex flex-col gap-6 py-6 px-6">
 
@@ -167,10 +167,10 @@ export function OnboardingNotificationPreferences() {
           <div className="flex items-center gap-3">
             <button
               onClick={() => navigate(-1)}
-              className="w-9 h-9 rounded-full bg-[#2D3847] border border-[#2A4A68] flex items-center justify-center flex-shrink-0 cursor-pointer hover:border-[#3A5A78] transition-colors duration-150"
+              className="w-9 h-9 rounded-full bg-[#112538] border border-[#1E3A52] flex items-center justify-center flex-shrink-0 cursor-pointer hover:border-[#3A5A78] transition-colors duration-150"
               aria-label="Go back"
             >
-              <ChevronLeft className="w-5 h-5 text-[#B8C4CC]" />
+              <ChevronLeft className="w-5 h-5 text-[#94A3B8]" />
             </button>
             <div>
               <h1 className="text-xl font-bold text-white">Notification Preferences</h1>
@@ -189,8 +189,8 @@ export function OnboardingNotificationPreferences() {
                   className={[
                     'w-full text-left rounded-2xl p-5 border transition-all duration-150 cursor-pointer',
                     isSelected
-                      ? 'bg-[#2D3847] border-[#00BFFF] shadow-[0_0_0_1px_rgba(0,191,255,0.2)]'
-                      : 'bg-[#2D3847] border-[#2A4A68] hover:border-[#3A5A78]',
+                      ? 'bg-[#112538] border-[#14ABFE] shadow-[0_0_0_1px_rgba(20,171,254,0.2)]'
+                      : 'bg-[#112538] border-[#1E3A52] hover:border-[#3A5A78]',
                   ].join(' ')}
                 >
                   <div className="flex items-start gap-3">
@@ -211,18 +211,18 @@ export function OnboardingNotificationPreferences() {
                         <ChevronRight
                           className={[
                             'w-5 h-5 transition-colors duration-150',
-                            isSelected ? 'text-[#00BFFF]' : 'text-[#7A92A8]',
+                            isSelected ? 'text-[#14ABFE]' : 'text-[#7A92A8]',
                           ].join(' ')}
                         />
                       ) : (
                         <div
                           className={[
                             'w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all duration-150',
-                            isSelected ? 'border-[#00BFFF] bg-[#00BFFF]' : 'border-[#4A5568]',
+                            isSelected ? 'border-[#14ABFE] bg-[#14ABFE]' : 'border-[#4A5568]',
                           ].join(' ')}
                         >
                           {isSelected && (
-                            <div className="w-2 h-2 rounded-full bg-[#022136]" />
+                            <div className="w-2 h-2 rounded-full bg-[#0B1B2B]" />
                           )}
                         </div>
                       )}
@@ -237,11 +237,11 @@ export function OnboardingNotificationPreferences() {
       </div>
 
       {/* ── STICKY CONFIRM FOOTER ──────────────────────────────────────────── */}
-      <div className="fixed bottom-0 left-0 right-0 bg-[#022136] border-t border-[#2A4A68] px-6 py-5">
+      <div className="fixed bottom-0 left-0 right-0 bg-[#0B1B2B] border-t border-[#1E3A52] px-6 py-5">
         <button
           onClick={handleConfirm}
           disabled={isSaving}
-          className="w-full h-[52px] rounded-xl bg-[#00BFFF] text-[#022136] font-bold text-base hover:bg-[#00D4FF] active:bg-[#0099CC] active:text-white transition-colors duration-150 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+          className="w-full h-[52px] rounded-xl bg-[#14ABFE] text-[#0B1B2B] font-bold text-base hover:bg-[#00D4FF] active:bg-[#0099CC] active:text-white transition-colors duration-150 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
         >
           {isSaving ? 'Saving...' : 'Confirm'}
         </button>

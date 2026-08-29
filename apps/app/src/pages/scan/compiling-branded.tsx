@@ -5,7 +5,7 @@ export function CompilingBrandedPage() {
 
     return (
         <div
-            className="min-h-screen w-full flex flex-col items-center justify-center bg-[#022136] font-ubuntu overflow-hidden"
+            className="min-h-screen w-full flex flex-col items-center justify-center bg-[#0B1B2B] font-ubuntu overflow-hidden"
             role="main"
             aria-label="Compiling results"
         >
@@ -17,7 +17,7 @@ export function CompilingBrandedPage() {
                 </div>
 
                 <div className="flex flex-col items-center gap-3">
-                    <p className="text-[#B8C4CC] text-lg font-medium tracking-wide animate-pulse">
+                    <p className="text-[#94A3B8] text-lg font-medium tracking-wide animate-pulse">
                         Compiling results...
                     </p>
                     <p className="text-[#7A92A8] text-sm max-w-[280px] text-center leading-relaxed">

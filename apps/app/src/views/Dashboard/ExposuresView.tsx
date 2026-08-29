@@ -82,14 +82,14 @@ const EXPOSURE_STATUS_CONFIG: Record<string, {
   bg: string;
   Icon: React.ElementType;
 }> = {
-  found:               { label: 'Exposed',          color: 'text-[#FF8A00]', bg: 'bg-[#FF8A00]/15', Icon: AlertTriangle },
+  found:               { label: 'Exposed',          color: 'text-[#FF8400]', bg: 'bg-[#FF8400]/15', Icon: AlertTriangle },
   queued:              { label: 'Queued',            color: 'text-[#FFB81C]', bg: 'bg-[#FFB81C]/15', Icon: Clock         },
   removal_requested:   { label: 'Removal Req.',      color: 'text-[#FFB81C]', bg: 'bg-[#FFB81C]/15', Icon: Clock         },
-  removal_in_progress: { label: 'In Progress',       color: 'text-[#00BFFF]', bg: 'bg-[#00BFFF]/15', Icon: Clock         },
+  removal_in_progress: { label: 'In Progress',       color: 'text-[#14ABFE]', bg: 'bg-[#14ABFE]/15', Icon: Clock         },
   removed:             { label: 'Removed',           color: 'text-[#00D4AA]', bg: 'bg-[#00D4AA]/15', Icon: CheckCircle   },
   verified_removed:    { label: 'Verified Removed',  color: 'text-[#00D4AA]', bg: 'bg-[#00D4AA]/15', Icon: CheckCircle   },
   failed:              { label: 'Failed',            color: 'text-[#FF5757]', bg: 'bg-[#FF5757]/15', Icon: AlertTriangle },
-  relisted:            { label: 'Relisted',          color: 'text-[#FF8A00]', bg: 'bg-[#FF8A00]/15', Icon: AlertTriangle },
+  relisted:            { label: 'Relisted',          color: 'text-[#FF8400]', bg: 'bg-[#FF8400]/15', Icon: AlertTriangle },
   manual_required:     { label: 'Action Needed',     color: 'text-[#FFB81C]', bg: 'bg-[#FFB81C]/15', Icon: AlertTriangle },
   ignored:             { label: 'Ignored',           color: 'text-[#7A92A8]', bg: 'bg-[#7A92A8]/15', Icon: Clock         },
 };
@@ -100,7 +100,7 @@ const BREACH_STATUS_CONFIG: Record<BreachStatus, {
   bg: string;
   Icon: React.ElementType;
 }> = {
-  new:        { label: 'New',        color: 'text-[#FF8A00]', bg: 'bg-[#FF8A00]/15', Icon: AlertTriangle },
+  new:        { label: 'New',        color: 'text-[#FF8400]', bg: 'bg-[#FF8400]/15', Icon: AlertTriangle },
   unresolved: { label: 'Unresolved', color: 'text-[#FFB81C]', bg: 'bg-[#FFB81C]/15', Icon: Clock         },
   resolved:   { label: 'Resolved',   color: 'text-[#00D4AA]', bg: 'bg-[#00D4AA]/15', Icon: CheckCircle   },
 };
@@ -108,8 +108,8 @@ const BREACH_STATUS_CONFIG: Record<BreachStatus, {
 // Status filter dropdown options
 const STATUS_FILTER_OPTIONS: { key: StatusFilter; label: string; dot: string | null }[] = [
   { key: 'all',        label: 'All',         dot: null            },
-  { key: 'active',     label: 'Exposed',     dot: 'bg-[#FF8A00]' },
-  { key: 'inprogress', label: 'In Progress', dot: 'bg-[#00BFFF]' },
+  { key: 'active',     label: 'Exposed',     dot: 'bg-[#FF8400]' },
+  { key: 'inprogress', label: 'In Progress', dot: 'bg-[#14ABFE]' },
   { key: 'resolved',   label: 'Resolved',    dot: 'bg-[#00D4AA]' },
 ];
 
@@ -174,13 +174,13 @@ function ExposureCard({ item, onClick }: { item: ExposureItem; onClick: () => vo
 
   return (
     <button
-      className="w-full bg-[#2D3847] border border-[#2A4A68] rounded-xl px-4 py-3.5 flex items-center gap-3 text-left hover:border-[#3A5A78] transition-colors duration-150 cursor-pointer"
+      className="w-full bg-[#112538] border border-[#1E3A52] rounded-xl px-4 py-3.5 flex items-center gap-3 text-left hover:border-[#3A5A78] transition-colors duration-150 cursor-pointer"
       onClick={onClick}
       aria-label={`View details for ${brokerName} exposure`}
     >
       {/* Broker avatar */}
-      <div className="w-10 h-10 rounded-lg bg-[#022136] border border-[#2A4A68] flex items-center justify-center flex-shrink-0">
-        <span className="text-[#00BFFF] text-xs font-bold">{initials(brokerName)}</span>
+      <div className="w-10 h-10 rounded-lg bg-[#0B1B2B] border border-[#1E3A52] flex items-center justify-center flex-shrink-0">
+        <span className="text-[#14ABFE] text-xs font-bold">{initials(brokerName)}</span>
       </div>
 
       {/* Content */}
@@ -212,7 +212,7 @@ function BreachCard({ item, onClick }: { item: BreachItem; onClick: () => void }
 
   return (
     <button
-      className="w-full bg-[#2D3847] border border-[#2A4A68] rounded-xl px-4 py-3.5 flex items-center gap-3 text-left hover:border-[#3A5A78] transition-colors duration-150 cursor-pointer"
+      className="w-full bg-[#112538] border border-[#1E3A52] rounded-xl px-4 py-3.5 flex items-center gap-3 text-left hover:border-[#3A5A78] transition-colors duration-150 cursor-pointer"
       onClick={onClick}
       aria-label={`View details for ${title} breach`}
     >
@@ -258,9 +258,9 @@ function BottomSheetModal({ children, onClose }: { children: React.ReactNode; on
         aria-hidden="true"
       />
       {/* Sheet */}
-      <div className="relative bg-[#022136] border-t border-[#2A4A68] rounded-t-2xl px-6 pt-3 pb-10 max-h-[88vh] overflow-y-auto">
+      <div className="relative bg-[#0B1B2B] border-t border-[#1E3A52] rounded-t-2xl px-6 pt-3 pb-10 max-h-[88vh] overflow-y-auto">
         {/* Drag handle */}
-        <div className="w-10 h-1 bg-[#2A4A68] rounded-full mx-auto mb-5" />
+        <div className="w-10 h-1 bg-[#1E3A52] rounded-full mx-auto mb-5" />
         {children}
       </div>
     </div>
@@ -296,8 +296,8 @@ function ExposureModal({
       {/* Header */}
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-[#022136] border border-[#2A4A68] flex items-center justify-center flex-shrink-0">
-            <span className="text-[#00BFFF] text-xs font-bold">{initials(brokerName)}</span>
+          <div className="w-10 h-10 rounded-lg bg-[#0B1B2B] border border-[#1E3A52] flex items-center justify-center flex-shrink-0">
+            <span className="text-[#14ABFE] text-xs font-bold">{initials(brokerName)}</span>
           </div>
           <div>
             <p className="text-base font-bold text-white">{brokerName}</p>
@@ -306,7 +306,7 @@ function ExposureModal({
                 href={item.brokers.website_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-1 text-xs text-[#00BFFF] mt-0.5 hover:text-[#00D4FF] transition-colors"
+                className="flex items-center gap-1 text-xs text-[#14ABFE] mt-0.5 hover:text-[#00D4FF] transition-colors"
               >
                 <Globe className="w-3 h-3" aria-hidden="true" />
                 {item.brokers.website_url.replace(/^https?:\/\//, '')}
@@ -317,7 +317,7 @@ function ExposureModal({
         </div>
         <button
           onClick={onClose}
-          className="p-1 rounded-lg hover:bg-[#2D3847] transition-colors cursor-pointer"
+          className="p-1 rounded-lg hover:bg-[#112538] transition-colors cursor-pointer"
           aria-label="Close"
         >
           <X className="w-5 h-5 text-[#7A92A8]" />
@@ -334,7 +334,7 @@ function ExposureModal({
       </div>
 
       {/* Timeline */}
-      <div className="bg-[#2D3847] border border-[#2A4A68] rounded-xl px-4 py-3.5 flex flex-col gap-2">
+      <div className="bg-[#112538] border border-[#1E3A52] rounded-xl px-4 py-3.5 flex flex-col gap-2">
         <p className="text-[11px] font-medium text-[#7A92A8] uppercase tracking-wide">Timeline</p>
         <div className="flex flex-col gap-1.5">
           <p className="text-xs text-white">
@@ -368,7 +368,7 @@ function ExposureModal({
 
       {/* Data snapshot */}
       {snapshotEntries.length > 0 && (
-        <div className="bg-[#2D3847] border border-[#2A4A68] rounded-xl px-4 py-3.5 flex flex-col gap-2">
+        <div className="bg-[#112538] border border-[#1E3A52] rounded-xl px-4 py-3.5 flex flex-col gap-2">
           <p className="text-[11px] font-medium text-[#7A92A8] uppercase tracking-wide">Exposed Data</p>
           <div className="flex flex-col gap-1.5">
             {snapshotEntries.map(([key, value]) => (
@@ -389,7 +389,7 @@ function ExposureModal({
           href={item.profile_url}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center justify-center gap-2 text-sm font-medium text-[#00BFFF] border border-[#00BFFF]/40 rounded-xl py-3 hover:bg-[#00BFFF]/10 transition-colors duration-150"
+          className="flex items-center justify-center gap-2 text-sm font-medium text-[#14ABFE] border border-[#14ABFE]/40 rounded-xl py-3 hover:bg-[#14ABFE]/10 transition-colors duration-150"
         >
           <ExternalLink className="w-4 h-4" aria-hidden="true" />
           View Listing
@@ -400,7 +400,7 @@ function ExposureModal({
       {isActionable && (
         <button
           onClick={() => onUpdate(item.id, 'ignored')}
-          className="text-xs text-[#7A92A8] border border-[#2A4A68] rounded-xl py-2.5 hover:text-white hover:border-[#3A5A78] transition-colors duration-150 cursor-pointer"
+          className="text-xs text-[#7A92A8] border border-[#1E3A52] rounded-xl py-2.5 hover:text-white hover:border-[#3A5A78] transition-colors duration-150 cursor-pointer"
         >
           Ignore This Exposure
         </button>
@@ -444,7 +444,7 @@ function BreachModal({
         </div>
         <button
           onClick={onClose}
-          className="p-1 rounded-lg hover:bg-[#2D3847] transition-colors cursor-pointer"
+          className="p-1 rounded-lg hover:bg-[#112538] transition-colors cursor-pointer"
           aria-label="Close"
         >
           <X className="w-5 h-5 text-[#7A92A8]" />
@@ -461,7 +461,7 @@ function BreachModal({
       </div>
 
       {/* Breach details */}
-      <div className="bg-[#2D3847] border border-[#2A4A68] rounded-xl px-4 py-3.5 flex flex-col gap-2">
+      <div className="bg-[#112538] border border-[#1E3A52] rounded-xl px-4 py-3.5 flex flex-col gap-2">
         <p className="text-[11px] font-medium text-[#7A92A8] uppercase tracking-wide">Breach Details</p>
         <div className="flex flex-col gap-1.5">
           {item.breach_date && (
@@ -483,7 +483,7 @@ function BreachModal({
 
       {/* Exposed data types */}
       {item.exposed_data_types && item.exposed_data_types.length > 0 && (
-        <div className="bg-[#2D3847] border border-[#2A4A68] rounded-xl px-4 py-3.5 flex flex-col gap-2.5">
+        <div className="bg-[#112538] border border-[#1E3A52] rounded-xl px-4 py-3.5 flex flex-col gap-2.5">
           <p className="text-[11px] font-medium text-[#7A92A8] uppercase tracking-wide">
             Exposed Data Types
           </p>
@@ -491,7 +491,7 @@ function BreachModal({
             {item.exposed_data_types.map(type => (
               <span
                 key={type}
-                className="text-xs text-[#B8C4CC] bg-[#022136] border border-[#2A4A68] rounded-lg px-2.5 py-1"
+                className="text-xs text-[#94A3B8] bg-[#0B1B2B] border border-[#1E3A52] rounded-lg px-2.5 py-1"
               >
                 {type}
               </span>
@@ -501,9 +501,9 @@ function BreachModal({
       )}
 
       {/* Recommended action */}
-      <div className="bg-[#FF8A00]/8 border border-[#FF8A00]/25 rounded-xl px-4 py-3.5">
-        <p className="text-xs font-bold text-[#FF8A00] mb-1.5">Recommended Action</p>
-        <p className="text-xs text-[#B8C4CC] leading-relaxed">
+      <div className="bg-[#FF8400]/8 border border-[#FF8400]/25 rounded-xl px-4 py-3.5">
+        <p className="text-xs font-bold text-[#FF8400] mb-1.5">Recommended Action</p>
+        <p className="text-xs text-[#94A3B8] leading-relaxed">
           Change the password for any accounts using{' '}
           <span className="text-white">{item.matched_email}</span> and enable
           two-factor authentication where available.
@@ -533,7 +533,7 @@ function SkeletonList() {
       {[1, 2, 3, 4, 5].map(i => (
         <div
           key={i}
-          className="bg-[#2D3847] border border-[#2A4A68] rounded-xl h-[72px] animate-pulse"
+          className="bg-[#112538] border border-[#1E3A52] rounded-xl h-[72px] animate-pulse"
           style={{ opacity: 1 - i * 0.12 }}
         />
       ))}
@@ -680,7 +680,7 @@ export function ExposuresView() {
 
   // ─────────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-[#022136] font-ubuntu">
+    <div className="min-h-screen bg-[#0B1B2B] font-ubuntu">
       <div className="pb-24 overflow-y-auto">
         <div className="flex flex-col gap-5 py-6 px-6">
 
@@ -696,15 +696,15 @@ export function ExposuresView() {
                 onClick={() => setShowStatusMenu(s => !s)}
                 className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors cursor-pointer ${
                   statusFilter !== 'all'
-                    ? 'bg-[#00BFFF]/20 border border-[#00BFFF]'
-                    : 'bg-[#2D3847] border border-[#2A4A68]'
+                    ? 'bg-[#14ABFE]/20 border border-[#14ABFE]'
+                    : 'bg-[#112538] border border-[#1E3A52]'
                 }`}
               >
-                <Filter className={`w-4 h-4 ${statusFilter !== 'all' ? 'text-[#00BFFF]' : 'text-[#7A92A8]'}`} />
+                <Filter className={`w-4 h-4 ${statusFilter !== 'all' ? 'text-[#14ABFE]' : 'text-[#7A92A8]'}`} />
               </button>
 
               {showStatusMenu && (
-                <div className="absolute right-0 top-10 z-20 bg-[#2D3847] border border-[#2A4A68] rounded-xl overflow-hidden shadow-xl min-w-[152px]">
+                <div className="absolute right-0 top-10 z-20 bg-[#112538] border border-[#1E3A52] rounded-xl overflow-hidden shadow-xl min-w-[152px]">
                   {STATUS_FILTER_OPTIONS.map(opt => (
                     <button
                       key={opt.key}
@@ -712,8 +712,8 @@ export function ExposuresView() {
                       onClick={() => { setStatusFilter(opt.key); setShowStatusMenu(false); }}
                       className={`w-full text-left flex items-center gap-2.5 px-4 py-2.5 text-xs font-medium transition-colors cursor-pointer ${
                         statusFilter === opt.key
-                          ? 'bg-[#00BFFF]/15 text-[#00BFFF]'
-                          : 'text-[#B8C4CC] hover:bg-[#022136]/50 hover:text-white'
+                          ? 'bg-[#14ABFE]/15 text-[#14ABFE]'
+                          : 'text-[#94A3B8] hover:bg-[#0B1B2B]/50 hover:text-white'
                       }`}
                     >
                       {opt.dot && (
@@ -734,7 +734,7 @@ export function ExposuresView() {
               placeholder="Search exposures & breaches"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="h-[52px] w-full rounded-xl border border-[#2A4A68] px-12 py-3 text-sm bg-[#022136]/50 text-white placeholder:text-[#7A92A8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2 transition-all font-ubuntu"
+              className="h-[52px] w-full rounded-xl border border-[#1E3A52] px-12 py-3 text-sm bg-[#0B1B2B]/50 text-white placeholder:text-[#7A92A8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#14ABFE] focus-visible:ring-offset-2 transition-all font-ubuntu"
             />
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#7A92A8] pointer-events-none" aria-hidden="true" />
           </div>
@@ -748,8 +748,8 @@ export function ExposuresView() {
                 onClick={() => { setTypeFilter(tab.key); setStatusFilter('all'); }}
                 className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors cursor-pointer ${
                   typeFilter === tab.key
-                    ? 'bg-[#00BFFF] text-[#022136]'
-                    : 'bg-[#2D3847] border border-[#2A4A68] text-[#B8C4CC]'
+                    ? 'bg-[#14ABFE] text-[#0B1B2B]'
+                    : 'bg-[#112538] border border-[#1E3A52] text-[#94A3B8]'
                 }`}
               >
                 {tab.label}
@@ -761,7 +761,7 @@ export function ExposuresView() {
           {isLoading ? (
             <SkeletonList />
           ) : filtered.length === 0 ? (
-            <div className="bg-[#2D3847] border border-[#2A4A68] rounded-xl px-6 py-12 flex flex-col items-center gap-3 text-center">
+            <div className="bg-[#112538] border border-[#1E3A52] rounded-xl px-6 py-12 flex flex-col items-center gap-3 text-center">
               <Shield className="w-8 h-8 text-[#00D4AA]" aria-hidden="true" />
               <p className="text-sm font-bold text-white">
                 {allItems.length === 0 ? 'All clear' : 'No results for this filter'}
@@ -796,9 +796,9 @@ export function ExposuresView() {
       </div>
 
       {/* ── BOTTOM NAV ───────────────────────────────────────────────────── */}
-      <nav className="fixed bottom-0 left-0 right-0 px-4 pb-4 pt-2 bg-gradient-to-t from-[#022136] to-transparent z-50" aria-label="Main navigation">
+      <nav className="fixed bottom-0 left-0 right-0 px-4 pb-4 pt-2 bg-gradient-to-t from-[#0B1B2B] to-transparent z-50" aria-label="Main navigation">
         <div className="max-w-lg mx-auto">
-          <div className="flex items-center justify-around bg-[#2D3847] rounded-full px-4 py-2 border border-[#2A4A68]">
+          <div className="flex items-center justify-around bg-[#112538] rounded-full px-4 py-2 border border-[#1E3A52]">
             {[
               { label: 'Home',      Icon: Home,         path: '/dashboard/home',      active: false },
               { label: 'Exposures', Icon: AlertTriangle,  path: '/dashboard/exposures', active: true  },
@@ -812,10 +812,10 @@ export function ExposuresView() {
                 aria-current={active ? 'page' : undefined}
                 onClick={() => navigate(path)}
                 className={`relative flex items-center justify-center w-14 h-10 rounded-full transition-colors cursor-pointer ${
-                  active ? 'bg-[#022136]' : 'hover:bg-[#022136]/50'
+                  active ? 'bg-[#0B1B2B]' : 'hover:bg-[#0B1B2B]/50'
                 }`}
               >
-                <Icon className={`w-6 h-6 ${active ? 'text-[#00BFFF]' : 'text-[#7A92A8]'}`} aria-hidden="true" />
+                <Icon className={`w-6 h-6 ${active ? 'text-[#14ABFE]' : 'text-[#7A92A8]'}`} aria-hidden="true" />
               </button>
             ))}
           </div>

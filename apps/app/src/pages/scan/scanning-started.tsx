@@ -37,7 +37,7 @@ export function ScanningStartedPage() {
       <style>{KEYFRAMES}</style>
 
       <div
-        className="flex min-h-screen flex-col bg-[#022136]"
+        className="flex min-h-screen flex-col bg-[#0B1B2B]"
         role="main"
         aria-label="Scan started"
       >
@@ -51,7 +51,7 @@ export function ScanningStartedPage() {
           >
             {/* ambient glow */}
             <div
-              className="absolute rounded-full bg-[#00BFFF]"
+              className="absolute rounded-full bg-[#14ABFE]"
               style={{
                 width: 160,
                 height: 160,
@@ -74,7 +74,7 @@ export function ScanningStartedPage() {
                   right: 0,
                   height: 2,
                   background:
-                    "linear-gradient(90deg, transparent 0%, #00BFFF 40%, #00D4FF 60%, transparent 100%)",
+                    "linear-gradient(90deg, transparent 0%, #14ABFE 40%, #00D4FF 60%, transparent 100%)",
                   animation: "qs-scan-line 2.8s linear infinite",
                 }}
               />
@@ -115,23 +115,23 @@ export function ScanningStartedPage() {
 
           {/* ── Body copy ─────────────────────────────── */}
           <p
-            className="text-[#B8C4CC] text-base leading-relaxed mb-6"
+            className="text-[#94A3B8] text-base leading-relaxed mb-6"
             style={{ animation: "qs-fade-up 0.5s 0.2s ease both" }}
           >
             Our AI Agents have started searching{" "}
-            <span className="text-[#00BFFF] font-semibold">500+ sources</span>{" "}
+            <span className="text-[#14ABFE] font-semibold">500+ sources</span>{" "}
             for your data &amp; immediately submitting removal demands.
           </p>
 
           {/* ── Thorough callout ──────────────────────── */}
           <div
-            className="w-full border-t border-[#2A4A68] pt-5 space-y-3"
+            className="w-full border-t border-[#1E3A52] pt-5 space-y-3"
             style={{ animation: "qs-fade-up 0.5s 0.3s ease both" }}
           >
             <div>
               <p className="text-white text-sm font-bold">
                 Our search is{" "}
-                <span className="text-[#00BFFF]">THOROUGH!</span>
+                <span className="text-[#14ABFE]">THOROUGH!</span>
               </p>
               <p className="mt-1 text-[#7A92A8] text-xs leading-relaxed">
                 Our agents need a little time to fully search all sources.
@@ -139,7 +139,7 @@ export function ScanningStartedPage() {
             </div>
 
             {/* email notice */}
-            <div className="bg-[#2D3847] border border-[#2A4A68] rounded-xl px-4 py-3">
+            <div className="bg-[#112538] border border-[#1E3A52] rounded-xl px-4 py-3">
               <p className="text-white text-sm font-bold leading-relaxed">
                 We&apos;ll send you an email with an exposure report and a link
                 to your Dashboard the minute your scan is finished.
@@ -155,11 +155,11 @@ export function ScanningStartedPage() {
             <p className="text-left text-[11px] font-medium tracking-wide uppercase text-[#7A92A8] mb-2">
               Where we are looking
             </p>
-            <div className="w-full bg-[#2D3847] border border-[#2A4A68] rounded-2xl p-5 text-left">
+            <div className="w-full bg-[#112538] border border-[#1E3A52] rounded-2xl p-5 text-left">
               <ul className="space-y-4" role="list">
                 <li className="flex items-start gap-3">
                   <span
-                    className="text-[#00BFFF] text-base leading-none mt-[3px] select-none"
+                    className="text-[#14ABFE] text-base leading-none mt-[3px] select-none"
                     aria-hidden
                   >
                     ●
@@ -170,7 +170,7 @@ export function ScanningStartedPage() {
                 </li>
                 <li className="flex items-start gap-3">
                   <span
-                    className="text-[#00BFFF] text-base leading-none mt-[3px] select-none"
+                    className="text-[#14ABFE] text-base leading-none mt-[3px] select-none"
                     aria-hidden
                   >
                     ●
@@ -188,7 +188,7 @@ export function ScanningStartedPage() {
         <footer
           className={cx(
             "fixed bottom-0 left-0 right-0 border-t px-4 py-4",
-            "border-[#2A4A68] bg-[#2D3847]",
+            "border-[#1E3A52] bg-[#112538]",
             "shadow-[0_-8px_24px_rgba(0,0,0,0.45)]",
           )}
           role="contentinfo"
@@ -199,8 +199,8 @@ export function ScanningStartedPage() {
               onClick={() => navigate("/dashboard/home")}
               className={cx(
                 "flex h-[52px] w-full items-center justify-center rounded-xl text-sm font-semibold text-white outline-none transition",
-                "bg-[#00BFFF] hover:bg-[#0E9AE8]",
-                "focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2 focus-visible:ring-offset-[#2D3847]",
+                "bg-[#14ABFE] hover:bg-[#0E9AE8]",
+                "focus-visible:ring-2 focus-visible:ring-[#14ABFE] focus-visible:ring-offset-2 focus-visible:ring-offset-[#112538]",
               )}
             >
               Go To Dashboard

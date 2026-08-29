@@ -151,7 +151,7 @@ function SquareLoader() {
     delay: string,
     dir: "normal" | "alternate" = "normal"
   ): React.CSSProperties => ({
-    background: "#00BFFF",
+    background: "#14ABFE",
     width: 4,
     height: 4,
     position: "absolute",
@@ -460,7 +460,7 @@ export function QuickScanForm({
     const topCopy = STEP_TOP_COPY[scanStepIndex] ?? STEP_TOP_COPY[0];
     const step = SCAN_STEPS[scanStepIndex] ?? SCAN_STEPS[0];
     return (
-      <div className={cx("w-full h-full min-h-[400px] flex flex-col items-center justify-center p-8 gap-8 bg-[#2D3847]", className)}>
+      <div className={cx("w-full h-full min-h-[400px] flex flex-col items-center justify-center p-8 gap-8 bg-[#112538]", className)}>
         <div className="w-full max-w-sm flex flex-col gap-6">
 
           {/* Heading + loader/subtext row */}
@@ -470,7 +470,7 @@ export function QuickScanForm({
             </h2>
             <div className="flex items-center gap-2">
               <SquareLoader />
-              <p className="text-[#B8C4CC] font-medium animate-pulse">
+              <p className="text-[#94A3B8] font-medium animate-pulse">
                 {topCopy.getSubtext(status)}
               </p>
             </div>
@@ -485,7 +485,7 @@ export function QuickScanForm({
           <QSInfoCard
             title={step.title}
             description={step.description}
-            className="shadow-xl border-[#2A4A68]"
+            className="shadow-xl border-[#1E3A52]"
           />
         </div>
       </div>
@@ -493,7 +493,7 @@ export function QuickScanForm({
   }
 
   return (
-    <div className={cx("w-full bg-[#2D3847] rounded-xl overflow-hidden", className)}>
+    <div className={cx("w-full bg-[#112538] rounded-xl overflow-hidden", className)}>
 
       <div className={cx("flex flex-col gap-6 p-6", startAtPrivacy ? "pt-4" : "pt-8")}>
         {/* Header Section */}
@@ -502,12 +502,12 @@ export function QuickScanForm({
             <h1 className="text-4xl font-bold text-white leading-[1.1] tracking-tighter">
               Are you exposed?
             </h1>
-            <p className="text-sm font-light text-[#B8C4CC] leading-snug">
+            <p className="text-sm font-light text-[#94A3B8] leading-snug">
               Run a QuickScan to see what<br />personal info is public.
             </p>
             <div className="flex justify-center mt-1">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#022136] border border-[#2A4A68] text-[#00BFFF] text-xs font-medium">
-                <Zap className="w-3 h-3 fill-[#00BFFF]" />
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#0B1B2B] border border-[#1E3A52] text-[#14ABFE] text-xs font-medium">
+                <Zap className="w-3 h-3 fill-[#14ABFE]" />
                 90 seconds to see your risks
               </span>
             </div>
@@ -516,8 +516,8 @@ export function QuickScanForm({
 
         {startAtPrivacy && (
           <div className="flex flex-col items-center gap-4 text-center">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-[#2A4A68] bg-[#022136] px-3 py-1 text-xs font-medium text-[#00BFFF]">
-              <Zap className="h-3 w-3 fill-[#00BFFF]" />
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-[#1E3A52] bg-[#0B1B2B] px-3 py-1 text-xs font-medium text-[#14ABFE]">
+              <Zap className="h-3 w-3 fill-[#14ABFE]" />
               Real results in ~3 minutes
             </span>
             <h2 className="text-[28px] font-bold leading-[1.15] tracking-tight text-white">
@@ -533,17 +533,17 @@ export function QuickScanForm({
           <h3 className="text-white text-lg font-bold">
             Your Privacy is Paramount
           </h3>
-          <ul className="flex flex-col gap-1.5 list-none text-[#B8C4CC] text-sm font-normal">
+          <ul className="flex flex-col gap-1.5 list-none text-[#94A3B8] text-sm font-normal">
             <li className="flex items-start gap-2">
-              <span className="text-[#00BFFF] font-bold leading-none mt-0.5">•</span>
+              <span className="text-[#14ABFE] font-bold leading-none mt-0.5">•</span>
               <span>QuickScans <span className="text-white font-bold italic uppercase">do not</span> Create Profiles for You</span>
             </li>
             <li className="flex items-start gap-2">
-              <span className="text-[#00BFFF] font-bold leading-none mt-0.5">•</span>
+              <span className="text-[#14ABFE] font-bold leading-none mt-0.5">•</span>
               <span>We <span className="text-white font-bold italic uppercase">do not</span> Save Any Data From Your QuickScan</span>
             </li>
             <li className="flex items-start gap-2">
-              <span className="text-[#00BFFF] font-bold leading-none mt-0.5">•</span>
+              <span className="text-[#14ABFE] font-bold leading-none mt-0.5">•</span>
               <span>QuickScan Data is <span className="text-white font-bold italic">NEVER</span> Sold, <span className="text-white font-bold italic">NEVER</span> Shared, and <span className="text-white font-bold italic">NEVER</span> Used to Send You Marketing Spam</span>
             </li>
           </ul>
@@ -557,7 +557,7 @@ export function QuickScanForm({
               value={firstName}
               onChange={(e) => setFirstName(e.target.value)}
               disabled={isLoading}
-              className="h-[52px] w-full rounded-xl border border-[#2A4A68] focus:border-[#00BFFF] focus:ring-1 focus:ring-[#00BFFF] px-4 py-3 text-base bg-[#022136]/50 text-white placeholder:text-[#7A92A8] font-ubuntu outline-none transition-colors duration-150 disabled:opacity-50"
+              className="h-[52px] w-full rounded-xl border border-[#1E3A52] focus:border-[#14ABFE] focus:ring-1 focus:ring-[#14ABFE] px-4 py-3 text-base bg-[#0B1B2B]/50 text-white placeholder:text-[#7A92A8] font-ubuntu outline-none transition-colors duration-150 disabled:opacity-50"
             />
           </div>
 
@@ -568,7 +568,7 @@ export function QuickScanForm({
               value={lastName}
               onChange={(e) => setLastName(e.target.value)}
               disabled={isLoading}
-              className="h-[52px] w-full rounded-xl border border-[#2A4A68] focus:border-[#00BFFF] focus:ring-1 focus:ring-[#00BFFF] px-4 py-3 text-base bg-[#022136]/50 text-white placeholder:text-[#7A92A8] font-ubuntu outline-none transition-colors duration-150 disabled:opacity-50"
+              className="h-[52px] w-full rounded-xl border border-[#1E3A52] focus:border-[#14ABFE] focus:ring-1 focus:ring-[#14ABFE] px-4 py-3 text-base bg-[#0B1B2B]/50 text-white placeholder:text-[#7A92A8] font-ubuntu outline-none transition-colors duration-150 disabled:opacity-50"
             />
           </div>
 
@@ -582,14 +582,14 @@ export function QuickScanForm({
               onChange={(e) => setZipCode(e.target.value.replace(/\D/g, "").slice(0, 5))}
               disabled={isLoading}
               className={cx(
-                "h-[52px] w-full rounded-xl border px-4 py-3 text-base bg-[#022136]/50 text-white placeholder:text-[#7A92A8] font-ubuntu outline-none transition-colors duration-150 disabled:opacity-50",
+                "h-[52px] w-full rounded-xl border px-4 py-3 text-base bg-[#0B1B2B]/50 text-white placeholder:text-[#7A92A8] font-ubuntu outline-none transition-colors duration-150 disabled:opacity-50",
                 zipStatus === "invalid"
                   ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500"
-                  : "border-[#2A4A68] focus:border-[#00BFFF] focus:ring-1 focus:ring-[#00BFFF]"
+                  : "border-[#1E3A52] focus:border-[#14ABFE] focus:ring-1 focus:ring-[#14ABFE]"
               )}
             />
             {zipStatus === "valid" && zipLocation && (
-              <p className="text-[#00BFFF] text-xs font-medium px-1">
+              <p className="text-[#14ABFE] text-xs font-medium px-1">
                 {zipLocation.city}, {zipLocation.state}
               </p>
             )}
@@ -604,7 +604,7 @@ export function QuickScanForm({
           </div>
 
           <div className="flex flex-col gap-3 mt-2">
-            <p className="text-[#00BFFF] text-xs text-center font-bold">
+            <p className="text-[#14ABFE] text-xs text-center font-bold">
               No Credit Card or Sign Up Required to See Results
             </p>
             <button
@@ -613,7 +613,7 @@ export function QuickScanForm({
               className={cx(
                 "w-full h-[52px] font-bold text-base rounded-xl transition-all duration-150 shadow-md active:scale-[0.98]",
                 isFormValid && !isLoading
-                  ? "bg-[#00BFFF] hover:bg-[#00D4FF] active:bg-[#0099CC] text-white"
+                  ? "bg-[#14ABFE] hover:bg-[#00D4FF] active:bg-[#0099CC] text-[#0B1B2B] active:text-white"
                   : "bg-[#4A5568] text-[#7A92A8] cursor-not-allowed"
               )}
             >

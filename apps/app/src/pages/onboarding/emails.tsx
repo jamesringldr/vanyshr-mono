@@ -239,7 +239,7 @@ export function OnboardingEmails() {
                 footer={null}
             >
                 <div className="flex items-center justify-center py-16">
-                    <div className="w-6 h-6 rounded-full border-2 border-[#00BFFF] border-t-transparent animate-spin" />
+                    <div className="w-6 h-6 rounded-full border-2 border-[#14ABFE] border-t-transparent animate-spin" />
                 </div>
             </OnboardingLayout>
         );
@@ -259,9 +259,9 @@ export function OnboardingEmails() {
                         onClick={() => navigate("/onboarding/primary-info")}
                         className={cx(
                             "flex h-[52px] flex-1 items-center justify-center rounded-xl text-sm font-semibold outline-none transition",
-                            "border border-[var(--border-subtle)] dark:border-[#2A4A68]",
-                            "text-[#022136] dark:text-white bg-transparent hover:bg-black/5 dark:hover:bg-white/10",
-                            "focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#022136]",
+                            "border border-[var(--border-subtle)] dark:border-[#1E3A52]",
+                            "text-[#0B1B2B] dark:text-white bg-transparent hover:bg-black/5 dark:hover:bg-white/10",
+                            "focus-visible:ring-2 focus-visible:ring-[#14ABFE] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#0B1B2B]",
                         )}
                     >
                         &lt; BACK
@@ -272,8 +272,8 @@ export function OnboardingEmails() {
                         disabled={isSaving}
                         className={cx(
                             "flex h-[52px] flex-1 items-center justify-center rounded-xl text-sm font-semibold text-white outline-none transition",
-                            "bg-[#00BFFF] hover:bg-[#0E9AE8]",
-                            "focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#022136]",
+                            "bg-[#14ABFE] hover:bg-[#0E9AE8]",
+                            "focus-visible:ring-2 focus-visible:ring-[#14ABFE] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#0B1B2B]",
                             isSaving && "opacity-60 cursor-not-allowed",
                         )}
                     >
@@ -285,10 +285,10 @@ export function OnboardingEmails() {
             {items.length === 0 && (
                 <div className={cx(
                     "rounded-xl border p-6 text-center",
-                    "bg-[var(--bg-surface)] dark:bg-[#2D3847]",
-                    "border-[var(--border-subtle)] dark:border-[#2A4A68]",
+                    "bg-[var(--bg-surface)] dark:bg-[#112538]",
+                    "border-[var(--border-subtle)] dark:border-[#1E3A52]",
                 )}>
-                    <p className="text-sm text-[var(--text-secondary)] dark:text-[#B8C4CC] mb-4">
+                    <p className="text-sm text-[var(--text-secondary)] dark:text-[#94A3B8] mb-4">
                         No additional emails found. Your sign-in email is already tracked. Add any other email addresses linked to your identity.
                     </p>
                 </div>
@@ -333,8 +333,8 @@ export function OnboardingEmails() {
                     onClick={handleAdd}
                     className={cx(
                         "flex h-14 w-14 items-center justify-center rounded-full outline-none transition shadow-lg",
-                        "bg-[#00D4AA] text-[#022136] hover:bg-[#00E5B8]",
-                        "focus-visible:ring-2 focus-visible:ring-[#00D4AA] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#022136]",
+                        "bg-[#00D4AA] text-[#0B1B2B] hover:bg-[#00E5B8]",
+                        "focus-visible:ring-2 focus-visible:ring-[#00D4AA] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#0B1B2B]",
                     )}
                     aria-label="Add Email"
                 >

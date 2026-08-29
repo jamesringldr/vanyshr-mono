@@ -103,7 +103,7 @@ function LevelBars({ level }: { level: number }) {
         return (
           <span
             key={i}
-            className={cx("w-1.5 rounded-sm", on ? "bg-[#00BFFF]" : "bg-[#2A4A68]")}
+            className={cx("w-1.5 rounded-sm", on ? "bg-[#14ABFE]" : "bg-[#1E3A52]")}
             style={{ height }}
           />
         );
@@ -206,8 +206,8 @@ export function RiskSummaryBody({ profile }: { profile: ConsolidatedProfile }) {
 
               <polygon
                 points={scorePolygon(hexAreas)}
-                fill="rgba(0, 191, 255, 0.22)"
-                stroke="#00BFFF"
+                fill="rgba(20,171,254, 0.22)"
+                stroke="#14ABFE"
                 strokeWidth={1.5}
                 strokeLinejoin="round"
               />
@@ -220,12 +220,12 @@ export function RiskSummaryBody({ profile }: { profile: ConsolidatedProfile }) {
                     cx={pt.x}
                     cy={pt.y}
                     r={3.5}
-                    fill="#00BFFF"
+                    fill="#14ABFE"
                   />
                 );
               })}
 
-              <circle cx={CENTER} cy={CENTER} r={5} fill="#00BFFF" />
+              <circle cx={CENTER} cy={CENTER} r={5} fill="#14ABFE" />
             </svg>
 
             {hexAreas.map((p) => {
@@ -239,7 +239,7 @@ export function RiskSummaryBody({ profile }: { profile: ConsolidatedProfile }) {
                   className="pointer-events-none absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-1"
                   style={{ left: `${left}%`, top: `${top}%` }}
                 >
-                  <span className="flex h-8 w-8 items-center justify-center rounded-full border border-white/15 bg-[#022136]/80 text-white">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full border border-white/15 bg-[#0B1B2B]/80 text-white">
                     <Icon size={16} />
                   </span>
                   <span className="max-w-[88px] text-center text-[11px] font-medium leading-tight text-white sm:text-xs">
@@ -268,7 +268,7 @@ export function RiskSummaryBody({ profile }: { profile: ConsolidatedProfile }) {
                   <button
                     type="button"
                     onClick={() => setActiveArea(area)}
-                    className="flex w-full items-center gap-3 rounded-2xl bg-[#1A2E42] px-4 py-3.5 text-left outline-none transition hover:bg-[#20364C] focus-visible:ring-2 focus-visible:ring-[#00BFFF]"
+                    className="flex w-full items-center gap-3 rounded-2xl bg-[#1A2E42] px-4 py-3.5 text-left outline-none transition hover:bg-[#20364C] focus-visible:ring-2 focus-visible:ring-[#14ABFE]"
                   >
                     <span className="flex h-9 w-9 shrink-0 items-center justify-center text-white">
                       <Icon size={20} />
@@ -289,6 +289,7 @@ export function RiskSummaryBody({ profile }: { profile: ConsolidatedProfile }) {
           </ul>
         </section>
       </div>
+
 
       {createPortal(
         <AnimatePresence>
@@ -323,9 +324,9 @@ export function RiskSummaryBody({ profile }: { profile: ConsolidatedProfile }) {
               }}
               className="fixed bottom-0 left-0 right-0 z-50 flex justify-center"
             >
-              <div className="relative max-h-[88vh] w-full max-w-md overflow-y-auto rounded-t-[28px] bg-[#1A2E42] px-6 pb-10 pt-3 shadow-[0_0_40px_rgba(0,191,255,0.2)]">
+              <div className="relative max-h-[88vh] w-full max-w-md overflow-y-auto rounded-t-[28px] bg-[#1A2E42] px-6 pb-10 pt-3 shadow-[0_0_40px_rgba(20,171,254,0.2)]">
                 <div className="flex justify-center pb-3">
-                  <div className="h-1.5 w-12 rounded-full bg-[#2A4A68]" />
+                  <div className="h-1.5 w-12 rounded-full bg-[#1E3A52]" />
                 </div>
                 <button
                   type="button"
@@ -337,7 +338,7 @@ export function RiskSummaryBody({ profile }: { profile: ConsolidatedProfile }) {
                 </button>
 
                 <div className="mt-2 flex items-start gap-3">
-                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[#00BFFF]/30 bg-[#00BFFF]/10 text-[#00BFFF]">
+                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[#14ABFE]/30 bg-[#14ABFE]/10 text-[#14ABFE]">
                     {ActiveIcon ? (
                       <ActiveIcon size={20} />
                     ) : null}
@@ -351,7 +352,7 @@ export function RiskSummaryBody({ profile }: { profile: ConsolidatedProfile }) {
                   <LevelBars level={levelFromScore(activeArea.score)} />
                 </div>
 
-                <p className="mt-5 text-[15px] leading-relaxed text-[#B8C4CC]">
+                <p className="mt-5 text-[15px] leading-relaxed text-[#94A3B8]">
                   {activeArea.detail}
                 </p>
 
@@ -365,7 +366,7 @@ export function RiskSummaryBody({ profile }: { profile: ConsolidatedProfile }) {
                       {activeArea.breachCards.map((b, i) => (
                         <li
                           key={`${b.email}-${b.name}-${i}`}
-                          className="rounded-xl bg-[#022136]/55 px-3.5 py-3"
+                          className="rounded-xl bg-[#0B1B2B]/55 px-3.5 py-3"
                         >
                           <p className="break-all text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8CA3B8]">
                             {b.email}
@@ -379,7 +380,7 @@ export function RiskSummaryBody({ profile }: { profile: ConsolidatedProfile }) {
                               {b.fieldsExposed.map((field) => (
                                 <span
                                   key={field}
-                                  className="rounded-full bg-white/10 px-2 py-0.5 text-[11px] text-[#B8C4CC]"
+                                  className="rounded-full bg-white/10 px-2 py-0.5 text-[11px] text-[#94A3B8]"
                                 >
                                   {field}
                                 </span>
@@ -399,7 +400,7 @@ export function RiskSummaryBody({ profile }: { profile: ConsolidatedProfile }) {
                     {activeArea.items.map((item, i) => (
                       <li
                         key={`${item.label}-${item.value}-${i}`}
-                        className="rounded-xl bg-[#022136]/55 px-3.5 py-3"
+                        className="rounded-xl bg-[#0B1B2B]/55 px-3.5 py-3"
                       >
                         <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8CA3B8]">
                           {item.label}
@@ -410,7 +411,7 @@ export function RiskSummaryBody({ profile }: { profile: ConsolidatedProfile }) {
                             href={item.value}
                             target="_blank"
                             rel="noreferrer"
-                            className="mt-1 block break-all text-sm text-[#00BFFF] underline-offset-2 hover:underline"
+                            className="mt-1 block break-all text-sm text-[#14ABFE] underline-offset-2 hover:underline"
                           >
                             {item.value}
                           </a>
@@ -444,18 +445,18 @@ export function PilotRiskSummaryPage() {
   if (!stored) {
     return (
       <div
-        className="flex min-h-screen w-full flex-col items-center justify-center bg-[#022136] p-4 font-ubuntu"
+        className="flex min-h-screen w-full flex-col items-center justify-center bg-[#0B1B2B] p-4 font-ubuntu"
         role="main"
         aria-label="Error loading risk summary"
       >
         <div className="w-full max-w-md text-center">
           <h1 className="mb-2 text-xl font-bold text-white">No scan data found</h1>
-          <p className="mb-6 text-sm text-[#B8C4CC]">
+          <p className="mb-6 text-sm text-[#94A3B8]">
             Nothing came through from this scan — run it again from the start.
           </p>
           <Link
             to="/pilot-scan"
-            className="inline-flex h-[44px] items-center justify-center rounded-xl bg-[#00BFFF] px-6 font-semibold text-white transition-all hover:bg-[#1196E0]"
+            className="inline-flex h-[44px] items-center justify-center rounded-xl bg-[#14ABFE] px-6 font-semibold text-white transition-all hover:bg-[#1196E0]"
           >
             Start over
           </Link>
@@ -465,7 +466,7 @@ export function PilotRiskSummaryPage() {
   }
 
   return (
-    <div className="min-h-screen w-full bg-[#022136] pt-12" role="main" aria-label="Risk summary">
+    <div className="min-h-screen w-full bg-[#0B1B2B] pt-12" role="main" aria-label="Risk summary">
       <RiskSummaryBody profile={stored.profile} />
     </div>
   );

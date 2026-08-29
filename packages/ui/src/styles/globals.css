@@ -37,31 +37,32 @@
 
 :root {
     /* Brand */
-    --brand-primary: #00BFFF;
-    --brand-dark: #022136;
+    --brand-primary: #14ABFE;
+    --brand-dark: #0B1B2B;
     --accent-hover: #00D4FF;
-    --accent-risk: #FF8A00;
+    --accent-orange: #FF8400;
+    --accent-risk: #FF8400;
 
     /* Semantic */
     --success: #00D4AA;
     --warning: #FFB81C;
     --error: #FF5757;
-    --info: #00BFFF;
+    --info: #14ABFE;
     --disabled: #4A5568;
 
     /* Backgrounds */
-    --bg-page: #022136;
-    --bg-surface: #2D3847;
-    --bg-surface-secondary: #2D3847;
+    --bg-page: #0B1B2B;
+    --bg-surface: #112538;
+    --bg-surface-secondary: #182E42;
 
     /* Text */
     --text-primary: #FFFFFF;
-    --text-secondary: #B8C4CC;
+    --text-secondary: #94A3B8;
     --text-tertiary: #7A92A8;
 
     /* Borders */
-    --border-subtle: #2A4A68;
-    --border-brand: #00BFFF;
+    --border-subtle: #1E3A52;
+    --border-brand: #14ABFE;
 
     /* Spacing */
     --space-1: 4px;

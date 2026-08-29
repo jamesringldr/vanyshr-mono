@@ -181,14 +181,14 @@ const UPDATE_TYPE_CONFIG: Record<string, { Icon: React.ElementType; label: strin
 };
 
 const ACTIVITY_STYLES: Record<ActivityType, { bg: string; iconColor: string; Icon: React.ElementType }> = {
-  'Broker Scan':   { bg: 'bg-[#00BFFF]/10', iconColor: 'text-[#00BFFF]', Icon: Search        },
+  'Broker Scan':   { bg: 'bg-[#14ABFE]/10', iconColor: 'text-[#14ABFE]', Icon: Search        },
   'Dark Web Scan': { bg: 'bg-[#7A92A8]/10', iconColor: 'text-[#7A92A8]', Icon: Shield        },
   'Removal':       { bg: 'bg-[#00D4AA]/10', iconColor: 'text-[#00D4AA]', Icon: CheckCircle   },
-  'New Exposure':  { bg: 'bg-[#FF8A00]/10', iconColor: 'text-[#FF8A00]', Icon: AlertTriangle },
+  'New Exposure':  { bg: 'bg-[#FF8400]/10', iconColor: 'text-[#FF8400]', Icon: AlertTriangle },
 };
 
 const STATUS_CHIP_STYLES: Record<ActivityStatus, { bg: string; text: string; label: string }> = {
-  'In Progress': { bg: 'bg-[#00BFFF]/20', text: 'text-[#00BFFF]', label: 'IN PROGRESS' },
+  'In Progress': { bg: 'bg-[#14ABFE]/20', text: 'text-[#14ABFE]', label: 'IN PROGRESS' },
   'Complete': { bg: 'bg-[#00D4AA]/20', text: 'text-[#00D4AA]', label: 'COMPLETE' },
 };
 
@@ -199,10 +199,10 @@ const BROKER_ITEMS: { broker: string; initials: string; status: BrokerStatus; mi
 ];
 
 const BROKER_STATUS_STYLES: Record<BrokerStatus, { dot: string; text: string; label: string }> = {
-  'Exposed':           { dot: 'bg-[#FF8A00]', text: 'text-[#FF8A00]', label: 'Exposed · High Risk'  },
+  'Exposed':           { dot: 'bg-[#FF8400]', text: 'text-[#FF8400]', label: 'Exposed · High Risk'  },
   'Removal Requested': { dot: 'bg-[#FFB81C]', text: 'text-[#FFB81C]', label: 'Removal Requested'    },
   'Removed':           { dot: 'bg-[#00D4AA]', text: 'text-[#00D4AA]', label: 'Opt-out Confirmed'    },
-  'New':               { dot: 'bg-[#00BFFF]', text: 'text-[#00BFFF]', label: 'New · Just Found'     },
+  'New':               { dot: 'bg-[#14ABFE]', text: 'text-[#14ABFE]', label: 'New · Just Found'     },
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -214,12 +214,18 @@ function getDeltaColor(delta: string, cardTrend: 'risk' | 'progress'): string {
   const isNegative = delta.startsWith('-');
   const isPositive = delta.startsWith('+');
 
-  if (!isNegative && !isPositive) return 'text-[#B8C4CC]';
+  if (!isNegative && !isPositive) return 'text-[#94A3B8]';
 
   if (cardTrend === 'risk') {
     return isPositive ? 'text-[#EF4444]' : 'text-[#00D4AA]';
   }
   return isPositive ? 'text-[#00D4AA]' : 'text-[#EF4444]';
+}
+
+function initialsFromName(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) return `${parts[0]![0] ?? ''}${parts[1]![0] ?? ''}`.toUpperCase();
+  return name.slice(0, 2).toUpperCase() || '?';
 }
 
 function toMinutesAgo(dateStr: string | null): number {
@@ -244,6 +250,7 @@ export function DashboardHome() {
 
   // Breach state (real DB data — feeds broker/breach list)
   const [profileId, setProfileId]           = useState<string | null>(null);
+  const [profileName, setProfileName]       = useState({ first: '', last: '', email: '' });
   const [newBreaches, setNewBreaches]       = useState<DataBreach[]>([]);
   const [breachesLoaded, setBreachesLoaded] = useState(false);
 
@@ -300,12 +307,17 @@ export function DashboardHome() {
 
       const { data: profile } = await supabase
         .from('user_profiles')
-        .select('id')
+        .select('id, first_name, last_name, email')
         .eq('auth_user_id', user.id)
         .single();
 
       if (!profile) { setBreachesLoaded(true); return; }
       setProfileId(profile.id);
+      setProfileName({
+        first: profile.first_name ?? '',
+        last: profile.last_name ?? '',
+        email: profile.email ?? '',
+      });
 
       const { data: breachData } = await supabase
         .from('data_breaches')
@@ -389,9 +401,12 @@ export function DashboardHome() {
 
   const activeUpdate = userUpdates[0] ?? null;
   const shouldShowUpdatesSection = userUpdates.length > 0 || showAllCaughtUp;
+  const displayName = [profileName.first, profileName.last].filter(Boolean).join(' ') || 'Account';
+  const displayFirst = profileName.first.trim() || displayName.split(' ')[0] || 'Account';
+  const displayInitials = initialsFromName(displayName);
 
   return (
-    <div className="min-h-screen bg-[#022136] font-ubuntu">
+    <div className="min-h-screen bg-[#0B1B2B] font-ubuntu">
 
       {/* ── SCROLLABLE CONTENT AREA ──────────────────────────────────────── */}
       <div className="pb-24 overflow-y-auto">
@@ -404,10 +419,10 @@ export function DashboardHome() {
               onClick={() => setUserDrawerOpen(true)}
               aria-label="Open profile drawer"
             >
-              <div className="w-9 h-9 rounded-full bg-[#2D3847] border border-[#2A4A68] flex items-center justify-center flex-shrink-0">
-                <span className="text-[#00BFFF] text-sm font-bold">JD</span>
+              <div className="w-9 h-9 rounded-full bg-[#112538] border border-[#1E3A52] flex items-center justify-center flex-shrink-0">
+                <span className="text-[#14ABFE] text-sm font-bold">{displayInitials}</span>
               </div>
-              <span className="text-sm font-medium text-white">James</span>
+              <span className="text-sm font-medium text-white">{displayFirst}</span>
               <ChevronDown className="w-4 h-4 text-[#7A92A8]" />
             </button>
 
@@ -418,7 +433,7 @@ export function DashboardHome() {
             >
               <Settings className="w-5 h-5 text-white" />
               {newBreaches.length > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#FF8A00] rounded-full text-[#022136] text-[10px] font-bold flex items-center justify-center leading-none">
+                <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#FF8400] rounded-full text-[#0B1B2B] text-[10px] font-bold flex items-center justify-center leading-none">
                   {newBreaches.length}
                 </span>
               )}
@@ -433,7 +448,7 @@ export function DashboardHome() {
                 <select
                   value={timeframe}
                   onChange={(e) => setTimeframe(e.target.value as Timeframe)}
-                  className="appearance-none bg-[#2D3847] text-[#B8C4CC] border border-[#2A4A68] rounded-full text-xs pl-3 pr-7 py-1.5 cursor-pointer focus:outline-none focus:border-[#00BFFF] transition-colors duration-150"
+                  className="appearance-none bg-[#112538] text-[#94A3B8] border border-[#1E3A52] rounded-full text-xs pl-3 pr-7 py-1.5 cursor-pointer focus:outline-none focus:border-[#14ABFE] transition-colors duration-150"
                 >
                   <option value="30D">30 Days</option>
                   <option value="90D">90 Days</option>
@@ -449,16 +464,16 @@ export function DashboardHome() {
           <section className="grid grid-cols-2 gap-3">
 
             {/* Card 1 — Brokers */}
-            <div className="bg-[#2D3847] border border-[#2A4A68] rounded-2xl p-4 flex flex-col gap-2">
+            <div className="bg-[#112538] border border-[#1E3A52] rounded-2xl p-4 flex flex-col gap-2">
               <div className="flex items-center">
-                <span className="text-xs font-medium text-[#B8C4CC] uppercase tracking-wide">Brokers</span>
+                <span className="text-xs font-medium text-[#94A3B8] uppercase tracking-wide">Brokers</span>
                 <button className="ml-auto p-0.5" onClick={() => toggleInfo('exposures')} aria-label="More info about Brokers">
-                  <Info className={`w-3.5 h-3.5 transition-colors duration-150 ${openInfoCard === 'exposures' ? 'text-[#00BFFF]' : 'text-[#7A92A8]'}`} />
+                  <Info className={`w-3.5 h-3.5 transition-colors duration-150 ${openInfoCard === 'exposures' ? 'text-[#14ABFE]' : 'text-[#7A92A8]'}`} />
                 </button>
               </div>
               {openInfoCard === 'exposures' && (
-                <div className="bg-[#022136] border border-[#2A4A68] rounded-lg px-2.5 py-1.5 -mt-1">
-                  <p className="text-[11px] text-[#B8C4CC] leading-snug">{CARD_INFO['exposures']}</p>
+                <div className="bg-[#0B1B2B] border border-[#1E3A52] rounded-lg px-2.5 py-1.5 -mt-1">
+                  <p className="text-[11px] text-[#94A3B8] leading-snug">{CARD_INFO['exposures']}</p>
                 </div>
               )}
               <div className="flex items-baseline gap-2">
@@ -469,22 +484,22 @@ export function DashboardHome() {
 
             {/* Card 2 — Breaches (real data, tappable) */}
             <button
-              className="bg-[#2D3847] border border-[#2A4A68] rounded-2xl p-4 flex flex-col gap-2 text-left"
+              className="bg-[#112538] border border-[#1E3A52] rounded-2xl p-4 flex flex-col gap-2 text-left"
               onClick={() => navigate('/dashboard/dark-web')}
             >
               <div className="flex items-center">
-                <span className="text-xs font-medium text-[#B8C4CC] uppercase tracking-wide">Breaches</span>
+                <span className="text-xs font-medium text-[#94A3B8] uppercase tracking-wide">Breaches</span>
                 <button
                   className="ml-auto p-0.5"
                   onClick={(e) => { e.stopPropagation(); toggleInfo('breaches'); }}
                   aria-label="More info about Breaches"
                 >
-                  <Info className={`w-3.5 h-3.5 transition-colors duration-150 ${openInfoCard === 'breaches' ? 'text-[#00BFFF]' : 'text-[#7A92A8]'}`} />
+                  <Info className={`w-3.5 h-3.5 transition-colors duration-150 ${openInfoCard === 'breaches' ? 'text-[#14ABFE]' : 'text-[#7A92A8]'}`} />
                 </button>
               </div>
               {openInfoCard === 'breaches' && (
-                <div className="bg-[#022136] border border-[#2A4A68] rounded-lg px-2.5 py-1.5 -mt-1">
-                  <p className="text-[11px] text-[#B8C4CC] leading-snug">{CARD_INFO['breaches']}</p>
+                <div className="bg-[#0B1B2B] border border-[#1E3A52] rounded-lg px-2.5 py-1.5 -mt-1">
+                  <p className="text-[11px] text-[#94A3B8] leading-snug">{CARD_INFO['breaches']}</p>
                 </div>
               )}
               <div className="flex items-baseline gap-2">
@@ -496,16 +511,16 @@ export function DashboardHome() {
             </button>
 
             {/* Card 3 — Removals Submitted */}
-            <div className="bg-[#2D3847] border border-[#2A4A68] rounded-2xl p-4 flex flex-col gap-2">
+            <div className="bg-[#112538] border border-[#1E3A52] rounded-2xl p-4 flex flex-col gap-2">
               <div className="flex items-center">
-                <span className="text-xs font-medium text-[#B8C4CC] uppercase tracking-wide">Removals Submitted</span>
+                <span className="text-xs font-medium text-[#94A3B8] uppercase tracking-wide">Removals Submitted</span>
                 <button className="ml-auto p-0.5" onClick={() => toggleInfo('needs-attention')} aria-label="More info about Removals Submitted">
-                  <Info className={`w-3.5 h-3.5 transition-colors duration-150 ${openInfoCard === 'needs-attention' ? 'text-[#00BFFF]' : 'text-[#7A92A8]'}`} />
+                  <Info className={`w-3.5 h-3.5 transition-colors duration-150 ${openInfoCard === 'needs-attention' ? 'text-[#14ABFE]' : 'text-[#7A92A8]'}`} />
                 </button>
               </div>
               {openInfoCard === 'needs-attention' && (
-                <div className="bg-[#022136] border border-[#2A4A68] rounded-lg px-2.5 py-1.5 -mt-1">
-                  <p className="text-[11px] text-[#B8C4CC] leading-snug">{CARD_INFO['needs-attention']}</p>
+                <div className="bg-[#0B1B2B] border border-[#1E3A52] rounded-lg px-2.5 py-1.5 -mt-1">
+                  <p className="text-[11px] text-[#94A3B8] leading-snug">{CARD_INFO['needs-attention']}</p>
                 </div>
               )}
               <div className="flex items-baseline gap-2">
@@ -515,16 +530,16 @@ export function DashboardHome() {
             </div>
 
             {/* Card 4 — Removals Confirmed */}
-            <div className="bg-[#2D3847] border border-[#2A4A68] rounded-2xl p-4 flex flex-col gap-2">
+            <div className="bg-[#112538] border border-[#1E3A52] rounded-2xl p-4 flex flex-col gap-2">
               <div className="flex items-center">
-                <span className="text-xs font-medium text-[#B8C4CC] uppercase tracking-wide">Removals Confirmed</span>
+                <span className="text-xs font-medium text-[#94A3B8] uppercase tracking-wide">Removals Confirmed</span>
                 <button className="ml-auto p-0.5" onClick={() => toggleInfo('in-progress')} aria-label="More info about Removals Confirmed">
-                  <Info className={`w-3.5 h-3.5 transition-colors duration-150 ${openInfoCard === 'in-progress' ? 'text-[#00BFFF]' : 'text-[#7A92A8]'}`} />
+                  <Info className={`w-3.5 h-3.5 transition-colors duration-150 ${openInfoCard === 'in-progress' ? 'text-[#14ABFE]' : 'text-[#7A92A8]'}`} />
                 </button>
               </div>
               {openInfoCard === 'in-progress' && (
-                <div className="bg-[#022136] border border-[#2A4A68] rounded-lg px-2.5 py-1.5 -mt-1">
-                  <p className="text-[11px] text-[#B8C4CC] leading-snug">{CARD_INFO['in-progress']}</p>
+                <div className="bg-[#0B1B2B] border border-[#1E3A52] rounded-lg px-2.5 py-1.5 -mt-1">
+                  <p className="text-[11px] text-[#94A3B8] leading-snug">{CARD_INFO['in-progress']}</p>
                 </div>
               )}
               <div className="flex items-baseline gap-2">
@@ -541,7 +556,7 @@ export function DashboardHome() {
               <div className="flex justify-between items-center mb-3">
                 <h2 className="text-base font-bold text-white">Updates</h2>
                 {userUpdates.length > 0 && (
-                  <span className="text-xs text-[#B8C4CC]">{userUpdates.length} new</span>
+                  <span className="text-xs text-[#94A3B8]">{userUpdates.length} new</span>
                 )}
               </div>
 
@@ -550,7 +565,7 @@ export function DashboardHome() {
                 const TypeIcon = typeConfig.Icon;
                 const currentIndex = userUpdates.findIndex(u => u.id === activeUpdate.id) + 1;
                 return (
-                  <div className="bg-[#2D3847] border border-[#2A4A68] rounded-2xl px-5 py-4 flex flex-col gap-4">
+                  <div className="bg-[#112538] border border-[#1E3A52] rounded-2xl px-5 py-4 flex flex-col gap-4">
                     {/* Top row: icon + label | dismiss */}
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex items-center gap-2">
@@ -575,7 +590,7 @@ export function DashboardHome() {
                     <div className="flex items-center justify-between">
                       {activeUpdate.action_text && activeUpdate.action_route ? (
                         <button
-                          className="text-sm font-semibold text-[#00BFFF] hover:text-[#00D4FF] underline underline-offset-2 transition-colors duration-150 cursor-pointer"
+                          className="text-sm font-semibold text-[#14ABFE] hover:text-[#00D4FF] underline underline-offset-2 transition-colors duration-150 cursor-pointer"
                           onClick={() => clickUpdate(activeUpdate.id, activeUpdate.action_route!)}
                         >
                           {activeUpdate.action_text}
@@ -590,9 +605,9 @@ export function DashboardHome() {
                   </div>
                 );
               })() : (
-                <div className="bg-[#2D3847] border border-[#2A4A68] rounded-2xl px-5 py-4 flex items-center gap-2">
+                <div className="bg-[#112538] border border-[#1E3A52] rounded-2xl px-5 py-4 flex items-center gap-2">
                   <CheckCircle className="w-4 h-4 text-[#00D4AA] flex-shrink-0" />
-                  <p className="text-sm text-[#B8C4CC]">You're all caught up</p>
+                  <p className="text-sm text-[#94A3B8]">You're all caught up</p>
                 </div>
               )}
             </section>
@@ -602,7 +617,7 @@ export function DashboardHome() {
           <section>
             <div className="flex justify-between items-center mb-3">
               <h2 className="text-base font-bold text-white">Scan Status</h2>
-              <button className="text-xs text-[#00BFFF]" onClick={() => console.log('view scan history')}>View Scan History</button>
+              <button className="text-xs text-[#14ABFE]" onClick={() => console.log('view scan history')}>View Scan History</button>
             </div>
 
             <div className="flex flex-col gap-2">
@@ -613,7 +628,7 @@ export function DashboardHome() {
                 return (
                   <button
                     key={item.id}
-                    className="bg-[#2D3847] border border-[#2A4A68] rounded-xl px-4 py-3 flex items-center gap-3 w-full text-left"
+                    className="bg-[#112538] border border-[#1E3A52] rounded-xl px-4 py-3 flex items-center gap-3 w-full text-left"
                     onClick={() => console.log(`open activity: ${item.type}`)}
                   >
                     <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${style.bg}`}>
@@ -621,7 +636,7 @@ export function DashboardHome() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-white">{item.title}</p>
-                      <p className="text-xs text-[#B8C4CC]">{item.descriptor}</p>
+                      <p className="text-xs text-[#94A3B8]">{item.descriptor}</p>
                     </div>
                     <div className="flex flex-col items-end gap-1 flex-shrink-0">
                       <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${chip.bg} ${chip.text}`}>{chip.label}</span>
@@ -638,7 +653,7 @@ export function DashboardHome() {
           <section>
             <div className="flex justify-between items-center mb-3">
               <h2 className="text-base font-bold text-white">Recent Activity</h2>
-              <button className="text-xs text-[#00BFFF]" onClick={() => console.log('view all recent removals')}>View All</button>
+              <button className="text-xs text-[#14ABFE]" onClick={() => navigate('/dashboard/exposures')}>View All</button>
             </div>
 
             <div className="flex flex-col gap-2">
@@ -649,7 +664,7 @@ export function DashboardHome() {
                 return (
                   <button
                     key={item.id}
-                    className="bg-[#2D3847] border border-[#2A4A68] rounded-xl px-4 py-3 flex items-center gap-3 w-full text-left"
+                    className="bg-[#112538] border border-[#1E3A52] rounded-xl px-4 py-3 flex items-center gap-3 w-full text-left"
                     onClick={() => console.log(`open removal: ${item.id}`)}
                   >
                     <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${style.bg}`}>
@@ -657,7 +672,7 @@ export function DashboardHome() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-white">{item.title}</p>
-                      <p className="text-xs text-[#B8C4CC]">{item.descriptor}</p>
+                      <p className="text-xs text-[#94A3B8]">{item.descriptor}</p>
                     </div>
                     <div className="flex flex-col items-end gap-1 flex-shrink-0">
                       <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${chip.bg} ${chip.text}`}>{chip.label}</span>
@@ -674,7 +689,7 @@ export function DashboardHome() {
           <section>
             <div className="flex justify-between items-center mb-3">
               <h2 className="text-base font-bold text-white">Brokers & Breaches</h2>
-              <button className="text-xs text-[#00BFFF]" onClick={() => console.log('view all brokers and breaches')}>View All</button>
+              <button className="text-xs text-[#14ABFE]" onClick={() => navigate('/dashboard/exposures')}>View All</button>
             </div>
 
             <div className="flex flex-col gap-2">
@@ -684,11 +699,11 @@ export function DashboardHome() {
                   return (
                     <button
                       key={item.id}
-                      className="bg-[#2D3847] border border-[#2A4A68] rounded-xl px-4 py-3 flex items-center gap-3 w-full text-left"
-                      onClick={() => console.log(`open broker: ${item.title}`)}
+                      className="bg-[#112538] border border-[#1E3A52] rounded-xl px-4 py-3 flex items-center gap-3 w-full text-left"
+                      onClick={() => navigate('/dashboard/exposures')}
                     >
-                      <div className="w-9 h-9 rounded-lg bg-[#022136] border border-[#2A4A68] flex items-center justify-center flex-shrink-0">
-                        <span className="text-[#00BFFF] text-xs font-bold">{item.initials}</span>
+                      <div className="w-9 h-9 rounded-lg bg-[#0B1B2B] border border-[#1E3A52] flex items-center justify-center flex-shrink-0">
+                        <span className="text-[#14ABFE] text-xs font-bold">{item.initials}</span>
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-white">{item.title}</p>
@@ -705,15 +720,15 @@ export function DashboardHome() {
                 return (
                   <button
                     key={item.id}
-                    className="bg-[#2D3847] border border-[#2A4A68] rounded-xl px-4 py-3 flex items-center gap-3 w-full text-left"
+                    className="bg-[#112538] border border-[#1E3A52] rounded-xl px-4 py-3 flex items-center gap-3 w-full text-left"
                     onClick={() => navigate('/dashboard/dark-web')}
                   >
-                    <div className="w-9 h-9 rounded-full bg-[#FF8A00]/10 flex items-center justify-center flex-shrink-0">
-                      <AlertTriangle className="w-4 h-4 text-[#FF8A00]" />
+                    <div className="w-9 h-9 rounded-full bg-[#FF8400]/10 flex items-center justify-center flex-shrink-0">
+                      <AlertTriangle className="w-4 h-4 text-[#FF8400]" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-white">{item.title}</p>
-                      <p className="text-xs text-[#B8C4CC]">{item.subtitle}</p>
+                      <p className="text-xs text-[#94A3B8]">{item.subtitle}</p>
                     </div>
                     <ChevronRight className="w-4 h-4 text-[#7A92A8] flex-shrink-0" />
                   </button>
@@ -729,9 +744,9 @@ export function DashboardHome() {
       </div>
 
       {/* ── FIXED BOTTOM NAV ──────────────────────────────────────────────── */}
-      <nav className="fixed bottom-0 left-0 right-0 px-4 pb-4 pt-2 bg-gradient-to-t from-[#022136] to-transparent z-50" aria-label="Main navigation">
+      <nav className="fixed bottom-0 left-0 right-0 px-4 pb-4 pt-2 bg-gradient-to-t from-[#0B1B2B] to-transparent z-50" aria-label="Main navigation">
         <div className="max-w-lg mx-auto">
-          <div className="flex items-center justify-around bg-[#2D3847] rounded-full px-4 py-2 border border-[#2A4A68]">
+          <div className="flex items-center justify-around bg-[#112538] rounded-full px-4 py-2 border border-[#1E3A52]">
             {[
               { label: 'Home',      Icon: Home,         path: '/dashboard/home',      active: true  },
               { label: 'Exposures', Icon: AlertTriangle,  path: '/dashboard/exposures', active: false },
@@ -745,17 +760,23 @@ export function DashboardHome() {
                 aria-current={active ? 'page' : undefined}
                 onClick={() => navigate(path)}
                 className={`relative flex items-center justify-center w-14 h-10 rounded-full transition-colors cursor-pointer ${
-                  active ? 'bg-[#022136]' : 'hover:bg-[#022136]/50'
+                  active ? 'bg-[#0B1B2B]' : 'hover:bg-[#0B1B2B]/50'
                 }`}
               >
-                <Icon className={`w-6 h-6 ${active ? 'text-[#00BFFF]' : 'text-[#7A92A8]'}`} />
+                <Icon className={`w-6 h-6 ${active ? 'text-[#14ABFE]' : 'text-[#7A92A8]'}`} />
               </button>
             ))}
           </div>
         </div>
       </nav>
 
-      <UserDrawer isOpen={userDrawerOpen} onClose={() => setUserDrawerOpen(false)} />
+      <UserDrawer
+        isOpen={userDrawerOpen}
+        onClose={() => setUserDrawerOpen(false)}
+        firstName={profileName.first}
+        lastName={profileName.last}
+        email={profileName.email}
+      />
 
     </div>
   );

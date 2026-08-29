@@ -31,13 +31,13 @@ function AreYouSureModal({
             aria-label="Incomplete setup warning"
         >
             <div
-                className="absolute inset-0 bg-[#022136]/80 backdrop-blur-sm"
+                className="absolute inset-0 bg-[#0B1B2B]/80 backdrop-blur-sm"
                 onClick={onCompleteSetUp}
             />
-            <div className="relative w-full max-w-lg rounded-t-3xl bg-[#2D3847] border border-[#2A4A68] border-b-0 px-6 pt-8 pb-10 flex flex-col items-center gap-4">
+            <div className="relative w-full max-w-lg rounded-t-3xl bg-[#112538] border border-[#1E3A52] border-b-0 px-6 pt-8 pb-10 flex flex-col items-center gap-4">
                 <div className="text-center">
                     <h2 className="text-xl font-bold text-white font-ubuntu">Are you sure?</h2>
-                    <p className="mt-2 text-sm text-[#B8C4CC] font-ubuntu leading-relaxed">
+                    <p className="mt-2 text-sm text-[#94A3B8] font-ubuntu leading-relaxed">
                         Your profile set up is not complete. You will need to complete your set up before we can start removing your data
                     </p>
                     <p className="mt-3 text-sm font-bold text-white font-ubuntu">
@@ -49,9 +49,9 @@ function AreYouSureModal({
                     onClick={onCompleteSetUp}
                     className={cx(
                         "mt-1 flex h-[52px] w-full items-center justify-center rounded-xl font-ubuntu",
-                        "text-sm font-semibold text-[#022136] bg-[#00BFFF] hover:bg-[#00D4FF]",
+                        "text-sm font-semibold text-[#0B1B2B] bg-[#14ABFE] hover:bg-[#00D4FF]",
                         "transition-colors duration-150 outline-none",
-                        "focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2 focus-visible:ring-offset-[#2D3847]",
+                        "focus-visible:ring-2 focus-visible:ring-[#14ABFE] focus-visible:ring-offset-2 focus-visible:ring-offset-[#112538]",
                     )}
                 >
                     Complete Set Up
@@ -59,7 +59,7 @@ function AreYouSureModal({
                 <button
                     type="button"
                     onClick={onContinueToDashboard}
-                    className="text-sm font-semibold text-[#00BFFF] hover:text-[#00D4FF] transition-colors duration-150 font-ubuntu cursor-pointer outline-none focus-visible:underline"
+                    className="text-sm font-semibold text-[#14ABFE] hover:text-[#00D4FF] transition-colors duration-150 font-ubuntu cursor-pointer outline-none focus-visible:underline"
                 >
                     Continue to Dashboard &gt;
                 </button>
@@ -89,7 +89,7 @@ export function OnboardingLayout({
         <div
             className={cx(
                 "flex min-h-screen flex-col transition-colors duration-200",
-                "bg-[#F0F4F8] dark:bg-[#022136]",
+                "bg-[#F0F4F8] dark:bg-[#0B1B2B]",
             )}
             role="main"
         >
@@ -104,7 +104,7 @@ export function OnboardingLayout({
             <header
                 className={cx(
                     "flex items-center justify-between px-4 py-3",
-                    "bg-[#F0F4F8] dark:bg-[#022136]",
+                    "bg-[#F0F4F8] dark:bg-[#0B1B2B]",
                 )}
             >
                 <div className="flex items-center">
@@ -125,8 +125,8 @@ export function OnboardingLayout({
                         onClick={handleDashboardClick}
                         className={cx(
                             "flex h-10 items-center justify-center rounded-xl px-4 text-sm font-semibold font-ubuntu outline-none transition-colors duration-150",
-                            "text-[#022136] dark:text-white bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10",
-                            "focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#022136]",
+                            "text-[#0B1B2B] dark:text-white bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10",
+                            "focus-visible:ring-2 focus-visible:ring-[#14ABFE] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#0B1B2B]",
                         )}
                     >
                         Dashboard
@@ -135,7 +135,7 @@ export function OnboardingLayout({
             </header>
 
             {/* Step Progress Indicator */}
-            <div className="bg-[#F0F4F8] dark:bg-[#022136]">
+            <div className="bg-[#F0F4F8] dark:bg-[#0B1B2B]">
                 <StepProgressIndicator
                     currentStep={currentStep}
                     completedSteps={completedSteps}
@@ -143,8 +143,8 @@ export function OnboardingLayout({
             </div>
 
             {/* Page Title + Subtitle */}
-            <div className="px-4 py-4 bg-[#F0F4F8] dark:bg-[#022136]">
-                <h1 className="text-center text-2xl font-bold tracking-tight text-[#022136] dark:text-white">
+            <div className="px-4 py-4 bg-[#F0F4F8] dark:bg-[#0B1B2B]">
+                <h1 className="text-center text-2xl font-bold tracking-tight text-[#0B1B2B] dark:text-white">
                     {title}
                 </h1>
                 {subtitle && (
@@ -155,7 +155,7 @@ export function OnboardingLayout({
             </div>
 
             {/* Main Content */}
-            <main className="flex-1 overflow-y-auto px-4 pb-28 bg-[#F0F4F8] dark:bg-[#022136]">
+            <main className="flex-1 overflow-y-auto px-4 pb-28 bg-[#F0F4F8] dark:bg-[#0B1B2B]">
                 <div className="mx-auto flex max-w-lg flex-col gap-4">
                     {children}
                 </div>
@@ -167,8 +167,8 @@ export function OnboardingLayout({
                     className={cx(
                         "fixed bottom-0 left-0 right-0 border-t py-4 px-4",
                         "rounded-tl-2xl rounded-tr-2xl",
-                        "border-[var(--border-subtle)] dark:border-[#2A4A68]",
-                        "bg-[var(--bg-surface)]/80 dark:bg-[#2D3847]/80",
+                        "border-[var(--border-subtle)] dark:border-[#1E3A52]",
+                        "bg-[var(--bg-surface)]/80 dark:bg-[#112538]/80",
                         "backdrop-blur-md",
                     )}
                 >
@@ -178,7 +178,7 @@ export function OnboardingLayout({
                             <button
                                 type="button"
                                 onClick={handleDashboardClick}
-                                className="text-sm font-semibold text-[#00BFFF] hover:text-[#00D4FF] transition-colors duration-150 cursor-pointer outline-none focus-visible:underline"
+                                className="text-sm font-semibold text-[#14ABFE] hover:text-[#00D4FF] transition-colors duration-150 cursor-pointer outline-none focus-visible:underline"
                             >
                                 Skip for Now
                             </button>

@@ -60,7 +60,7 @@ export function DashboardLogin() {
     };
 
     return (
-        <div className="min-h-screen w-full bg-[#022136] flex items-center justify-center px-6">
+        <div className="min-h-screen w-full bg-[#0B1B2B] flex items-center justify-center px-6">
             <div className="w-full max-w-md">
 
                 {/* Logo */}
@@ -76,7 +76,7 @@ export function DashboardLogin() {
                 </h1>
 
                 {/* Subheading */}
-                <p className="text-base font-bold font-ubuntu text-[#B8C4CC] mb-8">
+                <p className="text-base font-bold font-ubuntu text-[#94A3B8] mb-8">
                     Sign In to Your Dashboard
                 </p>
 
@@ -93,9 +93,9 @@ export function DashboardLogin() {
                         autoComplete="email"
                         className={cx(
                             "h-[52px] w-full rounded-xl border px-12 py-3 text-sm font-ubuntu outline-none transition-colors duration-150",
-                            "bg-[#2D3847] border-[#2A4A68]",
+                            "bg-[#112538] border-[#1E3A52]",
                             "text-white placeholder:text-[#7A92A8]",
-                            "focus:border-[#00BFFF] focus:ring-1 focus:ring-[#00BFFF]",
+                            "focus:border-[#14ABFE] focus:ring-1 focus:ring-[#14ABFE]",
                             "disabled:opacity-50",
                         )}
                         aria-label="Email address"
@@ -124,10 +124,10 @@ export function DashboardLogin() {
                     disabled={!isValid || isSending}
                     className={cx(
                         "mt-4 h-[52px] w-full rounded-xl font-bold text-base font-ubuntu",
-                        "bg-[#00BFFF] text-[#022136] hover:bg-[#00D4FF]",
+                        "bg-[#14ABFE] text-[#0B1B2B] hover:bg-[#00D4FF]",
                         "transition-colors duration-150 cursor-pointer",
-                        "focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2 focus-visible:ring-offset-[#022136]",
-                        "disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-[#00BFFF]",
+                        "focus-visible:ring-2 focus-visible:ring-[#14ABFE] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0B1B2B]",
+                        "disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-[#14ABFE]",
                     )}
                 >
                     {isSending ? "Sending…" : "Send Magic Link"}
@@ -137,7 +137,7 @@ export function DashboardLogin() {
                 <p className="mt-5 text-sm font-ubuntu text-white text-center">
                     Don&apos;t have an account?&nbsp;&nbsp;&nbsp;&nbsp;<Link
                         to="/quick-scan"
-                        className="font-bold text-[#00BFFF] hover:text-[#00D4FF] transition-colors duration-150"
+                        className="font-bold text-[#14ABFE] hover:text-[#00D4FF] transition-colors duration-150"
                     >
                         Start Here &rsaquo;
                     </Link>

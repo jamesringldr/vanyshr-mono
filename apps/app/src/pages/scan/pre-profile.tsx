@@ -305,14 +305,14 @@ function DataTypeCard({
             aria-label={title}
             className={cx(
                 "rounded-xl border p-4 transition-colors",
-                "bg-[var(--bg-surface)] dark:bg-[#2D3847]",
-                "border-[var(--border-subtle)] dark:border-[#2A4A68]",
+                "bg-[var(--bg-surface)] dark:bg-[#112538]",
+                "border-[var(--border-subtle)] dark:border-[#1E3A52]",
                 className,
             )}
         >
             <div className="flex items-center gap-2">
                 <Icon
-                    className="h-5 w-5 shrink-0 text-[var(--text-secondary)] dark:text-[#B8C4CC]"
+                    className="h-5 w-5 shrink-0 text-[var(--text-secondary)] dark:text-[#94A3B8]"
                     aria-hidden
                 />
                 <h3 className="text-sm font-semibold text-[var(--text-primary)] dark:text-white">
@@ -336,8 +336,8 @@ function Pill({
         <span
             className={cx(
                 "inline-flex items-center rounded-xl px-3 py-1.5 text-sm",
-                "bg-[#F0F4F8]/50 dark:bg-[#022136]/50",
-                "border border-[var(--border-subtle)] dark:border-[#2A4A68]",
+                "bg-[#F0F4F8]/50 dark:bg-[#0B1B2B]/50",
+                "border border-[var(--border-subtle)] dark:border-[#1E3A52]",
                 "text-[var(--text-primary)] dark:text-white",
                 className,
             )}
@@ -778,7 +778,7 @@ export function PreProfile() {
     if (loadingState === "loading") {
         return (
             <div
-                className="min-h-screen w-full flex flex-col items-center justify-center bg-[#F0F4F8] dark:bg-[#022136] font-sans transition-colors duration-200"
+                className="min-h-screen w-full flex flex-col items-center justify-center bg-[#F0F4F8] dark:bg-[#0B1B2B] font-sans transition-colors duration-200"
                 role="main"
                 aria-label="Loading profile"
             >
@@ -795,7 +795,7 @@ export function PreProfile() {
                                 : { duration: 2.6, repeat: Infinity, ease: "easeInOut" }
                         }
                     />
-                    <p className="text-lg font-medium text-[#022136] dark:text-white font-ubuntu">
+                    <p className="text-lg font-medium text-[#0B1B2B] dark:text-white font-ubuntu">
                         Compiling your exposure report now
                         <span
                             aria-hidden
@@ -804,7 +804,7 @@ export function PreProfile() {
                             {loadingEllipsis}
                         </span>
                     </p>
-                    <p className="text-sm text-[#B8C4CC] dark:text-[#B8C4CC]">
+                    <p className="text-sm text-[#94A3B8] dark:text-[#94A3B8]">
                         Gathering data from multiple sources
                     </p>
                 </div>
@@ -816,7 +816,7 @@ export function PreProfile() {
     if (loadingState === "error" || !data) {
         return (
             <div
-                className="min-h-screen w-full flex flex-col items-center justify-center p-4 bg-[#F0F4F8] dark:bg-[#022136] font-sans transition-colors duration-200"
+                className="min-h-screen w-full flex flex-col items-center justify-center p-4 bg-[#F0F4F8] dark:bg-[#0B1B2B] font-sans transition-colors duration-200"
                 role="main"
                 aria-label="Error loading profile"
             >
@@ -824,15 +824,15 @@ export function PreProfile() {
                     <div className="w-16 h-16 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mx-auto mb-4">
                         <Scale className="w-8 h-8 text-red-600 dark:text-red-400" />
                     </div>
-                    <h1 className="text-xl font-bold text-[#022136] dark:text-white mb-2">
+                    <h1 className="text-xl font-bold text-[#0B1B2B] dark:text-white mb-2">
                         Unable to Load Profile
                     </h1>
-                    <p className="text-sm text-[#B8C4CC] dark:text-[#B8C4CC] mb-6">
+                    <p className="text-sm text-[#94A3B8] dark:text-[#94A3B8] mb-6">
                         {error || "Something went wrong while loading your profile data."}
                     </p>
                     <Link
                         to="/quick-scan"
-                        className="inline-flex h-[44px] items-center justify-center px-6 rounded-xl bg-[#00BFFF] hover:bg-[#1196E0] text-white font-semibold transition-all"
+                        className="inline-flex h-[44px] items-center justify-center px-6 rounded-xl bg-[#14ABFE] hover:bg-[#1196E0] text-white font-semibold transition-all"
                     >
                         Try Again
                     </Link>
@@ -843,7 +843,7 @@ export function PreProfile() {
 
     return (
         <div
-            className="min-h-screen w-full bg-[#F0F4F8] dark:bg-[#022136] font-sans transition-colors duration-200"
+            className="min-h-screen w-full bg-[#F0F4F8] dark:bg-[#0B1B2B] font-sans transition-colors duration-200"
             role="main"
             aria-label="Pre-profile exposure summary"
         >
@@ -866,7 +866,7 @@ export function PreProfile() {
                     <button
                         type="button"
                         aria-label="Open menu"
-                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-[var(--text-primary)] dark:text-white outline-none transition hover:bg-black/5 focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2 dark:hover:bg-white/10 dark:focus-visible:ring-offset-[#022136]"
+                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-[var(--text-primary)] dark:text-white outline-none transition hover:bg-black/5 focus-visible:ring-2 focus-visible:ring-[#14ABFE] focus-visible:ring-offset-2 dark:hover:bg-white/10 dark:focus-visible:ring-offset-[#0B1B2B]"
                     >
                         <Menu className="h-6 w-6" />
                     </button>
@@ -877,7 +877,7 @@ export function PreProfile() {
                     className={cx(
                         "rounded-xl border-2 p-5 text-center sm:p-6",
                         "border-[#DC2626] dark:border-[#B91C1C]",
-                        "bg-[var(--bg-surface)] dark:bg-[#2D3847]",
+                        "bg-[var(--bg-surface)] dark:bg-[#112538]",
                     )}
                     role="region"
                     aria-label="Exposure summary"
@@ -899,14 +899,14 @@ export function PreProfile() {
                     <div
                         className={cx(
                             "rounded-xl border p-4 text-center",
-                            "bg-[var(--bg-surface)] dark:bg-[#2D3847]",
-                            "border-[var(--border-subtle)] dark:border-[#2A4A68]",
+                            "bg-[var(--bg-surface)] dark:bg-[#112538]",
+                            "border-[var(--border-subtle)] dark:border-[#1E3A52]",
                         )}
                     >
                         <p className="text-2xl font-bold tabular-nums text-[var(--text-primary)] dark:text-white sm:text-3xl">
                             {data.totalDataPoints}
                         </p>
-                        <p className="mt-1 text-[0.9rem] font-bold leading-tight text-[var(--text-secondary)] dark:text-[#B8C4CC]">
+                        <p className="mt-1 text-[0.9rem] font-bold leading-tight text-[var(--text-secondary)] dark:text-[#94A3B8]">
                             Data<br />Points
                         </p>
                     </div>
@@ -948,8 +948,8 @@ export function PreProfile() {
                         aria-label="Contact"
                         className={cx(
                             "rounded-xl border p-4 sm:p-5",
-                            "bg-[var(--bg-surface)] dark:bg-[#2D3847]",
-                            "border-[var(--border-subtle)] dark:border-[#2A4A68]",
+                            "bg-[var(--bg-surface)] dark:bg-[#112538]",
+                            "border-[var(--border-subtle)] dark:border-[#1E3A52]",
                         )}
                     >
                         <div className="flex flex-wrap items-end justify-between gap-2">
@@ -1034,7 +1034,7 @@ export function PreProfile() {
                                             </p>
                                         )}
                                         {addr.cityStateZip && (
-                                            <p className="text-sm font-normal text-[var(--text-secondary)] dark:text-[#B8C4CC]">
+                                            <p className="text-sm font-normal text-[var(--text-secondary)] dark:text-[#94A3B8]">
                                                 {addr.cityStateZip}
                                             </p>
                                         )}
@@ -1114,8 +1114,8 @@ export function PreProfile() {
                 className={cx(
                     "fixed bottom-0 left-0 right-0 z-20 border-t px-8 py-5 text-center sm:px-10",
                     "rounded-t-2xl",
-                    "border-[var(--border-subtle)] dark:border-[#2A4A68]",
-                    "bg-[#F0F4F8]/80 dark:bg-[#022136]/70",
+                    "border-[var(--border-subtle)] dark:border-[#1E3A52]",
+                    "bg-[#F0F4F8]/80 dark:bg-[#0B1B2B]/70",
                     "backdrop-blur-md shadow-[0_-8px_24px_rgba(0,0,0,0.45)]",
                     "transition-all duration-700 ease-out",
                     isFooterVisible
@@ -1129,7 +1129,7 @@ export function PreProfile() {
                     <p className="text-base font-bold font-ubuntu text-white">
                         Let's Remove This Data
                     </p>
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-[#00BFFF]/40 bg-[#00BFFF]/10 px-3 py-1.5 text-xs font-medium font-ubuntu text-[#00BFFF]">
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-[#14ABFE]/40 bg-[#14ABFE]/10 px-3 py-1.5 text-xs font-medium font-ubuntu text-[#14ABFE]">
                         <Zap className="h-3.5 w-3.5" aria-hidden />
                         3 mins To Start Removing
                     </span>
@@ -1139,13 +1139,13 @@ export function PreProfile() {
                     <button
                         type="button"
                         onClick={handleStartVanyshing}
-                        className="flex h-[52px] w-full max-w-md items-center justify-center gap-2 rounded-xl px-4 font-semibold text-white outline-none transition bg-[#00BFFF] hover:bg-[#0E9AE8] focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#022136] cursor-pointer"
+                        className="flex h-[52px] w-full max-w-md items-center justify-center gap-2 rounded-xl px-4 font-semibold text-white outline-none transition bg-[#14ABFE] hover:bg-[#0E9AE8] focus-visible:ring-2 focus-visible:ring-[#14ABFE] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#0B1B2B] cursor-pointer"
                         aria-label="Start Vanyshing for free"
                     >
                         Start Vanyshing for FREE
                         <ArrowRight className="h-5 w-5 shrink-0" aria-hidden />
                     </button>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-[#B8C4CC]">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-[#94A3B8]">
                         NO CREDIT CARD REQUIRED
                     </p>
                 </div>

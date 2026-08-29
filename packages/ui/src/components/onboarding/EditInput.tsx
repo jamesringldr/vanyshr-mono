@@ -38,7 +38,7 @@ export function EditInput({
         <div className="space-y-1.5">
             <label
                 htmlFor={id}
-                className="block text-sm font-medium text-[#022136] dark:text-white"
+                className="block text-sm font-medium text-[#0B1B2B] dark:text-white"
             >
                 {label}
             </label>
@@ -60,12 +60,12 @@ export function EditInput({
                     aria-describedby={error ? `${id}-error` : undefined}
                     className={cx(
                         "h-[52px] w-full rounded-xl border py-3 text-base outline-none transition",
-                        "bg-[#F0F4F8]/50 dark:bg-[#022136]/50",
+                        "bg-[#F0F4F8]/50 dark:bg-[#0B1B2B]/50",
                         error
                             ? "border-red-500 dark:border-red-400"
-                            : "border-[var(--border-subtle)] dark:border-[#2A4A68]",
-                        "text-[#022136] dark:text-white placeholder:text-[var(--text-muted)] dark:placeholder:text-[#7A92A8]",
-                        "focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#022136]",
+                            : "border-[var(--border-subtle)] dark:border-[#1E3A52]",
+                        "text-[#0B1B2B] dark:text-white placeholder:text-[var(--text-muted)] dark:placeholder:text-[#7A92A8]",
+                        "focus-visible:ring-2 focus-visible:ring-[#14ABFE] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#0B1B2B]",
                         Icon ? "pl-12 pr-4" : "px-4",
                     )}
                 />

@@ -11,7 +11,7 @@ export interface QSProgressStepsProps {
 
 /**
  * Horizontal progress step indicators for QSScanning / QSCompiling flow.
- * Vanyshr: active = #00BFFF, inactive = muted.
+ * Vanyshr: active = #14ABFE, inactive = muted.
  */
 export function QSProgressSteps({
   totalSteps,
@@ -34,8 +34,8 @@ export function QSProgressSteps({
           className={cx(
             "h-1 flex-1 rounded-full transition-colors",
             step <= activeStep
-              ? "bg-[#00BFFF]"
-              : "bg-[#D4DFE8] dark:bg-[#2A4A68]",
+              ? "bg-[#14ABFE]"
+              : "bg-[#D4DFE8] dark:bg-[#1E3A52]",
           )}
         />
       ))}

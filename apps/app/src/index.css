@@ -5,18 +5,19 @@
   --font-sans: "Ubuntu", ui-sans-serif, system-ui, sans-serif;
   --tracking-tighter: -0.05em;
 
-  --color-brand-primary: #00BFFF;
-  --color-brand-dark: #022136;
+  --color-brand-primary: #14ABFE;
+  --color-brand-dark: #0B1B2B;
   --color-accent-hover: #00D4FF;
-  --color-accent-risk: #FF8A00;
-  --color-bg-page: #022136;
-  --color-bg-surface: #2D3847;
-  --color-bg-surface-secondary: #2D3847;
+  --color-accent-orange: #FF8400;
+  --color-accent-risk: #FF8400;
+  --color-bg-page: #0B1B2B;
+  --color-bg-surface: #112538;
+  --color-bg-surface-secondary: #182E42;
   --color-text-primary: #FFFFFF;
-  --color-text-secondary: #B8C4CC;
+  --color-text-secondary: #94A3B8;
   --color-text-tertiary: #7A92A8;
-  --color-border-subtle: #2A4A68;
-  --color-border-brand: #00BFFF;
+  --color-border-subtle: #1E3A52;
+  --color-border-brand: #14ABFE;
   --color-success: #00D4AA;
   --color-warning: #FFB81C;
   --color-error: #FF5757;

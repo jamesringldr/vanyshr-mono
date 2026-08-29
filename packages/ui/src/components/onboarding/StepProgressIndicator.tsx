@@ -69,9 +69,9 @@ export function StepProgressIndicator({
                                     state === "completed" &&
                                         "bg-[#00D4AA] dark:bg-[#00D4AA]",
                                     state === "current" &&
-                                        "bg-[#00BFFF] dark:bg-[#00BFFF]",
+                                        "bg-[#14ABFE] dark:bg-[#14ABFE]",
                                     state === "upcoming" &&
-                                        "bg-transparent border-2 border-[var(--border-subtle)] dark:border-[#2A4A68]",
+                                        "bg-transparent border-2 border-[var(--border-subtle)] dark:border-[#1E3A52]",
                                 )}
                             >
                                 {state === "completed" ? (
@@ -97,7 +97,7 @@ export function StepProgressIndicator({
                                         "h-0.5 w-8 flex-shrink-0 transition-colors duration-200",
                                         completedSteps.includes(step.id)
                                             ? "bg-[#00D4AA] dark:bg-[#00D4AA]"
-                                            : "bg-[var(--border-subtle)] dark:bg-[#2A4A68]",
+                                            : "bg-[var(--border-subtle)] dark:bg-[#1E3A52]",
                                     )}
                                     aria-hidden
                                 />

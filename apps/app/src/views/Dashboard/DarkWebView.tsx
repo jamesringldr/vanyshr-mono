@@ -29,7 +29,7 @@ type FilterTab = 'all' | BreachStatus;
 // ─────────────────────────────────────────────────────────────────────────────
 
 const STATUS_CONFIG: Record<BreachStatus, { label: string; color: string; bg: string; Icon: React.ElementType }> = {
-  new:        { label: 'New',        color: 'text-[#FF8A00]', bg: 'bg-[#FF8A00]/15',  Icon: AlertTriangle },
+  new:        { label: 'New',        color: 'text-[#FF8400]', bg: 'bg-[#FF8400]/15',  Icon: AlertTriangle },
   unresolved: { label: 'Unresolved', color: 'text-[#FFB81C]', bg: 'bg-[#FFB81C]/15',  Icon: Clock         },
   resolved:   { label: 'Resolved',   color: 'text-[#00D4AA]', bg: 'bg-[#00D4AA]/15',  Icon: CheckCircle   },
 };
@@ -141,7 +141,7 @@ export function DarkWebView() {
 
   // ─────────────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-[#022136] font-ubuntu">
+    <div className="min-h-screen bg-[#0B1B2B] font-ubuntu">
       <div className="pb-10 overflow-y-auto">
         <div className="flex flex-col gap-6 py-6 px-6">
 
@@ -149,7 +149,7 @@ export function DarkWebView() {
           <div className="flex items-center gap-3">
             <button
               onClick={() => navigate(-1)}
-              className="p-1 rounded-lg hover:bg-[#2D3847] transition-colors"
+              className="p-1 rounded-lg hover:bg-[#112538] transition-colors"
               aria-label="Go back"
             >
               <ChevronLeft className="w-5 h-5 text-[#7A92A8]" />
@@ -172,8 +172,8 @@ export function DarkWebView() {
                 onClick={() => setActiveFilter(tab.key)}
                 className={`flex-shrink-0 text-xs font-medium px-3 py-1.5 rounded-full border transition-colors duration-150 ${
                   activeFilter === tab.key
-                    ? 'bg-[#00BFFF]/20 border-[#00BFFF] text-[#00BFFF]'
-                    : 'bg-transparent border-[#2A4A68] text-[#7A92A8] hover:border-[#4A6A88] hover:text-[#B8C4CC]'
+                    ? 'bg-[#14ABFE]/20 border-[#14ABFE] text-[#14ABFE]'
+                    : 'bg-transparent border-[#1E3A52] text-[#7A92A8] hover:border-[#4A6A88] hover:text-[#94A3B8]'
                 }`}
               >
                 {tab.label}
@@ -190,11 +190,11 @@ export function DarkWebView() {
           {isLoading ? (
             <div className="flex flex-col gap-3">
               {[1, 2, 3].map(i => (
-                <div key={i} className="bg-[#2D3847] border border-[#2A4A68] rounded-xl h-28 animate-pulse" />
+                <div key={i} className="bg-[#112538] border border-[#1E3A52] rounded-xl h-28 animate-pulse" />
               ))}
             </div>
           ) : filtered.length === 0 ? (
-            <div className="bg-[#2D3847] border border-[#2A4A68] rounded-xl px-6 py-10 flex flex-col items-center gap-3 text-center">
+            <div className="bg-[#112538] border border-[#1E3A52] rounded-xl px-6 py-10 flex flex-col items-center gap-3 text-center">
               <Shield className="w-8 h-8 text-[#00D4AA]" />
               <p className="text-sm font-bold text-white">
                 {activeFilter === 'all'
@@ -215,7 +215,7 @@ export function DarkWebView() {
                 return (
                   <div
                     key={breach.id}
-                    className="bg-[#2D3847] border border-[#2A4A68] rounded-xl px-4 py-4 flex flex-col gap-3"
+                    className="bg-[#112538] border border-[#1E3A52] rounded-xl px-4 py-4 flex flex-col gap-3"
                   >
                     {/* Top row */}
                     <div className="flex items-start gap-3">
@@ -239,19 +239,19 @@ export function DarkWebView() {
                     {/* Details */}
                     <div className="flex flex-col gap-1">
                       {breach.breach_date && (
-                        <p className="text-xs text-[#B8C4CC]">
+                        <p className="text-xs text-[#94A3B8]">
                           <span className="text-[#7A92A8]">Breached:</span>{' '}
                           {formatBreachDate(breach.breach_date)}
                         </p>
                       )}
                       {breach.exposed_data_types && breach.exposed_data_types.length > 0 && (
-                        <p className="text-xs text-[#B8C4CC]">
+                        <p className="text-xs text-[#94A3B8]">
                           <span className="text-[#7A92A8]">Exposed:</span>{' '}
                           {breach.exposed_data_types.slice(0, 4).join(', ')}
                           {breach.exposed_data_types.length > 4 && ` +${breach.exposed_data_types.length - 4} more`}
                         </p>
                       )}
-                      <p className="text-xs text-[#B8C4CC]">
+                      <p className="text-xs text-[#94A3B8]">
                         <span className="text-[#7A92A8]">Matched:</span>{' '}
                         {breach.matched_email}
                       </p>

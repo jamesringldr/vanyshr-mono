@@ -26,11 +26,11 @@ function inviteEmailHtml(firstName: string, inviteUrl: string): string {
   const greeting = firstName ? `Hi ${firstName},` : "Hi,";
   return `<!DOCTYPE html>
 <html>
-<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; line-height: 1.6; color: #022136; max-width: 560px; margin: 0 auto; padding: 24px;">
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; line-height: 1.6; color: #0B1B2B; max-width: 560px; margin: 0 auto; padding: 24px;">
   <p>${greeting}</p>
   <p>Your Vanyshr privacy report is ready. We scanned public data brokers and compiled what we found about your online exposure.</p>
   <p style="margin: 28px 0;">
-    <a href="${inviteUrl}" style="display: inline-block; background: #00BFFF; color: #ffffff; text-decoration: none; font-weight: 600; padding: 14px 24px; border-radius: 12px;">View your invite</a>
+    <a href="${inviteUrl}" style="display: inline-block; background: #14ABFE; color: #ffffff; text-decoration: none; font-weight: 600; padding: 14px 24px; border-radius: 12px;">View your invite</a>
   </p>
   <p style="font-size: 13px; color: #7A92A8;">This link is personal to you. If you did not expect this email, you can ignore it.</p>
   <p style="font-size: 13px; color: #7A92A8;">— The Vanyshr Team</p>

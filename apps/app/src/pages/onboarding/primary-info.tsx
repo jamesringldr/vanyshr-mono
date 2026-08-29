@@ -70,7 +70,7 @@ function EditInput({
         <div className="space-y-1.5">
             <label
                 htmlFor={id}
-                className="block text-sm font-medium text-[#022136] dark:text-white"
+                className="block text-sm font-medium text-[#0B1B2B] dark:text-white"
             >
                 {label}
             </label>
@@ -89,10 +89,10 @@ function EditInput({
                     placeholder={placeholder}
                     className={cx(
                         "h-[52px] w-full rounded-xl border py-3 text-base outline-none transition",
-                        "bg-[#F0F4F8]/50 dark:bg-[#022136]/50",
-                        "border-[var(--border-subtle)] dark:border-[#2A4A68]",
-                        "text-[#022136] dark:text-white placeholder:text-[var(--text-muted)] dark:placeholder:text-[#7A92A8]",
-                        "focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#022136]",
+                        "bg-[#F0F4F8]/50 dark:bg-[#0B1B2B]/50",
+                        "border-[var(--border-subtle)] dark:border-[#1E3A52]",
+                        "text-[#0B1B2B] dark:text-white placeholder:text-[var(--text-muted)] dark:placeholder:text-[#7A92A8]",
+                        "focus-visible:ring-2 focus-visible:ring-[#14ABFE] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#0B1B2B]",
                         Icon ? "pl-12 pr-4" : "px-4",
                     )}
                 />
@@ -283,7 +283,7 @@ export function VerifyPrimaryInfo() {
                 footer={null}
             >
                 <div className="flex items-center justify-center py-16">
-                    <div className="w-6 h-6 rounded-full border-2 border-[#00BFFF] border-t-transparent animate-spin" />
+                    <div className="w-6 h-6 rounded-full border-2 border-[#14ABFE] border-t-transparent animate-spin" />
                 </div>
             </OnboardingLayout>
         );
@@ -303,8 +303,8 @@ export function VerifyPrimaryInfo() {
                     disabled={isSaving}
                     className={cx(
                         "flex h-[52px] w-full items-center justify-center rounded-xl text-sm font-semibold text-white outline-none transition",
-                        "bg-[#00BFFF] hover:bg-[#0E9AE8]",
-                        "focus-visible:ring-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#022136]",
+                        "bg-[#14ABFE] hover:bg-[#0E9AE8]",
+                        "focus-visible:ring-2 focus-visible:ring-[#14ABFE] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#0B1B2B]",
                         isSaving && "opacity-60 cursor-not-allowed",
                     )}
                 >
@@ -369,10 +369,10 @@ export function VerifyPrimaryInfo() {
                         {field.id === "dateOfBirth" && (
                             <div className={cx(
                                 "rounded-xl px-4 py-3",
-                                "bg-[#00BFFF]/10 dark:bg-[#00BFFF]/10",
-                                "border border-[#00BFFF]/25 dark:border-[#00BFFF]/20",
+                                "bg-[#14ABFE]/10 dark:bg-[#14ABFE]/10",
+                                "border border-[#14ABFE]/25 dark:border-[#14ABFE]/20",
                             )}>
-                                <p className="text-xs leading-relaxed text-[#0099CC] dark:text-[#00BFFF] text-center">
+                                <p className="text-xs leading-relaxed text-[#0099CC] dark:text-[#14ABFE] text-center">
                                     Your search profile data is securely encrypted and is{" "}
                                     <strong className="text-white">NEVER used, shared, or sold for marketing purposes.</strong>
                                     <br />
