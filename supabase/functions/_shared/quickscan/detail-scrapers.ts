@@ -17,6 +17,7 @@
 import { DOMParser } from "https://deno.land/x/deno_dom@v0.1.38/deno-dom-wasm.ts";
 import { BrokerName, type DedupMember, type SummaryResult } from "./quickscan-phase1-phase2-models.ts";
 import { scrapeHtml, ContextDevError } from "./context-dev-client.ts";
+import { parseAddress } from "./address-parser.ts";
 
 // Fresh context.dev detail pages take 15–25s+. 20s was tuned for cache hits.
 const DEFAULT_DETAIL_TIMEOUT_MS = 45000;
@@ -115,6 +116,34 @@ export interface BrokerDetailProfile {
 function addrFromParts(street: string | undefined, city: string | undefined, state: string | undefined, zip: string | undefined, fallback?: string): DetailAddress {
   const formatted = [street, [city, state].filter(Boolean).join(", "), zip].filter(Boolean).join(", ") || fallback || "";
   return { formatted, street, city, state, zip };
+}
+
+const DIRECTIONAL_ABBREVIATIONS = new Set(["n", "s", "e", "w", "ne", "nw", "se", "sw"]);
+
+/** parseAddress() lowercases/suffix-normalises for matching — fine for a
+ *  dedup key, wrong for anything shown to a user. Title-case its output
+ *  back to something display-worthy; directional tokens (NW, SE, ...) stay
+ *  fully uppercase rather than "Nw"/"Se". */
+function titleCase(s: string): string {
+  return s
+    .replace(/\b\w/g, (c) => c.toUpperCase())
+    .split(" ")
+    .map((word) => (DIRECTIONAL_ABBREVIATIONS.has(word.toLowerCase()) ? word.toUpperCase() : word))
+    .join(" ");
+}
+
+/** Parse free-form address text via the shared parser (which has a
+ *  street-suffix-boundary fallback for when no comma marks the street/city
+ *  split) and rebuild a display DetailAddress from it. */
+function addrFromText(text: string): DetailAddress {
+  const parsed = parseAddress(text);
+  return addrFromParts(
+    parsed.street ? titleCase(parsed.street) : text,
+    parsed.city ? titleCase(parsed.city) : undefined,
+    parsed.state || undefined,
+    parsed.zip || undefined,
+    text,
+  );
 }
 
 /**
@@ -255,19 +284,28 @@ export function parseFpsDetail(html: string): BrokerDetailProfile {
   let primaryAddress: DetailAddress | undefined;
   const currentLink = doc.querySelector("#current_address_section h3 a");
   if (currentLink) {
-    const blockText = textOf(currentLink.parentElement);
-    const street = textOf(currentLink);
-    const csMatch = blockText.match(/([A-Za-z\s]+?)\s+([A-Z]{2})\s+(\d{5}(?:-\d{4})?)/);
-    primaryAddress = addrFromParts(street, csMatch?.[1]?.trim(), csMatch?.[2], csMatch?.[3], blockText);
+    // FPS's current-address link text is the whole address, space-joined
+    // with no comma at all ("7935 Holmes Rd Kansas City MO 64131") --
+    // confirmed against real HTML. The previous city/state regex against
+    // blockText (which necessarily re-includes the link's own text, since
+    // the link is its child) picked up a second copy of city/state from
+    // within that same text and duplicated the address when combined.
+    // parseAddress() already has a street-suffix-boundary fallback for
+    // exactly this no-comma shape; blockText is used (a strict superset of
+    // the link's own text) so a differently-laid-out page that puts
+    // city/state/zip in a sibling instead still works the same way.
+    primaryAddress = addrFromText(textOf(currentLink.parentElement));
   }
 
   const previousAddresses: DetailAddress[] = [];
   for (const link of doc.querySelectorAll("#previous-addresses dt.address-link a")) {
     const text = textOf(link);
-    const csMatch = text.match(/^(.+?)\s+([A-Za-z\s.]+?)\s+([A-Z]{2})\s+(\d{5}(?:-\d{4})?)$/);
-    const addr: DetailAddress = csMatch
-      ? addrFromParts(csMatch[1].trim(), csMatch[2].trim(), csMatch[3], csMatch[4], text)
-      : { formatted: text };
+    // Same no-comma-before-city shape as the current address above (plus
+    // an optional ", Unit N" before it) -- confirmed against real HTML that
+    // the old regex here left `street` as just the house number and dumped
+    // the entire street name + unit + city into `city` for the large
+    // majority of a real profile's previous addresses.
+    const addr: DetailAddress = addrFromText(text);
 
     // County + "Recorded <date>" are <dd> siblings of the <dt> this link
     // lives in (<a> -> <dt> -> <dl>) -- previously never read.
@@ -527,12 +565,41 @@ export function parseAnywhoDetail(html: string): BrokerDetailProfile {
       if (streetText.includes("Address History") || streetText.includes("We found")) continue;
 
       const containerText = textOf(heading.parentElement);
-      const locationMatch = containerText.match(/([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*),\s*([A-Z]{2})(?:,?\s*(\d{5}(?:-\d{4})?))?/);
-      const city = locationMatch?.[1]?.trim();
-      const state = locationMatch?.[2]?.trim();
-      const zip = locationMatch?.[3]?.substring(0, 5);
       const isCurrent = first || containerText.includes("CURRENT") || containerText.includes("has resided here");
-      const addr = addrFromParts(streetText, city, state, zip, streetText);
+
+      // The heading is usually just the street ("413 Lovers Ln"), but AnyWho
+      // sometimes renders it as the WHOLE address run together with no comma
+      // ("413 Lovers Ln Cameron MO 64429") -- in that shape, containerText
+      // (which necessarily re-includes the heading's own text, since heading
+      // is its child) contains a *second*, differently-formatted copy of the
+      // same tail elsewhere in the card, and the locationMatch below picks
+      // that up too. Passing both into addrFromParts then doubled the
+      // address (confirmed against a real corrupted raw_value -- see
+      // docs/anywho-address-duplication.md). Parse the heading on its own
+      // first via the shared address parser, which already has a
+      // street-suffix fallback for exactly this shape; only fall back to
+      // containerText's regex for whatever the heading alone didn't resolve.
+      const parsedHeading = parseAddress(streetText);
+      let street: string | undefined = streetText;
+      let city: string | undefined;
+      let state: string | undefined;
+      let zip: string | undefined;
+
+      if (parsedHeading.state || parsedHeading.zip) {
+        street = parsedHeading.street ? titleCase(parsedHeading.street) : streetText;
+        city = parsedHeading.city ? titleCase(parsedHeading.city) : undefined;
+        state = parsedHeading.state || undefined;
+        zip = parsedHeading.zip || undefined;
+      }
+
+      if (!city || !state) {
+        const locationMatch = containerText.match(/([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*),\s*([A-Z]{2})(?:,?\s*(\d{5}(?:-\d{4})?))?/);
+        city = city || locationMatch?.[1]?.trim();
+        state = state || locationMatch?.[2]?.trim();
+        zip = zip || locationMatch?.[3]?.substring(0, 5);
+      }
+
+      const addr = addrFromParts(street, city, state, zip, streetText);
 
       // "James lived here in this Single Family Residential from 2005 to
       // 2025" -- a sentence sitting in the same block as the street/
@@ -673,30 +740,60 @@ export function parseZabaDetail(html: string): BrokerDetailProfile {
 }
 
 // ---------------------------------------------------------------------------
-// NPD — no prior scraper to port from. First draft, unverified against real HTML.
+// NPD — verified against real nationalpublicdata.com profile HTML.
 // ---------------------------------------------------------------------------
+
+/**
+ * NPD's section ids (`person-current-address`, `person-previous-address`,
+ * `person-current-phone`, `person-phone-numbers`, `person-relatives`, ...)
+ * live on the section's own <h2>, not on a wrapping container the way
+ * "#addresses"/"#phones"/"#relatives" assumed -- confirmed against real
+ * HTML, which is why every one of those old selectors matched nothing. The
+ * actual content sits in a sibling ".name-cards-block__text" inside the
+ * same ".name-cards-grid-item" wrapper as the heading; the custom `El` type
+ * this file uses has no `nextElementSibling`, so reach it via the shared
+ * parent instead.
+ */
+function npdSectionText(doc: El, headingId: string): El | null {
+  const heading = doc.querySelector(`#${headingId}`);
+  return heading?.parentElement?.querySelector(".name-cards-block__text") ?? null;
+}
 
 export function parseNpdDetail(html: string): BrokerDetailProfile {
   const doc = parseDoc(html) as unknown as El;
   if (!doc) return {};
 
-  const nameEl = doc.querySelector("h1");
-  const fullName = textOf(nameEl);
-  if (!fullName) return {};
+  // NPD's <h1> is "James Oehring, 62." -- name, age, and a trailing period
+  // all in one string (every other broker's h1/name element is just the
+  // name). Confirmed against real HTML.
+  const rawName = textOf(doc.querySelector("h1"));
+  if (!rawName) return {};
+  let fullName = rawName;
+  let age: number | undefined;
+  const nameAgeMatch = rawName.match(/^(.+?),\s*(\d+)\.?\s*$/);
+  if (nameAgeMatch) {
+    fullName = nameAgeMatch[1].trim();
+    age = parseInt(nameAgeMatch[2], 10);
+  }
 
   const bodyText = textOf(doc.querySelector("body")) || textOf(doc);
-  const ageMatch = bodyText.match(/Age[:\s]+(\d{1,3})/i);
-  const age = ageMatch ? parseInt(ageMatch[1], 10) : undefined;
+  if (age === undefined) {
+    const ageMatch = bodyText.match(/Age[:\s]+(\d{1,3})/i);
+    age = ageMatch ? parseInt(ageMatch[1], 10) : undefined;
+  }
 
   const phoneNumbers: string[] = [];
   const seenPhones = new Set<string>();
   const phonePattern = /\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/g;
-  const phoneSection = doc.querySelector("#phones") || doc.querySelector('[id*="phone" i]');
-  for (const match of textOf(phoneSection || (doc as unknown as El)).matchAll(phonePattern)) {
-    const cleaned = match[0].replace(/\D/g, "");
-    if (cleaned.length === 10 && !seenPhones.has(cleaned)) {
-      seenPhones.add(cleaned);
-      phoneNumbers.push(match[0]);
+  for (const id of ["person-current-phone", "person-phone-numbers"]) {
+    const section = npdSectionText(doc, id);
+    if (!section) continue;
+    for (const match of textOf(section).matchAll(phonePattern)) {
+      const cleaned = match[0].replace(/\D/g, "");
+      if (cleaned.length === 10 && !seenPhones.has(cleaned)) {
+        seenPhones.add(cleaned);
+        phoneNumbers.push(match[0]);
+      }
     }
   }
 
@@ -712,26 +809,28 @@ export function parseNpdDetail(html: string): BrokerDetailProfile {
   }
 
   let primaryAddress: DetailAddress | undefined;
+  const currentAddrSection = npdSectionText(doc, "person-current-address");
+  if (currentAddrSection) {
+    const text = textOf(currentAddrSection);
+    if (text && !/no records/i.test(text)) primaryAddress = addrFromText(text);
+  }
+
   const previousAddresses: DetailAddress[] = [];
-  const addressSection = doc.querySelector("#addresses") || doc.querySelector('[id*="address" i]');
-  if (addressSection) {
-    let index = 0;
-    for (const el of addressSection.querySelectorAll("div, li, p")) {
-      const addrText = textOf(el);
-      if (addrText.length <= 10 || !/\d/.test(addrText)) continue;
-      const stateMatch = addrText.match(/\s([A-Z]{2})\s+\d{5}/);
-      const zipMatch = addrText.match(/\b(\d{5})(?:-\d{4})?\b/);
-      const cityMatch = addrText.match(/,\s*([A-Za-z\s]+),\s*[A-Z]{2}/);
-      const addr = addrFromParts(undefined, cityMatch?.[1]?.trim(), stateMatch?.[1], zipMatch?.[1], addrText);
-      if (index === 0) primaryAddress = addr;
-      else previousAddresses.push(addr);
-      index++;
-      if (index >= 6) break;
+  const previousAddrSection = npdSectionText(doc, "person-previous-address");
+  if (previousAddrSection) {
+    for (const line of previousAddrSection.querySelectorAll(".flex-line")) {
+      const spans = line.querySelectorAll("span");
+      const addrText = spans[0] ? textOf(spans[0]) : "";
+      if (!addrText || addrText.length <= 10) continue;
+      const addr = addrFromText(addrText);
+      const recorded = spans[1] ? textOf(spans[1]).match(/last reported in (\d{4})/i) : null;
+      if (recorded) addr.recordedDate = recorded[1];
+      previousAddresses.push(addr);
     }
   }
 
   const relatives: DetailRelation[] = [];
-  const relativesSection = doc.querySelector("#relatives") || doc.querySelector('[id*="relative" i]');
+  const relativesSection = npdSectionText(doc, "person-relatives");
   if (relativesSection) {
     const seen = new Set<string>();
     for (const link of relativesSection.querySelectorAll("a")) {
