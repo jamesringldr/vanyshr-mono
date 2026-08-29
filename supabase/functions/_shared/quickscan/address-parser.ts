@@ -175,12 +175,23 @@ export function parseAddress(raw: string | null | undefined): ParsedAddress {
     }
   }
 
-  // A trailing unit ("apt 502") landing in the city slot means the real city
-  // was one chunk earlier — move it back onto the street.
-  const cityHead = city.split(" ")[0];
-  if (cityHead && UNIT_TOKENS.has(cityHead)) {
-    street = `${street} ${city}`.trim();
-    city = "";
+  // A unit designator landing at the front of the city slot happens in two
+  // different shapes depending on the broker: alone ("apt 502", nothing
+  // else -- the real city was a separate, earlier comma chunk, e.g. FPS's
+  // own "1225 Union Ave, Apt 502, Kansas City, MO"), or with the real city
+  // glued onto the SAME chunk right after it ("unit 2117 kansas city" --
+  // FPS's previous-addresses links put only one comma in, before the unit,
+  // e.g. "400 W 20th St, Unit 2117 Kansas City MO 64108"). Peel off just
+  // the unit token + whatever immediately follows it (its number/id) and
+  // keep looking for a real city in what's left, rather than assuming the
+  // whole fragment is street. When there's genuinely nothing after the
+  // unit's id, `rest` comes out empty and this reduces to the old
+  // move-it-all-to-street behavior.
+  const cityWords = city.split(" ").filter(Boolean);
+  if (cityWords.length && UNIT_TOKENS.has(cityWords[0])) {
+    const unitFragment = cityWords.slice(0, 2).join(" ");
+    street = `${street} ${unitFragment}`.trim();
+    city = cityWords.slice(2).join(" ");
   }
 
   return {
