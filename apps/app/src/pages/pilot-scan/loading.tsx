@@ -14,6 +14,7 @@ import { EmailConfirmationModal } from "./email-confirmation";
 import { loadConsolidatedProfile, saveConsolidatedProfile, type ConsolidatedProfile } from "./consolidated-profile";
 import { ProgressDrawer, type ProgressStage, type ProgressMessage } from "./progress-drawer";
 import { EducationalCards } from "./educational-cards";
+import { UnauthNav } from "@/components/UnauthNav";
 
 const EASE_OUT = [0.2, 0, 0, 1] as const;
 
@@ -938,6 +939,8 @@ export function PilotLoadingPage() {
       aria-label="Scan in progress"
       aria-busy={phase === "searching" || phase === "full_profile"}
     >
+      <UnauthNav />
+
       {/* Top zone takes whatever height the drawer below doesn't -- flexbox
           allocates the split exactly, so the cards can never end up behind
           the drawer the way approximating it with padding did. This zone
