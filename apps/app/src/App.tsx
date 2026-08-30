@@ -61,6 +61,19 @@ import { InviteLoading } from "./pages/invite-loading";
 // Sandbox Mockups
 import { VanyshrAppMockup, ScamMockup, RemovalsMockup, DataExplosionMockup } from "@vanyshr/ui";
 
+// Simple UI variant
+import { SimpleHome } from "./pages/simple/home";
+import { SimpleWelcome } from "./pages/simple/welcome";
+import { SimpleOnboardingName } from "./pages/simple/onboarding-name";
+import { SimpleOnboardingPhone } from "./pages/simple/onboarding-phone";
+import { SimpleOnboardingAddress } from "./pages/simple/onboarding-address";
+import { SimpleOnboardingComplete } from "./pages/simple/onboarding-complete";
+import { SimpleStatus } from "./pages/simple/status";
+import { SimpleSettings } from "./pages/simple/settings";
+import { SimpleBreaches } from "./pages/simple/breaches";
+import { SimpleScan } from "./pages/simple/scan";
+import { SimpleRemovals } from "./pages/simple/removals";
+
 // Dashboard pages are hidden on production until ready for users.
 function DevOnly({ children }: { children: ReactNode }) {
     if (isProductionApp()) return <Navigate to="/scanning-started" replace />;
@@ -188,8 +201,22 @@ export default function App() {
             {/* Sandbox Mockups */}
             <Route path="/sandbox/notifications" element={<VanyshrAppMockup />} />
             <Route path="/sandbox/scams" element={<ScamMockup />} />
-          <Route path="/sandbox/removals" element={<RemovalsMockup />} />
+            <Route path="/sandbox/removals" element={<RemovalsMockup />} />
             <Route path="/sandbox/explosion" element={<DataExplosionMockup />} />
+
+            {/* Simple UI variant */}
+            <Route path="/simple" element={<Navigate to="/simple/home" replace />} />
+            <Route path="/simple/home" element={<RequireAuth><SimpleHome /></RequireAuth>} />
+            <Route path="/simple/welcome" element={<RequireAuth><SimpleWelcome /></RequireAuth>} />
+            <Route path="/simple/onboarding/name" element={<RequireAuth><SimpleOnboardingName /></RequireAuth>} />
+            <Route path="/simple/onboarding/phone" element={<RequireAuth><SimpleOnboardingPhone /></RequireAuth>} />
+            <Route path="/simple/onboarding/address" element={<RequireAuth><SimpleOnboardingAddress /></RequireAuth>} />
+            <Route path="/simple/onboarding/complete" element={<RequireAuth><SimpleOnboardingComplete /></RequireAuth>} />
+            <Route path="/simple/status" element={<RequireAuth><SimpleStatus /></RequireAuth>} />
+            <Route path="/simple/settings" element={<RequireAuth><SimpleSettings /></RequireAuth>} />
+            <Route path="/simple/breaches" element={<RequireAuth><SimpleBreaches /></RequireAuth>} />
+            <Route path="/simple/scan" element={<RequireAuth><SimpleScan /></RequireAuth>} />
+            <Route path="/simple/removals" element={<RequireAuth><SimpleRemovals /></RequireAuth>} />
 
             <Route path="*" element={<NotFound />} />
         </Routes>
