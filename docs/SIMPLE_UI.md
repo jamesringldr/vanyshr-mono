@@ -1,140 +1,263 @@
-# Simple UI Variant
-
-A clean, minimal alternate UI for Vanyshr — designed for A/B testing against the current dense dashboard.
+# Simple UI Variant — A/B Test Documentation
 
 ## Overview
 
-The simple UI variant is a messenger-style interface with:
+The Simple UI variant is a **minimal, conversational alternate flow for the new-user scan experience**. It A/B tests against the current dense `/pilot-scan` flow to measure conversion and engagement.
+
+**What this is NOT:**
+- ❌ A post-login dashboard redesign
+- ❌ From-scratch onboarding where users type all their info
+- ❌ A separate product with its own backend
+
+**What this IS:**
+- ✅ The same data broker scan flow, with a minimal UI skin
+- ✅ Grok Bot-inspired design: lots of air, short copy, one action at a time
+- ✅ The "oh-shit" dossier reveal, shown in punchy cards (not dense hex charts)
+- ✅ Seeded profile review (users validate scraped data, not enter it from scratch)
+- ✅ A true A/B test of **new-user acquisition flow**
+
+---
+
+## Product Flow
+
+### Control: `/pilot-scan` (Dense/Detailed)
+
+```
+/pilot-scan          → animated entry splash
+/pilot-scan/start    → form (first/last/zip) + detailed value prop
+/pilot-scan/loading  → animated scanning with broker progress
+/pilot-scan/risk-summary → HEX CHART with risk areas, full tables
+/pilot-scan/pre-profile  → validate scraped data (dense, multi-section)
+/pilot-scan/report   → full carousel report
+```
+
+**Characteristics:**
+- Information-rich
+- Animated hexagon risk chart
+- Multiple sections on-screen at once
+- Dense tables and lists
+- Professional, technical feel
+
+### Variant: `/simple/scan` (Minimal/Grok Bot)
+
+```
+/simple/scan          → clean form (first/last/zip)
+/simple/scan/loading  → minimal spinner + progress bar
+/simple/scan/reveal   → PUNCHY CARDS showing "we found X things"
+/simple/scan/validate → review scraped data, one section at a time
+/simple/scan/signup   → email capture
+```
+
+**Characteristics:**
+- Conversational, friendly
 - Lots of whitespace
-- Short, conversational copy
-- One action at a time
-- Calm, minimal chrome
-- Simple cards instead of data-dense panels
+- One action per screen
+- Short copy
+- Calm, sparse chrome
+- Punchy cards (not tables)
+
+---
+
+## What's Shared (Same Backend)
+
+Both flows use:
+- ✅ Same data broker scraper (FPS, NPD, AnyWho, Zaba)
+- ✅ Same Edge Functions (`intro-scan`, `pilot-scan`)
+- ✅ Same Supabase tables (`quick_scans`, `quickscan_enrichment`)
+- ✅ Same consolidated profile data structure
+- ✅ Same Holehe + Leakcheck enrichment
+
+**The only difference is UI presentation.**
+
+---
 
 ## Routes
 
-### Main Routes
-- `/simple/home` — Main home screen (status, quick actions)
-- `/simple/welcome` — Welcome/onboarding entry point
+### Simple Variant
 
-### Onboarding Flow
-1. `/simple/onboarding/name` — Name & date of birth
-2. `/simple/onboarding/phone` — Phone numbers (optional)
-3. `/simple/onboarding/address` — Current address
-4. `/simple/onboarding/complete` — Completion screen
+| Route | Component | Purpose |
+|-------|-----------|---------|
+| `/simple/scan` | `SimpleScanEntry` | Form to start scan (first/last/zip) |
+| `/simple/scan/loading` | `SimpleScanLoading` | Loading spinner + progress |
+| `/simple/scan/reveal` | `SimpleScanReveal` | "Oh shit" moment - show what was found in cards |
+| `/simple/scan/validate` | `SimpleScanValidate` | Review/approve scraped data |
+| `/simple/scan/signup` | `SimpleScanSignup` | Email capture to create account |
 
-### Feature Pages
-- `/simple/status` — Protection status details
-- `/simple/breaches` — Data breach alerts
-- `/simple/scan` — Run a new scan
-- `/simple/removals` — Removal request status
-- `/simple/settings` — Settings (includes link to switch to dense UI)
+All routes defined in `/workspace/apps/app/src/App.tsx`.
+
+---
 
 ## Design Principles
 
 ### Grok Bot Inspiration
-The design borrows from Grok Bot's calm, conversational approach:
-- **Messenger-simple:** Not a dashboard
-- **Lots of air:** Generous spacing
-- **Short copy:** One idea per screen
-- **One action:** Single primary CTA
-- **Calm chrome:** Minimal navigation
 
-### What's Different from Dense UI
+1. **Lots of air** — whitespace is a feature
+2. **Short copy** — conversational, not marketing
+3. **One action at a time** — never two CTAs competing
+4. **Calm chrome** — minimal nav, no clutter
+5. **Cards over tables** — digestible chunks
 
-| Dense UI | Simple UI |
-|----------|-----------|
-| Information-dense cards | Minimal cards with breathing room |
-| Multi-column layouts | Single-column, mobile-first |
-| Metrics, charts, tables | Simple status messages |
-| Complex navigation | Clean header + back buttons |
-| Detailed copy | Conversational, brief |
+### Example: Reveal Screen
 
-## Development
-
-### Local Setup
-```bash
-# Start dev server
-pnpm dev
-
-# Visit simple UI
-open http://localhost:5173/simple/home
-
-# Visit dense UI (unchanged)
-open http://localhost:5173/dashboard
+**Dense control** (current `/pilot-scan/risk-summary`):
+```
+[Hex chart with 6 risk areas]
+[Table: Critical exposures (12 rows)]
+[Table: Emails found (4 rows)]
+[Table: Relatives (8 rows)]
+[Graph: Breach timeline]
+[CTA: Start removal process]
 ```
 
-### File Structure
+**Simple variant** (`/simple/scan/reveal`):
 ```
-apps/app/src/pages/simple/
-├── home.tsx                    # Main home screen
-├── welcome.tsx                 # Welcome/entry
-├── onboarding-name.tsx         # Step 1: Name & DOB
-├── onboarding-phone.tsx        # Step 2: Phone numbers
-├── onboarding-address.tsx      # Step 3: Address
-├── onboarding-complete.tsx     # Completion
-├── status.tsx                  # Protection status
-├── breaches.tsx                # Breach alerts
-├── scan.tsx                    # New scan
-├── removals.tsx                # Removal requests
-└── settings.tsx                # Settings
+[Alert icon]
+"We found 28 pieces of your data"
+"This is what's publicly available about you."
+
+[Card: 4 emails]
+[Card: 3 phones]
+[Card: 7 addresses]
+[Card: 14 relatives]
+
+[CTA card: "Want to remove this?"]
+[Button: See full details]
 ```
-
-### Tech Stack
-- **Same as main app:** React 19, Vite, TailwindCSS, Framer Motion
-- **Reuses:** Auth, data models, Supabase integration, business logic
-- **No new dependencies**
-
-## A/B Testing
-
-### Routing Users
-To A/B test, route users to different entry points:
-
-```typescript
-// Example: Route based on user cohort
-const shouldUseSimpleUI = user.cohort === 'simple-ui-test';
-navigate(shouldUseSimpleUI ? '/simple/home' : '/dashboard');
-```
-
-### Metrics to Track
-- **Onboarding completion rate**
-- **Time to complete onboarding**
-- **Engagement with quick actions**
-- **Feature discovery (scan, removals, etc.)**
-- **User preference (switching between UIs)**
-
-### Switching Between UIs
-Users can switch between UIs via settings:
-- Simple → Dense: `/simple/settings` → "Switch to detailed view"
-- Dense → Simple: Add similar link in dashboard settings
-
-## What's Unchanged
-
-✅ **All existing routes work**  
-✅ **Dense dashboard UI untouched**  
-✅ **Auth, data models, business logic**  
-✅ **Supabase integration**  
-✅ **Build process**
-
-The simple UI is purely a presentation/IA variant — same product, different skin.
-
-## Next Steps
-
-1. **User testing:** Route cohort to `/simple/home` on signup
-2. **Track metrics:** Compare completion rates, engagement
-3. **Iterate:** Adjust based on user feedback
-4. **Decide:** Choose winner or offer both as user preference
-
-## Notes
-
-- This is a **draft PR** — ready for review and testing
-- All pages have proper loading, empty, and error states
-- Real data integration (breaches, removals, etc.)
-- Mobile-first, responsive design
-- No new external dependencies
 
 ---
 
-**Design inspiration:** Grok Bot  
-**Goal:** A/B test simple vs. dense UI  
-**Status:** Ready for user testing
+## Development
+
+### File Structure
+
+```
+apps/app/src/pages/simple/scan/
+├── entry.tsx       # Form to start scan
+├── loading.tsx     # Loading state
+├── reveal.tsx      # "Oh shit" dossier reveal
+├── validate.tsx    # Review scraped data
+├── signup.tsx      # Email capture
+└── index.ts        # Exports
+```
+
+### Running Locally
+
+```bash
+cd /workspace
+pnpm install
+pnpm dev
+```
+
+Then visit:
+- Dense control: http://localhost:5173/pilot-scan
+- Simple variant: http://localhost:5173/simple/scan
+
+### Reusing Pilot Scan Utilities
+
+The simple variant imports shared utilities from `/pilot-scan`:
+
+```typescript
+import {
+  loadConsolidatedProfile,
+  toProperCase,
+  formatPhone,
+  parseFullAddress,
+  type ConsolidatedProfile,
+} from "@/pages/pilot-scan/consolidated-profile";
+```
+
+This ensures both flows use the **exact same data structure**.
+
+---
+
+## A/B Testing Strategy
+
+### Hypothesis
+
+The dense control optimizes for authority and completeness.
+The simple variant optimizes for clarity and emotional impact.
+
+**We're testing:** Does a minimalist presentation increase conversion from scan → signup?
+
+### Metrics to Track
+
+- **Completion rate:** % who finish the scan
+- **Reveal engagement:** Time on reveal page
+- **Validation dropoff:** % who abandon at validate step
+- **Signup conversion:** % who enter email after seeing results
+- **Time to conversion:** Scan start → signup
+
+### Implementation
+
+1. **Traffic split:** 50/50 randomization at landing
+2. **Session tracking:** All events logged to same `quick_scans` table
+3. **Tagging:** Add `variant: 'simple' | 'dense'` field to scan records
+4. **Analysis:** Compare conversion funnels side-by-side
+
+---
+
+## Key Differences from Dense Control
+
+| Aspect | Dense (`/pilot-scan`) | Simple (`/simple/scan`) |
+|--------|----------------------|-------------------------|
+| Entry | Animated splash + long value prop | Clean form, minimal copy |
+| Loading | Animated progress with broker names | Spinner + progress bar |
+| Reveal | Hex chart + tables | Punchy stat cards |
+| Validation | All sections on one page | One section at a time |
+| Chrome | Header with nav, progress indicator | Logo only, no nav |
+| Copy | Professional, detailed | Conversational, short |
+| Actions | Multiple CTAs | One CTA per screen |
+
+---
+
+## Success Criteria
+
+**Ship when:**
+- ✅ All 5 screens render correctly
+- ✅ Scan backend integration works (same as `/pilot-scan`)
+- ✅ Data flows from scan → reveal → validate → signup
+- ✅ No auth errors or API failures
+- ✅ Mobile-responsive
+- ✅ Loads under 2 seconds
+
+**A/B test is successful if:**
+- Simple variant has **>10% higher** signup conversion
+- Time to conversion is **<20% longer** than dense (some loss acceptable for clarity)
+- Reveal engagement is **equal or higher** (validates "oh shit" impact)
+
+---
+
+## Notes for James
+
+1. **The scrape is the product.** Don't skip it, stub it, or replace it with fake data. The "oh shit" moment only works with real data.
+
+2. **Validation is key.** Users need to see their scraped data is accurate before trusting us to remove it. This is where conversion happens.
+
+3. **Mobile-first.** Most users will see this on their phone. Test at 375px width.
+
+4. **Fast loading.** The simpler UI should feel faster, even though the backend is the same. Progress indicators matter.
+
+5. **Copy tone.** "We found 28 pieces of your data" is better than "28 data exposures detected across 4 brokers."
+
+---
+
+## Deployment
+
+This variant ships on the same branch as the dense control. No separate deployment needed.
+
+**To test:**
+- Dense: app.vanyshr.com/pilot-scan
+- Simple: app.vanyshr.com/simple/scan
+
+**To measure:**
+- Add `?variant=simple` query param for forced assignment
+- Check `quick_scans.variant` field in Supabase
+
+---
+
+## Related Docs
+
+- `docs/SCAN_SEQUENCE.md` — How the scraper works
+- `docs/scraper-data-flow.md` — Data pipeline
+- `docs/PILOT_SCAN_DEPLOYMENT.md` — Backend deployment
+- `apps/app/src/pages/pilot-scan/*` — Dense control UI

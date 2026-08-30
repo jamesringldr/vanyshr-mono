@@ -61,18 +61,14 @@ import { InviteLoading } from "./pages/invite-loading";
 // Sandbox Mockups
 import { VanyshrAppMockup, ScamMockup, RemovalsMockup, DataExplosionMockup } from "@vanyshr/ui";
 
-// Simple UI variant
-import { SimpleHome } from "./pages/simple/home";
-import { SimpleWelcome } from "./pages/simple/welcome";
-import { SimpleOnboardingName } from "./pages/simple/onboarding-name";
-import { SimpleOnboardingPhone } from "./pages/simple/onboarding-phone";
-import { SimpleOnboardingAddress } from "./pages/simple/onboarding-address";
-import { SimpleOnboardingComplete } from "./pages/simple/onboarding-complete";
-import { SimpleStatus } from "./pages/simple/status";
-import { SimpleSettings } from "./pages/simple/settings";
-import { SimpleBreaches } from "./pages/simple/breaches";
-import { SimpleScan } from "./pages/simple/scan";
-import { SimpleRemovals } from "./pages/simple/removals";
+// Simple UI variant — scan-based flow
+import {
+  SimpleScanEntry,
+  SimpleScanLoading,
+  SimpleScanReveal,
+  SimpleScanValidate,
+  SimpleScanSignup,
+} from "./pages/simple/scan";
 
 // Dashboard pages are hidden on production until ready for users.
 function DevOnly({ children }: { children: ReactNode }) {
@@ -204,19 +200,13 @@ export default function App() {
             <Route path="/sandbox/removals" element={<RemovalsMockup />} />
             <Route path="/sandbox/explosion" element={<DataExplosionMockup />} />
 
-            {/* Simple UI variant */}
-            <Route path="/simple" element={<Navigate to="/simple/home" replace />} />
-            <Route path="/simple/home" element={<RequireAuth><SimpleHome /></RequireAuth>} />
-            <Route path="/simple/welcome" element={<RequireAuth><SimpleWelcome /></RequireAuth>} />
-            <Route path="/simple/onboarding/name" element={<RequireAuth><SimpleOnboardingName /></RequireAuth>} />
-            <Route path="/simple/onboarding/phone" element={<RequireAuth><SimpleOnboardingPhone /></RequireAuth>} />
-            <Route path="/simple/onboarding/address" element={<RequireAuth><SimpleOnboardingAddress /></RequireAuth>} />
-            <Route path="/simple/onboarding/complete" element={<RequireAuth><SimpleOnboardingComplete /></RequireAuth>} />
-            <Route path="/simple/status" element={<RequireAuth><SimpleStatus /></RequireAuth>} />
-            <Route path="/simple/settings" element={<RequireAuth><SimpleSettings /></RequireAuth>} />
-            <Route path="/simple/breaches" element={<RequireAuth><SimpleBreaches /></RequireAuth>} />
-            <Route path="/simple/scan" element={<RequireAuth><SimpleScan /></RequireAuth>} />
-            <Route path="/simple/removals" element={<RequireAuth><SimpleRemovals /></RequireAuth>} />
+            {/* Simple UI variant — minimal scan flow (A/B vs /pilot-scan) */}
+            <Route path="/simple" element={<Navigate to="/simple/scan" replace />} />
+            <Route path="/simple/scan" element={<SimpleScanEntry />} />
+            <Route path="/simple/scan/loading" element={<SimpleScanLoading />} />
+            <Route path="/simple/scan/reveal" element={<SimpleScanReveal />} />
+            <Route path="/simple/scan/validate" element={<SimpleScanValidate />} />
+            <Route path="/simple/scan/signup" element={<SimpleScanSignup />} />
 
             <Route path="*" element={<NotFound />} />
         </Routes>
