@@ -1,8 +1,9 @@
 import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router";
-import { Shield, Check, ChevronRight } from "lucide-react";
+import { Shield, Check, ChevronRight, X } from "lucide-react";
 import {
   loadConsolidatedProfile,
+  saveConsolidatedProfile,
   toProperCase,
   formatPhone,
   parseFullAddress,
@@ -12,17 +13,22 @@ import {
 /**
  * Simple scan validate — let user review and approve scraped data.
  * Shows sections one at a time: contact, emails, phones, addresses, relatives.
- * Minimal, conversational. Not a dense table.
+ * Minimal, conversational. Edit buttons WORK.
  */
+
+type EditSection = "emails" | "phones" | "addresses" | "relatives" | null;
+
 export function SimpleScanValidate() {
   const navigate = useNavigate();
   const [profile, setProfile] = useState<ConsolidatedProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [editSection, setEditSection] = useState<EditSection>(null);
+  const [editValues, setEditValues] = useState<string[]>([]);
 
   useEffect(() => {
     const data = loadConsolidatedProfile();
     if (data.data) {
-      setProfile(data.data);
+      setProfile(data.data.profile);
     } else {
       navigate("/simple/scan");
     }
@@ -32,9 +38,9 @@ export function SimpleScanValidate() {
   const sections = useMemo(() => {
     if (!profile) return [];
 
-    const result: Array<{ id: string; title: string; items: string[] }> = [];
+    const result: Array<{ id: string; title: string; items: string[]; editable: boolean }> = [];
 
-    // Contact info
+    // Contact info (not editable in simple flow)
     if (profile.full_name || profile.age || profile.primary_address) {
       const contactItems: string[] = [];
       if (profile.full_name) contactItems.push(profile.full_name);
@@ -43,28 +49,30 @@ export function SimpleScanValidate() {
         const addr = parseFullAddress(profile.primary_address);
         contactItems.push(`${addr.city}, ${addr.state}`);
       }
-      result.push({ id: "contact", title: "About you", items: contactItems });
+      result.push({ id: "contact", title: "About you", items: contactItems, editable: false });
     }
 
-    // Emails
+    // Emails (editable)
     if (profile.emails && profile.emails.length > 0) {
       result.push({
         id: "emails",
         title: "Email addresses",
         items: profile.emails,
+        editable: true,
       });
     }
 
-    // Phones
+    // Phones (editable)
     if (profile.phones && profile.phones.length > 0) {
       result.push({
         id: "phones",
         title: "Phone numbers",
         items: profile.phones.map(formatPhone),
+        editable: true,
       });
     }
 
-    // Addresses
+    // Addresses (editable)
     const addresses: string[] = [];
     if (profile.primary_address) {
       const addr = parseFullAddress(profile.primary_address);
@@ -81,20 +89,81 @@ export function SimpleScanValidate() {
         id: "addresses",
         title: "Addresses",
         items: addresses.slice(0, 5), // Limit to 5 for simplicity
+        editable: true,
       });
     }
 
-    // Relatives
+    // Relatives (editable)
     if (profile.relatives && profile.relatives.length > 0) {
       result.push({
         id: "relatives",
         title: "Possible relatives",
         items: profile.relatives.slice(0, 5).map((r) => toProperCase(r.name)),
+        editable: true,
       });
     }
 
     return result;
   }, [profile]);
+
+  function handleEdit(sectionId: string) {
+    const section = sections.find((s) => s.id === sectionId);
+    if (!section || !section.editable) return;
+
+    setEditSection(sectionId as EditSection);
+    setEditValues([...section.items]);
+  }
+
+  function handleSaveEdit() {
+    if (!editSection || !profile) return;
+
+    const updated = { ...profile };
+
+    switch (editSection) {
+      case "emails":
+        updated.emails = editValues;
+        break;
+      case "phones":
+        // Remove formatting before saving
+        updated.phones = editValues.map((p) => p.replace(/\D/g, ""));
+        break;
+      case "addresses":
+        // Keep primary, update rest
+        if (editValues.length > 0) {
+          updated.primary_address = editValues[0] || updated.primary_address;
+          updated.previous_addresses = editValues.slice(1);
+        }
+        break;
+      case "relatives":
+        // Map back to relative objects
+        updated.relatives = editValues.map((name, i) => ({
+          name,
+          relation: profile.relatives?.[i]?.relation ?? null,
+          age: profile.relatives?.[i]?.age ?? null,
+        }));
+        break;
+    }
+
+    setProfile(updated);
+
+    // Save back to sessionStorage
+    const stored = loadConsolidatedProfile();
+    if (stored.data) {
+      saveConsolidatedProfile(
+        updated,
+        stored.data.brokerCount,
+        stored.data.brokers,
+        stored.data.brokerFields,
+        stored.data.quick_scan_id,
+      );
+    }
+
+    setEditSection(null);
+  }
+
+  function handleRemoveItem(index: number) {
+    setEditValues((prev) => prev.filter((_, i) => i !== index));
+  }
 
   if (loading) {
     return (
@@ -147,7 +216,14 @@ export function SimpleScanValidate() {
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <h2 className="font-medium text-gray-900">{section.title}</h2>
-                    <button className="text-sm text-blue-600 hover:text-blue-700">Edit</button>
+                    {section.editable && (
+                      <button
+                        onClick={() => handleEdit(section.id)}
+                        className="text-sm text-blue-600 hover:text-blue-700"
+                      >
+                        Edit
+                      </button>
+                    )}
                   </div>
                   <ul className="space-y-2">
                     {section.items.map((item, i) => (
@@ -183,6 +259,61 @@ export function SimpleScanValidate() {
           </button>
         </div>
       </div>
+
+      {/* Edit Modal */}
+      {editSection && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-4 sm:items-center">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-gray-900">
+                Edit {sections.find((s) => s.id === editSection)?.title}
+              </h3>
+              <button
+                onClick={() => setEditSection(null)}
+                className="rounded-full p-1 text-gray-400 hover:text-gray-600"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="mt-4 space-y-3">
+              {editValues.map((value, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={value}
+                    onChange={(e) =>
+                      setEditValues((prev) => prev.map((v, idx) => (idx === i ? e.target.value : v)))
+                    }
+                    className="flex-1 rounded-xl border border-gray-200 px-4 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  />
+                  <button
+                    onClick={() => handleRemoveItem(i)}
+                    className="rounded-full p-2 text-red-600 hover:bg-red-50"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-6 flex gap-3">
+              <button
+                onClick={() => setEditSection(null)}
+                className="flex-1 rounded-xl border border-gray-200 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveEdit}
+                className="flex-1 rounded-xl bg-blue-600 py-2 text-sm font-medium text-white hover:bg-blue-700"
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
