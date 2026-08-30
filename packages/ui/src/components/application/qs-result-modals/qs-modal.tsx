@@ -11,7 +11,7 @@ export const qsModal = {
     overlay: "fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4",
     panel: cx(
         "relative flex w-full max-w-md flex-col overflow-hidden font-ubuntu",
-        "max-h-[85vh] rounded-2xl bg-[#022136] shadow-xl",
+        "max-h-[85vh] rounded-2xl bg-[#0B1B2B] shadow-xl",
         "transform transition-all duration-300 ease-out",
     ),
     header: "relative flex-shrink-0 border-b border-[#1E3A52] px-6 py-5 pr-12",

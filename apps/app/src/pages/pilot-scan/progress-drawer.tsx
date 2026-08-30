@@ -48,7 +48,7 @@ const DOT = {
 } as const;
 
 const TEXT = {
-  active: "text-[#00BFFF]",
+  active: "text-[#14ABFE]",
   success: "text-[#22C55E]",
   failed: "text-[#F97066]",
 } as const;
@@ -171,7 +171,7 @@ export function ProgressDrawer({
           height: isExpanded ? "420px" : "120px",
         }}
         transition={{ duration: 0.32, ease: EASE_OUT }}
-        className="flex w-full max-w-xl flex-col overflow-hidden rounded-t-xl border-x border-t border-[#2A4A68] bg-[#2D3847]"
+        className="flex w-full max-w-xl flex-col overflow-hidden rounded-t-xl border-x border-t border-[#1E3A52] bg-[#112538]"
       >
         {/* Header (Always Visible). The whole row is the hit target -- the
             badge is the affordance, not a nested button. */}
@@ -180,22 +180,22 @@ export function ProgressDrawer({
           className={cx(
             "flex shrink-0 flex-col gap-1.5 px-5 py-4",
             "transition-all duration-200 hover:bg-[#354254] active:bg-[#0B3B52]",
-            "cursor-pointer select-none focus:outline-none focus:ring-2 focus:ring-[#00BFFF] focus:ring-inset"
+            "cursor-pointer select-none focus:outline-none focus:ring-2 focus:ring-[#14ABFE] focus:ring-inset"
           )}
           aria-expanded={isExpanded}
           aria-label={isExpanded ? "Hide scan progress details" : "Show scan progress details"}
         >
           {/* Stage row: step name and the toggle badge */}
           <div className="flex w-full items-center gap-2.5">
-            <InlineLoader variant="orbit" size={16} color="#00BFFF" />
+            <InlineLoader variant="orbit" size={16} color="#14ABFE" />
             <span className="truncate text-[15px] font-bold text-white">
               {currentStage?.stage.label ?? ""}
             </span>
             <span
               className={cx(
                 "ml-auto inline-flex shrink-0 items-center gap-1.5 rounded-full",
-                "border border-[#2A4A68] bg-[#022136] px-3 py-1",
-                "text-xs font-medium text-[#00BFFF]"
+                "border border-[#1E3A52] bg-[#0B1B2B] px-3 py-1",
+                "text-xs font-medium text-[#14ABFE]"
               )}
             >
               {isExpanded ? "Hide" : "Details"}
@@ -209,19 +209,19 @@ export function ProgressDrawer({
 
           {/* Latest line off the backend log */}
           {latestMessage && (
-            <div className="w-full truncate text-left font-mono text-[12px] text-[#00BFFF]/80">
+            <div className="w-full truncate text-left font-mono text-[12px] text-[#14ABFE]/80">
               {latestMessage}
             </div>
           )}
 
           {/* Progress Bar */}
           <div className="flex w-full items-center gap-3 pt-1">
-            <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-[#00BFFF]/20">
+            <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-[#14ABFE]/20">
               <motion.div
                 initial={{ width: 0 }}
                 animate={{ width: `${progressPercent}%` }}
                 transition={{ duration: 0.4, ease: "easeOut" }}
-                className="h-full bg-[#00BFFF]"
+                className="h-full bg-[#14ABFE]"
               />
             </div>
             <span className="min-w-fit text-[12px] font-medium text-[#7A92A8]">
@@ -304,7 +304,7 @@ export function ProgressDrawer({
                                   {item.message}
                                 </span>
                                 {item.percent !== undefined && (
-                                  <span className="shrink-0 font-mono text-[12px] tabular-nums text-[#00BFFF]">
+                                  <span className="shrink-0 font-mono text-[12px] tabular-nums text-[#14ABFE]">
                                     {item.percent}%
                                   </span>
                                 )}

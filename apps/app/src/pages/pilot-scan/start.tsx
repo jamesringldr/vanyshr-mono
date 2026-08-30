@@ -98,7 +98,7 @@ export function PilotStartPage() {
   if (!scanId) {
     return (
       <div
-        className="flex min-h-screen w-full flex-col items-center justify-center gap-6 bg-[#022136] px-6 font-ubuntu"
+        className="flex min-h-screen w-full flex-col items-center justify-center gap-6 bg-[#0B1B2B] px-6 font-ubuntu"
         role="main"
         aria-label="Pilot scan start"
       >
@@ -109,7 +109,7 @@ export function PilotStartPage() {
         />
         <div className="max-w-sm text-center">
           <h1 className="text-2xl font-bold tracking-tight text-white">No scan found</h1>
-          <p className="mt-2 text-sm leading-relaxed text-[#B8C4CC]">
+          <p className="mt-2 text-sm leading-relaxed text-[#94A3B8]">
             Please run a scan from the start to create an account.
           </p>
         </div>
@@ -121,7 +121,7 @@ export function PilotStartPage() {
     <div
       className={cx(
         "min-h-screen w-full font-sans transition-colors duration-200",
-        "bg-[#F0F4F8] dark:bg-[#022136]",
+        "bg-[#F0F4F8] dark:bg-[#0B1B2B]",
       )}
       role="main"
       aria-label="Pilot scan signup"
@@ -138,16 +138,16 @@ export function PilotStartPage() {
         </div>
 
         {/* Hero copy */}
-        <h1 className="mt-6 text-center text-4xl font-bold tracking-tighter text-[#022136] dark:text-white font-ubuntu">
+        <h1 className="mt-6 text-center text-4xl font-bold tracking-tighter text-[#0B1B2B] dark:text-white font-ubuntu">
           Create your account
         </h1>
-        <p className="mt-3 text-center text-base text-[#B8C4CC] font-ubuntu">
+        <p className="mt-3 text-center text-base text-[#94A3B8] font-ubuntu">
           Get your full exposure report and stay protected.
         </p>
 
         {/* Setup time chip */}
         <div className="mt-6 flex justify-center">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-[#00BFFF]/10 border border-[#00BFFF]/30 px-3 py-1.5 text-xs font-medium text-[#00BFFF] font-ubuntu">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-[#14ABFE]/10 border border-[#14ABFE]/30 px-3 py-1.5 text-xs font-medium text-[#14ABFE] font-ubuntu">
             <Zap className="w-3.5 h-3.5" aria-hidden />
             2 mins to complete setup
           </span>
@@ -160,7 +160,7 @@ export function PilotStartPage() {
               <Check className="w-4 h-4 text-[#00D4AA]" strokeWidth={3} aria-hidden />
             </div>
             <div>
-              <p className="font-semibold text-[#022136] dark:text-white">Your report is ready</p>
+              <p className="font-semibold text-[#0B1B2B] dark:text-white">Your report is ready</p>
               <p className="mt-0.5 text-sm text-[#7A92A8]">
                 See full details of your data breaches and exposed accounts
               </p>
@@ -171,7 +171,7 @@ export function PilotStartPage() {
               <Shield className="w-4 h-4 text-[#00D4AA]" strokeWidth={3} aria-hidden />
             </div>
             <div>
-              <p className="font-semibold text-[#022136] dark:text-white">Privacy first</p>
+              <p className="font-semibold text-[#0B1B2B] dark:text-white">Privacy first</p>
               <p className="mt-0.5 text-sm text-[#7A92A8]">
                 Your data is encrypted and never sold
               </p>
@@ -182,7 +182,7 @@ export function PilotStartPage() {
               <Lock className="w-4 h-4 text-[#00D4AA]" strokeWidth={3} aria-hidden />
             </div>
             <div>
-              <p className="font-semibold text-[#022136] dark:text-white">Magic link signup</p>
+              <p className="font-semibold text-[#0B1B2B] dark:text-white">Magic link signup</p>
               <p className="mt-0.5 text-sm text-[#7A92A8]">
                 No password to remember — we'll send you a link
               </p>
@@ -192,7 +192,7 @@ export function PilotStartPage() {
 
         {/* Email input section */}
         <div className="mt-8 flex flex-col gap-4">
-          <label htmlFor="email" className="text-sm font-semibold text-[#022136] dark:text-white">
+          <label htmlFor="email" className="text-sm font-semibold text-[#0B1B2B] dark:text-white">
             Email address
           </label>
           <div className="relative">
@@ -206,19 +206,19 @@ export function PilotStartPage() {
               placeholder="you@example.com"
               disabled={isSending}
               className={cx(
-                "w-full rounded-lg border px-4 py-3 pl-11 text-[#022136] dark:text-white",
-                "placeholder-[#B8C4CC] dark:placeholder-[#7A92A8]",
+                "w-full rounded-lg border px-4 py-3 pl-11 text-[#0B1B2B] dark:text-white",
+                "placeholder-[#94A3B8] dark:placeholder-[#7A92A8]",
                 "bg-white dark:bg-[#1A2E42]",
-                "border-[#D1D5DB] dark:border-[#2A4A68]",
+                "border-[#D1D5DB] dark:border-[#1E3A52]",
                 "outline-none transition",
-                "focus:ring-2 focus:ring-[#00BFFF] focus:ring-offset-0 dark:focus:ring-offset-0",
+                "focus:ring-2 focus:ring-[#14ABFE] focus:ring-offset-0 dark:focus:ring-offset-0",
                 "disabled:opacity-50 disabled:cursor-not-allowed",
               )}
             />
           </div>
 
           {authError && (
-            <p className="text-sm text-[#FF8A00]">{authError}</p>
+            <p className="text-sm text-[#FF8400]">{authError}</p>
           )}
 
           <button
@@ -228,8 +228,8 @@ export function PilotStartPage() {
             className={cx(
               "h-12 rounded-lg font-semibold transition outline-none",
               isValid && !isSending
-                ? "bg-[#00BFFF] text-white hover:bg-[#00D4FF] focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#00BFFF] focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#022136]"
-                : "bg-[#D1D5DB] dark:bg-[#2A4A68] text-[#7A92A8] cursor-not-allowed",
+                ? "bg-[#14ABFE] text-white hover:bg-[#00D4FF] focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#14ABFE] focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0B1B2B]"
+                : "bg-[#D1D5DB] dark:bg-[#1E3A52] text-[#7A92A8] cursor-not-allowed",
             )}
           >
             {isSending ? "Sending…" : "Send magic link"}
@@ -241,7 +241,7 @@ export function PilotStartPage() {
           <button
             type="button"
             onClick={() => navigate("/pilot-scan/risk")}
-            className="text-sm text-[#7A92A8] hover:text-[#022136] dark:hover:text-white transition outline-none"
+            className="text-sm text-[#7A92A8] hover:text-[#0B1B2B] dark:hover:text-white transition outline-none"
           >
             Back to risk summary
           </button>
