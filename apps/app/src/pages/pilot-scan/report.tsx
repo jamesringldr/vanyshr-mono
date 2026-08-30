@@ -193,20 +193,20 @@ export function PilotReportPage() {
           animate={{ y: footerVisible ? 0 : "100%" }}
           transition={{ duration: prefersReducedMotion ? 0 : 0.5, ease: DRAWER_EASE }}
         >
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-[#2A4A68] bg-[#022136] px-3 py-1 text-[11px] font-medium text-[#00BFFF]">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-[#1E3A52] bg-[#0B1B2B] px-3 py-1 text-[11px] font-medium text-[#14ABFE]">
             <DollarSign className="h-3 w-3" />
             No Credit Card Required
           </span>
           <h2 className="mt-3 text-[26px] font-bold leading-[1.15] tracking-tight text-white">
             Time to Vanysh
           </h2>
-          <p className="mt-1.5 text-sm leading-snug text-[#B8C4CC]">
+          <p className="mt-1.5 text-sm leading-snug text-[#94A3B8]">
             Start removing your exposed data from every broker we found
           </p>
           <button
             type="button"
             onClick={() => navigate("/pilot-scan/start")}
-            className="mt-5 flex h-12 w-full items-center justify-center rounded-2xl bg-[#00BFFF] text-[17px] font-semibold text-white"
+            className="mt-5 flex h-12 w-full items-center justify-center rounded-2xl bg-[#14ABFE] text-[17px] font-semibold text-white"
           >
             Start Vanyshing
           </button>
