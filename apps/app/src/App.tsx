@@ -144,6 +144,7 @@ export default function App() {
 
             {/* Onboarding */}
             <Route path="/welcome" element={<RequireAuth><Welcome /></RequireAuth>} />
+            <Route path="/welcome/:userId" element={<RequireAuth><Welcome /></RequireAuth>} />
             <Route path="/onboarding/progress" element={<RequireAuth><OnboardingProgress /></RequireAuth>} />
             <Route path="/onboarding/primary-info" element={<RequireAuth><VerifyPrimaryInfo /></RequireAuth>} />
             <Route path="/onboarding/phone-numbers" element={<RequireAuth><OnboardingPhoneNumbers /></RequireAuth>} />

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { patchDevProgress } from '@/lib/dev-user';
 
 type NotificationTier = 'all' | 'general' | 'primary' | 'critical' | 'manual';
 
@@ -152,6 +153,8 @@ export function OnboardingNotificationPreferences() {
           { onConflict: 'user_id' }
         );
       if (error) console.error('Failed to save notification tier:', error);
+    } else {
+      patchDevProgress({ notificationTier: selectedTier });
     }
 
     setIsSaving(false);

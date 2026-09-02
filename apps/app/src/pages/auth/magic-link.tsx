@@ -80,15 +80,14 @@ export function AuthMagicLink() {
             return;
         }
 
-        // Step 2: Send the magic link with profile_id embedded in the redirect
-        // URL and user metadata so the auth callback can link the profile.
-        const redirectUrl = new URL(`${window.location.origin}/auth/callback`);
-        redirectUrl.searchParams.set("profile_id", profileId);
-
+        // Step 2: Send the magic link. profile_id stays in user metadata and
+        // sessionStorage — not the redirect URL. Auth's allowlist is exact-match
+        // unless you add a /** wildcard, so ?profile_id=… gets rejected and the
+        // Site URL (app.vanyshr.com) takes over.
         const { error } = await supabase.auth.signInWithOtp({
             email: email.trim(),
             options: {
-                emailRedirectTo: redirectUrl.toString(),
+                emailRedirectTo: `${window.location.origin}/auth/callback`,
                 shouldCreateUser: true,
                 data: {
                     profile_id:           profileId,

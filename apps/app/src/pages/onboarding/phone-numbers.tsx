@@ -10,6 +10,9 @@ import {
 import { cx } from "@/utils/cx";
 import { Phone, Plus } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { allowLocalRouteBypass } from "@/lib/env";
+import { patchDevProgress } from "@/lib/dev-user";
+import { loadLocalOnboardingSeed } from "@/lib/local-onboarding-seed";
 
 /** Convert E.164 (+18162258592) → display format (816) 225-8592 */
 function formatPhoneDisplay(number: string): string {
@@ -61,7 +64,19 @@ export function OnboardingPhoneNumbers() {
     useEffect(() => {
         async function load() {
             const { data: { user } } = await supabase.auth.getUser();
-            if (!user) { setIsLoading(false); return; }
+            if (!user) {
+                if (allowLocalRouteBypass()) {
+                    const seed = loadLocalOnboardingSeed();
+                    setItems((seed?.phones ?? []).map((number, i) => ({
+                        id: `local-phone-${i}`,
+                        number,
+                        status: "pending" as BadgeStatus,
+                        isPrimary: i === 0,
+                    })));
+                }
+                setIsLoading(false);
+                return;
+            }
 
             const { data: profile } = await supabase
                 .from("user_profiles")
@@ -232,6 +247,7 @@ export function OnboardingPhoneNumbers() {
                 .update({ onboarding_step: 3 })
                 .eq("auth_user_id", user.id);
         }
+        patchDevProgress({ step: 3 });
         setActiveId(null);
         setEditingId(null);
         navigate("/onboarding/aliases");
