@@ -137,57 +137,27 @@ const CYCLE_WORDS = [
   {
     word: "Find",
     Icon: SearchIcon,
-    subtext: (
-      <>
-        Find the exact private data
-        <br />
-        thats discoverable online
-      </>
-    ),
+    subtext: "Find the exact private data thats discoverable online",
   },
   {
     word: "Expose",
     Icon: TargetIcon,
-    subtext: (
-      <>
-        Expose the exact brokers and sources
-        <br />
-        that are sharing your private data
-      </>
-    ),
+    subtext: "Expose the exact brokers and sources that are sharing your private data",
   },
   {
     word: "Scan",
     Icon: Radar,
-    subtext: (
-      <>
-        Scan millions of dark web forums and breaches
-        <br />
-        to find any vulnerabilities
-      </>
-    ),
+    subtext: "Scan millions of dark web forums and breaches to find any vulnerabilities",
   },
   {
     word: "Remove",
     Icon: DeleteIcon,
-    subtext: (
-      <>
-        Automatically remove your private data
-        <br />
-        from brokers and sources exposing it
-      </>
-    ),
+    subtext: "Automatically remove your private data from brokers and sources exposing it",
   },
   {
     word: "Monitor",
     Icon: MonitorIcon,
-    subtext: (
-      <>
-        Monitor in real time for any new
-        <br />
-        exposures or vulnerabilities
-      </>
-    ),
+    subtext: "Monitor in real time for any new exposures or vulnerabilities",
   },
 ] as const;
 const WORD_CYCLE_MS = 2500;
