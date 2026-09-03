@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
+import type { ReactNode } from "react";
 import { Zap } from "lucide-react";
 import { cx } from "@/utils/cx";
 import type { ZabaPhoneResult } from "@vanyshr/shared/types";
@@ -119,6 +120,24 @@ export interface QuickScanFormProps {
     state: string;
   }) => void | Promise<void>;
   className?: string;
+  /** Product name used in the "Your Privacy is Paramount" bullets. Defaults to "QuickScan". */
+  scanLabel?: string;
+  /** Overrides the startAtPrivacy heading. Defaults to "Is your data exposed? / Run a Quickscan". */
+  heading?: ReactNode;
+  /** Optional line shown under the startAtPrivacy heading. */
+  headingSubtext?: string;
+  firstNamePlaceholder?: string;
+  /**
+   * Optional hint rendered inside the first-name field in place of the plain
+   * placeholder (visible only while the field is empty).
+   */
+  firstNameHint?: ReactNode;
+  lastNamePlaceholder?: string;
+  autoFocusFirstName?: boolean;
+  /** Submit button label. Defaults to "Scan Now". */
+  submitButtonText?: string;
+  /** Leading clause of the disclaimer under the submit button. Defaults to `By selecting "Scan Now"`. */
+  disclaimerLeadIn?: string;
 }
 
 const SCAN_STEPS = [
@@ -189,6 +208,21 @@ export function QuickScanForm({
   startAtPrivacy = false,
   onPilotSubmit,
   className,
+  scanLabel = "QuickScan",
+  heading = (
+    <>
+      Is your data exposed?
+      <br />
+      Run a Quickscan
+    </>
+  ),
+  headingSubtext,
+  firstNamePlaceholder = "Legal First Name",
+  firstNameHint,
+  lastNamePlaceholder = "Legal Last Name",
+  autoFocusFirstName = false,
+  submitButtonText = "Scan Now",
+  disclaimerLeadIn = 'By selecting "Scan Now"',
 }: QuickScanFormProps) {
   // Form state
   const [firstName, setFirstName] = useState("");
@@ -521,10 +555,13 @@ export function QuickScanForm({
               Real results in ~3 minutes
             </span>
             <h2 className="text-[28px] font-bold leading-[1.15] tracking-tight text-white">
-              Is your data exposed?
-              <br />
-              Run a Quickscan
+              {heading}
             </h2>
+            {headingSubtext && (
+              <p className="text-sm font-light text-[#94A3B8] leading-snug">
+                {headingSubtext}
+              </p>
+            )}
           </div>
         )}
 
@@ -536,15 +573,15 @@ export function QuickScanForm({
           <ul className="flex flex-col gap-1.5 list-none text-[#94A3B8] text-sm font-normal">
             <li className="flex items-start gap-2">
               <span className="text-[#14ABFE] font-bold leading-none mt-0.5">•</span>
-              <span>QuickScans <span className="text-white font-bold italic uppercase">do not</span> Create Profiles for You</span>
+              <span>{scanLabel}s <span className="text-white font-bold italic uppercase">do not</span> Create Profiles for You</span>
             </li>
             <li className="flex items-start gap-2">
               <span className="text-[#14ABFE] font-bold leading-none mt-0.5">•</span>
-              <span>We <span className="text-white font-bold italic uppercase">do not</span> Save Any Data From Your QuickScan</span>
+              <span>We <span className="text-white font-bold italic uppercase">do not</span> Save Any Data From Your {scanLabel}</span>
             </li>
             <li className="flex items-start gap-2">
               <span className="text-[#14ABFE] font-bold leading-none mt-0.5">•</span>
-              <span>QuickScan Data is <span className="text-white font-bold italic">NEVER</span> Sold, <span className="text-white font-bold italic">NEVER</span> Shared, and <span className="text-white font-bold italic">NEVER</span> Used to Send You Marketing Spam</span>
+              <span>{scanLabel} Data is <span className="text-white font-bold italic">NEVER</span> Sold, <span className="text-white font-bold italic">NEVER</span> Shared, and <span className="text-white font-bold italic">NEVER</span> Used to Send You Marketing Spam</span>
             </li>
           </ul>
         </div>
@@ -553,18 +590,25 @@ export function QuickScanForm({
           <div className="relative">
             <input
               type="text"
-              placeholder="Legal First Name"
+              placeholder={firstNameHint ? "" : firstNamePlaceholder}
+              aria-label={firstNameHint ? firstNamePlaceholder : undefined}
               value={firstName}
               onChange={(e) => setFirstName(e.target.value)}
               disabled={isLoading}
+              autoFocus={autoFocusFirstName}
               className="h-[52px] w-full rounded-xl border border-[#1E3A52] focus:border-[#14ABFE] focus:ring-1 focus:ring-[#14ABFE] px-4 py-3 text-base bg-[#0B1B2B]/50 text-white placeholder:text-[#7A92A8] font-ubuntu outline-none transition-colors duration-150 disabled:opacity-50"
             />
+            {firstNameHint && !firstName && (
+              <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 whitespace-nowrap text-base text-[#7A92A8] font-ubuntu">
+                {firstNameHint}
+              </span>
+            )}
           </div>
 
           <div className="relative">
             <input
               type="text"
-              placeholder="Legal Last Name"
+              placeholder={lastNamePlaceholder}
               value={lastName}
               onChange={(e) => setLastName(e.target.value)}
               disabled={isLoading}
@@ -617,12 +661,12 @@ export function QuickScanForm({
                   : "bg-[#4A5568] text-[#7A92A8] cursor-not-allowed"
               )}
             >
-              Scan Now
+              {submitButtonText}
             </button>
           </div>
 
           <p className="text-xs text-center text-[#7A92A8] leading-tight">
-            By selecting "Scan Now" you agree to<br />Vanyshr's Terms of Service and Privacy Policy
+            {disclaimerLeadIn} you agree to<br />Vanyshr's Terms of Service and Privacy Policy
           </p>
         </form>
       </div>
