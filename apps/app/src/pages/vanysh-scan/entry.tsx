@@ -194,6 +194,61 @@ const WORD_CYCLE_MS = 2500;
 const ROW_PX = 100;
 const CENTER_PX = 130;
 const INACTIVE_SCALE = 0.55;
+const ENTER_SCALE = 0.2;
+
+type CarouselRowProps = {
+  word: string;
+  Icon: (typeof CYCLE_WORDS)[number]["Icon"];
+  subtext: (typeof CYCLE_WORDS)[number]["subtext"];
+  offset: number;
+};
+
+/**
+ * One row of the picker-wheel. Given the fixed 3-wide (-1/0/+1) window over
+ * 5 words, a row only ever freshly mounts as the incoming "+1" (next-up)
+ * slot — everything else is a continuation of an already-mounted row whose
+ * offset just changed, which the transition below already animates. So the
+ * one-time fade+grow-in on mount only ever plays for that next-up arrival.
+ */
+function CarouselRow({ word, Icon, subtext, offset }: CarouselRowProps) {
+  const active = offset === 0;
+  const [entered, setEntered] = useState(false);
+
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setEntered(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
+
+  const scale = entered ? (active ? 1 : INACTIVE_SCALE) : ENTER_SCALE;
+
+  return (
+    <div
+      className={cx(
+        "absolute inset-x-0 flex items-center gap-4 rounded-2xl border-2 p-5 transition-all duration-1000 ease-[cubic-bezier(0.2,0,0,1)]",
+        active ? "bg-bg-surface-secondary border-accent-primary" : "border-transparent bg-transparent",
+      )}
+      style={{
+        top: CENTER_PX + offset * ROW_PX,
+        opacity: entered ? (active ? 1 : 0.4) : 0,
+        transform: `translateY(-50%) scale(${scale})`,
+        transformOrigin: "left center",
+      }}
+    >
+      <Icon className="h-12 w-12 shrink-0 text-accent-primary" />
+      <div className="flex min-w-0 flex-col">
+        <span
+          className={cx(
+            "text-left text-[28px] font-bold tracking-tight transition-colors duration-1000 ease-[cubic-bezier(0.2,0,0,1)]",
+            active ? "text-text-primary" : "text-text-secondary",
+          )}
+        >
+          {word}
+        </span>
+        <p className="text-[14px] leading-snug text-text-secondary">{subtext}</p>
+      </div>
+    </div>
+  );
+}
 
 /**
  * Vertical picker-wheel of words. Icon, word, and subtext are always laid
@@ -223,37 +278,9 @@ function CyclingWords() {
 
   return (
     <div className="relative h-[260px] w-full overflow-hidden">
-      {visible.map(({ word, Icon, subtext, offset }) => {
-        const active = offset === 0;
-        return (
-          <div
-            key={word}
-            className={cx(
-              "absolute inset-x-0 flex items-center gap-4 rounded-2xl border-2 p-5 transition-all duration-1000 ease-[cubic-bezier(0.2,0,0,1)]",
-              active ? "bg-bg-surface-secondary border-accent-primary" : "border-transparent bg-transparent",
-            )}
-            style={{
-              top: CENTER_PX + offset * ROW_PX,
-              opacity: active ? 1 : 0.4,
-              transform: `translateY(-50%) scale(${active ? 1 : INACTIVE_SCALE})`,
-              transformOrigin: "left center",
-            }}
-          >
-            <Icon className="h-12 w-12 shrink-0 text-accent-primary" />
-            <div className="flex min-w-0 flex-col">
-              <span
-                className={cx(
-                  "text-left text-[28px] font-bold tracking-tight transition-colors duration-1000 ease-[cubic-bezier(0.2,0,0,1)]",
-                  active ? "text-text-primary" : "text-text-secondary",
-                )}
-              >
-                {word}
-              </span>
-              <p className="text-[14px] leading-snug text-text-secondary">{subtext}</p>
-            </div>
-          </div>
-        );
-      })}
+      {visible.map(({ word, Icon, subtext, offset }) => (
+        <CarouselRow key={word} word={word} Icon={Icon} subtext={subtext} offset={offset} />
+      ))}
     </div>
   );
 }
