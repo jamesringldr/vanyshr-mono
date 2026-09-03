@@ -5,7 +5,7 @@
   --font-sans: "Ubuntu", ui-sans-serif, system-ui, sans-serif;
   --tracking-tighter: -0.05em;
 
-  --color-brand-primary: #14ABFE;
+  --color-accent-primary: #14ABFE;
   --color-brand-dark: #0B1B2B;
   --color-accent-hover: #00D4FF;
   --color-accent-orange: #FF8400;
@@ -17,7 +17,7 @@
   --color-text-secondary: #94A3B8;
   --color-text-tertiary: #7A92A8;
   --color-border-subtle: #1E3A52;
-  --color-border-brand: #14ABFE;
+  --color-border-accent: #14ABFE;
   --color-success: #00D4AA;
   --color-warning: #FFB81C;
   --color-error: #FF5757;
