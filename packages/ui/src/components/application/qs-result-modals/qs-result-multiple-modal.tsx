@@ -30,7 +30,8 @@ export function QSResultMultipleModal({
     isOpen,
     onOpenChange,
     searchName,
-    region = "",
+    // No longer rendered — subtitle now shows just the name. Kept for API compatibility.
+    region: _region = "",
     profiles,
     onProfileSelect,
     onNoneOfThese,
@@ -77,10 +78,7 @@ export function QSResultMultipleModal({
                 </h2>
                 <p id="qs-multiple-modal-desc" className={qsModal.subtitle}>
                     <span className="font-bold">We found {profiles.length} possible matches for </span>
-                    <span className={qsModal.accent}>
-                        {searchName}
-                        {region ? ` in ${region}` : ""}
-                    </span>
+                    <span className={cx(qsModal.accent, "font-bold")}>{searchName}</span>
                 </p>
             </div>
 

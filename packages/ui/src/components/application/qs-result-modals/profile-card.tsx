@@ -55,7 +55,7 @@ export function ProfileCard({ profile, className, ...props }: ProfileCardProps) 
                                     Phones
                                 </span>
                                 {phones.slice(0, 2).map((phone, idx) => (
-                                    <span key={idx} className="block font-medium text-[#94A3B8]">
+                                    <span key={idx} className="block font-medium text-white">
                                         {phone}
                                     </span>
                                 ))}
@@ -65,9 +65,12 @@ export function ProfileCard({ profile, className, ...props }: ProfileCardProps) 
                         {addressLine ? (
                             <div>
                                 <span className="block text-xs font-bold uppercase tracking-wide text-[#7A92A8]">
-                                    Last Known Address
+                                    Address{" "}
+                                    <span className="text-[0.65rem] font-thin italic normal-case tracking-normal">
+                                        (last known)
+                                    </span>
                                 </span>
-                                <div className="font-medium leading-snug text-[#94A3B8]">{addressLine}</div>
+                                <div className="font-medium leading-snug text-white">{addressLine}</div>
                             </div>
                         ) : null}
                     </div>
@@ -78,7 +81,7 @@ export function ProfileCard({ profile, className, ...props }: ProfileCardProps) 
                                 <span className="block text-xs font-bold uppercase tracking-wide text-[#7A92A8]">
                                     Possible Relatives
                                 </span>
-                                <div className="font-medium leading-snug text-[#94A3B8]">
+                                <div className="font-medium leading-snug text-white">
                                     {relatives.slice(0, 3).map((rel, idx) => (
                                         <span key={idx} className="block truncate">
                                             {rel}

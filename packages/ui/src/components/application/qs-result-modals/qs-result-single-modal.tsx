@@ -28,7 +28,8 @@ export function QSResultSingleModal({
     isOpen,
     onOpenChange,
     profile,
-    region = "",
+    // No longer rendered — subtitle now shows just the name. Kept for API compatibility.
+    region: _region = "",
     onThisIsMe,
     onThisIsNotMe,
 }: QSResultSingleModalProps) {
@@ -71,10 +72,7 @@ export function QSResultSingleModal({
                 </h2>
                 <p id="qs-single-modal-desc" className={qsModal.subtitle}>
                     <span className="font-bold">We found a possible match for </span>
-                    <span className={qsModal.accent}>
-                        {profile.fullName}
-                        {region ? ` in ${region}` : ""}
-                    </span>
+                    <span className={cx(qsModal.accent, "font-bold")}>{profile.fullName}</span>
                 </p>
             </div>
 

@@ -29,8 +29,9 @@ type SplashPhase = "full" | "slide" | "grow" | "hold" | "exit";
  * Full logo → icon slides to center while wordmark wipes L→R (same size) →
  * then the centered icon grows. Vanyshr branding.
  *
- * Continues into the (shared, not yet self-scan-specific) scan-loading
- * page — swap to a /self-scan/loading route once one exists.
+ * Continues into /self-scan/loading — currently an alias for the same
+ * loading component pilot-scan uses; its internal report/error fallbacks
+ * still point back into /pilot-scan/* until self-scan gets its own.
  *
  * Tip: `/self-scan/splash?hold` plays through to the large icon and stays there.
  */
@@ -52,7 +53,7 @@ export function SelfScanSplashPage() {
         };
       }
       const done = window.setTimeout(() => {
-        if (!cancelled) navigate("/pilot-scan/loading", { replace: true });
+        if (!cancelled) navigate("/self-scan/loading", { replace: true });
       }, 700);
       return () => {
         cancelled = true;
@@ -85,7 +86,7 @@ export function SelfScanSplashPage() {
       if (!cancelled) setPhase("exit");
     }, TOTAL_MS);
     const tNav = window.setTimeout(() => {
-      if (!cancelled) navigate("/pilot-scan/loading", { replace: true });
+      if (!cancelled) navigate("/self-scan/loading", { replace: true });
     }, TOTAL_MS + FADE_MS);
 
     return () => {

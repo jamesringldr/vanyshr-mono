@@ -30,12 +30,12 @@ export const qsModal = {
         "outline-none transition focus:ring-2 focus:ring-[#14ABFE]",
     ),
     primaryBtn: cx(
-        "rounded-lg bg-[#14ABFE] py-2.5 font-semibold text-[#0B1B2B]",
+        "rounded-lg bg-[#14ABFE] py-2.5 font-semibold text-white",
         "transition hover:bg-[#00D4FF] active:scale-[0.98]",
     ),
     secondaryBtn: cx(
-        "rounded-lg border border-[#1E3A52] py-2.5 font-semibold text-[#94A3B8]",
-        "transition hover:bg-[#0B1B2B] active:scale-[0.98]",
+        "rounded-lg bg-[#E2E8F0] py-2.5 font-semibold text-[#0B1B2B]",
+        "transition hover:bg-[#CBD5E1] active:scale-[0.98]",
     ),
     option: "flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left text-sm text-white transition",
     optionOn: "bg-[#0B3B52] ring-1 ring-[#14ABFE]",
