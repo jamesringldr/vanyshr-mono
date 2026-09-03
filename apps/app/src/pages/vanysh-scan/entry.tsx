@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type SVGProps } from "react";
 import { useNavigate } from "react-router";
-import { Eye, Github, Radar, Trash2, X } from "lucide-react";
+import { Github, Radar, X } from "lucide-react";
 import { MailFilled } from "@appica/icons-react";
 import PrimaryIcon from "@vanyshr/ui/assets/PrimaryIcon-Nooutline.png";
 import WordmarkOnly from "@vanyshr/ui/assets/WordmarkOnly-DarkMode.png";
@@ -91,6 +91,48 @@ function MonitorIcon({ className }: SVGProps<SVGSVGElement>) {
   );
 }
 
+/** Custom delete/trash icon (from ~/Downloads/Add a subheading/Delete.svg), recolored via currentColor. */
+function DeleteIcon({ className }: SVGProps<SVGSVGElement>) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1500 1499.999933" className={className}>
+      <defs>
+        <clipPath id="vs-delete-clip">
+          <path d="M 269.621094 38.328125 L 1230.371094 38.328125 L 1230.371094 1461.828125 L 269.621094 1461.828125 Z M 269.621094 38.328125 " clipRule="nonzero" />
+        </clipPath>
+      </defs>
+      <g clipPath="url(#vs-delete-clip)">
+        <path
+          fill="currentColor"
+          d="M 399.71875 506.625 L 1142.28125 506.625 C 1167.539062 506.625 1189.277344 516.0625 1206.523438 534.515625 C 1223.769531 552.96875 1232.472656 575.359375 1230.019531 600.5 L 1153.960938 1379.265625 C 1149.453125 1425.402344 1112.574219 1461.289062 1066.222656 1461.289062 L 475.777344 1461.289062 C 429.425781 1461.289062 392.546875 1425.40625 388.039062 1379.265625 L 311.980469 600.5 C 309.527344 575.359375 318.230469 552.96875 335.476562 534.515625 C 352.722656 516.0625 374.460938 506.625 399.71875 506.625 Z M 602.15625 1278.261719 L 558.1875 685.394531 C 557.011719 668.746094 542.5625 656.203125 525.917969 657.375 C 509.269531 658.550781 496.726562 673 497.902344 689.652344 L 541.871094 1282.515625 C 543.046875 1299.164062 557.492188 1311.710938 574.140625 1310.535156 C 590.789062 1309.359375 603.332031 1294.910156 602.15625 1278.261719 Z M 1000.128906 1282.515625 L 1044.097656 689.652344 C 1045.273438 673 1032.730469 658.550781 1016.082031 657.375 C 999.433594 656.203125 984.984375 668.746094 983.8125 685.394531 L 939.84375 1278.261719 C 938.667969 1294.910156 951.210938 1309.359375 967.859375 1310.535156 C 984.503906 1311.710938 998.953125 1299.164062 1000.128906 1282.515625 Z M 801.261719 1280.390625 L 801.261719 687.523438 C 801.261719 670.808594 787.710938 657.257812 771 657.257812 C 754.289062 657.257812 740.738281 670.808594 740.738281 687.523438 L 740.738281 1280.390625 C 740.738281 1297.105469 754.289062 1310.652344 771 1310.652344 C 787.710938 1310.652344 801.261719 1297.105469 801.261719 1280.390625 Z M 310.300781 300.011719 L 1124.3125 81.871094 C 1153.550781 74.035156 1183.789062 91.496094 1191.625 120.738281 L 1202.511719 161.367188 C 1210.347656 190.609375 1192.886719 220.855469 1163.648438 228.691406 L 349.636719 446.828125 C 320.398438 454.664062 290.15625 437.203125 282.324219 407.960938 L 271.4375 367.332031 C 263.601562 338.085938 281.0625 307.84375 310.300781 300.011719 Z M 547.78125 173.707031 L 855.503906 91.242188 L 851.054688 74.636719 C 844.175781 48.960938 817.625 33.632812 791.953125 40.511719 L 577.453125 97.992188 C 551.78125 104.871094 536.457031 131.425781 543.332031 157.101562 Z M 547.78125 173.707031 "
+          fillOpacity="1"
+          fillRule="evenodd"
+        />
+      </g>
+    </svg>
+  );
+}
+
+/** Custom target icon (from ~/Downloads/Add a subheading/Target.svg), recolored via currentColor. */
+function TargetIcon({ className }: SVGProps<SVGSVGElement>) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1500 1499.999933" className={className}>
+      <defs>
+        <clipPath id="vs-target-clip">
+          <path d="M 1 7.5 L 1499 7.5 L 1499 1500 L 1 1500 Z M 1 7.5 " clipRule="nonzero" />
+        </clipPath>
+      </defs>
+      <g clipPath="url(#vs-target-clip)">
+        <path
+          fill="currentColor"
+          d="M 1286.097656 441.554688 L 1498.304688 229.359375 L 1298.359375 207.390625 L 1276.40625 7.445312 L 1064.199219 219.640625 L 1078.992188 354.375 L 1044.542969 388.808594 C 933.953125 293.570312 790.867188 235.160156 633.785156 235.160156 C 285.046875 235.160156 1.34375 518.878906 1.34375 867.601562 C 1.34375 1216.335938 285.046875 1500.054688 633.785156 1500.054688 C 982.523438 1500.054688 1266.222656 1216.335938 1266.222656 867.601562 C 1266.222656 742.910156 1229.464844 626.855469 1166.921875 528.785156 L 1055.246094 640.460938 C 1091.84375 708.09375 1112.671875 785.460938 1112.671875 867.601562 C 1112.671875 1131.664062 897.847656 1346.5 633.785156 1346.5 C 369.71875 1346.5 154.898438 1131.664062 154.898438 867.601562 C 154.898438 603.550781 369.71875 388.714844 633.785156 388.714844 C 748.523438 388.714844 853.382812 429.878906 935.867188 497.488281 L 856.996094 576.355469 C 795.070312 528.773438 717.746094 500.304688 633.785156 500.304688 C 431.25 500.304688 266.449219 665.066406 266.449219 867.601562 C 266.449219 1070.148438 431.25 1234.910156 633.785156 1234.910156 C 836.316406 1234.910156 1001.066406 1070.148438 1001.066406 867.601562 C 1001.066406 816.648438 990.597656 768.105469 971.765625 723.941406 L 845.734375 849.972656 C 846.226562 855.886719 847.511719 861.566406 847.511719 867.601562 C 847.511719 985.476562 751.644531 1081.371094 633.785156 1081.371094 C 515.921875 1081.371094 420 985.476562 420 867.601562 C 420 749.738281 515.921875 653.859375 633.785156 653.859375 C 675.320312 653.859375 713.804688 666.148438 746.539062 686.8125 L 666.617188 766.722656 C 656.214844 763.34375 645.320312 761.03125 633.785156 761.03125 C 574.921875 761.03125 527.199219 808.753906 527.199219 867.601562 C 527.199219 926.460938 574.921875 974.171875 633.785156 974.171875 C 692.632812 974.171875 740.355469 926.460938 740.355469 867.601562 C 740.355469 858.5 738.863281 849.824219 736.714844 841.394531 L 1151.359375 426.746094 L 1286.097656 441.554688 "
+          fillOpacity="1"
+          fillRule="nonzero"
+        />
+      </g>
+    </svg>
+  );
+}
+
 const CYCLE_WORDS = [
   {
     word: "Find",
@@ -105,7 +147,7 @@ const CYCLE_WORDS = [
   },
   {
     word: "Expose",
-    Icon: Eye,
+    Icon: TargetIcon,
     subtext: (
       <>
         Expose the exact brokers and sources
@@ -127,7 +169,7 @@ const CYCLE_WORDS = [
   },
   {
     word: "Remove",
-    Icon: Trash2,
+    Icon: DeleteIcon,
     subtext: (
       <>
         Automatically remove your private data
@@ -151,12 +193,15 @@ const CYCLE_WORDS = [
 const WORD_CYCLE_MS = 2500;
 const ROW_PX = 100;
 const CENTER_PX = 130;
+const INACTIVE_SCALE = 0.55;
 
 /**
- * Vertical picker-wheel of words. The focused word grows into a bordered
- * card (icon + word + subtext); as it cycles out, that same card shrinks
- * back down to a plain faded text line — and the next word grows into a
- * card as it arrives.
+ * Vertical picker-wheel of words. Icon, word, and subtext are always laid
+ * out at full size inside the bordered card — the whole card is scaled up
+ * or down as ONE unit (anchored to its own left edge) rather than having
+ * the icon/subtext each independently collapse their own width/height.
+ * That keeps everything growing and shrinking in lockstep instead of
+ * wiping/clipping past each other mid-transition.
  */
 function CyclingWords() {
   const [index, setIndex] = useState(0);
@@ -184,40 +229,27 @@ function CyclingWords() {
           <div
             key={word}
             className={cx(
-              "absolute inset-x-0 flex items-center gap-4 rounded-2xl border-2 transition-all duration-1000 ease-[cubic-bezier(0.2,0,0,1)]",
+              "absolute inset-x-0 flex items-center gap-4 rounded-2xl border-2 p-5 transition-all duration-1000 ease-[cubic-bezier(0.2,0,0,1)]",
               active ? "bg-bg-surface-secondary border-accent-primary" : "border-transparent bg-transparent",
             )}
             style={{
               top: CENTER_PX + offset * ROW_PX,
               opacity: active ? 1 : 0.4,
-              transform: "translateY(-50%)",
+              transform: `translateY(-50%) scale(${active ? 1 : INACTIVE_SCALE})`,
               transformOrigin: "left center",
-              padding: active ? 20 : 0,
             }}
           >
-            <div
-              className="shrink-0 overflow-hidden transition-all duration-1000 ease-[cubic-bezier(0.2,0,0,1)]"
-              style={{ width: active ? 48 : 0, opacity: active ? 1 : 0 }}
-            >
-              <Icon className="h-12 w-12 text-accent-primary" />
-            </div>
+            <Icon className="h-12 w-12 shrink-0 text-accent-primary" />
             <div className="flex min-w-0 flex-col">
               <span
                 className={cx(
-                  "text-left font-bold tracking-tight transition-all duration-1000 ease-[cubic-bezier(0.2,0,0,1)]",
-                  active ? "text-[28px] text-text-primary" : "text-[30px] text-text-secondary",
+                  "text-left text-[28px] font-bold tracking-tight transition-colors duration-1000 ease-[cubic-bezier(0.2,0,0,1)]",
+                  active ? "text-text-primary" : "text-text-secondary",
                 )}
               >
                 {word}
               </span>
-              <div
-                className="grid transition-all duration-1000 ease-[cubic-bezier(0.2,0,0,1)]"
-                style={{ gridTemplateRows: active ? "1fr" : "0fr" }}
-              >
-                <p className="overflow-hidden text-[14px] leading-snug text-text-secondary">
-                  {subtext}
-                </p>
-              </div>
+              <p className="text-[14px] leading-snug text-text-secondary">{subtext}</p>
             </div>
           </div>
         );
