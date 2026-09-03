@@ -56,7 +56,7 @@ export function SelfScanEntryPage() {
     sessionStorage.setItem("pendingScanId", data.id);
     sessionStorage.setItem("pilotScanFields", JSON.stringify(fields));
     setIsDrawerOpen(false);
-    navigate("/pilot-scan/splash");
+    navigate("/self-scan/splash");
   }
 
   return (

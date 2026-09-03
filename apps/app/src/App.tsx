@@ -38,6 +38,7 @@ import { PilotPreProfilePage } from "./pages/pilot-scan/pre-profile";
 import { PilotReportPage } from "./pages/pilot-scan/report";
 import { VanyshScanEntryPage } from "./pages/vanysh-scan/entry";
 import { SelfScanEntryPage } from "./pages/self-scan/entry";
+import { SelfScanSplashPage } from "./pages/self-scan/splash";
 
 // Dashboard pages
 import { DashboardHome } from "./views/Dashboard/DashboardHome";
@@ -173,6 +174,7 @@ export default function App() {
             <Route path="/pilot-scan/start" element={<PilotStartPage />} />
 
             <Route path="/self-scan" element={<SelfScanEntryPage />} />
+            <Route path="/self-scan/splash" element={<SelfScanSplashPage />} />
 
             {/* Settings */}
             <Route path="/settings/notifications" element={<RequireAuth><NotificationsPage /></RequireAuth>} />

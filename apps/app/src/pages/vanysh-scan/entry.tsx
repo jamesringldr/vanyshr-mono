@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type SVGProps } from "react";
 import { useNavigate } from "react-router";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { Github, Radar, X } from "lucide-react";
 import { MailFilled } from "@appica/icons-react";
 import PrimaryIcon from "@vanyshr/ui/assets/PrimaryIcon-Nooutline.png";
@@ -166,6 +167,19 @@ const CENTER_PX = 130;
 const INACTIVE_SCALE = 0.55;
 const ENTER_SCALE = 0.2;
 
+/** Ghost hand-off transition — "Start with a SelfScan" -> /self-scan. */
+const GHOST_EASE = [0.2, 0, 0, 1] as const;
+/** Ghost rises from the bottom while the page content fades out. */
+const GHOST_RISE_MS = 950;
+/** Ghost grows to fill the screen as it fades to white. */
+const GHOST_GROW_MS = 900;
+/** Brief hold on full white before handing off to /self-scan. */
+const GHOST_HOLD_MS = 250;
+/** Starting size is already 4x the base icon, so less scale is needed to fill the screen. */
+const GHOST_SCALE_END = 6;
+
+type GhostPhase = "idle" | "rise" | "grow";
+
 type CarouselRowProps = {
   word: string;
   Icon: (typeof CYCLE_WORDS)[number]["Icon"];
@@ -266,13 +280,39 @@ function CyclingWords() {
  */
 export function VanyshScanEntryPage() {
   const navigate = useNavigate();
+  const prefersReducedMotion = useReducedMotion();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [showEmailField, setShowEmailField] = useState(false);
   const [email, setEmail] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [ghostPhase, setGhostPhase] = useState<GhostPhase>("idle");
 
   const isValidEmail = useMemo(() => /\S+@\S+\.\S+/.test(email.trim()), [email]);
+
+  function handleStartSelfScan() {
+    if (ghostPhase !== "idle") return;
+    if (prefersReducedMotion) {
+      navigate("/self-scan");
+      return;
+    }
+    setGhostPhase("rise");
+  }
+
+  useEffect(() => {
+    if (ghostPhase === "rise") {
+      const t = window.setTimeout(() => setGhostPhase("grow"), GHOST_RISE_MS);
+      return () => window.clearTimeout(t);
+    }
+    if (ghostPhase === "grow") {
+      const t = window.setTimeout(
+        () => navigate("/self-scan"),
+        GHOST_GROW_MS + GHOST_HOLD_MS,
+      );
+      return () => window.clearTimeout(t);
+    }
+    return undefined;
+  }, [ghostPhase, navigate]);
 
   async function handleSendMagicLink() {
     if (!isValidEmail || isSending) return;
@@ -307,7 +347,12 @@ export function VanyshScanEntryPage() {
       role="main"
       aria-label="Vanysh scan invitation"
     >
-      <main className="flex flex-1 flex-col px-6 pb-10">
+      <motion.main
+        className="flex flex-1 flex-col px-6 pb-10"
+        initial={false}
+        animate={{ opacity: ghostPhase === "idle" ? 1 : 0 }}
+        transition={{ duration: GHOST_RISE_MS / 1000, ease: GHOST_EASE }}
+      >
         <div className="flex flex-1 items-center">
           <CyclingWords />
         </div>
@@ -325,19 +370,56 @@ export function VanyshScanEntryPage() {
 
           <button
             type="button"
-            onClick={() => setIsDrawerOpen(true)}
+            onClick={handleStartSelfScan}
             className="mt-8 flex h-12 w-full items-center justify-center rounded-2xl bg-accent-primary text-[17px] font-semibold text-text-primary"
           >
-            Sign In
+            Start with a SelfScan
           </button>
           <button
             type="button"
+            onClick={() => setIsDrawerOpen(true)}
             className="mt-3 flex h-12 w-full items-center justify-center rounded-2xl border border-border-subtle text-[17px] font-semibold text-text-primary"
           >
-            Learn More
+            Sign In
           </button>
         </div>
-      </main>
+      </motion.main>
+
+      <AnimatePresence>
+        {ghostPhase !== "idle" && (
+          <motion.div
+            className="fixed inset-0 z-[60] flex items-center justify-center overflow-hidden"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15, ease: GHOST_EASE }}
+            aria-hidden
+          >
+            <motion.div
+              className="absolute inset-0 bg-white"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: ghostPhase === "grow" ? 1 : 0 }}
+              transition={{ duration: GHOST_GROW_MS / 1000, ease: GHOST_EASE }}
+            />
+            <motion.img
+              src={PrimaryIcon}
+              alt=""
+              className="relative z-10 h-[320px] w-[320px] object-contain"
+              initial={{ y: 160, opacity: 0 }}
+              animate={{
+                y: 0,
+                opacity: 1,
+                scale: ghostPhase === "grow" ? GHOST_SCALE_END : 1,
+              }}
+              transition={{
+                y: { duration: GHOST_RISE_MS / 1000, ease: GHOST_EASE },
+                opacity: { duration: 0.25, ease: GHOST_EASE },
+                scale: { duration: GHOST_GROW_MS / 1000, ease: GHOST_EASE },
+              }}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <div
         role="presentation"
