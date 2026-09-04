@@ -657,7 +657,7 @@ export function QuickScanForm({
               className={cx(
                 "w-full h-[52px] font-bold text-base rounded-xl transition-all duration-150 shadow-md active:scale-[0.98]",
                 isFormValid && !isLoading
-                  ? "bg-[#14ABFE] hover:bg-[#00D4FF] active:bg-[#0099CC] text-[#0B1B2B] active:text-white"
+                  ? "bg-[#14ABFE] hover:bg-[#00D4FF] active:bg-[#0099CC] text-white"
                   : "bg-[#4A5568] text-[#7A92A8] cursor-not-allowed"
               )}
             >

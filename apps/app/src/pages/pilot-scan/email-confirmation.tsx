@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
-import { Plus, Check } from "lucide-react";
+import { Plus } from "lucide-react";
 import { cx } from "@/utils/cx";
 
 export type EmailConfirmationModalProps = {
@@ -186,7 +186,7 @@ export function EmailConfirmationModal({
           <p className="mb-3 text-xs text-[#7A92A8]">All registered plans include unlimited emails</p>
 
           {emails.length > 0 ? (
-            <div className="flex flex-col gap-2" role="group" aria-label="Emails to include">
+            <div className="flex flex-wrap gap-2" role="group" aria-label="Emails to include">
               {emails.map((email) => {
                 const isSelected = selectedIds.includes(email.id);
                 return (
@@ -197,26 +197,18 @@ export function EmailConfirmationModal({
                     aria-checked={isSelected}
                     onClick={() => toggleEmail(email.id)}
                     className={cx(
-                      "flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left transition",
+                      // Chips size to their content and wrap naturally --
+                      // two short emails share a row, a long one takes its
+                      // own rather than being forced to fit and cut off.
+                      "max-w-full break-words rounded-full px-3.5 py-2 text-left text-xs font-medium transition",
                       "outline-none focus-visible:ring-2 focus-visible:ring-[#14ABFE]",
                       isSelected
-                        ? "bg-[#0B3B52] ring-1 ring-[#14ABFE]"
-                        : "bg-[#0B1B2B] hover:bg-[#0f1f2e]",
+                        ? "bg-[#14ABFE] text-[#0B1B2B]"
+                        : "border border-[#1E3A52] bg-[#0B1B2B] text-white hover:bg-[#0f1f2e]",
                       !isSelected && atLimit && "opacity-60",
                     )}
                   >
-                    <span
-                      className={cx(
-                        "flex h-5 w-5 shrink-0 items-center justify-center rounded border transition",
-                        isSelected
-                          ? "border-[#14ABFE] bg-[#14ABFE] text-[#0B1B2B]"
-                          : "border-[#1E3A52] bg-transparent",
-                      )}
-                      aria-hidden
-                    >
-                      {isSelected ? <Check size={14} strokeWidth={3} /> : null}
-                    </span>
-                    <span className="flex-1 break-all text-sm text-white">{email.value}</span>
+                    {email.value}
                   </button>
                 );
               })}
@@ -289,7 +281,7 @@ export function EmailConfirmationModal({
           <button
             type="button"
             onClick={onCancel}
-            className="flex-1 rounded-lg border border-[#1E3A52] py-2.5 font-semibold text-[#94A3B8] hover:bg-[#0B1B2B] transition"
+            className="flex-1 rounded-lg bg-[#E2E8F0] py-2.5 font-semibold text-[#0B1B2B] hover:bg-[#CBD5E1] transition"
           >
             Skip Breach Scan
           </button>
@@ -300,7 +292,7 @@ export function EmailConfirmationModal({
             className={cx(
               "flex-1 rounded-lg py-2.5 font-semibold transition",
               selectedCount > 0
-                ? "bg-[#14ABFE] text-[#0B1B2B] hover:bg-[#00D4FF]"
+                ? "bg-[#14ABFE] text-white hover:bg-[#00D4FF]"
                 : "bg-[#1B4A63] text-[#5A7A94] cursor-not-allowed",
             )}
           >

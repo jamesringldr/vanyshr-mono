@@ -1027,7 +1027,7 @@ export function SelfScanLoadingPage() {
           <button
             type="button"
             onClick={() => go("report")}
-            className="mt-8 rounded-lg bg-[#14ABFE] px-5 py-2.5 text-sm font-semibold text-[#0B1B2B]"
+            className="mt-8 rounded-lg bg-[#14ABFE] px-5 py-2.5 text-sm font-semibold text-white"
           >
             Continue anyway
           </button>
