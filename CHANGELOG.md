@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Animated `<Vinnie>` mascot in `@vanyshr/ui` — live SVG with 16 expressions (idle, focused, surprised, …). Quick-scan compiling and scanning pages use it in place of the static icon; wordmark, favicon, and other pages stay PNG.
+
 - `address-parser.ts` — parses broker address lines into street/city/state/zip, normalising street suffixes (LN ≡ Lane) and state names (Missouri ≡ MO)
 - Given-name canonicalisation in dedup scoring, so Jim ≡ James and Bob ≡ Robert match on merit rather than by fuzzy accident
 - `deblurAnywhoHtml()` — recovers the values AnyWho hides behind a CSS blur, where the real text sits in a `data-content` attribute

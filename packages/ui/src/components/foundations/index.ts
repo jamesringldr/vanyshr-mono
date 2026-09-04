@@ -2,6 +2,9 @@
 export * from "./logo/untitledui-logo";
 export * from "./logo/untitledui-logo-minimal";
 
+// Vinnie mascot
+export * from "./vinnie";
+
 // Featured Icon
 export * from "./featured-icon/featured-icon";
 
