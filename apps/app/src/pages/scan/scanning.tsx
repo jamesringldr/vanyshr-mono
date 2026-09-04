@@ -1,10 +1,12 @@
 import { useNavigate } from "react-router";
 import { QSInfoCard } from "@vanyshr/ui/components/application/qs-info-card/qs-info-card";
 import { QSProgressSteps } from "@vanyshr/ui/components/application/qs-progress-steps/qs-progress-steps";
-import PrimaryIconOutline from "@vanyshr/ui/assets/PrimaryIcon-outline.png";
+import { Vinnie } from "@vanyshr/ui/components/foundations";
 
 const CANCEL_DISCLAIMER =
   "Canceling your search will completely remove any of your data completely from our system.";
+
+const VINNIE_CYCLE = ["idle", "focused", "curious", "idle"] as const;
 
 export function QSScanning() {
   const navigate = useNavigate();
@@ -34,12 +36,12 @@ export function QSScanning() {
           We are targeting known data brokers and crawling their databases to identify if they have your data and exactly what data they have..
         </p>
 
-        {/* Large central icon — PrimaryIcon-outline */}
         <div className="flex justify-center mb-6" aria-hidden>
-          <img
-            src={PrimaryIconOutline}
-            alt=""
-            className="h-24 w-24 md:h-28 md:w-28 object-contain opacity-90"
+          <Vinnie
+            colorway="auto"
+            cycle={VINNIE_CYCLE}
+            hold={1400}
+            className="h-24 w-24 md:h-28 md:w-28 opacity-90"
           />
         </div>
 

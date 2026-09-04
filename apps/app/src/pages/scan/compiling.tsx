@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router";
 import { QSInfoCard } from "@vanyshr/ui/components/application/qs-info-card/qs-info-card";
 import { QSProgressSteps } from "@vanyshr/ui/components/application/qs-progress-steps/qs-progress-steps";
-import PrimaryIconOutline from "@vanyshr/ui/assets/PrimaryIcon-outline.png";
+import { Vinnie } from "@vanyshr/ui/components/foundations";
 
 const COMPILING_TITLE = "Reduce Scam & Phishing Risk";
 const COMPILING_DESCRIPTION =
@@ -9,6 +9,8 @@ const COMPILING_DESCRIPTION =
 
 const CANCEL_DISCLAIMER =
   "Canceling your search will completely remove any of your data completely from our system.";
+
+const VINNIE_CYCLE = ["focused", "curious", "surprised", "idle"] as const;
 
 export function QSCompiling() {
   const navigate = useNavigate();
@@ -38,12 +40,12 @@ export function QSCompiling() {
           We are collecting all the data this broker has for you and pinpointing the extent of your exposure and using AI to triangulating how to remove it from this data broker.
         </p>
 
-        {/* Large central icon — PrimaryIcon-outline */}
         <div className="flex justify-center mb-6" aria-hidden>
-          <img
-            src={PrimaryIconOutline}
-            alt=""
-            className="h-24 w-24 md:h-28 md:w-28 object-contain opacity-90"
+          <Vinnie
+            colorway="auto"
+            cycle={VINNIE_CYCLE}
+            hold={1400}
+            className="h-24 w-24 md:h-28 md:w-28 opacity-90"
           />
         </div>
 
