@@ -179,14 +179,24 @@ function LimitedTwoColumnGrid<T>({
  * one slide of the report carousel (report.tsx), which supplies its own
  * shared header instead.
  */
-export function PreProfileBody({ profile }: { profile: ConsolidatedProfile }) {
+export function PreProfileBody({
+    profile,
+    selfScan,
+}: {
+    profile: ConsolidatedProfile;
+    /** True only on the self-scan report -- drops the intro paragraph below,
+     *  which is pilot-scan-specific copy. */
+    selfScan?: boolean;
+}) {
     const data = useMemo(() => convertToPreProfileData(profile), [profile]);
     return (
         <div>
             <h1 className="sr-only">Exposed Data</h1>
-            <p className="text-sm leading-relaxed text-[#94A3B8]">
-                Hackers and scammers use your exposed data to attack or impersonate you with sophisticated attacks. The more data they can source, the more convincing the scam becomes.
-            </p>
+            {!selfScan && (
+                <p className="text-sm leading-relaxed text-[#94A3B8]">
+                    Hackers and scammers use your exposed data to attack or impersonate you with sophisticated attacks. The more data they can source, the more convincing the scam becomes.
+                </p>
+            )}
 
             <div className="mt-6 space-y-4">
                 <section

@@ -432,7 +432,7 @@ export function SelfScanLoadingPage() {
     // Long enough for stage 5 to close at 700ms and be read. This is the
     // only moment all five stages show green with their timings.
     const t = window.setTimeout(() => {
-      navigate("/pilot-scan/report", { replace: true });
+      navigate("/self-scan/report", { replace: true });
     }, prefersReducedMotion ? 900 : 2000);
     return () => window.clearTimeout(t);
   }, [phase, navigate, prefersReducedMotion]);

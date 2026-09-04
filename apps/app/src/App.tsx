@@ -40,6 +40,7 @@ import { VanyshScanEntryPage } from "./pages/vanysh-scan/entry";
 import { SelfScanEntryPage } from "./pages/self-scan/entry";
 import { SelfScanSplashPage } from "./pages/self-scan/splash";
 import { SelfScanLoadingPage } from "./pages/self-scan/loading";
+import { SelfScanReportPage } from "./pages/self-scan/report";
 
 // Dashboard pages
 import { DashboardHome } from "./views/Dashboard/DashboardHome";
@@ -177,6 +178,7 @@ export default function App() {
             <Route path="/self-scan" element={<SelfScanEntryPage />} />
             <Route path="/self-scan/splash" element={<SelfScanSplashPage />} />
             <Route path="/self-scan/loading" element={<SelfScanLoadingPage />} />
+            <Route path="/self-scan/report" element={<SelfScanReportPage />} />
 
             {/* Settings */}
             <Route path="/settings/notifications" element={<RequireAuth><NotificationsPage /></RequireAuth>} />
