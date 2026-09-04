@@ -1,119 +1,153 @@
 # Vanyshr Brand Guidelines
 
-*Last Updated: August 29, 2026*
-*Version: 5.0 - Deep Navy Palette (Dark Mode Only — MVP/Pilot)*
+*Last Updated: September 4, 2026*
+*Version: 6.0 — Brick Neutral / Signal Blue (Dark Mode Only)*
+
+> **Source of truth:** `packages/ui/src/styles/theme.css` defines every color
+> value used in the app. This doc describes and explains those tokens — it
+> does not restate hex as if it were independently authoritative. If this
+> doc and `theme.css` ever disagree, `theme.css` is right; file a fix here.
+>
+> A pre-commit hook (`.githooks/pre-commit`, wired via `core.hooksPath`)
+> blocks new hardcoded hex/Tailwind-arbitrary-value colors (`bg-[#...]`)
+> outside `theme.css` — use a token class instead. See "Enforcement" below.
+
+---
+
+## Design philosophy
+
+Stated once, applies everywhere: **brick neutrals with signal blue as the
+single brand accent.** One brand hue, not a multi-color system. Status is
+communicated with outline chips, never filled backgrounds. Borders are
+hairline white-on-dark (`10%` opacity), not solid gray panels.
+
+Previous versions of this doc (v5.0 and earlier) described a "Deep Navy"
+palette (`#0B1B2B` background, `#112538` surfaces). That palette is
+retired — v6.0 replaces it everywhere it was implemented.
 
 ---
 
 ## Color Palette
 
-### Brand Core
+### Brand — single accent
+
+| Token (`theme.css`) | Value | Role |
+|---|---|---|
+| `--color-brand-500` | `#14ABFE` | Resting state — buttons, links, CTAs, focus rings |
+| `--color-brand-600` | `#0B8FD9` | Hover/pressed state (darkens on hover, not brightens) |
+| `--color-brand-ink` | `#1A1A1A` | Text/icon color for content sitting on the solid brand fill |
+| `--color-navy-hero` | `#0A1628` | Reserved — hero-only surface, not a general background |
+
+Full `--color-brand-25` … `--color-brand-950` scale exists in `theme.css`
+(tint/shade of the same hue) for components that need more than these two
+steps — e.g. filled badges. Prefer resting/hover/ink above for anything new.
+
+### Neutrals — collapsed anchors, not an interpolated ramp
 
 | Token | Value | Role |
 |---|---|---|
-| **Brand Primary (Azure)** | `#14ABFE` | Buttons, links, CTAs, interactive elements, sticky CTA border |
-| **Brand Dark** | `#0B1B2B` | Deep navy — logo color, page background, `--brand-dark` |
-| **Page Background** | `#0B1B2B` | Main app background |
-| **Accent Orange** | `#FF8400` | Badges, security alerts, key highlights |
-| **Accent Risk** | `#FF8400` | **Semantic only** — risk words, exposure states, threat highlights (e.g. "Exposed"). Same value as Accent Orange. |
-| **Accent Hover** | `#00D4FF` | Hover state for primary interactive elements |
+| `--color-gray-950` | `#1E1E1E` | Deepest panel / sidebar background |
+| `--color-gray-900` | `#282828` | Page background — the base |
+| `--color-gray-800` | `#333333` | Card / control background |
+| `--color-gray-700`/`600` | `#404040` | Elevated surface, hover-lightened cards |
+| `--color-gray-300`/`400`/`500` | `#A3A3A3` | Secondary/tertiary/muted text — deliberately the same value |
+| `--color-gray-100`/`200` | `#E0DEDC` | Rare warm off-white text — use sparingly |
+| `--color-white` / `--color-gray-25`/`50` | `#FFFFFF` | Primary text |
 
-> ⚠️ **Amber `#FF8400` usage rule:** This color is reserved exclusively for words and UI states that communicate risk, exposure, or threat. Do not use it for positive states, feature names, benefit copy, or decorative emphasis. If you are unsure whether a use case qualifies, it does not.
+These are **collapsed on purpose** — the 12 named Tailwind steps (`gray-25`
+… `gray-950`) exist for class-name compatibility, but several share the
+same literal value rather than forming a smooth ramp. Don't expect
+`gray-400` to look different from `gray-300`; they're intentionally equal.
 
-> ⚠️ **Amber + Azure adjacency rule:** Never place `#FF8400` and `#14ABFE` as adjacent text in the same line or sentence. They have a 1.11:1 contrast ratio against each other and will visually vibrate without legible separation.
+### Semantic
 
----
-
-### Semantic Colors
-
-| Role | Value | Usage |
+| Token | Value | Role |
 |---|---|---|
-| **Success** | `#00D4AA` | Teal-green — removal confirmed, scan clean, positive states |
-| **Warning** | `#FFB81C` | Golden amber — cautionary states, non-critical alerts |
-| **Error** | `#FF5757` | Coral-red — errors, destructive actions, critical failures |
-| **Info** | `#14ABFE` | Azure — informational highlights, neutral notices |
-| **Disabled** | `#4A5568` | Mid-gray — disabled states on dark backgrounds |
-| **Accent Risk** | `#FF8400` | Vivid amber — risk/exposure semantic highlights only (see rule above) |
+| `--color-success-500` | `#3DDC97` | Confirmed / positive states |
+| `--color-warning-500` | `#FF5E1F` | Warning **and** general accent — the guide gives one non-brand hue for both |
+| `--color-error-500` | `#E5484D` | Errors, destructive actions |
+
+Full 12-step scales exist for each (tint/shade of the base, derived — not
+independently specified) for components needing more than the base step.
+
+### Borders
+
+Hairline, used pervasively: `rgb(255 255 255 / 0.10)` (`--color-border-primary`
+and friends). Not a solid gray. Disabled borders drop to `0.06` opacity.
+
+### App-shell flat tokens
+
+Page-level code in `apps/app` (self-scan, pilot-scan, auth, onboarding)
+reaches for a flatter, shorter vocabulary rather than the full Untitled-UI-
+derived names above. These live in `theme.css`'s "APP-SHELL TOKENS" section
+as aliases onto the primitives above — same values, different, shorter names:
+
+| Class | Aliases to |
+|---|---|
+| `bg-bg-page` / `text-text-primary` | `--color-gray-900` / `--color-white` |
+| `bg-bg-surface` / `bg-bg-surface-secondary` | `--color-gray-800` / `--color-gray-700` |
+| `bg-accent-primary` / `bg-accent-hover` | `--color-brand-500` / `--color-brand-600` |
+| `text-text-secondary` / `text-text-tertiary` | `--color-gray-300` (same value, different name for the role) |
+| `border-border-subtle` | `--color-border-primary` |
+| `bg-success` / `bg-warning` / `bg-error` | `--color-success-500` / `--color-warning-500` / `--color-error-500` |
+| `bg-disabled` | `--color-gray-700` |
+| `text-brand-ink` | `--color-brand-ink` |
+
+`packages/ui/src/styles/globals.css`'s plain `:root` vars (`var(--bg-page)`,
+etc. — for code that isn't using a Tailwind class) are aliases onto these
+same tokens, not independent values.
 
 ---
 
-### Dark Theme Tokens (MVP — Only Active Theme)
+## Component rules
 
-> Light mode is **not implemented** for MVP/Pilot. All tokens below are the single active theme. The `[data-theme="light"]` block has been removed.
-
-| Token | Value | Contrast on `#0B1B2B` | Usage |
-|---|---|---|---|
-| `--bg-page` | `#0B1B2B` | — | Main app background |
-| `--bg-surface` | `#112538` | depth via border/shadow | Cards, panels, content containers |
-| `--bg-surface-secondary` | `#182E42` | nested depth | Nested cards, modals, input fields |
-| `--brand-primary` | `#14ABFE` | re-verify | CTAs, links, active elements, sticky border |
-| `--accent-hover` | `#00D4FF` | re-verify | Hover state for primary elements |
-| `--accent-orange` | `#FF8400` | re-verify | Badges, security alerts, key highlights |
-| `--accent-risk` | `#FF8400` | re-verify | Risk/exposure semantic text only (same as `--accent-orange`) |
-| `--brand-dark` | `#0B1B2B` | — | Logo color / dark-field reference |
-| `--text-primary` | `#FFFFFF` | re-verify | Headlines, primary body, key labels |
-| `--text-secondary` | `#94A3B8` | re-verify | Supporting body copy, descriptions |
-| `--text-tertiary` | `#7A92A8` | re-verify | Captions, helper text, fine print, reassurance copy |
-| `--border-subtle` | `#1E3A52` | — | Subtle dividers, card outlines |
-| `--border-brand` | `#14ABFE` | — | Sticky CTA top border, focus rings, active separators |
-
-> Contrast ratios from v4.0 were measured against `#022136` and are stale after this palette shift. Re-measure against `#0B1B2B` before treating any pair as WCAG-certified.
-
----
-
-### Text Color Hierarchy
-
-Use this hierarchy in order. Do not skip levels or use accent colors as general text.
-
-1. **`#FFFFFF`** — Headlines, hero titles, primary CTA labels
-2. **`#94A3B8`** — Body copy, supporting descriptions, secondary labels
-3. **`#7A92A8`** — Captions, fine print, "No Credit Card Required" type reassurance lines
-4. **`#14ABFE`** — Brand accent — links, "FREE" callouts, highlighted feature names, CTA inline emphasis
-5. **`#FF8400`** — Risk accent — "Exposed", "Found", threat-state words only
-
----
-
-### Sticky CTA Container
-
-The sticky footer CTA uses border-based separation rather than a contrasting background fill, because no dark surface value achieves sufficient luminance contrast (>3:1) against `#0B1B2B` to be perceptible as a distinct layer.
-
-```css
-.sticky-cta {
-  background: #0B1B2B;                          /* --bg-page — no change */
-  border-top: 2px solid #14ABFE;               /* --border-brand */
-  backdrop-filter: blur(12px);
-  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.45);
-}
-```
-
-The top border carries the separation signal. The shadow creates perceived elevation on slide-up. No new color token is required.
+- **Status chips are outline-only, never filled.** This is a stated rule,
+  not a style preference. `badges.tsx`/`badge-groups.tsx`/`featured-icon.tsx`
+  still use filled brand-tint badges from the old system — known debt, not
+  yet fixed.
+- **Primary buttons**: `bg-accent-primary` at rest, `hover:bg-accent-hover`
+  on hover (darkens, doesn't brighten), text/icon in `text-brand-ink`
+  (dark ink on the bright fill — not white).
+- **Secondary buttons**: dark surface (`bg-bg-surface`, hover
+  `bg-bg-surface-secondary`), white text. Not a light/white pill — that
+  was a leftover from the old system and has been converted where found.
 
 ---
 
 ## Typography
 
-### Font Family
-- **Primary**: Ubuntu (Google Fonts) — migrated from Inter
-- **Monospace**: Roboto Mono (code/technical content)
+### Font families
 
-### Font Weights
-- **Light**: 300
-- **Regular**: 400
-- **Medium**: 500
-- **Semi-Bold**: 600
-- **Bold**: 700
+| Role | Family | Used for |
+|---|---|---|
+| Interface | **IBM Plex Sans** | Display, title, heading, body — all general UI text |
+| Labels / data | **IBM Plex Mono** | Field labels, data values, record IDs, captions |
+| Terminal / log output | **Space Grotesk**, lowercase | Reserved — status-log-style lines only, not general UI |
 
-### Logo Matching
-For the brand name "vanyshr," use **Ubuntu Bold (700)** with `tracking-tighter` (−0.05em) to match the logo's tight kerning.
+> **Not yet applied to code.** `theme.css` still declares `--font-body` /
+> `--font-display` as Ubuntu — this table describes the target from the
+> design guide; the font migration is a separate, not-yet-started phase.
+
+### Type scale (target, from the design guide)
+
+| Role | Size / weight / tracking |
+|---|---|
+| Display | 40px · 600 · `-0.03em` · line-height 1.05 |
+| Title | 28px · 600 · `-0.02em` |
+| Heading | 18px · 600 |
+| Body | 15px · 400 · line-height 1.6 |
+| Caption | 13px · 400 · muted |
+| Label (mono) | 11px · uppercase · `0.14em` tracking |
+| Data (mono) | 14px · 500 |
 
 ---
 
 ## Spacing System
 
+Unchanged from v5.0 — still current.
+
 ### Base Unit
 All spacing uses a **4px base unit**. All values are multiples of 4.
-
-### Mobile-First Scale (Primary — MVP is mobile-first PWA)
 
 | Token | Value | Usage |
 |---|---|---|
@@ -127,159 +161,39 @@ All spacing uses a **4px base unit**. All values are multiples of 4.
 | `--space-10` | `40px` | Large section separation |
 | `--space-12` | `48px` | Hero top padding, major layout breaks |
 
-### Page Layout (Mobile)
+---
 
-```
-Page horizontal padding:  24px (--space-6) left and right
-Nav height:               56px
-Hero section top padding: 32px below nav
-Between major sections:   32–40px
-Sticky CTA height:        auto (min 80px)
-Sticky CTA internal pad:  20px top/bottom, 24px left/right
-```
+## Enforcement
 
-### Hero Section Spacing Recommendations
-
-Looking at the current screenshot, approximately 30–35% of vertical space between the nav and the cloud graphic is unused white space that is not doing layout work. Recommended changes:
-
-- **Reduce gap between tagline ("AI Powered Data Privacy") and headline** from current ~24px to **12px**
-- **Reduce gap between headline and cloud graphic** from current ~32px to **20px**
-- **Reduce gap between cloud graphic and body copy** from current ~32px to **20px**
-- **Add a visible divider or breathing room marker** between body copy and sticky CTA — currently the transition is abrupt with no spatial signal
-- **Icon orbit graphic**: Consider scaling up by ~15% — the graphic currently feels small relative to the viewport width, leaving horizontal real estate unused on both sides
-
-These changes will tighten the above-fold content into a more intentional layout without feeling cluttered, and will push more of the hero content into viewport without scrolling on standard mobile screens (375–390px width).
+1. **`theme.css` is the only file allowed to define a raw color value.**
+   Everything else (`globals.css`, `index.css`, component code) references
+   a token — never a literal hex.
+2. **A pre-commit hook enforces this mechanically.** `.githooks/pre-commit`
+   (wired via `git config core.hooksPath .githooks`, applies to every
+   worktree of this repo) scans the *added* lines of a staged diff for
+   Tailwind arbitrary-value hex (`bg-[#...]`, `text-[#...]`, etc.) outside
+   `theme.css` and blocks the commit if it finds one. Pre-existing hex debt
+   elsewhere in the repo is grandfathered — it only stops *new* violations.
+   Genuine one-off exception (e.g. an SVG `fill` prop that isn't a Tailwind
+   class)? `DESIGN_TOKEN_OVERRIDE=1 git commit ...`
+3. **This doc explains the tokens; it doesn't replace them.** When the
+   palette changes, update `theme.css` first, then this doc to match —
+   never the reverse.
 
 ---
 
-## Button Styles
+## Known debt (not yet fixed)
 
-| State | Background | Text | Border |
-|---|---|---|---|
-| Default | `#14ABFE` | `#0B1B2B` | none |
-| Hover | `#00D4FF` | `#0B1B2B` | none |
-| Active/Pressed | `#0099CC` | `#FFFFFF` | none |
-| Disabled | `#4A5568` | `#7A92A8` | none |
-| Secondary (outline) | transparent | `#14ABFE` | `2px solid #14ABFE` |
-
----
-
-## Implementation Notes
-
-### CSS Variables — Dark Mode Only (MVP)
-
-```css
-:root {
-  /* Brand Core */
-  --brand-primary: #14ABFE;
-  --brand-dark: #0B1B2B;
-  --accent-hover: #00D4FF;
-  --accent-orange: #FF8400;
-  --accent-risk: #FF8400;
-
-  /* Semantic */
-  --success: #00D4AA;
-  --error: #FF5757;
-  --warning: #FFB81C;
-  --info: #14ABFE;
-  --disabled: #4A5568;
-
-  /* Backgrounds */
-  --bg-page: #0B1B2B;
-  --bg-surface: #112538;
-  --bg-surface-secondary: #182E42;
-
-  /* Text */
-  --text-primary: #FFFFFF;
-  --text-secondary: #94A3B8;
-  --text-tertiary: #7A92A8;
-
-  /* Borders */
-  --border-subtle: #1E3A52;
-  --border-brand: #14ABFE;
-
-  /* Spacing */
-  --space-1: 4px;
-  --space-2: 8px;
-  --space-3: 12px;
-  --space-4: 16px;
-  --space-5: 20px;
-  --space-6: 24px;
-  --space-8: 32px;
-  --space-10: 40px;
-  --space-12: 48px;
-}
-```
-
-> **Removed:** `[data-theme="light"]` and `[data-theme="dark"]` blocks. All values are now set on `:root` directly. Light mode theming to be reintroduced post-MVP if required.
-
-### Material-UI Theme Integration
-
-```typescript
-const theme = {
-  palette: {
-    primary: {
-      main: '#14ABFE',
-      dark: '#0099CC',
-      light: '#00D4FF',
-    },
-    success: {
-      main: '#00D4AA',
-    },
-    warning: {
-      main: '#FFB81C',
-    },
-    error: {
-      main: '#FF5757',
-    },
-    text: {
-      primary: '#FFFFFF',
-      secondary: '#94A3B8',
-      disabled: '#7A92A8',
-    },
-    background: {
-      default: '#0B1B2B',
-      paper: '#112538',
-    },
-  },
-};
-```
-
----
-
-## Brand Consistency
-
-### Do's
-- ✅ Use `#14ABFE` for all primary actions, CTAs, links, and interactive brand elements
-- ✅ Use `#FF8400` (`--accent-orange` / `--accent-risk`) for badges, security alerts, key highlights, and risk/exposure words
-- ✅ Use `#94A3B8` for supporting body copy — never `#476B84` (fails WCAG on dark bg)
-- ✅ Use `#7A92A8` for fine print, reassurance copy, captions
-- ✅ Use `--border-brand` (`#14ABFE`) top border on sticky CTA for layer separation
-- ✅ Maintain 4px-base spacing system throughout
-
-### Don'ts
-- ❌ Don't use `#476B84` for any text — it fails WCAG AA on all current backgrounds
-- ❌ Don't place `#FF8400` and `#14ABFE` adjacent in the same text line
-- ❌ Don't use `#FF8400` for positive states or feature copy
-- ❌ Don't use colors outside the defined palette
-- ❌ Don't implement light mode components — dark only for MVP
-
----
-
-## Examples
-
-### QuickScan Hero Page
-- **Tagline** ("AI Powered Data Privacy"): `#14ABFE` — `text-xs font-medium tracking-wide uppercase`
-- **Headline** ("Your Personal Data Is"): `#FFFFFF` — Display style
-- **Risk word** ("Exposed"): `#FF8400` italic — same Display size
-- **Body copy** ("Data Brokers harvest..."): `#94A3B8` — Body Large
-- **Threat emphasis** ("Scammers, Spammers & Stalkers"): `#FFFFFF` bold italic
-- **Sticky CTA headline**: `#FFFFFF` bold
-- **Sticky CTA "FREE" inline**: `#14ABFE`
-- **Sticky CTA fine print** ("No Credit Card or Sign Up Required"): `#7A92A8`
-- **CTA Button**: `#14ABFE` background, `#0B1B2B` text
-
-### Navigation
-- **Active Links**: `#14ABFE` text
-- **Inactive Links**: `#94A3B8` text, `#14ABFE` on hover
-- **Background**: `#0B1B2B`
+- ~96 files across `apps/app`/`packages/ui` still have hardcoded hex
+  predating this system (grandfathered by the pre-commit hook — new
+  violations are blocked, these aren't retroactively flagged).
+  Concentrated in `AdminInviteGate.tsx`, `BetaModal.tsx`, most of
+  onboarding/auth/pricing pages.
+- Filled status badges (`badges.tsx`, `badge-groups.tsx`,
+  `featured-icon.tsx`) conflict with the "outline only" rule.
+- Font migration to IBM Plex Sans/Mono + Space Grotesk not started —
+  `theme.css` still declares Ubuntu.
+- `--color-alpha-white`/`--color-alpha-black` and ~0 remaining unused hue
+  scales were removed from `theme.css` in the v6.0 rework; if a future
+  need for a multi-hue palette (charts, integrations icons) comes up,
+  re-add scales deliberately rather than reviving the old blanket set.

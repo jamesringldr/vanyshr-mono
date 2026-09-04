@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+# Vanyshr repo-local pre-commit gate.
+#
+# Two checks, chained:
+#   1. Branch confirmation — delegates to the user's personal global hook
+#      (~/.githooks/pre-commit) if present, so the "which branch am I on"
+#      safety net still applies. Optional: a teammate without that personal
+#      setup just skips straight to check 2.
+#   2. Design-token guard — blocks NEW hardcoded hex colors (Tailwind
+#      arbitrary-value classes like bg-[#282828]) from entering apps/app or
+#      packages/ui .tsx files. theme.css is the single source of truth for
+#      color values (see design.md) — everything else should reach for a
+#      token class (bg-bg-page, text-accent-primary, etc.), not a literal.
+#
+# Installed via (run once per clone, applies to every worktree of this repo):
+#   git config core.hooksPath .githooks
+#
+# This only looks at ADDED lines in the staged diff, not whole files — so
+# pre-existing hex debt elsewhere in the repo never blocks an unrelated
+# commit. It only stops NEW violations from being introduced.
+
+set -euo pipefail
+
+# --- 1. Branch confirmation (personal, optional) ---
+if [ -x "$HOME/.githooks/pre-commit" ]; then
+  "$HOME/.githooks/pre-commit" || exit 1
+fi
+
+# --- 2. Design-token guard ---
+# Files allowed to define raw color values.
+EXEMPT_FILES='^packages/ui/src/styles/theme\.css$'
+
+# Tailwind arbitrary-value hex, e.g. bg-[#282828], text-[#14ABFE]/40, fill-[#fff]
+HEX_PATTERN='(bg|text|border|fill|stroke|ring|from|to|via|shadow|outline|decoration|caret|accent|divide)-\[#[0-9a-fA-F]{3,8}\]'
+
+violations=""
+staged_files=$(git diff --cached --name-only --diff-filter=ACM -- '*.tsx' '*.ts' '*.css' 2>/dev/null || true)
+
+for f in $staged_files; do
+  if echo "$f" | grep -qE "$EXEMPT_FILES"; then
+    continue
+  fi
+  hits=$(git diff --cached -U0 -- "$f" | grep -E '^\+[^+]' | grep -oE "$HEX_PATTERN" || true)
+  if [ -n "$hits" ]; then
+    violations="${violations}\n  ${f}:\n$(echo "$hits" | sed 's/^/    /')"
+  fi
+done
+
+if [ -n "$violations" ]; then
+  if [ "${DESIGN_TOKEN_OVERRIDE:-}" = "1" ]; then
+    echo "⚠️  Design-token guard overridden (DESIGN_TOKEN_OVERRIDE=1) — committing anyway:" >&2
+    echo -e "$violations" >&2
+  else
+    echo "🎨 Commit blocked: new hardcoded color(s) outside theme.css" >&2
+    echo -e "$violations" >&2
+    echo "" >&2
+    echo "   Use a token class instead (see design.md for the full list —" >&2
+    echo "   bg-bg-page, text-accent-primary, border-border-subtle, etc.)." >&2
+    echo "   If theme.css genuinely has no token for this yet, add one there" >&2
+    echo "   first rather than hardcoding a one-off value here." >&2
+    echo "" >&2
+    echo "   Genuine one-off exception (e.g. an SVG fill prop, not a Tailwind" >&2
+    echo "   class)? Override once with:" >&2
+    echo "     DESIGN_TOKEN_OVERRIDE=1 git commit ..." >&2
+    exit 1
+  fi
+fi
