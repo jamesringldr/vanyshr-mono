@@ -946,7 +946,7 @@ export function SelfScanLoadingPage() {
 
   return (
     <div
-      className="relative flex h-screen w-full flex-col items-center overflow-hidden bg-[#0B1B2B] font-ubuntu"
+      className="relative flex h-screen w-full flex-col items-center overflow-hidden bg-bg-page font-ubuntu"
       role="main"
       aria-label="Scan in progress"
       aria-busy={phase === "searching" || phase === "full_profile"}
@@ -1000,7 +1000,7 @@ export function SelfScanLoadingPage() {
                 exit={prefersReducedMotion ? undefined : { opacity: 0, y: -6 }}
                 transition={{ duration: 0.28, ease: EASE_OUT }}
               >
-                <p className="text-base text-[#94A3B8]">
+                <p className="text-base text-text-secondary">
                   {phase === "error"
                     ? "Something stopped the scan"
                     : phase === "no_results"
@@ -1027,7 +1027,7 @@ export function SelfScanLoadingPage() {
           <button
             type="button"
             onClick={() => go("report")}
-            className="mt-8 rounded-lg bg-[#14ABFE] px-5 py-2.5 text-sm font-semibold text-white"
+            className="mt-8 rounded-lg bg-accent-primary px-5 py-2.5 text-sm font-semibold text-white"
           >
             Continue anyway
           </button>

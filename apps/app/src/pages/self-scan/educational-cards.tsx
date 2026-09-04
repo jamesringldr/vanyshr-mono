@@ -30,22 +30,22 @@ export function EducationalCards({ onCardClick }: EducationalCardsProps) {
           whileTap={{ scale: 0.98 }}
           onClick={() => onCardClick?.("brokers")}
           className={cx(
-            "group flex flex-col gap-3 rounded-lg border-2 border-[#14ABFE]/30 bg-[#01192f]",
+            "group flex flex-col gap-3 rounded-lg border-2 border-accent-primary/30 bg-gray-950",
             "px-4 py-4 text-left transition-all duration-200",
-            "hover:border-[#14ABFE]/60 hover:bg-[#021f3a]",
-            "active:border-[#14ABFE] active:bg-[#01192f]",
-            "focus:outline-none focus:ring-2 focus:ring-[#14ABFE] focus:ring-offset-2 focus:ring-offset-[#0B1B2B]"
+            "hover:border-accent-primary/60 hover:bg-gray-900",
+            "active:border-accent-primary active:bg-gray-950",
+            "focus:outline-none focus:ring-2 focus:ring-accent-primary focus:ring-offset-2 focus:ring-offset-bg-page"
           )}
         >
           <div>
             <h3 className="text-[15px] font-semibold text-white leading-snug">
               How Data Brokers Get Your Data
             </h3>
-            <p className="mt-2 text-[13px] leading-snug text-[#94A3B8]">
+            <p className="mt-2 text-[13px] leading-snug text-text-secondary">
               Data Brokers harvest and profit from exposing your private data to
             </p>
           </div>
-          <div className="text-[13px] font-medium text-[#14ABFE] transition-colors group-hover:text-[#00E5FF]">
+          <div className="text-[13px] font-medium text-accent-primary transition-colors group-hover:text-accent-hover">
             See How →
           </div>
         </motion.button>
@@ -56,22 +56,22 @@ export function EducationalCards({ onCardClick }: EducationalCardsProps) {
           whileTap={{ scale: 0.98 }}
           onClick={() => onCardClick?.("risks")}
           className={cx(
-            "group flex flex-col gap-3 rounded-lg border-2 border-[#14ABFE]/30 bg-[#01192f]",
+            "group flex flex-col gap-3 rounded-lg border-2 border-accent-primary/30 bg-gray-950",
             "px-4 py-4 text-left transition-all duration-200",
-            "hover:border-[#14ABFE]/60 hover:bg-[#021f3a]",
-            "active:border-[#14ABFE] active:bg-[#01192f]",
-            "focus:outline-none focus:ring-2 focus:ring-[#14ABFE] focus:ring-offset-2 focus:ring-offset-[#0B1B2B]"
+            "hover:border-accent-primary/60 hover:bg-gray-900",
+            "active:border-accent-primary active:bg-gray-950",
+            "focus:outline-none focus:ring-2 focus:ring-accent-primary focus:ring-offset-2 focus:ring-offset-bg-page"
           )}
         >
           <div>
             <h3 className="text-[15px] font-semibold text-white leading-snug">
               Risks of your data exposure
             </h3>
-            <p className="mt-2 text-[13px] leading-snug text-[#94A3B8]">
+            <p className="mt-2 text-[13px] leading-snug text-text-secondary">
               Hackers, Scammers & spammers have free and easy access making it easier to attack you
             </p>
           </div>
-          <div className="text-[13px] font-medium text-[#14ABFE] transition-colors group-hover:text-[#00E5FF]">
+          <div className="text-[13px] font-medium text-accent-primary transition-colors group-hover:text-accent-hover">
             Learn How →
           </div>
         </motion.button>

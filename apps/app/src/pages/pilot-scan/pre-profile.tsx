@@ -126,10 +126,10 @@ function DataTypeCard({
         <section
             role="region"
             aria-label={title}
-            className="rounded-2xl bg-[#1A2E42] p-4"
+            className="rounded-2xl bg-bg-surface-secondary p-4"
         >
             <div className="flex items-center gap-2">
-                <Icon className="h-5 w-5 shrink-0 text-[#8CA3B8]" aria-hidden />
+                <Icon className="h-5 w-5 shrink-0 text-text-secondary" aria-hidden />
                 <h3 className="text-sm font-semibold text-white">{title}</h3>
             </div>
             <div className="mt-3">{children}</div>
@@ -165,7 +165,7 @@ function LimitedTwoColumnGrid<T>({
                 <li key={i}>{renderItem(item, i)}</li>
             ))}
             {remaining > 0 && (
-                <li className="text-sm font-medium text-[#8CA3B8]">
+                <li className="text-sm font-medium text-text-secondary">
                     {remaining} More...
                 </li>
             )}
@@ -193,7 +193,7 @@ export function PreProfileBody({
         <div>
             <h1 className="sr-only">Exposed Data</h1>
             {!selfScan && (
-                <p className="text-sm leading-relaxed text-[#94A3B8]">
+                <p className="text-sm leading-relaxed text-text-secondary">
                     Hackers and scammers use your exposed data to attack or impersonate you with sophisticated attacks. The more data they can source, the more convincing the scam becomes.
                 </p>
             )}
@@ -202,15 +202,15 @@ export function PreProfileBody({
                 <section
                     role="region"
                     aria-label="Contact"
-                    className="rounded-2xl bg-[#1A2E42] p-4 sm:p-5"
+                    className="rounded-2xl bg-bg-surface-secondary p-4 sm:p-5"
                 >
                     <h2 className="text-2xl font-bold text-white">
                         {data.contact.fullName}
-                        {data.contact.age != null && <span className="text-sm text-[#8CA3B8] font-normal"> ({data.contact.age})</span>}
+                        {data.contact.age != null && <span className="text-sm text-text-secondary font-normal"> ({data.contact.age})</span>}
                     </h2>
                     <div className="mt-4 grid grid-cols-2 gap-4">
                         <div>
-                            <p className="text-xs font-semibold uppercase tracking-wide text-[#8CA3B8]">
+                            <p className="text-xs font-semibold uppercase tracking-wide text-text-secondary">
                                 Primary phone
                             </p>
                             <p className="mt-0.5 font-mono text-sm tabular-nums text-white">
@@ -218,7 +218,7 @@ export function PreProfileBody({
                             </p>
                         </div>
                         <div>
-                            <p className="text-xs font-semibold uppercase tracking-wide text-[#8CA3B8]">
+                            <p className="text-xs font-semibold uppercase tracking-wide text-text-secondary">
                                 Current address
                             </p>
                             {data.contact.currentAddress ? (
@@ -269,7 +269,7 @@ export function PreProfileBody({
                                         </p>
                                     )}
                                     {cityState(addr) && (
-                                        <p className="text-sm font-normal text-[#94A3B8]">
+                                        <p className="text-sm font-normal text-text-secondary">
                                             {cityState(addr)}
                                         </p>
                                     )}
@@ -299,7 +299,7 @@ export function PreProfileBody({
                                 <li key={i} className="text-sm text-white">
                                     {toProperCase(job.label)}
                                     {job.isCurrent && (
-                                        <span className="text-[#8CA3B8] ml-1">
+                                        <span className="text-text-secondary ml-1">
                                             (Current)
                                         </span>
                                     )}
@@ -336,7 +336,7 @@ export function PreProfileBody({
                                         <div className="grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-3">
                                             {home.facts.map((fact, j) => (
                                                 <div key={j}>
-                                                    <p className="text-xs font-semibold uppercase tracking-wide text-[#8CA3B8]">
+                                                    <p className="text-xs font-semibold uppercase tracking-wide text-text-secondary">
                                                         {fact.label}
                                                     </p>
                                                     <p className="mt-0.5 text-sm text-white">
@@ -385,18 +385,18 @@ export function PilotPreProfilePage() {
     if (!stored) {
         return (
             <div
-                className="flex min-h-screen w-full flex-col items-center justify-center bg-[#0B1B2B] p-4 font-sans"
+                className="flex min-h-screen w-full flex-col items-center justify-center bg-bg-page p-4 font-sans"
                 role="main"
                 aria-label="Error loading profile"
             >
                 <div className="w-full max-w-md text-center">
                     <h1 className="mb-2 text-xl font-bold text-white">No profile data found</h1>
-                    <p className="mb-6 text-sm text-[#94A3B8]">
+                    <p className="mb-6 text-sm text-text-secondary">
                         Nothing came through from this scan — run it again from the start.
                     </p>
                     <Link
                         to="/pilot-scan"
-                        className="inline-flex h-[44px] items-center justify-center rounded-xl bg-[#14ABFE] px-6 font-semibold text-white transition-all hover:bg-[#1196E0]"
+                        className="inline-flex h-[44px] items-center justify-center rounded-xl bg-accent-primary px-6 font-semibold text-white transition-all hover:bg-accent-hover"
                         onClick={() => navigate("/pilot-scan")}
                     >
                         Start over
@@ -408,7 +408,7 @@ export function PilotPreProfilePage() {
 
     return (
         <div
-            className="min-h-screen w-full bg-[#0B1B2B] font-sans"
+            className="min-h-screen w-full bg-bg-page font-sans"
             role="main"
             aria-label="Pre-profile exposure summary"
         >

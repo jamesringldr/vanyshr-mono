@@ -36,32 +36,32 @@
 }
 
 :root {
-    /* Brand */
+    /* Brand — single signal-blue accent (Vanyshr Design System v2) */
     --brand-primary: #14ABFE;
-    --brand-dark: #0B1B2B;
-    --accent-hover: #00D4FF;
-    --accent-orange: #FF8400;
-    --accent-risk: #FF8400;
+    --brand-dark: #0A1628;
+    --accent-hover: #0B8FD9;
+    --accent-orange: #FF5E1F;
+    --accent-risk: #FF5E1F;
 
     /* Semantic */
-    --success: #00D4AA;
-    --warning: #FFB81C;
-    --error: #FF5757;
+    --success: #3DDC97;
+    --warning: #FF5E1F;
+    --error: #E5484D;
     --info: #14ABFE;
-    --disabled: #4A5568;
+    --disabled: #404040;
 
     /* Backgrounds */
-    --bg-page: #0B1B2B;
-    --bg-surface: #112538;
-    --bg-surface-secondary: #182E42;
+    --bg-page: #282828;
+    --bg-surface: #333333;
+    --bg-surface-secondary: #404040;
 
     /* Text */
     --text-primary: #FFFFFF;
-    --text-secondary: #94A3B8;
-    --text-tertiary: #7A92A8;
+    --text-secondary: #A3A3A3;
+    --text-tertiary: #A3A3A3;
 
     /* Borders */
-    --border-subtle: #1E3A52;
+    --border-subtle: rgba(255, 255, 255, 0.1);
     --border-brand: #14ABFE;
 
     /* Spacing */

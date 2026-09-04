@@ -21,21 +21,21 @@ export function ProfileCard({ profile, className, ...props }: ProfileCardProps) 
         <div
             role="region"
             aria-label={`Profile: ${fullName}`}
-            className={cx("rounded-lg border border-[#1E3A52] bg-[#1A2E42] p-5", className)}
+            className={cx("rounded-lg border border-border-subtle bg-bg-surface-secondary p-5", className)}
             {...props}
         >
             <h3 className="mb-1 text-lg font-bold text-white">
                 {fullName}
-                {age != null && <span className="text-sm text-[#7A92A8]"> ({age})</span>}
+                {age != null && <span className="text-sm text-text-tertiary"> ({age})</span>}
             </h3>
 
             {aliases?.length ? (
                 <div className="mb-1 py-[5px]">
                     <div className="flex items-center gap-2">
-                        <span className="flex-shrink-0 text-[0.675rem] font-bold uppercase tracking-wide text-[#7A92A8]">
+                        <span className="flex-shrink-0 text-[0.675rem] font-bold uppercase tracking-wide text-text-tertiary">
                             Aliases
                         </span>
-                        <div className="flex flex-1 flex-wrap gap-x-2 text-[0.675rem] font-medium text-[#94A3B8]">
+                        <div className="flex flex-1 flex-wrap gap-x-2 text-[0.675rem] font-medium text-text-secondary">
                             {aliases.slice(0, 2).map((alias, idx) => (
                                 <span key={idx} className="truncate">
                                     {alias}
@@ -51,7 +51,7 @@ export function ProfileCard({ profile, className, ...props }: ProfileCardProps) 
                     <div className="space-y-3">
                         {phones?.length ? (
                             <div>
-                                <span className="block text-xs font-bold uppercase tracking-wide text-[#7A92A8]">
+                                <span className="block text-xs font-bold uppercase tracking-wide text-text-tertiary">
                                     Phones
                                 </span>
                                 {phones.slice(0, 2).map((phone, idx) => (
@@ -64,7 +64,7 @@ export function ProfileCard({ profile, className, ...props }: ProfileCardProps) 
 
                         {addressLine ? (
                             <div>
-                                <span className="block text-xs font-bold uppercase tracking-wide text-[#7A92A8]">
+                                <span className="block text-xs font-bold uppercase tracking-wide text-text-tertiary">
                                     Address{" "}
                                     <span className="text-[0.65rem] font-thin italic normal-case tracking-normal">
                                         (last known)
@@ -78,7 +78,7 @@ export function ProfileCard({ profile, className, ...props }: ProfileCardProps) 
                     <div className="space-y-3">
                         {relatives?.length ? (
                             <div>
-                                <span className="block text-xs font-bold uppercase tracking-wide text-[#7A92A8]">
+                                <span className="block text-xs font-bold uppercase tracking-wide text-text-tertiary">
                                     Possible Relatives
                                 </span>
                                 <div className="font-medium leading-snug text-white">

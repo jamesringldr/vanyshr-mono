@@ -61,7 +61,7 @@ export function SelfScanEntryPage() {
 
   return (
     <div
-      className="relative flex h-dvh w-full flex-col bg-brand-dark font-ubuntu"
+      className="relative flex h-dvh w-full flex-col bg-bg-page font-ubuntu"
       role="main"
       aria-label="Self scan"
     >
@@ -77,7 +77,7 @@ export function SelfScanEntryPage() {
               <Fingerprint className="h-3.5 w-3.5" />
               Your Digital Footprint
             </span>
-            <span className="flex items-center gap-1.5 rounded-full bg-success px-3 py-1.5 text-[13px] font-semibold text-brand-dark">
+            <span className="flex items-center gap-1.5 rounded-full bg-success px-3 py-1.5 text-[13px] font-semibold text-brand-ink">
               <ShieldCheck className="h-3.5 w-3.5" />
               Score: A
             </span>
@@ -86,7 +86,7 @@ export function SelfScanEntryPage() {
           <div className="relative mt-4 flex min-h-0 flex-1 flex-col">
             <div className="flex flex-1 items-center justify-center rounded-3xl border border-border-subtle bg-bg-surface-secondary">
               {/* Placeholder hero — swap for real scan visual / imagery */}
-              <div className="flex h-20 w-20 items-center justify-center rounded-full border border-accent-primary/40 bg-brand-dark">
+              <div className="flex h-20 w-20 items-center justify-center rounded-full border border-accent-primary/40 bg-bg-page">
                 <ShieldAlert className="h-8 w-8 text-accent-primary" />
               </div>
             </div>

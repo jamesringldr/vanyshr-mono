@@ -27,14 +27,14 @@ export function BrokersBody({
             <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">
                 Brokers
             </h1>
-            <p className="mt-1.5 text-sm text-[#94A3B8]">
+            <p className="mt-1.5 text-sm text-text-secondary">
                 {unique.length} data broker{unique.length === 1 ? "" : "s"} had a listing for you
             </p>
 
             <div className="mt-6">
                 {unique.length === 0 ? (
-                    <div className="rounded-2xl bg-[#1A2E42] p-4 sm:p-5">
-                        <p className="text-sm text-[#8CA3B8]">
+                    <div className="rounded-2xl bg-bg-surface-secondary p-4 sm:p-5">
+                        <p className="text-sm text-text-secondary">
                             No broker sources recorded for this scan.
                         </p>
                     </div>
@@ -43,12 +43,12 @@ export function BrokersBody({
                         {unique.map((code) => {
                             const fields = brokerFields[code] ?? [];
                             return (
-                                <li key={code} className="rounded-2xl bg-[#1A2E42] p-4 sm:p-5">
+                                <li key={code} className="rounded-2xl bg-bg-surface-secondary p-4 sm:p-5">
                                     <p className="text-[15px] font-semibold text-white">
                                         {brokerLabel(code)}
                                     </p>
                                     {BROKER_DESCRIPTIONS[code] && (
-                                        <p className="mt-0.5 text-xs text-[#8CA3B8]">
+                                        <p className="mt-0.5 text-xs text-text-secondary">
                                             {BROKER_DESCRIPTIONS[code]}
                                         </p>
                                     )}
@@ -57,7 +57,7 @@ export function BrokersBody({
                                             {fields.map((field) => (
                                                 <span
                                                     key={field}
-                                                    className="rounded-full bg-white/10 px-2 py-0.5 text-[11px] text-[#94A3B8]"
+                                                    className="rounded-full bg-white/10 px-2 py-0.5 text-[11px] text-text-secondary"
                                                 >
                                                     {field}
                                                 </span>

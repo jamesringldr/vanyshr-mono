@@ -494,7 +494,7 @@ export function QuickScanForm({
     const topCopy = STEP_TOP_COPY[scanStepIndex] ?? STEP_TOP_COPY[0];
     const step = SCAN_STEPS[scanStepIndex] ?? SCAN_STEPS[0];
     return (
-      <div className={cx("w-full h-full min-h-[400px] flex flex-col items-center justify-center p-8 gap-8 bg-[#112538]", className)}>
+      <div className={cx("w-full h-full min-h-[400px] flex flex-col items-center justify-center p-8 gap-8 bg-bg-surface", className)}>
         <div className="w-full max-w-sm flex flex-col gap-6">
 
           {/* Heading + loader/subtext row */}
@@ -504,7 +504,7 @@ export function QuickScanForm({
             </h2>
             <div className="flex items-center gap-2">
               <SquareLoader />
-              <p className="text-[#94A3B8] font-medium animate-pulse">
+              <p className="text-text-secondary font-medium animate-pulse">
                 {topCopy.getSubtext(status)}
               </p>
             </div>
@@ -519,7 +519,7 @@ export function QuickScanForm({
           <QSInfoCard
             title={step.title}
             description={step.description}
-            className="shadow-xl border-[#1E3A52]"
+            className="shadow-xl border-border-subtle"
           />
         </div>
       </div>
@@ -527,7 +527,7 @@ export function QuickScanForm({
   }
 
   return (
-    <div className={cx("w-full bg-[#112538] rounded-xl overflow-hidden", className)}>
+    <div className={cx("w-full bg-bg-surface rounded-xl overflow-hidden", className)}>
 
       <div className={cx("flex flex-col gap-6 p-6", startAtPrivacy ? "pt-4" : "pt-8")}>
         {/* Header Section */}
@@ -536,12 +536,12 @@ export function QuickScanForm({
             <h1 className="text-4xl font-bold text-white leading-[1.1] tracking-tighter">
               Are you exposed?
             </h1>
-            <p className="text-sm font-light text-[#94A3B8] leading-snug">
+            <p className="text-sm font-light text-text-secondary leading-snug">
               Run a QuickScan to see what<br />personal info is public.
             </p>
             <div className="flex justify-center mt-1">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#0B1B2B] border border-[#1E3A52] text-[#14ABFE] text-xs font-medium">
-                <Zap className="w-3 h-3 fill-[#14ABFE]" />
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-bg-page border border-border-subtle text-accent-primary text-xs font-medium">
+                <Zap className="w-3 h-3 fill-accent-primary" />
                 90 seconds to see your risks
               </span>
             </div>
@@ -550,15 +550,15 @@ export function QuickScanForm({
 
         {startAtPrivacy && (
           <div className="flex flex-col items-center gap-4 text-center">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-[#1E3A52] bg-[#0B1B2B] px-3 py-1 text-xs font-medium text-[#14ABFE]">
-              <Zap className="h-3 w-3 fill-[#14ABFE]" />
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-border-subtle bg-bg-page px-3 py-1 text-xs font-medium text-accent-primary">
+              <Zap className="h-3 w-3 fill-accent-primary" />
               Real results in ~3 minutes
             </span>
             <h2 className="text-[28px] font-bold leading-[1.15] tracking-tight text-white">
               {heading}
             </h2>
             {headingSubtext && (
-              <p className="text-sm font-light text-[#94A3B8] leading-snug">
+              <p className="text-sm font-light text-text-secondary leading-snug">
                 {headingSubtext}
               </p>
             )}
@@ -570,17 +570,17 @@ export function QuickScanForm({
           <h3 className="text-white text-lg font-bold">
             Your Privacy is Paramount
           </h3>
-          <ul className="flex flex-col gap-1.5 list-none text-[#94A3B8] text-sm font-normal">
+          <ul className="flex flex-col gap-1.5 list-none text-text-secondary text-sm font-normal">
             <li className="flex items-start gap-2">
-              <span className="text-[#14ABFE] font-bold leading-none mt-0.5">•</span>
+              <span className="text-accent-primary font-bold leading-none mt-0.5">•</span>
               <span>{scanLabel}s <span className="text-white font-bold italic uppercase">do not</span> Create Profiles for You</span>
             </li>
             <li className="flex items-start gap-2">
-              <span className="text-[#14ABFE] font-bold leading-none mt-0.5">•</span>
+              <span className="text-accent-primary font-bold leading-none mt-0.5">•</span>
               <span>We <span className="text-white font-bold italic uppercase">do not</span> Save Any Data From Your {scanLabel}</span>
             </li>
             <li className="flex items-start gap-2">
-              <span className="text-[#14ABFE] font-bold leading-none mt-0.5">•</span>
+              <span className="text-accent-primary font-bold leading-none mt-0.5">•</span>
               <span>{scanLabel} Data is <span className="text-white font-bold italic">NEVER</span> Sold, <span className="text-white font-bold italic">NEVER</span> Shared, and <span className="text-white font-bold italic">NEVER</span> Used to Send You Marketing Spam</span>
             </li>
           </ul>
@@ -596,10 +596,10 @@ export function QuickScanForm({
               onChange={(e) => setFirstName(e.target.value)}
               disabled={isLoading}
               autoFocus={autoFocusFirstName}
-              className="h-[52px] w-full rounded-xl border border-[#1E3A52] focus:border-[#14ABFE] focus:ring-1 focus:ring-[#14ABFE] px-4 py-3 text-base bg-[#0B1B2B]/50 text-white placeholder:text-[#7A92A8] font-ubuntu outline-none transition-colors duration-150 disabled:opacity-50"
+              className="h-[52px] w-full rounded-xl border border-border-subtle focus:border-accent-primary focus:ring-1 focus:ring-accent-primary px-4 py-3 text-base bg-bg-page/50 text-white placeholder:text-text-tertiary font-ubuntu outline-none transition-colors duration-150 disabled:opacity-50"
             />
             {firstNameHint && !firstName && (
-              <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 whitespace-nowrap text-base text-[#7A92A8] font-ubuntu">
+              <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 whitespace-nowrap text-base text-text-tertiary font-ubuntu">
                 {firstNameHint}
               </span>
             )}
@@ -612,7 +612,7 @@ export function QuickScanForm({
               value={lastName}
               onChange={(e) => setLastName(e.target.value)}
               disabled={isLoading}
-              className="h-[52px] w-full rounded-xl border border-[#1E3A52] focus:border-[#14ABFE] focus:ring-1 focus:ring-[#14ABFE] px-4 py-3 text-base bg-[#0B1B2B]/50 text-white placeholder:text-[#7A92A8] font-ubuntu outline-none transition-colors duration-150 disabled:opacity-50"
+              className="h-[52px] w-full rounded-xl border border-border-subtle focus:border-accent-primary focus:ring-1 focus:ring-accent-primary px-4 py-3 text-base bg-bg-page/50 text-white placeholder:text-text-tertiary font-ubuntu outline-none transition-colors duration-150 disabled:opacity-50"
             />
           </div>
 
@@ -626,14 +626,14 @@ export function QuickScanForm({
               onChange={(e) => setZipCode(e.target.value.replace(/\D/g, "").slice(0, 5))}
               disabled={isLoading}
               className={cx(
-                "h-[52px] w-full rounded-xl border px-4 py-3 text-base bg-[#0B1B2B]/50 text-white placeholder:text-[#7A92A8] font-ubuntu outline-none transition-colors duration-150 disabled:opacity-50",
+                "h-[52px] w-full rounded-xl border px-4 py-3 text-base bg-bg-page/50 text-white placeholder:text-text-tertiary font-ubuntu outline-none transition-colors duration-150 disabled:opacity-50",
                 zipStatus === "invalid"
                   ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500"
-                  : "border-[#1E3A52] focus:border-[#14ABFE] focus:ring-1 focus:ring-[#14ABFE]"
+                  : "border-border-subtle focus:border-accent-primary focus:ring-1 focus:ring-accent-primary"
               )}
             />
             {zipStatus === "valid" && zipLocation && (
-              <p className="text-[#14ABFE] text-xs font-medium px-1">
+              <p className="text-accent-primary text-xs font-medium px-1">
                 {zipLocation.city}, {zipLocation.state}
               </p>
             )}
@@ -643,12 +643,12 @@ export function QuickScanForm({
               </p>
             )}
             {zipStatus === "checking" && (
-              <p className="text-[#7A92A8] text-xs px-1">Checking...</p>
+              <p className="text-text-tertiary text-xs px-1">Checking...</p>
             )}
           </div>
 
           <div className="flex flex-col gap-3 mt-2">
-            <p className="text-[#14ABFE] text-xs text-center font-bold">
+            <p className="text-accent-primary text-xs text-center font-bold">
               No Credit Card or Sign Up Required to See Results
             </p>
             <button
@@ -657,15 +657,15 @@ export function QuickScanForm({
               className={cx(
                 "w-full h-[52px] font-bold text-base rounded-xl transition-all duration-150 shadow-md active:scale-[0.98]",
                 isFormValid && !isLoading
-                  ? "bg-[#14ABFE] hover:bg-[#00D4FF] active:bg-[#0099CC] text-white"
-                  : "bg-[#4A5568] text-[#7A92A8] cursor-not-allowed"
+                  ? "bg-accent-primary hover:bg-accent-hover active:bg-accent-hover text-white"
+                  : "bg-disabled text-text-tertiary cursor-not-allowed"
               )}
             >
               {submitButtonText}
             </button>
           </div>
 
-          <p className="text-xs text-center text-[#7A92A8] leading-tight">
+          <p className="text-xs text-center text-text-tertiary leading-tight">
             {disclaimerLeadIn} you agree to<br />Vanyshr's Terms of Service and Privacy Policy
           </p>
         </form>

@@ -92,7 +92,7 @@ export function StatusContainer({ isOpen, stages, progressMessages = [] }: Statu
     // on all sides, with breathing room below -- a floating card, not a
     // sheet docked to the viewport edge.
     <div className="flex w-full shrink-0 justify-center px-4 pb-4">
-      <div className="flex h-[334px] w-full max-w-xl flex-col overflow-hidden rounded-xl border border-[#1E3A52] bg-[#112538]">
+      <div className="flex h-[334px] w-full max-w-xl flex-col overflow-hidden rounded-xl border border-border-subtle bg-bg-surface">
         {/* Header (static -- no toggle affordance). */}
         <div className="flex shrink-0 items-start gap-3 px-5 py-4">
           <img src={PrimaryIcon} alt="" className="h-8 w-8 shrink-0 object-contain" />
@@ -103,7 +103,7 @@ export function StatusContainer({ isOpen, stages, progressMessages = [] }: Statu
                 Running SelfScan
                 <EllipsisLoader color="#ffffff" />
               </span>
-              <span className="ml-auto shrink-0 text-xs font-medium text-[#7A92A8]">
+              <span className="ml-auto shrink-0 text-xs font-medium text-text-tertiary">
                 Step {currentStepIndex} of {totalSteps}
               </span>
             </div>
@@ -112,18 +112,18 @@ export function StatusContainer({ isOpen, stages, progressMessages = [] }: Statu
             {currentStage && (
               <div className="flex items-center gap-1.5">
                 <EllipsisLoader size={3} color="#14ABFE" />
-                <span className="truncate text-[13px] font-medium text-[#14ABFE]">
+                <span className="truncate text-[13px] font-medium text-accent-primary">
                   {currentStage.stage.label}
                 </span>
               </div>
             )}
 
-            <div className="h-1.5 w-full overflow-hidden rounded-full bg-[#14ABFE]/20">
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-accent-primary/20">
               <motion.div
                 initial={{ width: 0 }}
                 animate={{ width: `${progressPercent}%` }}
                 transition={{ duration: 0.4, ease: "easeOut" }}
-                className="h-full bg-[#14ABFE]"
+                className="h-full bg-accent-primary"
               />
             </div>
           </div>
@@ -131,13 +131,13 @@ export function StatusContainer({ isOpen, stages, progressMessages = [] }: Statu
 
         {/* Content (always visible). Scrolls only as a fallback -- see the
             height comment above, this shouldn't normally need it. */}
-        <div className="flex-1 overflow-y-auto border-t border-[#3D4A5C] px-5 py-4">
+        <div className="flex-1 overflow-y-auto border-t border-border-subtle px-5 py-4">
           {stageViews.map(({ stage, state, items, currentId }) => {
             if (state === "success") {
               return (
                 <div key={stage.id} className="flex items-center gap-2.5 pb-3">
-                  <span className="h-2 w-2 shrink-0 rounded-full bg-[#22C55E]" aria-hidden />
-                  <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-[#22C55E]">
+                  <span className="h-2 w-2 shrink-0 rounded-full bg-success" aria-hidden />
+                  <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-success">
                     {stage.label}
                   </span>
                 </div>
@@ -147,8 +147,8 @@ export function StatusContainer({ isOpen, stages, progressMessages = [] }: Statu
             if (state === "pending") {
               return (
                 <div key={stage.id} className="flex items-center gap-2.5 pb-3">
-                  <span className="h-2 w-2 shrink-0 rounded-full bg-[#4A5568]" aria-hidden />
-                  <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-[#7A92A8]">
+                  <span className="h-2 w-2 shrink-0 rounded-full bg-disabled" aria-hidden />
+                  <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-text-tertiary">
                     {stage.label}
                   </span>
                 </div>
@@ -181,13 +181,13 @@ export function StatusContainer({ isOpen, stages, progressMessages = [] }: Statu
                             </span>
                           ) : (
                             <span className="flex h-3.5 w-3.5 shrink-0 items-center justify-center" aria-hidden>
-                              <span className="h-1.5 w-1.5 rounded-full bg-[#4A5568]" />
+                              <span className="h-1.5 w-1.5 rounded-full bg-disabled" />
                             </span>
                           )}
                           <span
                             className={cx(
                               "min-w-0 flex-1 truncate text-[12px] leading-snug",
-                              isCurrent ? "text-[#14ABFE]" : "text-[#7A92A8]",
+                              isCurrent ? "text-accent-primary" : "text-text-tertiary",
                             )}
                           >
                             {item.message}

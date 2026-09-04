@@ -45,7 +45,7 @@ function TabBar({ active, onSelect }: { active: number; onSelect: (index: number
             {isActive && (
               <motion.span
                 layoutId="report-tab-indicator"
-                className="absolute inset-x-0 bottom-1.5 h-[2px] rounded-full bg-[#14ABFE]"
+                className="absolute inset-x-0 bottom-1.5 h-[2px] rounded-full bg-accent-primary"
                 transition={{ type: "spring", stiffness: 380, damping: 32 }}
               />
             )}
@@ -94,18 +94,18 @@ export function SelfScanReportPage() {
   if (!stored) {
     return (
       <div
-        className="flex min-h-screen w-full flex-col items-center justify-center bg-[#0B1B2B] p-4 font-ubuntu"
+        className="flex min-h-screen w-full flex-col items-center justify-center bg-bg-page p-4 font-ubuntu"
         role="main"
         aria-label="Error loading report"
       >
         <div className="w-full max-w-md text-center">
           <h1 className="mb-2 text-xl font-bold text-white">No scan data found</h1>
-          <p className="mb-6 text-sm text-[#94A3B8]">
+          <p className="mb-6 text-sm text-text-secondary">
             Nothing came through from this scan — run it again from the start.
           </p>
           <Link
             to="/self-scan"
-            className="inline-flex h-[44px] items-center justify-center rounded-xl bg-[#14ABFE] px-6 font-semibold text-white transition-all hover:bg-[#1196E0]"
+            className="inline-flex h-[44px] items-center justify-center rounded-xl bg-accent-primary px-6 font-semibold text-white transition-all hover:bg-accent-hover"
           >
             Start over
           </Link>
@@ -119,7 +119,7 @@ export function SelfScanReportPage() {
     // tab panel below scrolls itself, independently, rather than sharing
     // one document scroll bound by whichever tab happens to be tallest.
     <div
-      className="flex h-screen w-full flex-col overflow-hidden bg-[#0B1B2B] font-ubuntu"
+      className="flex h-screen w-full flex-col overflow-hidden bg-bg-page font-ubuntu"
       role="main"
       aria-label="Scan report"
     >
@@ -200,19 +200,19 @@ export function SelfScanReportPage() {
           of this regardless of which tab is showing. */}
       <div className="fixed inset-x-0 bottom-0 z-30 px-4">
         <motion.footer
-          className="w-full rounded-t-[28px] bg-[#1A2E42] px-5 pb-6 pt-5 shadow-[0_0_40px_rgba(0,191,255,0.18)]"
+          className="w-full rounded-t-[28px] bg-bg-surface-secondary px-5 pb-6 pt-5 shadow-[0_0_40px_rgba(20,171,254,0.18)]"
           initial={prefersReducedMotion ? false : { y: "100%" }}
           animate={{ y: footerVisible ? 0 : "100%" }}
           transition={{ duration: prefersReducedMotion ? 0 : 0.5, ease: DRAWER_EASE }}
         >
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-[#1E3A52] bg-[#0B1B2B] px-3 py-1 text-[11px] font-medium text-[#14ABFE]">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-border-subtle bg-bg-page px-3 py-1 text-[11px] font-medium text-accent-primary">
             <DollarSign className="h-3 w-3" />
             No Credit Card Required
           </span>
           <h2 className="mt-3 text-[26px] font-bold leading-[1.15] tracking-tight text-white">
             Time to Vanysh
           </h2>
-          <p className="mt-1.5 text-sm leading-snug text-[#94A3B8]">
+          <p className="mt-1.5 text-sm leading-snug text-text-secondary">
             Start removing your exposed data from every broker we found
           </p>
           <button
@@ -221,7 +221,7 @@ export function SelfScanReportPage() {
             // hands off into pilot-scan's, same as the loading page's report
             // destination fallback.
             onClick={() => navigate("/pilot-scan/start")}
-            className="mt-5 flex h-12 w-full items-center justify-center rounded-2xl bg-[#14ABFE] text-[17px] font-semibold text-white"
+            className="mt-5 flex h-12 w-full items-center justify-center rounded-2xl bg-accent-primary text-[17px] font-semibold text-white"
           >
             Start Vanyshing
           </button>

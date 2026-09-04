@@ -111,7 +111,7 @@ export function SelfScanSplashPage() {
 
   return (
     <div
-      className="relative flex min-h-screen w-full items-center justify-center overflow-hidden bg-[#0B1B2B] font-ubuntu"
+      className="relative flex min-h-screen w-full items-center justify-center overflow-hidden bg-bg-page font-ubuntu"
       role="main"
       aria-label="Vanyshr self scan splash"
     >
