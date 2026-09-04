@@ -111,7 +111,7 @@ export function SelfScanSplashPage() {
 
   return (
     <div
-      className="relative flex min-h-screen w-full items-center justify-center overflow-hidden bg-bg-page font-ubuntu"
+      className="relative flex min-h-dvh w-full items-center justify-center overflow-hidden bg-bg-page"
       role="main"
       aria-label="Vanyshr self scan splash"
     >
@@ -160,7 +160,7 @@ export function SelfScanSplashPage() {
           }}
         >
           <span
-            className="absolute right-0 top-1/2 block -translate-y-1/2 whitespace-nowrap pl-3 text-[30px] font-bold tracking-tight text-white sm:pl-3.5 sm:text-[34px]"
+            className="absolute right-0 top-1/2 block -translate-y-1/2 whitespace-nowrap pl-3 text-[30px] font-semibold tracking-tight text-text-primary sm:pl-3.5 sm:text-[34px]"
             style={{ width: WORDMARK_MAX_PX }}
           >
             vanyshr

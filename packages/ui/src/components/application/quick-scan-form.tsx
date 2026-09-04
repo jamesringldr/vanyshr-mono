@@ -170,7 +170,7 @@ function SquareLoader() {
     delay: string,
     dir: "normal" | "alternate" = "normal"
   ): React.CSSProperties => ({
-    background: "#14ABFE",
+    background: "var(--color-accent-primary)",
     width: 4,
     height: 4,
     position: "absolute",
@@ -178,7 +178,7 @@ function SquareLoader() {
     left,
     animationName: "qs_loader",
     animationDuration: "675ms",
-    animationTimingFunction: "ease-in-out",
+    animationTimingFunction: "cubic-bezier(0.2, 0, 0, 1)",
     animationIterationCount: "infinite",
     animationDelay: delay,
     animationDirection: dir,
@@ -527,38 +527,38 @@ export function QuickScanForm({
   }
 
   return (
-    <div className={cx("w-full bg-bg-surface rounded-xl overflow-hidden", className)}>
+    <div className={cx("w-full overflow-hidden bg-bg-surface", className)}>
 
-      <div className={cx("flex flex-col gap-6 p-6", startAtPrivacy ? "pt-4" : "pt-8")}>
+      <div className={cx("flex flex-col gap-6 p-6", startAtPrivacy ? "pt-2" : "pt-8")}>
         {/* Header Section */}
         {!startAtPrivacy && (
           <div className="flex flex-col gap-2 text-center">
-            <h1 className="text-4xl font-bold text-white leading-[1.1] tracking-tighter">
+            <h1 className="text-[28px] font-semibold leading-[1.05] tracking-tight text-text-primary">
               Are you exposed?
             </h1>
-            <p className="text-sm font-light text-text-secondary leading-snug">
+            <p className="text-[15px] leading-relaxed text-text-secondary">
               Run a QuickScan to see what<br />personal info is public.
             </p>
-            <div className="flex justify-center mt-1">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-bg-page border border-border-subtle text-accent-primary text-xs font-medium">
-                <Zap className="w-3 h-3 fill-accent-primary" />
-                90 seconds to see your risks
+            <div className="mt-1 flex justify-center">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-border-subtle px-3 py-1.5 text-[13px] font-medium text-text-secondary">
+                <Zap className="h-3 w-3 text-accent-primary" />
+                About 90 seconds
               </span>
             </div>
           </div>
         )}
 
         {startAtPrivacy && (
-          <div className="flex flex-col items-center gap-4 text-center">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-border-subtle bg-bg-page px-3 py-1 text-xs font-medium text-accent-primary">
-              <Zap className="h-3 w-3 fill-accent-primary" />
-              Real results in ~3 minutes
+          <div className="flex flex-col items-center gap-3 text-center">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-border-subtle px-3 py-1.5 text-[13px] font-medium text-text-secondary">
+              <Zap className="h-3 w-3 text-accent-primary" />
+              Real results in about 3 minutes
             </span>
-            <h2 className="text-[28px] font-bold leading-[1.15] tracking-tight text-white">
+            <h2 className="text-[28px] font-semibold leading-[1.05] tracking-tight text-text-primary">
               {heading}
             </h2>
             {headingSubtext && (
-              <p className="text-sm font-light text-text-secondary leading-snug">
+              <p className="text-[15px] leading-relaxed text-text-secondary">
                 {headingSubtext}
               </p>
             )}
@@ -566,27 +566,27 @@ export function QuickScanForm({
         )}
 
         {/* Privacy Section */}
-        <div className="w-full flex flex-col gap-2">
-          <h3 className="text-white text-lg font-bold">
-            Your Privacy is Paramount
+        <div className="flex w-full flex-col gap-2">
+          <h3 className="text-[15px] font-semibold text-text-primary">
+            Your privacy is paramount
           </h3>
-          <ul className="flex flex-col gap-1.5 list-none text-text-secondary text-sm font-normal">
+          <ul className="flex list-none flex-col gap-2 text-[14px] leading-relaxed text-text-secondary">
             <li className="flex items-start gap-2">
-              <span className="text-accent-primary font-bold leading-none mt-0.5">•</span>
-              <span>{scanLabel}s <span className="text-white font-bold italic uppercase">do not</span> Create Profiles for You</span>
+              <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-accent-primary" aria-hidden />
+              <span>{scanLabel}s do not create a profile for you</span>
             </li>
             <li className="flex items-start gap-2">
-              <span className="text-accent-primary font-bold leading-none mt-0.5">•</span>
-              <span>We <span className="text-white font-bold italic uppercase">do not</span> Save Any Data From Your {scanLabel}</span>
+              <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-accent-primary" aria-hidden />
+              <span>We do not save data from your {scanLabel}</span>
             </li>
             <li className="flex items-start gap-2">
-              <span className="text-accent-primary font-bold leading-none mt-0.5">•</span>
-              <span>{scanLabel} Data is <span className="text-white font-bold italic">NEVER</span> Sold, <span className="text-white font-bold italic">NEVER</span> Shared, and <span className="text-white font-bold italic">NEVER</span> Used to Send You Marketing Spam</span>
+              <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-accent-primary" aria-hidden />
+              <span>{scanLabel} data is never sold, shared, or used to send you marketing</span>
             </li>
           </ul>
         </div>
 
-        <form className="w-full flex flex-col gap-4" onSubmit={handleScan}>
+        <form className="flex w-full flex-col gap-3" onSubmit={handleScan}>
           <div className="relative">
             <input
               type="text"
@@ -596,10 +596,10 @@ export function QuickScanForm({
               onChange={(e) => setFirstName(e.target.value)}
               disabled={isLoading}
               autoFocus={autoFocusFirstName}
-              className="h-[52px] w-full rounded-xl border border-border-subtle focus:border-accent-primary focus:ring-1 focus:ring-accent-primary px-4 py-3 text-base bg-bg-page/50 text-white placeholder:text-text-tertiary font-ubuntu outline-none transition-colors duration-150 disabled:opacity-50"
+              className="h-12 w-full rounded-lg border border-border-subtle bg-bg-page px-4 text-[15px] text-text-primary placeholder:text-text-tertiary outline-none transition-colors duration-150 focus:border-accent-primary focus:ring-1 focus:ring-accent-primary disabled:opacity-50"
             />
             {firstNameHint && !firstName && (
-              <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 whitespace-nowrap text-base text-text-tertiary font-ubuntu">
+              <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 whitespace-nowrap text-[15px] text-text-tertiary">
                 {firstNameHint}
               </span>
             )}
@@ -612,7 +612,7 @@ export function QuickScanForm({
               value={lastName}
               onChange={(e) => setLastName(e.target.value)}
               disabled={isLoading}
-              className="h-[52px] w-full rounded-xl border border-border-subtle focus:border-accent-primary focus:ring-1 focus:ring-accent-primary px-4 py-3 text-base bg-bg-page/50 text-white placeholder:text-text-tertiary font-ubuntu outline-none transition-colors duration-150 disabled:opacity-50"
+              className="h-12 w-full rounded-lg border border-border-subtle bg-bg-page px-4 text-[15px] text-text-primary placeholder:text-text-tertiary outline-none transition-colors duration-150 focus:border-accent-primary focus:ring-1 focus:ring-accent-primary disabled:opacity-50"
             />
           </div>
 
@@ -626,47 +626,48 @@ export function QuickScanForm({
               onChange={(e) => setZipCode(e.target.value.replace(/\D/g, "").slice(0, 5))}
               disabled={isLoading}
               className={cx(
-                "h-[52px] w-full rounded-xl border px-4 py-3 text-base bg-bg-page/50 text-white placeholder:text-text-tertiary font-ubuntu outline-none transition-colors duration-150 disabled:opacity-50",
+                "h-12 w-full rounded-lg border bg-bg-page px-4 text-[15px] text-text-primary placeholder:text-text-tertiary outline-none transition-colors duration-150 disabled:opacity-50",
                 zipStatus === "invalid"
-                  ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500"
+                  ? "border-error focus:border-error focus:ring-1 focus:ring-error"
                   : "border-border-subtle focus:border-accent-primary focus:ring-1 focus:ring-accent-primary"
               )}
             />
             {zipStatus === "valid" && zipLocation && (
-              <p className="text-accent-primary text-xs font-medium px-1">
+              <p className="px-1 text-[13px] font-medium text-accent-primary">
                 {zipLocation.city}, {zipLocation.state}
               </p>
             )}
             {zipStatus === "invalid" && (
-              <p className="text-red-400 text-xs font-medium px-1">
-                Invalid zip. Please use a valid Zip Code.
+              <p className="px-1 text-[13px] font-medium text-error">
+                Enter a valid US zip code
               </p>
             )}
             {zipStatus === "checking" && (
-              <p className="text-text-tertiary text-xs px-1">Checking...</p>
+              <p className="px-1 text-[13px] text-text-tertiary">Checking zip…</p>
             )}
           </div>
 
-          <div className="flex flex-col gap-3 mt-2">
-            <p className="text-accent-primary text-xs text-center font-bold">
-              No Credit Card or Sign Up Required to See Results
+          <div className="mt-2 flex flex-col gap-3">
+            <p className="text-center text-[13px] text-text-tertiary">
+              No credit card or sign up required
             </p>
             <button
               type="submit"
               disabled={!isFormValid || isLoading}
               className={cx(
-                "w-full h-[52px] font-bold text-base rounded-xl transition-all duration-150 shadow-md active:scale-[0.98]",
+                "h-12 w-full rounded-lg text-[16px] font-semibold transition-colors duration-150",
+                "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-primary",
                 isFormValid && !isLoading
-                  ? "bg-accent-primary hover:bg-accent-hover active:bg-accent-hover text-white"
-                  : "bg-disabled text-text-tertiary cursor-not-allowed"
+                  ? "bg-accent-primary text-brand-ink hover:bg-accent-hover"
+                  : "cursor-not-allowed border border-border-subtle bg-bg-page text-text-tertiary"
               )}
             >
               {submitButtonText}
             </button>
           </div>
 
-          <p className="text-xs text-center text-text-tertiary leading-tight">
-            {disclaimerLeadIn} you agree to<br />Vanyshr's Terms of Service and Privacy Policy
+          <p className="text-center text-[12px] leading-snug text-text-tertiary">
+            {disclaimerLeadIn} you agree to<br />Vanyshr&apos;s Terms of Service and Privacy Policy
           </p>
         </form>
       </div>

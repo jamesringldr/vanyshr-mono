@@ -18,16 +18,11 @@ import {
   type ConsolidatedProfile,
 } from "../pilot-scan/consolidated-profile";
 import type { ProgressStage, ProgressMessage } from "../pilot-scan/progress-drawer";
-import { EducationalCards } from "./educational-cards";
+import { EducationalCards, EDUCATIONAL_SLIDE_COUNT, SlideDots } from "./educational-cards";
 import { StatusContainer } from "./status-container";
 import PrimaryLogoDark from "@vanyshr/ui/assets/PrimaryLogo-DarkMode.png";
 import { cx } from "@/utils/cx";
-
-/** Decorative placeholder — will track real content slides once those exist. */
-const LOADING_DOT_COUNT = 5;
-const LOADING_ACTIVE_DOT = 0;
-
-const EASE_OUT = [0.2, 0, 0, 1] as const;
+import { EASE_OUT, scanUi } from "./chrome";
 
 type Phase = "searching" | "pick" | "full_profile" | "emails" | "report" | "error" | "no_results";
 
@@ -375,6 +370,7 @@ export function SelfScanLoadingPage() {
   const [extractElapsed, setExtractElapsed] = useState(0);
   const [fillerTick, setFillerTick] = useState(0);
   const [reportElapsed, setReportElapsed] = useState<number | null>(null);
+  const [slideIndex, setSlideIndex] = useState(0);
   const scanStartedAtRef = useRef<number>(Date.now());
 
   const candidatesRef = useRef<IdentifyCandidate[]>([]);
@@ -401,6 +397,26 @@ export function SelfScanLoadingPage() {
       go("pick");
     }
   }, [holdPreview]);
+
+  useEffect(() => {
+    if (!holdMode || holdPreview) return;
+    setProgressMessages([
+      {
+        id: "hold-confirm",
+        step: "confirm",
+        status: "summary",
+        message: "search details confirmed",
+        created_at: new Date().toISOString(),
+      },
+      {
+        id: "hold-criteria",
+        step: "criteria",
+        status: "active",
+        message: "mapping how to find this record",
+        created_at: new Date().toISOString(),
+      },
+    ]);
+  }, [holdMode, holdPreview]);
 
   useEffect(() => {
     if (holdMode) return;
@@ -942,47 +958,45 @@ export function SelfScanLoadingPage() {
   // closed and this text is the only explanation on screen.
   const drawerOpen =
     (phase === "searching" || phase === "full_profile" || phase === "emails" || phase === "report") &&
-    !holdMode;
+    !holdPreview;
 
   return (
     <div
-      className="relative flex h-screen w-full flex-col items-center overflow-hidden bg-bg-page font-ubuntu"
+      className={cx(scanUi.page, "items-center overflow-hidden")}
       role="main"
       aria-label="Scan in progress"
       aria-busy={phase === "searching" || phase === "full_profile"}
     >
       {/* App bar (logo + menu) with the page indicator in its own row
-          underneath. Dots are a placeholder matching /self-scan's
-          page-indicator style; not wired to real content yet. */}
-      <header className="relative z-10 flex w-full shrink-0 flex-col gap-3 px-6 pt-5">
+          underneath. Dots track the educational slider while a scan is
+          running; they stay decorative on pick/error/no-results. */}
+      <header className="relative z-10 mx-auto flex w-full max-w-md shrink-0 flex-col gap-1 px-6 pt-5">
         <div className="flex w-full items-center justify-between">
-          <img src={PrimaryLogoDark} alt="Vanyshr" className="h-8 w-auto object-contain" />
-          <button type="button" aria-label="Open menu" className="p-1.5 text-white">
-            <Menu className="h-6 w-6" aria-hidden />
+          <img src={PrimaryLogoDark} alt="Vanyshr" className="h-7 w-auto object-contain" />
+          <button type="button" aria-label="Open menu" className={scanUi.ghostBtn}>
+            <Menu className="h-5 w-5" aria-hidden />
           </button>
         </div>
-        <div className="flex items-center justify-center gap-1.5" aria-hidden>
-          {Array.from({ length: LOADING_DOT_COUNT }).map((_, i) => (
-            <span
-              key={i}
-              className={cx(
-                "h-1.5 rounded-full transition-all",
-                i === LOADING_ACTIVE_DOT ? "w-4 bg-accent-primary" : "w-1.5 bg-border-subtle",
-              )}
-            />
-          ))}
-        </div>
+        {(phase === "searching" || phase === "full_profile") ? (
+          <SlideDots
+            count={EDUCATIONAL_SLIDE_COUNT}
+            activeIndex={slideIndex}
+            onSelect={setSlideIndex}
+          />
+        ) : (
+          <div className="h-11" aria-hidden />
+        )}
       </header>
 
-      {/* Top zone takes whatever height the drawer below doesn't -- flexbox
-          allocates the split exactly, so the cards can never end up behind
-          the drawer the way approximating it with padding did. This zone
-          scrolls on its own if its content is taller than what's left. */}
-      <div className="relative z-10 flex w-full min-h-0 flex-1 flex-col items-center overflow-y-auto px-6 pb-12 pt-[5px]">
-        <div className="flex w-full max-w-xl flex-col items-center">
-        {/* Educational Cards - Show during scanning phases */}
+      {/* Top zone takes whatever height the status container below doesn't --
+          flexbox allocates the split exactly. This zone scrolls on its own
+          if its content is taller than what's left. */}
+      <div className="relative z-10 flex min-h-0 w-full flex-1 flex-col items-center justify-center overflow-y-auto px-5 pb-8 pt-1">
+        <div className="flex w-full max-w-md flex-col items-center">
         {(phase === "searching" || phase === "full_profile") && (
           <EducationalCards
+            activeIndex={slideIndex}
+            onActiveIndexChange={setSlideIndex}
             onCardClick={(cardId) => {
               // Routing not wired yet - placeholder for future navigation
               console.log(`Educational card clicked: ${cardId}`);
@@ -1000,7 +1014,7 @@ export function SelfScanLoadingPage() {
                 exit={prefersReducedMotion ? undefined : { opacity: 0, y: -6 }}
                 transition={{ duration: 0.28, ease: EASE_OUT }}
               >
-                <p className="text-base text-text-secondary">
+                <p className="text-[15px] text-text-secondary">
                   {phase === "error"
                     ? "Something stopped the scan"
                     : phase === "no_results"
@@ -1009,7 +1023,7 @@ export function SelfScanLoadingPage() {
                       ? "Is this you?"
                       : activeStep.eyebrow}
                 </p>
-                <p className="mt-1 text-2xl font-bold leading-snug tracking-tight text-white sm:text-3xl">
+                <p className="mt-1 text-[22px] font-semibold leading-snug tracking-tight text-text-primary sm:text-[28px]">
                   {phase === "error"
                     ? errorMessage || "We couldn't finish this search"
                     : phase === "no_results"
@@ -1027,7 +1041,7 @@ export function SelfScanLoadingPage() {
           <button
             type="button"
             onClick={() => go("report")}
-            className="mt-8 rounded-lg bg-accent-primary px-5 py-2.5 text-sm font-semibold text-white"
+            className={cx(scanUi.primaryBtn, "mt-8")}
           >
             Continue anyway
           </button>
@@ -1046,7 +1060,7 @@ export function SelfScanLoadingPage() {
 
       <QSResultSingleModal
         isOpen={pickOpen && profiles.length === 1 && Boolean(profiles[0])}
-        onOpenChange={(open) => {
+        onOpenChange={(open: boolean) => {
           if (!open && !holdPreview) dismissPick();
         }}
         profile={profiles[0] ?? { id: "none", fullName: searchName || "Unknown" }}
@@ -1056,7 +1070,7 @@ export function SelfScanLoadingPage() {
       />
       <QSResultMultipleModal
         isOpen={pickOpen && profiles.length > 1}
-        onOpenChange={(open) => {
+        onOpenChange={(open: boolean) => {
           if (!open && !holdPreview) dismissPick();
         }}
         searchName={searchName}

@@ -1,4 +1,4 @@
-import type { HTMLAttributes } from "react";
+import type { HTMLAttributes, ReactNode } from "react";
 import { cx } from "@/utils/cx";
 import type { QSProfileSummary } from "./types";
 
@@ -6,93 +6,67 @@ export interface ProfileCardProps extends Omit<HTMLAttributes<HTMLDivElement>, "
     profile: QSProfileSummary;
 }
 
+function Field({ label, children }: { label: string; children: ReactNode }) {
+    return (
+        <div className="min-w-0">
+            <dt className="text-[11px] font-medium uppercase tracking-[0.14em] text-text-tertiary">{label}</dt>
+            <dd className="mt-1 text-[14px] font-medium leading-snug text-text-primary">{children}</dd>
+        </div>
+    );
+}
+
 /**
- * Profile summary card — name, age, aliases, phones, relatives, address.
- * Dark card for the navy QuickScan result modals.
+ * Profile summary — labeled data rows for the identity-confirm overlays.
  */
 export function ProfileCard({ profile, className, ...props }: ProfileCardProps) {
     const { fullName, age, aliases, phones, relatives, currentAddress } = profile;
     const addressLine = currentAddress?.length ? currentAddress.join(", ") : undefined;
 
-    const hasLeft = !!(phones?.length || addressLine);
-    const hasRight = !!(relatives?.length);
-
     return (
         <div
             role="region"
             aria-label={`Profile: ${fullName}`}
-            className={cx("rounded-lg border border-border-subtle bg-bg-surface-secondary p-5", className)}
+            className={cx("rounded-lg border border-border-subtle px-4 py-4", className)}
             {...props}
         >
-            <h3 className="mb-1 text-lg font-bold text-white">
-                {fullName}
-                {age != null && <span className="text-sm text-text-tertiary"> ({age})</span>}
-            </h3>
+            <div className="flex items-baseline justify-between gap-3">
+                <h3 className="text-[18px] font-semibold tracking-tight text-text-primary">{fullName}</h3>
+                {age != null ? (
+                    <span className="shrink-0 text-[13px] tabular-nums text-text-tertiary">{age}</span>
+                ) : null}
+            </div>
 
             {aliases?.length ? (
-                <div className="mb-1 py-[5px]">
-                    <div className="flex items-center gap-2">
-                        <span className="flex-shrink-0 text-[0.675rem] font-bold uppercase tracking-wide text-text-tertiary">
-                            Aliases
-                        </span>
-                        <div className="flex flex-1 flex-wrap gap-x-2 text-[0.675rem] font-medium text-text-secondary">
-                            {aliases.slice(0, 2).map((alias, idx) => (
-                                <span key={idx} className="truncate">
-                                    {alias}
-                                </span>
-                            ))}
-                        </div>
-                    </div>
-                </div>
+                <p className="mt-1 text-[13px] text-text-secondary">{aliases.slice(0, 2).join(" · ")}</p>
             ) : null}
 
-            {(hasLeft || hasRight) && (
-                <div className="mt-1 grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
-                    <div className="space-y-3">
-                        {phones?.length ? (
-                            <div>
-                                <span className="block text-xs font-bold uppercase tracking-wide text-text-tertiary">
-                                    Phones
-                                </span>
-                                {phones.slice(0, 2).map((phone, idx) => (
-                                    <span key={idx} className="block font-medium text-white">
-                                        {phone}
-                                    </span>
-                                ))}
-                            </div>
-                        ) : null}
+            <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3">
+                {phones?.length ? (
+                    <Field label="Phones">
+                        {phones.slice(0, 2).map((phone) => (
+                            <span key={phone} className="block tabular-nums">
+                                {phone}
+                            </span>
+                        ))}
+                    </Field>
+                ) : null}
 
-                        {addressLine ? (
-                            <div>
-                                <span className="block text-xs font-bold uppercase tracking-wide text-text-tertiary">
-                                    Address{" "}
-                                    <span className="text-[0.65rem] font-thin italic normal-case tracking-normal">
-                                        (last known)
-                                    </span>
-                                </span>
-                                <div className="font-medium leading-snug text-white">{addressLine}</div>
-                            </div>
-                        ) : null}
-                    </div>
+                {relatives?.length ? (
+                    <Field label="Possible relatives">
+                        {relatives.slice(0, 3).map((rel) => (
+                            <span key={rel} className="block truncate">
+                                {rel}
+                            </span>
+                        ))}
+                    </Field>
+                ) : null}
 
-                    <div className="space-y-3">
-                        {relatives?.length ? (
-                            <div>
-                                <span className="block text-xs font-bold uppercase tracking-wide text-text-tertiary">
-                                    Possible Relatives
-                                </span>
-                                <div className="font-medium leading-snug text-white">
-                                    {relatives.slice(0, 3).map((rel, idx) => (
-                                        <span key={idx} className="block truncate">
-                                            {rel}
-                                        </span>
-                                    ))}
-                                </div>
-                            </div>
-                        ) : null}
-                    </div>
-                </div>
-            )}
+                {addressLine ? (
+                    <Field label="Last known address">
+                        <span className="block">{addressLine}</span>
+                    </Field>
+                ) : null}
+            </dl>
         </div>
     );
 }

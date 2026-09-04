@@ -285,7 +285,7 @@ export function QSNoResultsModal({
 
                 {step === "phone-loading" && (
                     <div className="space-y-4 py-6 text-center">
-                        <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-accent-primary/20 border-t-accent-primary" />
+                        <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-border-subtle border-t-accent-primary" />
                         <p className={cx(qsModal.muted, "font-medium")}>Searching phone records...</p>
                     </div>
                 )}

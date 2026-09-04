@@ -154,36 +154,37 @@ export function EmailConfirmationModal({
   const selectedCount = selectedIds.length;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-bg-page/80 p-4 backdrop-blur-sm">
       <motion.div
-        initial={prefersReducedMotion ? false : { opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.2 }}
-        className="relative w-full max-w-md rounded-2xl bg-bg-page shadow-xl"
+        initial={prefersReducedMotion ? false : { opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.22, ease: [0.2, 0, 0, 1] }}
+        className="relative w-full max-w-md rounded-xl border border-border-subtle bg-bg-surface"
       >
-        <div className="border-b border-border-subtle px-6 py-5">
-          <h2 className="text-xl font-bold text-white">Choose emails for Dark Web scan</h2>
-          <p className="mt-1 text-sm text-text-tertiary">
-            Instantly search millions dark web forums, breach databases, and leak announcements to
-            identify if any of your accounts/credentials have been leaked.
+        <div className="border-b border-border-subtle px-5 py-5">
+          <h2 className="text-[20px] font-semibold leading-tight tracking-tight text-text-primary">
+            Choose emails for the dark-web scan
+          </h2>
+          <p className="mt-1.5 text-[15px] leading-relaxed text-text-secondary">
+            We&apos;ll search breach databases and leak announcements for the addresses you pick.
           </p>
         </div>
 
-        <div className="max-h-[40vh] overflow-y-auto px-6 py-4">
+        <div className="max-h-[40vh] overflow-y-auto px-5 py-4">
           <div className="mb-1 flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-text-tertiary">
-              Select up to {MAX_SELECTED} emails
+            <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-text-tertiary">
+              Select up to {MAX_SELECTED}
             </span>
             <span
               className={cx(
-                "text-xs font-semibold tabular-nums",
+                "text-[13px] font-medium tabular-nums",
                 atLimit ? "text-accent-primary" : "text-text-tertiary",
               )}
             >
-              {selectedCount} of {MAX_SELECTED} selected
+              {selectedCount} of {MAX_SELECTED}
             </span>
           </div>
-          <p className="mb-3 text-xs text-text-tertiary">All registered plans include unlimited emails</p>
+          <p className="mb-3 text-[13px] text-text-tertiary">Registered plans include unlimited emails</p>
 
           {emails.length > 0 ? (
             <div className="flex flex-wrap gap-2" role="group" aria-label="Emails to include">
@@ -200,11 +201,11 @@ export function EmailConfirmationModal({
                       // Chips size to their content and wrap naturally --
                       // two short emails share a row, a long one takes its
                       // own rather than being forced to fit and cut off.
-                      "max-w-full break-words rounded-full px-3.5 py-2 text-left text-xs font-medium transition",
+                      "max-w-full break-words rounded-full px-3.5 py-2 text-left text-[13px] font-medium transition-colors duration-150",
                       "outline-none focus-visible:ring-2 focus-visible:ring-accent-primary",
                       isSelected
                         ? "bg-accent-primary text-brand-ink"
-                        : "border border-border-subtle bg-bg-page text-white hover:bg-bg-surface",
+                        : "border border-border-subtle bg-bg-page text-text-primary hover:bg-bg-surface-secondary",
                       !isSelected && atLimit && "opacity-60",
                     )}
                   >
@@ -214,17 +215,17 @@ export function EmailConfirmationModal({
               })}
             </div>
           ) : (
-            <p className="rounded-lg bg-bg-page px-4 py-3 text-sm text-text-tertiary">
+            <p className="rounded-lg border border-border-subtle px-4 py-3 text-[14px] text-text-tertiary">
               We didn't find any emails on your broker profiles. Add one below to scan it.
             </p>
           )}
         </div>
 
         {/* Always visible -- not part of the scrollable email list above. */}
-        <div className="border-t border-border-subtle px-6 py-4">
+        <div className="border-t border-border-subtle px-5 py-4">
           <label
             htmlFor="add-email"
-            className="mb-2 block text-xs font-semibold uppercase tracking-wider text-text-tertiary"
+            className="mb-2 block text-[11px] font-medium uppercase tracking-[0.14em] text-text-tertiary"
           >
             Add another email
           </label>
@@ -239,10 +240,10 @@ export function EmailConfirmationModal({
               }}
               placeholder="another@email.com"
               className={cx(
-                "flex-1 rounded-lg border px-3 py-2.5 text-sm",
-                "bg-bg-page text-white placeholder-text-tertiary",
-                "border-border-subtle outline-none transition",
-                "focus:ring-2 focus:ring-accent-primary",
+                "h-12 flex-1 rounded-lg border px-3 text-[15px]",
+                "border-border-subtle bg-bg-page text-text-primary placeholder:text-text-tertiary",
+                "outline-none transition-colors duration-150",
+                "focus:border-accent-primary focus:ring-1 focus:ring-accent-primary",
               )}
             />
             <button
@@ -250,10 +251,10 @@ export function EmailConfirmationModal({
               onClick={handleAddEmail}
               disabled={!newEmailInput.trim()}
               className={cx(
-                "flex h-10 w-10 items-center justify-center rounded-lg font-semibold transition",
+                "flex h-12 w-12 items-center justify-center rounded-lg font-semibold transition-colors duration-150",
                 newEmailInput.trim()
                   ? "bg-accent-primary text-brand-ink hover:bg-accent-hover"
-                  : "bg-disabled text-text-tertiary cursor-not-allowed",
+                  : "cursor-not-allowed bg-disabled text-text-tertiary",
               )}
               aria-label="Add email"
             >
@@ -268,7 +269,7 @@ export function EmailConfirmationModal({
                 animate={{ opacity: 1, y: 0 }}
                 exit={prefersReducedMotion ? undefined : { opacity: 0, y: -6 }}
                 transition={{ duration: 0.18 }}
-                className="mt-3 rounded-lg border border-accent-orange/40 bg-accent-orange/10 p-3 text-sm text-accent-orange"
+                className="mt-3 rounded-lg border border-warning/40 p-3 text-[14px] text-warning"
                 role="alert"
               >
                 {error}
@@ -277,26 +278,26 @@ export function EmailConfirmationModal({
           </AnimatePresence>
         </div>
 
-        <div className="flex gap-3 border-t border-border-subtle px-6 py-4">
+        <div className="flex gap-3 border-t border-border-subtle px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
           <button
             type="button"
             onClick={onCancel}
-            className="flex-1 rounded-lg bg-bg-surface py-2.5 font-semibold text-white hover:bg-bg-surface-secondary transition"
+            className="inline-flex min-h-12 flex-1 items-center justify-center rounded-lg border border-border-subtle bg-bg-page px-4 text-[15px] font-semibold text-text-primary transition-colors duration-150 hover:bg-bg-surface-secondary"
           >
-            Skip Breach Scan
+            Skip breach scan
           </button>
           <button
             type="button"
             onClick={handleConfirm}
             disabled={selectedCount === 0}
             className={cx(
-              "flex-1 rounded-lg py-2.5 font-semibold transition",
+              "inline-flex min-h-12 flex-1 items-center justify-center rounded-lg px-4 text-[15px] font-semibold transition-colors duration-150",
               selectedCount > 0
-                ? "bg-accent-primary text-white hover:bg-accent-hover"
-                : "bg-disabled text-text-tertiary cursor-not-allowed",
+                ? "bg-accent-primary text-brand-ink hover:bg-accent-hover"
+                : "cursor-not-allowed bg-disabled text-text-tertiary",
             )}
           >
-            Scan Dark Web
+            Scan dark web
           </button>
         </div>
       </motion.div>

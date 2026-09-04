@@ -87,8 +87,8 @@ export function QSResultSingleModal({
                     className={cx(
                         qsModal.secondaryBtn,
                         "flex-1",
-                        "duration-700 ease-in-out",
-                        showButtons ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-8 opacity-0",
+                        "transition-[opacity,transform] duration-300",
+                        showButtons ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-4 opacity-0",
                     )}
                 >
                     This isn&apos;t me
@@ -99,8 +99,8 @@ export function QSResultSingleModal({
                     className={cx(
                         qsModal.primaryBtn,
                         "flex-1",
-                        "duration-700 ease-in-out",
-                        showButtons ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-8 opacity-0",
+                        "transition-[opacity,transform] duration-300",
+                        showButtons ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-4 opacity-0",
                     )}
                 >
                     Yes, this is me

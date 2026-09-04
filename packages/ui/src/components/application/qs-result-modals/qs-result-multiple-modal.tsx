@@ -94,15 +94,13 @@ export function QSResultMultipleModal({
                             onKeyDown={(e) => e.key === "Enter" && handleSelect(profile)}
                             aria-label={`Select profile: ${profile.fullName}`}
                             className={cx(
-                                "cursor-pointer rounded-lg transition",
-                                selected
-                                    ? "ring-1 ring-accent-primary"
-                                    : "hover:ring-1 hover:ring-accent-primary/50",
+                                "cursor-pointer rounded-lg transition-colors duration-150",
+                                selected ? "ring-1 ring-accent-primary" : "hover:bg-bg-page",
                             )}
                         >
                             <ProfileCard
                                 profile={profile}
-                                className={selected ? "border-accent-primary bg-accent-primary/20" : undefined}
+                                className={selected ? "border-accent-primary" : undefined}
                             />
                         </div>
                     );
@@ -116,10 +114,10 @@ export function QSResultMultipleModal({
                     className={cx(
                         qsModal.secondaryBtn,
                         "w-full",
-                        "duration-700 ease-in-out",
+                        "transition-[opacity,transform] duration-300",
                         showNoneButton
                             ? "translate-y-0 opacity-100"
-                            : "pointer-events-none translate-y-8 opacity-0",
+                            : "pointer-events-none translate-y-4 opacity-0",
                     )}
                 >
                     None of these are me

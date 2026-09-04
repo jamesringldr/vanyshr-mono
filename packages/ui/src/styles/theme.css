@@ -3,6 +3,8 @@
     --font-body: "Ubuntu", -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
     --font-display: "Ubuntu", -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
     --font-mono: ui-monospace, "Roboto Mono", SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    /* Reserved for status-log / terminal output — never general UI chrome. */
+    --font-terminal: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
 
     /* FONT SIZE */
     --text-xs: calc(var(--spacing) * 3);
