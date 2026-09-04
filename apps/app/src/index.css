@@ -5,24 +5,9 @@
   --font-sans: "Ubuntu", ui-sans-serif, system-ui, sans-serif;
   --tracking-tighter: -0.05em;
 
-  --color-accent-primary: #14ABFE;
-  --color-brand-dark: #0A1628;
-  --color-accent-hover: #0B8FD9;
-  --color-accent-orange: #FF5E1F;
-  --color-accent-risk: #FF5E1F;
-  --color-bg-page: #282828;
-  --color-bg-surface: #333333;
-  --color-bg-surface-secondary: #404040;
-  --color-text-primary: #FFFFFF;
-  --color-text-secondary: #A3A3A3;
-  --color-text-tertiary: #A3A3A3;
-  --color-border-subtle: rgb(255 255 255 / 0.1);
-  --color-border-accent: #14ABFE;
-  --color-success: #3DDC97;
-  --color-warning: #FF5E1F;
-  --color-error: #E5484D;
-  --color-disabled: #404040;
-  --color-brand-ink: #1A1A1A;
+  /* Color tokens live in @vanyshr/ui's theme.css (imported transitively via
+     ./index.css -> globals.css -> theme.css) — this file no longer
+     redeclares them. See theme.css's "APP-SHELL TOKENS" section. */
 }
 
 /* App-specific styles can be added here */
