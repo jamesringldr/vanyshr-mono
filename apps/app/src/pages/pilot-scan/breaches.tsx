@@ -1,4 +1,5 @@
 import { buildRiskAreas, type ConsolidatedProfile } from "./consolidated-profile";
+import { FieldChips } from "./field-chips";
 
 const MONTHS = [
     "January", "February", "March", "April", "May", "June",
@@ -29,52 +30,46 @@ export function BreachesBody({ profile }: { profile: ConsolidatedProfile }) {
 
     return (
         <div>
-            <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">
-                Breaches
-            </h1>
-            <p className="mt-1.5 text-sm text-text-secondary">
+            <h1 className="sr-only">Breaches</h1>
+            <p className="text-[13px] font-medium uppercase tracking-[0.14em] text-text-tertiary">
+                Dark web
+            </p>
+            <p className="mt-2 text-[15px] leading-relaxed text-text-secondary">
+                A breach is a leak from a company or site — emails, passwords, or personal
+                details that then get posted or traded.
+            </p>
+            <p className="mt-1.5 text-[13px] text-text-tertiary">
                 {breachCards.length === 0
                     ? "No breaches found for any confirmed email"
-                    : `${breachCards.length} breach${breachCards.length === 1 ? "" : "es"} across ${emailCount} email${emailCount === 1 ? "" : "s"}`}
+                    : `${breachCards.length} found across ${emailCount} email${emailCount === 1 ? "" : "s"}`}
             </p>
 
-            <div className="mt-6">
+            <div className="mt-5">
                 {breachCards.length === 0 ? (
-                    <div className="rounded-2xl bg-bg-surface-secondary p-4 sm:p-5">
-                        <p className="text-sm text-text-secondary">
+                    <div className="rounded-xl border border-border-subtle px-4 py-4">
+                        <p className="text-[15px] text-text-secondary">
                             No breaches found for any confirmed email.
                         </p>
                     </div>
                 ) : (
-                    <ul className="flex flex-col gap-2.5">
+                    <ul className="flex flex-col gap-2">
                         {breachCards.map((b, i) => (
                             <li
                                 key={`${b.email}-${b.name}-${i}`}
-                                className="rounded-2xl bg-bg-surface-secondary p-4 sm:p-5"
+                                className="rounded-xl border border-border-subtle px-4 py-3.5"
                             >
                                 <div className="flex items-baseline justify-between gap-3">
-                                    <p className="truncate text-[15px] font-semibold text-white">
+                                    <p className="truncate text-[15px] font-semibold text-text-primary">
                                         {b.name}
                                     </p>
-                                    <p className="shrink-0 text-xs text-text-secondary">
+                                    <p className="shrink-0 text-[12px] tabular-nums text-text-tertiary">
                                         {formatBreachDate(b.date, b.year)}
                                     </p>
                                 </div>
-                                <p className="mt-0.5 truncate text-xs text-text-secondary">
+                                <p className="mt-0.5 truncate text-[13px] text-text-secondary">
                                     {b.email}
                                 </p>
-                                {b.fieldsExposed.length > 0 && (
-                                    <div className="mt-2.5 flex flex-wrap gap-1.5">
-                                        {b.fieldsExposed.map((field) => (
-                                            <span
-                                                key={field}
-                                                className="rounded-full bg-white/10 px-2 py-0.5 text-[11px] text-text-secondary"
-                                            >
-                                                {field}
-                                            </span>
-                                        ))}
-                                    </div>
-                                )}
+                                <FieldChips fields={b.fieldsExposed} />
                             </li>
                         ))}
                     </ul>

@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router";
 import {
     Menu,
     CreditCard,
+    Mail,
     Users,
     MapPin,
     Phone,
@@ -33,6 +34,7 @@ interface PreProfileData {
         age: number | null;
         currentAddress: ParsedAddress | null;
         primaryPhone: string;
+        emails: string[];
     };
     alsoKnownAs: string[];
     familyAndFriends: { name: string; age?: number; relationship?: string }[];
@@ -65,6 +67,7 @@ function convertToPreProfileData(profile: ConsolidatedProfile): PreProfileData {
             age: profile.age,
             currentAddress: profile.primary_address ? parseFullAddress(profile.primary_address) : null,
             primaryPhone: primaryPhone ? formatPhone(primaryPhone) : "—",
+            emails: profile.emails ?? [],
         },
         alsoKnownAs: (profile.aliases || []).map(toProperCase),
         // Shared last name (likely immediate family, e.g. a spouse or kid) sorts
@@ -126,20 +129,20 @@ function DataTypeCard({
         <section
             role="region"
             aria-label={title}
-            className="rounded-2xl bg-bg-surface-secondary p-4"
+            className="rounded-xl border border-border-subtle px-4 py-3.5"
         >
             <div className="flex items-center gap-2">
-                <Icon className="h-5 w-5 shrink-0 text-text-secondary" aria-hidden />
-                <h3 className="text-sm font-semibold text-white">{title}</h3>
+                <Icon className="h-4 w-4 shrink-0 text-text-tertiary" aria-hidden />
+                <h3 className="text-[13px] font-medium uppercase tracking-[0.14em] text-text-tertiary">{title}</h3>
             </div>
-            <div className="mt-3">{children}</div>
+            <div className="mt-2.5">{children}</div>
         </section>
     );
 }
 
 function Pill({ children }: { children: React.ReactNode }) {
     return (
-        <span className="inline-flex items-center rounded-full px-3 py-1.5 text-sm bg-white/10 text-white">
+        <span className="inline-flex items-center rounded-full border border-border-subtle px-2.5 py-1 text-[13px] text-text-primary">
             {children}
         </span>
     );
@@ -165,8 +168,8 @@ function LimitedTwoColumnGrid<T>({
                 <li key={i}>{renderItem(item, i)}</li>
             ))}
             {remaining > 0 && (
-                <li className="text-sm font-medium text-text-secondary">
-                    {remaining} More...
+                <li className="text-[13px] font-medium text-text-tertiary">
+                    +{remaining} more
                 </li>
             )}
         </ul>
@@ -198,40 +201,111 @@ export function PreProfileBody({
                 </p>
             )}
 
-            <div className="mt-6 space-y-4">
+            {selfScan ? (
+                <p className="mt-4 text-[15px] leading-relaxed text-text-secondary">
+                    This is the public record we matched to you — names, numbers, and places already listed online.
+                </p>
+            ) : null}
+
+            <div className="mt-5 space-y-3">
                 <section
                     role="region"
                     aria-label="Contact"
-                    className="rounded-2xl bg-bg-surface-secondary p-4 sm:p-5"
+                    className="rounded-xl border border-border-subtle px-4 py-4"
                 >
-                    <h2 className="text-2xl font-bold text-white">
+                    <h2 className="text-[18px] font-semibold tracking-tight text-text-primary">
                         {data.contact.fullName}
-                        {data.contact.age != null && <span className="text-sm text-text-secondary font-normal"> ({data.contact.age})</span>}
+                        {data.contact.age != null && (
+                            <span className="ml-1.5 text-[13px] font-normal text-text-tertiary">{data.contact.age}</span>
+                        )}
                     </h2>
-                    <div className="mt-4 grid grid-cols-2 gap-4">
+                    <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3">
                         <div>
-                            <p className="text-xs font-semibold uppercase tracking-wide text-text-secondary">
+                            <dt className="text-[11px] font-medium uppercase tracking-[0.14em] text-text-tertiary">
                                 Primary phone
-                            </p>
-                            <p className="mt-0.5 font-mono text-sm tabular-nums text-white">
+                            </dt>
+                            <dd className="mt-1 font-mono text-[14px] tabular-nums text-text-primary">
                                 {data.contact.primaryPhone}
-                            </p>
+                            </dd>
                         </div>
                         <div>
-                            <p className="text-xs font-semibold uppercase tracking-wide text-text-secondary">
+                            <dt className="text-[11px] font-medium uppercase tracking-[0.14em] text-text-tertiary">
                                 Current address
-                            </p>
-                            {data.contact.currentAddress ? (
-                                <div className="mt-0.5 text-sm text-white">
-                                    {data.contact.currentAddress.street && <p>{data.contact.currentAddress.street}</p>}
-                                    {cityState(data.contact.currentAddress) && <p>{cityState(data.contact.currentAddress)}</p>}
-                                </div>
-                            ) : (
-                                <p className="mt-0.5 text-sm text-white">—</p>
-                            )}
+                            </dt>
+                            <dd className="mt-1 text-[14px] leading-snug text-text-primary">
+                                {data.contact.currentAddress ? (
+                                    <>
+                                        {data.contact.currentAddress.street && <p>{data.contact.currentAddress.street}</p>}
+                                        {cityState(data.contact.currentAddress) && <p>{cityState(data.contact.currentAddress)}</p>}
+                                    </>
+                                ) : (
+                                    "—"
+                                )}
+                            </dd>
                         </div>
-                    </div>
+                    </dl>
                 </section>
+
+                {data.employment.length > 0 && (
+                    <DataTypeCard icon={Briefcase} title="Employment">
+                        <ul className="space-y-2">
+                            {data.employment.map((job, i) => (
+                                <li key={i} className="text-[14px] text-text-primary">
+                                    {toProperCase(job.label)}
+                                    {job.isCurrent && (
+                                        <span className="ml-1 text-text-tertiary">
+                                            (Current)
+                                        </span>
+                                    )}
+                                </li>
+                            ))}
+                        </ul>
+                    </DataTypeCard>
+                )}
+
+                {data.familyAndFriends.length > 0 && (
+                    <DataTypeCard icon={Users} title="Family & Friends">
+                        <LimitedTwoColumnGrid
+                            items={data.familyAndFriends}
+                            renderItem={(item) => (
+                                <span className="text-[14px] text-text-primary">
+                                    {item.name}
+                                </span>
+                            )}
+                        />
+                    </DataTypeCard>
+                )}
+
+                {data.homeSpecs.length > 0 && (
+                    <DataTypeCard icon={Home} title="Residential details">
+                        <div className="space-y-4">
+                            {data.homeSpecs.map((home, i) => {
+                                return (
+                                    <div key={i}>
+                                        {home.address && (
+                                            <div className="mb-2 text-[14px] text-text-primary">
+                                                {home.address.street && <p>{home.address.street}</p>}
+                                                {cityStateZip(home.address) && <p>{cityStateZip(home.address)}</p>}
+                                            </div>
+                                        )}
+                                        <div className="grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-3">
+                                            {home.facts.map((fact, j) => (
+                                                <div key={j}>
+                                                    <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-text-tertiary">
+                                                        {fact.label}
+                                                    </p>
+                                                    <p className="mt-0.5 text-[14px] text-text-primary">
+                                                        {fact.value}
+                                                    </p>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </DataTypeCard>
+                )}
 
                 {data.alsoKnownAs.length > 0 && (
                     <DataTypeCard icon={CreditCard} title="Also Known As">
@@ -243,33 +317,19 @@ export function PreProfileBody({
                     </DataTypeCard>
                 )}
 
-                {data.familyAndFriends.length > 0 && (
-                    <DataTypeCard icon={Users} title="Family & Friends">
-                        <LimitedTwoColumnGrid
-                            items={data.familyAndFriends}
-                            renderItem={(item) => (
-                                <span className="text-sm text-white">
-                                    {item.name}
-                                </span>
-                            )}
-                        />
-                    </DataTypeCard>
-                )}
-
                 {data.pastAddresses.length > 0 && (
                     <DataTypeCard icon={MapPin} title="Past addresses">
                         <LimitedTwoColumnGrid
                             items={data.pastAddresses}
-                            maxVisible={3}
                             renderItem={(addr) => (
                                 <div>
                                     {addr.street && (
-                                        <p className="text-sm text-white">
+                                        <p className="text-[14px] text-text-primary">
                                             {addr.street}
                                         </p>
                                     )}
                                     {cityState(addr) && (
-                                        <p className="text-sm font-normal text-text-secondary">
+                                        <p className="text-[13px] font-normal text-text-secondary">
                                             {cityState(addr)}
                                         </p>
                                     )}
@@ -284,7 +344,7 @@ export function PreProfileBody({
                         <LimitedTwoColumnGrid
                             items={data.pastPhones}
                             renderItem={(phone) => (
-                                <span className="font-mono text-sm tabular-nums text-white">
+                                <span className="font-mono text-[14px] tabular-nums text-text-primary">
                                     {phone}
                                 </span>
                             )}
@@ -292,20 +352,14 @@ export function PreProfileBody({
                     </DataTypeCard>
                 )}
 
-                {data.employment.length > 0 && (
-                    <DataTypeCard icon={Briefcase} title="Employment">
-                        <ul className="space-y-2">
-                            {data.employment.map((job, i) => (
-                                <li key={i} className="text-sm text-white">
-                                    {toProperCase(job.label)}
-                                    {job.isCurrent && (
-                                        <span className="text-text-secondary ml-1">
-                                            (Current)
-                                        </span>
-                                    )}
-                                </li>
-                            ))}
-                        </ul>
+                {data.contact.emails.length > 0 && (
+                    <DataTypeCard icon={Mail} title="Emails">
+                        <LimitedTwoColumnGrid
+                            items={data.contact.emails}
+                            renderItem={(email) => (
+                                <span className="truncate text-[14px] text-text-primary">{email}</span>
+                            )}
+                        />
                     </DataTypeCard>
                 )}
 
@@ -313,42 +367,11 @@ export function PreProfileBody({
                     <DataTypeCard icon={GraduationCap} title="Education">
                         <ul className="space-y-1.5">
                             {data.education.map((entry, i) => (
-                                <li key={i} className="text-sm text-white">
+                                <li key={i} className="text-[14px] text-text-primary">
                                     {entry}
                                 </li>
                             ))}
                         </ul>
-                    </DataTypeCard>
-                )}
-
-                {data.homeSpecs.length > 0 && (
-                    <DataTypeCard icon={Home} title="Residential details">
-                        <div className="space-y-4">
-                            {data.homeSpecs.map((home, i) => {
-                                return (
-                                    <div key={i}>
-                                        {home.address && (
-                                            <div className="mb-2 text-sm text-white">
-                                                {home.address.street && <p>{home.address.street}</p>}
-                                                {cityStateZip(home.address) && <p>{cityStateZip(home.address)}</p>}
-                                            </div>
-                                        )}
-                                        <div className="grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-3">
-                                            {home.facts.map((fact, j) => (
-                                                <div key={j}>
-                                                    <p className="text-xs font-semibold uppercase tracking-wide text-text-secondary">
-                                                        {fact.label}
-                                                    </p>
-                                                    <p className="mt-0.5 text-sm text-white">
-                                                        {fact.value}
-                                                    </p>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
                     </DataTypeCard>
                 )}
 

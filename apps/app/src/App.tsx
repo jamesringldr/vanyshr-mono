@@ -36,7 +36,6 @@ import { PilotLoadingPage } from "./pages/pilot-scan/loading";
 import { PilotRiskSummaryPage } from "./pages/pilot-scan/risk-summary";
 import { PilotPreProfilePage } from "./pages/pilot-scan/pre-profile";
 import { PilotReportPage } from "./pages/pilot-scan/report";
-import { VanyshScanEntryPage } from "./pages/vanysh-scan/entry";
 import { SelfScanEntryPage } from "./pages/self-scan/entry";
 import { SelfScanSplashPage } from "./pages/self-scan/splash";
 import { SelfScanLoadingPage } from "./pages/self-scan/loading";
@@ -129,7 +128,7 @@ export default function App() {
     return (
         <Routes>
             {/* Dashboard — DevOnly until ready for users */}
-            <Route path="/" element={<VanyshScanEntryPage />} />
+            <Route path="/" element={<Navigate to="/self-scan" replace />} />
             <Route path="/dashboard" element={<DevOnly><RequireAuth productionOnly><DashboardHome /></RequireAuth></DevOnly>} />
             <Route path="/dashboard/home" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard/dark-web" element={<DevOnly><RequireAuth productionOnly><DarkWebPage /></RequireAuth></DevOnly>} />
