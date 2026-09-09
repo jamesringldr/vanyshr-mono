@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Referral landing page at `/referral`, addressed to the person receiving an invite: the referrer's name is read from the link's query string (`?firstName=…&lastName=…`, falling back to "A friend"), over an animated `<Vinnie>` hero and a free-scan CTA. The previous five-slide carousel moves to `/referral-v2` and is still linked from the page.
 - Animated `<Vinnie>` mascot in `@vanyshr/ui` — live SVG with 16 expressions (idle, focused, surprised, …). Quick-scan compiling and scanning pages use it in place of the static icon; wordmark, favicon, and other pages stay PNG.
 
 - `address-parser.ts` — parses broker address lines into street/city/state/zip, normalising street suffixes (LN ≡ Lane) and state names (Missouri ≡ MO)
@@ -55,6 +56,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- `RollingThreatWord` is extracted out of the self-scan entry page and shared with `/referral`, taking its word list as a prop. Its slot is now sized to the widest *rendered* word rather than the longest by character count — equal-length words differ in width, so the slot was under-sized and the line shifted as the word cycled. The positioning pill moved to `scanUi.pill` for the same reason.
 - The email step now asks which addresses to check for breaches, rather than which ones to remove. Every address the brokers found stays on the report either way; choosing one adds it to the dark web scan and nothing else. Previously, declining to scan an address also deleted it from the user's own results, because the same flag controlled both. Nothing is selected by default, and a quickscan covers up to three — a fourth prompts to sign up for unlimited monitoring.
 - Intro-scan picker is now FPS → AnyWho → Zaba → NPD. Only a genuine `no_results` walks to the next broker; a bot-check/block is retried once and then errors instead of showing another site's list. After a pick, that broker's full profile is scraped first so the other summaries are scored against phones/relatives the FPS summary page never has
 - context.dev summary scrape timeout is 60s (was 25s, with NPD capped at 10s) so uncached Zaba/NPD are not aborted while the other brokers overlap in the background
