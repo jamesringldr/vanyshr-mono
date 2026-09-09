@@ -58,7 +58,8 @@ import { OnboardingRemovalStrategyPage } from "./pages/onboarding/removal-strate
 // Other pages
 import { Pricing } from "./pages/pricing";
 import { NotFound } from "./pages/not-found";
-import { ReferralSlider } from "./pages/referral";
+import { ReferralPage } from "./pages/referral";
+import { ReferralSlider } from "./pages/referral/slider";
 import { Invite } from "./pages/invite";
 import { InviteLoading } from "./pages/invite-loading";
 
@@ -183,7 +184,8 @@ export default function App() {
             <Route path="/settings/notifications" element={<RequireAuth><NotificationsPage /></RequireAuth>} />
 
             {/* Referral */}
-            <Route path="/referral" element={<ReferralSlider />} />
+            <Route path="/referral" element={<ReferralPage />} />
+            <Route path="/referral-v2" element={<ReferralSlider />} />
             <Route path="/invite" element={<Invite />} />
             <Route path="/invite/loading/:scanId?" element={<InviteLoading />} />
 

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { Menu, X } from "lucide-react";
@@ -8,47 +8,9 @@ import { Vinnie } from "@vanyshr/ui/components/foundations";
 import { cx } from "@/utils/cx";
 import { supabase } from "@/lib/supabase";
 import { EASE_OUT, scanUi } from "./chrome";
+import { RollingThreatWord } from "./rolling-threat-word";
 
 const VINNIE_CYCLE = ["idle", "angry", "scared", "focused", "surprised", "idle"] as const;
-
-const ROLL_WORDS = ["HACKERS", "SCAMMERS", "SPAMMERS"] as const;
-const ROLL_MS = 2200;
-
-function RollingThreatWord({ reducedMotion }: { reducedMotion: boolean }) {
-  const [index, setIndex] = useState(0);
-
-  useEffect(() => {
-    if (reducedMotion) return;
-    const id = window.setInterval(() => {
-      setIndex((i) => (i + 1) % ROLL_WORDS.length);
-    }, ROLL_MS);
-    return () => window.clearInterval(id);
-  }, [reducedMotion]);
-
-  if (reducedMotion) {
-    return <span className="text-warning">HACKERS</span>;
-  }
-
-  return (
-    <span className="relative inline-grid overflow-hidden align-baseline" aria-live="polite">
-      <span className="invisible col-start-1 row-start-1 font-semibold" aria-hidden>
-        SCAMMERS
-      </span>
-      <AnimatePresence mode="wait" initial={false}>
-        <motion.span
-          key={ROLL_WORDS[index]}
-          initial={{ y: "70%", opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          exit={{ y: "-70%", opacity: 0 }}
-          transition={{ duration: 0.34, ease: EASE_OUT }}
-          className="col-start-1 row-start-1 font-semibold text-warning"
-        >
-          {ROLL_WORDS[index]}
-        </motion.span>
-      </AnimatePresence>
-    </span>
-  );
-}
 
 /**
  * Self-scan entry — /self-scan.
@@ -107,14 +69,7 @@ export function SelfScanEntryPage() {
       <main className={cx(scanUi.column, "min-h-0 flex-1 px-6 pb-[max(2.5rem,env(safe-area-inset-bottom))]")}>
         <div className="flex min-h-0 flex-[6] flex-col">
           <div className="mt-5 flex justify-center">
-            <span
-              className={cx(
-                "rounded-full bg-accent-primary px-4 py-1.5 text-center text-[12px] font-semibold leading-tight text-brand-ink",
-                "shadow-[0_0_10px_var(--color-accent-primary),0_0_28px_color-mix(in_srgb,var(--color-accent-primary)_50%,transparent)]",
-              )}
-            >
-              Agentic Consumer Cyber Defense
-            </span>
+            <span className={scanUi.pill}>Agentic Consumer Cyber Defense</span>
           </div>
 
           <div className="flex min-h-0 flex-1 items-center justify-center" aria-hidden>

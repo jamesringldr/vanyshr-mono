@@ -30,6 +30,10 @@ export const scanUi = {
     "px-3 py-1.5 text-[13px] font-medium text-text-secondary",
   ),
   kicker: "text-[11px] font-medium uppercase tracking-[0.14em] text-text-tertiary",
+  pill: cx(
+    "rounded-full bg-accent-primary px-4 py-1.5 text-center text-[12px] font-semibold leading-tight text-brand-ink",
+    "shadow-[0_0_10px_var(--color-accent-primary),0_0_28px_color-mix(in_srgb,var(--color-accent-primary)_50%,transparent)]",
+  ),
   column: "mx-auto flex w-full max-w-md flex-col",
   overlay: "fixed inset-0 z-40 bg-bg-page/80 backdrop-blur-sm",
   sheet: cx(
