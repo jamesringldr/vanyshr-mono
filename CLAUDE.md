@@ -59,3 +59,19 @@ Only merge `staging` → `main` when explicitly instructed by the user. Never su
 ## Reference
 - Full CI/CD protocol: `docs/CICD.md`
 - Project memory: see auto-memory files
+
+## Design
+
+Read `docs/DESIGN.md` BEFORE writing or editing ANY UI code. No exceptions.
+If that file does not exist, STOP — do not proceed with styling.
+
+Hard rules:
+- No raw hex, rgb(), or rgba() in component files — use `packages/ui/src/styles/tokens.css` custom props.
+- No arbitrary px values for spacing — use the spacing scale (DESIGN.md §4).
+- No font families not in DESIGN.md §3.
+- No `style={{ }}` with color or spacing values — use className and tokens.
+- When a component exists in `docs/COMPONENTS.md`, use it. Do not reinvent.
+- When ambiguous, STOP and ask. Do not make a design decision independently.
+
+Token file: `packages/ui/src/styles/tokens.css`
+Component catalog: `docs/COMPONENTS.md`
