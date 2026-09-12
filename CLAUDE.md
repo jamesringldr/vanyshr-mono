@@ -41,6 +41,23 @@ Only merge `staging` → `main` when explicitly instructed by the user. Never su
 - Monorepo: `apps/app` (consumer), `packages/ui`, `supabase/` — admin UI is private repo `vanyshr-admin` (see `docs/ADMIN_APP.md`)
 - Package manager: pnpm + Turborepo
 
+## Component Library (BoardUI — strict)
+- BoardUI (`mcp__boardui__*` tools + the installed `boardui` agent skill) is
+  the required component source for new and reworked UI — structure,
+  variants, and accessibility only. Check `mcp__boardui__list_components`
+  before hand-building anything.
+- **Colors stay ours.** Restyle every BoardUI component against this repo's
+  own token classes (`bg-bg-page`, `text-accent-primary`, etc.), never
+  BoardUI's own semantic tokens or its `theme.css`. `packages/ui/src/styles/theme.css`
+  (brick-neutral/signal-blue) remains the single source of truth for color.
+- **Icons are Tabler, not BoardUI's default.** BoardUI ships `@remixicon/react`
+  by convention — use `@tabler/icons-react` instead wherever a BoardUI usage
+  example shows an icon. See `docs/BRAND_GUIDELINES.md` ("Icons").
+- Full policy and rationale: `docs/BRAND_GUIDELINES.md` ("Component library").
+- Read `docs/BRAND_GUIDELINES.md` and `docs/COMPONENTS.md` before touching
+  any UI code — colors, spacing, motion, and states are specified there,
+  not left to judgment. Update `COMPONENTS.md` as each page migrates.
+
 ## Key Conventions
 - All pre-auth DB writes go through service-role Edge Functions, never direct from client
 - RLS uses `get_current_user_profile_id()` — not `auth.uid()` directly
