@@ -9,8 +9,9 @@
 #   2. Design-token guard — blocks NEW hardcoded hex colors (Tailwind
 #      arbitrary-value classes like bg-[#282828]) from entering apps/app or
 #      packages/ui .tsx files. theme.css is the single source of truth for
-#      color values (see design.md) — everything else should reach for a
-#      token class (bg-bg-page, text-accent-primary, etc.), not a literal.
+#      color values (see docs/DESIGN.md) — everything else should
+#      reach for a token class (bg-bg-page, text-accent-primary, etc.), not
+#      a literal.
 #
 # Installed via (run once per clone, applies to every worktree of this repo):
 #   git config core.hooksPath .githooks

@@ -59,3 +59,4 @@ _sandbox/**/__pycache__/
 # target lives in another repo, so committing this would break every other
 # checkout. `.claude/commands/` is real content and stays tracked.
 .claude/operations
+journal.md
