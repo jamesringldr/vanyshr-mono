@@ -1,7 +1,7 @@
 # Vanyshr Design Bible
 
 *Last Updated: September 12, 2026*
-*Version: 6.1 — Brick Neutral / Signal Blue (Dark Mode Only)*
+*Version: 6.2 — Brick Neutral / Signal Blue (Dark Mode Only)*
 
 > **Source of truth:** `packages/ui/src/styles/theme.css` defines every color
 > value used in the app. This doc describes and explains those tokens — it
@@ -10,11 +10,57 @@
 >
 > A pre-commit hook (`.githooks/pre-commit`, wired via `core.hooksPath`)
 > blocks new hardcoded hex/Tailwind-arbitrary-value colors (`bg-[#...]`)
-> outside `theme.css` — use a token class instead. See "Enforcement" below.
+> outside `theme.css` — use a token class instead. See "§10 — Anti-patterns" below.
 
 ---
 
-## Design philosophy
+## §0 — Quick Reference
+
+**Composition archetype:** single-column, mobile-first application shell —
+not a marketing grid. `sm:`/`md:` are the only breakpoints in real use
+across `apps/app` (no `lg:`/`xl:` usage found in the actual pages); don't
+design against a desktop-grid mental model. Content width is the app-shell
+container, not full-bleed. Framing is flat — hairline borders and
+elevation steps (§2 → Neutrals, §6 → Radius/Shadow), not glass/blur/
+skeuomorphic surfaces.
+
+**Hard rules — no exceptions:**
+- Never hardcode hex, `rgb()`, or a color name. Use a token class or
+  `var(--color-*)` from `theme.css`.
+- Never use a spacing value off the 4px scale. Use `--space-*` tokens (§4).
+- Never introduce a font family not declared in §3.
+- Never write `style={{ }}` with a color or spacing literal — className +
+  tokens only.
+- Check `docs/COMPONENTS.md` (§11) before building a component. Use what's
+  cataloged; don't reinvent.
+- When ambiguous, stop and ask. Don't make an independent styling decision.
+
+**Token names, by category** (values and full context live in their own sections):
+- **Color** — brand: `brand-500`, `brand-600`, `brand-ink`, `navy-hero`;
+  neutrals: `gray-25`…`gray-950`, `white`; semantic: `success-500`,
+  `warning-500`, `error-500`; app-shell: `accent-primary`, `accent-hover`,
+  `accent-orange`, `accent-risk`, `brand-dark`, `bg-page`, `bg-surface`,
+  `bg-surface-secondary`, `border-subtle`, `border-accent`, `disabled`
+- **Typography roles** — `display`, `title`, `heading`, `body`, `caption`,
+  `label`, `data`
+- **Spacing** — `space-1` … `space-12`
+- **Radius** — `radius-none`, `radius-xs`, `radius-sm`, `radius-md`,
+  `radius-lg`, `radius-xl`, `radius-2xl`, `radius-3xl`, `radius-full`
+- **Shadow** — `shadow-xs` … `shadow-3xl`
+- **Icon sizes** — `sm` (16px), `md` (20px), `lg` (24px), `xl` (28px)
+
+**Links:** token source `packages/ui/src/styles/theme.css` · non-Tailwind
+aliases `packages/ui/src/styles/globals.css` · component catalog
+`docs/COMPONENTS.md`.
+
+**Components available:** none yet cataloged as adopted — see
+`docs/COMPONENTS.md` (BoardUI migration is page-by-page, in progress). The
+legacy `packages/ui/src/components` tree still exists but is being
+replaced, not a reference for how a component should look.
+
+---
+
+## §1 — Principles (≤5)
 
 Stated once, applies everywhere: **brick neutrals with signal blue as the
 single brand accent.** One brand hue, not a multi-color system. Status is
@@ -25,19 +71,9 @@ Previous versions of this doc (v5.0 and earlier) described a "Deep Navy"
 palette (`#0B1B2B` background, `#112538` surfaces). That palette is
 retired — v6.0 replaces it everywhere it was implemented.
 
-### Composition archetype
-
-One line, before any token: this is a **single-column, mobile-first
-application shell** — not a marketing grid. `sm:`/`md:` are the only
-breakpoints in real use across `apps/app` (no `lg:`/`xl:` usage found in the
-actual pages); don't design against a desktop-grid mental model. Content
-width is the app-shell container, not full-bleed. Framing is flat —
-hairline borders and elevation steps (§ Color Palette → Neutrals), not
-glass/blur/skeuomorphic surfaces.
-
 ---
 
-## Color Palette
+## §2 — Color Tokens
 
 ### Brand — single accent
 
@@ -109,55 +145,7 @@ same tokens, not independent values.
 
 ---
 
-## Component rules
-
-- **Status chips are outline-only, never filled.** This is a stated rule,
-  not a style preference. `badges.tsx`/`badge-groups.tsx`/`featured-icon.tsx`
-  still use filled brand-tint badges from the old system — known debt, not
-  yet fixed.
-- **Primary buttons**: `bg-accent-primary` at rest, `hover:bg-accent-hover`
-  on hover (darkens, doesn't brighten), text/icon in `text-brand-ink`
-  (dark ink on the bright fill — not white).
-- **Secondary buttons**: dark surface (`bg-bg-surface`, hover
-  `bg-bg-surface-secondary`), white text. Not a light/white pill — that
-  was a leftover from the old system and has been converted where found.
-
----
-
-## Component library
-
-**BoardUI is the required component source going forward — structure only.**
-Migration happens page-by-page, in place, as each page gets touched; there's
-no separate bulk-migration effort. Live catalog of what's actually been
-adopted: `docs/COMPONENTS.md` — update it as each page migrates. The
-existing `packages/ui/src/components` tree is the legacy set being
-replaced, not a reference for how a component should look.
-
-- **Workflow**: before hand-building any component, check
-  `mcp__boardui__list_components`. Read source/props with `get_component`,
-  get a working snippet with `get_usage_examples`, then write it in with
-  `install_components`. The installed `boardui` agent skill (`Skill` tool)
-  carries the full catalog, theming, and page patterns for deeper reference.
-- **Colors stay ours — the one rule that matters.** BoardUI ships its own
-  opinionated palette/typography/shadows (its own `theme.css`). Do not
-  install that. Restyle every BoardUI component against *this* doc's token
-  classes (`bg-bg-page`, `text-accent-primary`, `border-border-subtle`,
-  etc.) instead of BoardUI's own semantic tokens
-  (`bg-background-primary-default`, `text-text-primary`, etc.). BoardUI is
-  adopted for structure/variants/accessibility (React Aria, `cva`-driven
-  variants) — never for its color system. (A full palette swap was
-  trial-run on 2026-09-10 and reverted — see `packages/ui/src/styles/theme.css`
-  git history around commit `ade0abe` if curious why this rule exists.)
-- **Icons stay Tabler — same override pattern as color.** BoardUI's usage
-  examples show `@remixicon/react`; swap to `@tabler/icons-react` on
-  install. See "Icons" below.
-- **Why BoardUI**: mitigates component variation drift — the original
-  problem — without a CLI step (installs straight from the MCP connection)
-  and it's Tailwind v4-native, matching this stack exactly.
-
----
-
-## Typography
+## §3 — Typography
 
 ### Font families
 
@@ -185,7 +173,7 @@ replaced, not a reference for how a component should look.
 
 ---
 
-## Spacing System
+## §4 — Spacing
 
 Unchanged from v5.0 — still current.
 
@@ -206,7 +194,7 @@ All spacing uses a **4px base unit**. All values are multiples of 4.
 
 ---
 
-## Layout
+## §5 — Layout
 
 Single-column app shell, mobile-first. Confirmed against real usage in
 `apps/app/src` — `sm:` accounts for the large majority of responsive
@@ -230,7 +218,67 @@ without checking this is still true.
 
 ---
 
-## Icons
+## §6 — Elevation, Borders, Radius
+
+Border color values and the emphasis ladder live in §2 → Borders — this
+section covers radius and shadow, both defined in `theme.css` but
+previously undocumented here.
+
+### Radius scale
+
+| Token (`theme.css`) | Value | Usage |
+|---|---|---|
+| `--radius-none` | `0px` | Flush edges — table cells, full-bleed images |
+| `--radius-xs` | `2px` | Rarely used alone — reserved |
+| `--radius-sm` / `--radius-DEFAULT` | `4px` | Tight controls — tags, small chips |
+| `--radius-md` | `6px` | Default control radius — inputs, buttons |
+| `--radius-lg` | `8px` | Cards, panels |
+| `--radius-xl` | `12px` | Larger surfaces — modals, sheets |
+| `--radius-2xl` | `16px` | Rare — hero/marketing surfaces |
+| `--radius-3xl` | `24px` | Rare — marketing only |
+| `--radius-full` | `9999px` | Pills, avatars, circular controls |
+
+Don't invent a radius between these steps or mix sharp/round without a
+documented role — see §10b.
+
+### Shadow scale
+
+| Token (`theme.css`) | Usage |
+|---|---|
+| `--shadow-xs` | Default resting elevation — buttons, inputs |
+| `--shadow-sm` | Slightly raised — dropdown triggers |
+| `--shadow-md` | Popovers, dropdown panels |
+| `--shadow-lg` | Modals |
+| `--shadow-xl` / `--shadow-2xl` / `--shadow-3xl` | Rare — large overlay surfaces |
+| `--shadow-skeumorphic` / `--shadow-xs-skeumorphic` | Inset skeuomorphic edge treatment — used sparingly |
+| `--shadow-modern-mockup-*` | Marketing-asset device mockups only — never in-app UI |
+
+Given this is a flat, subtle-elevation system (§0 → Composition archetype),
+most in-app surfaces sit at `--shadow-xs` or no shadow at all — a card
+floating at `--shadow-lg` inside the dashboard is a red flag, not a design
+choice.
+
+---
+
+## §7 — Motion
+
+**Motion intensity: subtle.** Confirmed by usage — `transition-colors`
+(139 occurrences) overwhelmingly dominates every other transition property
+combined; `transition-transform` appears only 6 times across the codebase.
+Default to a color/background transition for any new interactive state;
+treat a transform/scale-based hover as the exception, not the norm.
+
+| Aspect | Value | Where |
+|---|---|---|
+| Dominant durations | `100ms`, `150ms`, `200ms` | Buttons use `duration-100`; most other components cluster at `150`/`200` |
+| Dominant easing | `ease-linear` (buttons), `ease-out`/`ease-in-out` elsewhere | See `button.tsx` for the linear pattern; don't mix easings within one component family |
+| Hover-property taxonomy | **color, background, shadow** — not transform/scale | `transition-colors` is the default; reach for `transition-all` only when multiple color-adjacent properties change together |
+| Scroll-driven reveals | Not currently used in `apps/app` | If added, name the technique here so a second, competing pattern doesn't get introduced later |
+| Reduced motion | Not yet audited | Flagged as open — see Known debt |
+
+---
+
+## §8 — Icons
 
 **`@tabler/icons-react`** ([tabler/tabler-icons](https://github.com/tabler/tabler-icons))
 is the icon set going forward — a deliberate switch away from the app's
@@ -242,10 +290,10 @@ part of each page's migration pass, not a global find-replace.
 
 **Overrides BoardUI's own default.** BoardUI's own convention ships icons
 from `@remixicon/react` — same override pattern already established for
-color (this doc's own Component library section: use BoardUI for structure,
-never its own token/icon defaults). Install `@tabler/icons-react`
-alongside BoardUI's components and use Tabler icons in place of whatever
-icon BoardUI's usage examples show.
+color (§11 → Component library: use BoardUI for structure, never its own
+token/icon defaults). Install `@tabler/icons-react` alongside BoardUI's
+components and use Tabler icons in place of whatever icon BoardUI's usage
+examples show.
 
 ### Sizing scale
 
@@ -264,25 +312,7 @@ decision here.
 
 ---
 
-## Motion
-
-**Motion intensity: subtle.** Confirmed by usage — `transition-colors`
-(139 occurrences) overwhelmingly dominates every other transition property
-combined; `transition-transform` appears only 6 times across the codebase.
-Default to a color/background transition for any new interactive state;
-treat a transform/scale-based hover as the exception, not the norm.
-
-| Aspect | Value | Where |
-|---|---|---|
-| Dominant durations | `100ms`, `150ms`, `200ms` | Buttons use `duration-100`; most other components cluster at `150`/`200` |
-| Dominant easing | `ease-linear` (buttons), `ease-out`/`ease-in-out` elsewhere | See `button.tsx` for the linear pattern; don't mix easings within one component family |
-| Hover-property taxonomy | **color, background, shadow** — not transform/scale | `transition-colors` is the default; reach for `transition-all` only when multiple color-adjacent properties change together |
-| Scroll-driven reveals | Not currently used in `apps/app` | If added, name the technique here so a second, competing pattern doesn't get introduced later |
-| Reduced motion | Not yet audited | Flagged as open — see Known debt |
-
----
-
-## States
+## §9 — States
 
 Pattern taken directly from `button.tsx` / `button-utility.tsx` — the most
 mature state implementation in the codebase. New interactive components
@@ -294,13 +324,13 @@ should match this, not invent their own:
 | Focus | `focus-visible:outline-2 focus-visible:outline-offset-2`, outline color from `outline-brand` / `outline-focus-ring` — always `focus-visible`, never bare `focus:` (keyboard-only ring) |
 | Disabled | `disabled:cursor-not-allowed` + `disabled:text-fg-disabled` (or `_subtle` for icons) + `disabled:bg-disabled` + `disabled:shadow-xs` + `disabled:ring-disabled_subtle` — all five, not a partial subset |
 | Loading | No established pattern yet — see `loading-indicator` component for the closest existing primitive; don't invent a new spinner style |
-| Error | Border/text switch to `error` tokens (`--color-error-*`) — see Color Palette → Semantic |
+| Error | Border/text switch to `error` tokens (`--color-error-*`) — see §2 → Semantic |
 
 ---
 
-## Enforcement
+## §10 — Anti-patterns (the enforcement ground truth)
 
-### Mechanical (hook-enforced)
+### §10a — Mechanical (hook-enforced)
 
 1. **`theme.css` is the only file allowed to define a raw color value.**
    Everything else (`globals.css`, `index.css`, component code) references
@@ -317,18 +347,69 @@ should match this, not invent their own:
    palette changes, update `theme.css` first, then this doc to match —
    never the reverse.
 
-### Judgment (agent self-checked — no hook can catch these)
+### §10b — Judgment (agent self-checked, not mechanically enforceable)
 
 - Don't introduce a new accent color outside brand/semantic without a
   genuine new semantic state to justify it.
 - Don't reach for `transition-all`/transform-based hovers by default — this
-  system is subtle-intensity, color/background first (see Motion).
-- Don't invent a new component when an existing one in `packages/ui`
-  already covers the case with a different prop/variant — check
-  `mcp__boardui__list_components` and the existing `base`/`application`
-  directories first.
+  system is subtle-intensity, color/background first (see §7 — Motion).
+- Don't invent a new component when an existing one already covers the
+  case with a different prop/variant — check `docs/COMPONENTS.md` (§11)
+  and `mcp__boardui__list_components` first.
 - Don't build a new interactive component's disabled/focus/hover states
-  from scratch — match the pattern in `button.tsx` (see States).
+  from scratch — match the pattern in `button.tsx` (see §9 — States).
+
+---
+
+## §11 — Component Reference
+
+Full catalog with code examples lives in `docs/COMPONENTS.md` — this
+section holds the policy and product-specific do/don't rules that apply
+across every component, migrated or not.
+
+### Component library
+
+**BoardUI is the required component source going forward — structure only.**
+Migration happens page-by-page, in place, as each page gets touched; there's
+no separate bulk-migration effort. Live catalog of what's actually been
+adopted: `docs/COMPONENTS.md` — update it as each page migrates. The
+existing `packages/ui/src/components` tree is the legacy set being
+replaced, not a reference for how a component should look.
+
+- **Workflow**: before hand-building any component, check
+  `mcp__boardui__list_components`. Read source/props with `get_component`,
+  get a working snippet with `get_usage_examples`, then write it in with
+  `install_components`. The installed `boardui` agent skill (`Skill` tool)
+  carries the full catalog, theming, and page patterns for deeper reference.
+- **Colors stay ours — the one rule that matters.** BoardUI ships its own
+  opinionated palette/typography/shadows (its own `theme.css`). Do not
+  install that. Restyle every BoardUI component against *this* doc's token
+  classes (`bg-bg-page`, `text-accent-primary`, `border-border-subtle`,
+  etc.) instead of BoardUI's own semantic tokens
+  (`bg-background-primary-default`, `text-text-primary`, etc.). BoardUI is
+  adopted for structure/variants/accessibility (React Aria, `cva`-driven
+  variants) — never for its color system. (A full palette swap was
+  trial-run on 2026-09-10 and reverted — see `packages/ui/src/styles/theme.css`
+  git history around commit `ade0abe` if curious why this rule exists.)
+- **Icons stay Tabler — same override pattern as color.** BoardUI's usage
+  examples show `@remixicon/react`; swap to `@tabler/icons-react` on
+  install. See §8 — Icons.
+- **Why BoardUI**: mitigates component variation drift — the original
+  problem — without a CLI step (installs straight from the MCP connection)
+  and it's Tailwind v4-native, matching this stack exactly.
+
+### Component rules
+
+- **Status chips are outline-only, never filled.** This is a stated rule,
+  not a style preference. `badges.tsx`/`badge-groups.tsx`/`featured-icon.tsx`
+  still use filled brand-tint badges from the old system — known debt, not
+  yet fixed.
+- **Primary buttons**: `bg-accent-primary` at rest, `hover:bg-accent-hover`
+  on hover (darkens, doesn't brighten), text/icon in `text-brand-ink`
+  (dark ink on the bright fill — not white).
+- **Secondary buttons**: dark surface (`bg-bg-surface`, hover
+  `bg-bg-surface-secondary`), white text. Not a light/white pill — that
+  was a leftover from the old system and has been converted where found.
 
 ---
 
