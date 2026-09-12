@@ -3,7 +3,7 @@
 Tracks components as they're migrated to BoardUI, page by page. This is
 **not** an inventory of the existing `packages/ui` components — those are
 the legacy set being replaced, not the standard to build against. Full
-policy: `docs/BRAND_GUIDELINES.md` ("Component library", "Icons").
+policy: `docs/DESIGN.md` ("Component library", "Icons").
 
 ## Workflow (per component, per page)
 
@@ -13,10 +13,10 @@ policy: `docs/BRAND_GUIDELINES.md` ("Component library", "Icons").
 3. Install with `mcp__boardui__install_components`.
 4. Restyle: swap BoardUI's own semantic token classes for this repo's
    token classes (`bg-bg-page`, `text-accent-primary`, `border-border-subtle`,
-   etc. — see `BRAND_GUIDELINES.md` → Color Palette). Never leave BoardUI's
+   etc. — see `DESIGN.md` → Color Palette). Never leave BoardUI's
    own `theme.css` tokens in place.
 5. Swap any icon in the usage example from `@remixicon/react` to
-   `@tabler/icons-react` (see `BRAND_GUIDELINES.md` → Icons).
+   `@tabler/icons-react` (see `DESIGN.md` → Icons).
 6. Add a row to the table below once the component is live somewhere in the app.
 
 ## Adopted components

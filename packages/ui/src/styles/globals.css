@@ -39,36 +39,43 @@
     /* Plain (non-Tailwind) aliases onto theme.css's tokens, for code that
        reaches for var(--x) or bg-[var(--x)] directly instead of a Tailwind
        utility class. theme.css is the single source of truth for the
-       actual values — nothing here is hardcoded anymore. */
+       actual values — nothing here is hardcoded anymore.
+
+       Where theme.css's own APP-SHELL TOKENS section already names an
+       equivalent (--color-bg-page, --color-accent-hover, etc.), alias
+       THROUGH that layer, not past it to the raw primitive — that section
+       exists specifically so this file and theme.css agree on one path.
+       Only fall back to a primitive (--color-white, --color-gray-300)
+       where no app-shell name exists (text/info below). */
 
     /* Brand — single signal-blue accent (Vanyshr Design System v2) */
-    --brand-primary: var(--color-brand-500);
-    --brand-dark: var(--color-navy-hero);
-    --accent-hover: var(--color-brand-600);
-    --accent-orange: var(--color-warning-500);
-    --accent-risk: var(--color-warning-500);
+    --brand-primary: var(--color-accent-primary);
+    --brand-dark: var(--color-brand-dark);
+    --accent-hover: var(--color-accent-hover);
+    --accent-orange: var(--color-accent-orange);
+    --accent-risk: var(--color-accent-risk);
 
     /* Semantic */
-    --success: var(--color-success-500);
-    --warning: var(--color-warning-500);
-    --error: var(--color-error-500);
+    --success: var(--color-success);
+    --warning: var(--color-warning);
+    --error: var(--color-error);
     --info: var(--color-brand-500);
-    --disabled: var(--color-gray-700);
+    --disabled: var(--color-disabled);
 
     /* Backgrounds */
-    --bg-page: var(--color-gray-900);
-    --bg-surface: var(--color-gray-800);
-    --bg-surface-secondary: var(--color-gray-700);
+    --bg-page: var(--color-bg-page);
+    --bg-surface: var(--color-bg-surface);
+    --bg-surface-secondary: var(--color-bg-surface-secondary);
 
-    /* Text */
+    /* Text — no app-shell equivalent exists yet; primitives directly */
     --text-primary: var(--color-white);
     --text-secondary: var(--color-gray-300);
     --text-tertiary: var(--color-gray-300);
     --text-muted: var(--color-gray-300);
 
     /* Borders */
-    --border-subtle: var(--color-border-primary);
-    --border-brand: var(--color-brand-500);
+    --border-subtle: var(--color-border-subtle);
+    --border-brand: var(--color-border-accent);
 
     /* Spacing */
     --space-1: 4px;

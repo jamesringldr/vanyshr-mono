@@ -52,9 +52,9 @@ Only merge `staging` → `main` when explicitly instructed by the user. Never su
   (brick-neutral/signal-blue) remains the single source of truth for color.
 - **Icons are Tabler, not BoardUI's default.** BoardUI ships `@remixicon/react`
   by convention — use `@tabler/icons-react` instead wherever a BoardUI usage
-  example shows an icon. See `docs/BRAND_GUIDELINES.md` ("Icons").
-- Full policy and rationale: `docs/BRAND_GUIDELINES.md` ("Component library").
-- Read `docs/BRAND_GUIDELINES.md` and `docs/COMPONENTS.md` before touching
+  example shows an icon. See `docs/DESIGN.md` ("Icons").
+- Full policy and rationale: `docs/DESIGN.md` ("Component library").
+- Read `docs/DESIGN.md` and `docs/COMPONENTS.md` before touching
   any UI code — colors, spacing, motion, and states are specified there,
   not left to judgment. Update `COMPONENTS.md` as each page migrates.
 

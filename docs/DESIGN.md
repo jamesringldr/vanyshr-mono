@@ -1,4 +1,4 @@
-# Vanyshr Brand Guidelines
+# Vanyshr Design Bible
 
 *Last Updated: September 12, 2026*
 *Version: 6.1 — Brick Neutral / Signal Blue (Dark Mode Only)*
@@ -242,7 +242,7 @@ part of each page's migration pass, not a global find-replace.
 
 **Overrides BoardUI's own default.** BoardUI's own convention ships icons
 from `@remixicon/react` — same override pattern already established for
-color (BRAND_GUIDELINES → Component library: use BoardUI for structure,
+color (this doc's own Component library section: use BoardUI for structure,
 never its own token/icon defaults). Install `@tabler/icons-react`
 alongside BoardUI's components and use Tabler icons in place of whatever
 icon BoardUI's usage examples show.
