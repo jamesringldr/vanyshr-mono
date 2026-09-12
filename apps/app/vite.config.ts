@@ -67,6 +67,8 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    host: true,
+    allowedHosts: ['minis-mac-mini.tail7e9bab.ts.net'],
   },
   build: {
     outDir: 'dist',
