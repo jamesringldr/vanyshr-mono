@@ -7,6 +7,7 @@
  * own Zaba-match merge on raw broker data — see scan-result.ts, still used
  * by start.tsx).
  */
+import { isDisconnectedMode } from "@/lib/env";
 import type { Finding } from "./scan-result";
 
 export interface ConsolidatedProfile {
@@ -88,10 +89,76 @@ export interface StoredConsolidatedProfile {
   quick_scan_id?: string;
 }
 
+function buildDummyConsolidatedProfile(): StoredConsolidatedProfile {
+  return {
+    quick_scan_id: "mock-scan-id",
+    brokerCount: 3,
+    brokers: ["fps", "zaba", "anywho"],
+    brokerFields: {
+      fps: ["Phone Numbers", "Current Address"],
+      zaba: ["Relatives"],
+      anywho: ["Email Addresses"],
+    },
+    profile: {
+      full_name: "Jamie Dev",
+      age: 34,
+      primary_address: "123 Main St, Austin, TX 78701",
+      previous_addresses: ["456 Oak Ave, Round Rock, TX 78665", "789 Elm Dr, Cedar Park, TX 78613"],
+      phones: ["(512) 555-0123", "(512) 555-0456"],
+      emails: ["jamie.dev@example.com", "jamie@vanyshr.local"],
+      relatives: [
+        { name: "Alex Dev", relation: "Spouse", age: 32 },
+        { name: "Sam Dev", relation: "Sibling", age: 30 },
+      ],
+      aliases: ["J. Dev", "James Developer"],
+      employment: [
+        { kind: "current", employer: "Vanyshr Inc", title: "Senior Engineer", location: "Austin, TX" },
+        {
+          kind: "previous",
+          employer: "Tech Startup Co",
+          title: "Engineer",
+          since: "2020",
+          duration: "3 years",
+          location: "Austin, TX",
+        },
+      ],
+      education: [
+        { school: "University of Texas", degree: "B.S.", fieldOfStudy: "Computer Science" },
+      ],
+      properties: [
+        {
+          address: "123 Main St, Austin, TX 78701",
+          beds: "3",
+          baths: "2",
+          estimatedValue: 450000,
+          yearBuilt: 1995,
+          occupancyType: "Single Family",
+        },
+      ],
+      legal_records: { countyRecords: { location: "Travis County", count: 1 }, nationwideCount: 1 },
+      services_found: ["netflix", "spotify"],
+      breaches: [
+        {
+          email: "jamie.dev@example.com",
+          breaches: [
+            { name: "Example Breach Co", date: "2021-05-01", year: "2021" },
+            { name: "Another Data Leak", date: "2019-03-15", year: "2019" },
+          ],
+          fields_exposed: ["Email", "Password", "Name"],
+        },
+      ],
+      breach_count: 2,
+    },
+  };
+}
+
 /** Read the profile loading.tsx stored after the pick, or manage-emails refreshed after confirm. */
 export function loadConsolidatedProfile(): { data: StoredConsolidatedProfile | null; error: string | null } {
   const raw = sessionStorage.getItem(STORAGE_KEY);
-  if (!raw) return { data: null, error: "Nothing came through from this scan — run it again from the start." };
+  if (!raw) {
+    if (isDisconnectedMode()) return { data: buildDummyConsolidatedProfile(), error: null };
+    return { data: null, error: "Nothing came through from this scan — run it again from the start." };
+  }
   try {
     return { data: JSON.parse(raw) as StoredConsolidatedProfile, error: null };
   } catch {

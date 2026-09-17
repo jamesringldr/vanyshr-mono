@@ -14,3 +14,15 @@ export function allowLocalRouteBypass(): boolean {
     if (import.meta.env.DEV) return true;
     return import.meta.env.VITE_ALLOW_ROUTE_BYPASS === "true";
 }
+
+/**
+ * Disconnected dev mode: mock Supabase client (auth + data), never real network calls.
+ * Only ever true in local `vite dev` (dead-code-eliminated from every built bundle,
+ * so it can never be true on a staging preview or in production). Set via the
+ * Connected/Disconnected prompt in `pnpm dev` (scripts/dev-gate.mjs),
+ * which writes VITE_DEV_MODE to apps/app/.env.local (per-worktree).
+ */
+export function isDisconnectedMode(): boolean {
+    if (!import.meta.env.DEV) return false;
+    return import.meta.env.VITE_DEV_MODE === "disconnected";
+}
