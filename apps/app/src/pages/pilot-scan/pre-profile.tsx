@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router";
 import {
     Menu,
     CreditCard,
@@ -9,10 +8,15 @@ import {
     Phone,
     Briefcase,
     GraduationCap,
-    Home,
+    House,
     Gavel,
 } from "lucide-react";
+import { Navbar, Page } from "konsta/react";
 import PrimaryLogoDark from "@vanyshr/ui/assets/PrimaryLogo-DarkMode.png";
+import PrimaryLogoLight from "@vanyshr/ui/assets/PrimaryLogo.png";
+import { Card } from "@vanyshr/ui/components/ui/card/card";
+import { Badge } from "@vanyshr/ui/components/ui/badge/badge";
+import { Button } from "@vanyshr/ui/components/ui/buttons/button";
 import {
     loadConsolidatedProfile,
     toProperCase,
@@ -126,25 +130,13 @@ function DataTypeCard({
     children: React.ReactNode;
 }) {
     return (
-        <section
-            role="region"
-            aria-label={title}
-            className="rounded-xl border border-border-subtle px-4 py-3.5"
-        >
+        <Card role="region" aria-label={title} className="px-4 py-3">
             <div className="flex items-center gap-2">
-                <Icon className="h-4 w-4 shrink-0 text-text-tertiary" aria-hidden />
-                <h3 className="text-[13px] font-medium uppercase tracking-[0.14em] text-text-tertiary">{title}</h3>
+                <Icon className="size-4 shrink-0 text-text-tertiary" aria-hidden />
+                <h3 className="text-(length:--size-data) font-medium uppercase tracking-widest text-text-tertiary">{title}</h3>
             </div>
-            <div className="mt-2.5">{children}</div>
-        </section>
-    );
-}
-
-function Pill({ children }: { children: React.ReactNode }) {
-    return (
-        <span className="inline-flex items-center rounded-full border border-border-subtle px-2.5 py-1 text-[13px] text-text-primary">
-            {children}
-        </span>
+            <div className="mt-2">{children}</div>
+        </Card>
     );
 }
 
@@ -168,7 +160,7 @@ function LimitedTwoColumnGrid<T>({
                 <li key={i}>{renderItem(item, i)}</li>
             ))}
             {remaining > 0 && (
-                <li className="text-[13px] font-medium text-text-tertiary">
+                <li className="text-(length:--size-data) font-medium text-text-tertiary">
                     +{remaining} more
                 </li>
             )}
@@ -196,43 +188,39 @@ export function PreProfileBody({
         <div>
             <h1 className="sr-only">Exposed Data</h1>
             {!selfScan && (
-                <p className="text-sm leading-relaxed text-text-secondary">
+                <p className="text-md leading-relaxed text-text-secondary">
                     Hackers and scammers use your exposed data to attack or impersonate you with sophisticated attacks. The more data they can source, the more convincing the scam becomes.
                 </p>
             )}
 
             {selfScan ? (
-                <p className="mt-4 text-[15px] leading-relaxed text-text-secondary">
+                <p className="mt-4 text-lg leading-relaxed text-text-secondary">
                     This is the public record we matched to you — names, numbers, and places already listed online.
                 </p>
             ) : null}
 
-            <div className="mt-5 space-y-3">
-                <section
-                    role="region"
-                    aria-label="Contact"
-                    className="rounded-xl border border-border-subtle px-4 py-4"
-                >
-                    <h2 className="text-[18px] font-semibold tracking-tight text-text-primary">
+            <div className="mt-4 space-y-3">
+                <Card role="region" aria-label="Contact" className="p-4">
+                    <h2 className="font-display text-lg font-semibold tracking-tight text-text-primary">
                         {data.contact.fullName}
                         {data.contact.age != null && (
-                            <span className="ml-1.5 text-[13px] font-normal text-text-tertiary">{data.contact.age}</span>
+                            <span className="ml-1 font-body text-(length:--size-data) font-normal text-text-tertiary">{data.contact.age}</span>
                         )}
                     </h2>
                     <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3">
                         <div>
-                            <dt className="text-[11px] font-medium uppercase tracking-[0.14em] text-text-tertiary">
+                            <dt className="text-xs font-medium uppercase tracking-widest text-text-tertiary">
                                 Primary phone
                             </dt>
-                            <dd className="mt-1 font-mono text-[14px] tabular-nums text-text-primary">
+                            <dd className="mt-1 font-mono text-md tabular-nums text-text-primary">
                                 {data.contact.primaryPhone}
                             </dd>
                         </div>
                         <div>
-                            <dt className="text-[11px] font-medium uppercase tracking-[0.14em] text-text-tertiary">
+                            <dt className="text-xs font-medium uppercase tracking-widest text-text-tertiary">
                                 Current address
                             </dt>
-                            <dd className="mt-1 text-[14px] leading-snug text-text-primary">
+                            <dd className="mt-1 text-md leading-snug text-text-primary">
                                 {data.contact.currentAddress ? (
                                     <>
                                         {data.contact.currentAddress.street && <p>{data.contact.currentAddress.street}</p>}
@@ -244,13 +232,13 @@ export function PreProfileBody({
                             </dd>
                         </div>
                     </dl>
-                </section>
+                </Card>
 
                 {data.employment.length > 0 && (
                     <DataTypeCard icon={Briefcase} title="Employment">
                         <ul className="space-y-2">
                             {data.employment.map((job, i) => (
-                                <li key={i} className="text-[14px] text-text-primary">
+                                <li key={i} className="text-md text-text-primary">
                                     {toProperCase(job.label)}
                                     {job.isCurrent && (
                                         <span className="ml-1 text-text-tertiary">
@@ -268,7 +256,7 @@ export function PreProfileBody({
                         <LimitedTwoColumnGrid
                             items={data.familyAndFriends}
                             renderItem={(item) => (
-                                <span className="text-[14px] text-text-primary">
+                                <span className="text-md text-text-primary">
                                     {item.name}
                                 </span>
                             )}
@@ -277,24 +265,24 @@ export function PreProfileBody({
                 )}
 
                 {data.homeSpecs.length > 0 && (
-                    <DataTypeCard icon={Home} title="Residential details">
+                    <DataTypeCard icon={House} title="Residential details">
                         <div className="space-y-4">
                             {data.homeSpecs.map((home, i) => {
                                 return (
                                     <div key={i}>
                                         {home.address && (
-                                            <div className="mb-2 text-[14px] text-text-primary">
+                                            <div className="mb-2 text-md text-text-primary">
                                                 {home.address.street && <p>{home.address.street}</p>}
                                                 {cityStateZip(home.address) && <p>{cityStateZip(home.address)}</p>}
                                             </div>
                                         )}
-                                        <div className="grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-3">
+                                        <div className="grid grid-cols-2 gap-x-4 gap-y-2">
                                             {home.facts.map((fact, j) => (
                                                 <div key={j}>
-                                                    <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-text-tertiary">
+                                                    <p className="text-xs font-medium uppercase tracking-widest text-text-tertiary">
                                                         {fact.label}
                                                     </p>
-                                                    <p className="mt-0.5 text-[14px] text-text-primary">
+                                                    <p className="text-md text-text-primary">
                                                         {fact.value}
                                                     </p>
                                                 </div>
@@ -311,7 +299,7 @@ export function PreProfileBody({
                     <DataTypeCard icon={CreditCard} title="Also Known As">
                         <div className="flex flex-wrap gap-2">
                             {data.alsoKnownAs.map((alias, i) => (
-                                <Pill key={i}>{alias}</Pill>
+                                <Badge key={i} color="gray" size="md">{alias}</Badge>
                             ))}
                         </div>
                     </DataTypeCard>
@@ -324,12 +312,12 @@ export function PreProfileBody({
                             renderItem={(addr) => (
                                 <div>
                                     {addr.street && (
-                                        <p className="text-[14px] text-text-primary">
+                                        <p className="text-md text-text-primary">
                                             {addr.street}
                                         </p>
                                     )}
                                     {cityState(addr) && (
-                                        <p className="text-[13px] font-normal text-text-secondary">
+                                        <p className="text-(length:--size-data) font-normal text-text-secondary">
                                             {cityState(addr)}
                                         </p>
                                     )}
@@ -344,7 +332,7 @@ export function PreProfileBody({
                         <LimitedTwoColumnGrid
                             items={data.pastPhones}
                             renderItem={(phone) => (
-                                <span className="font-mono text-[14px] tabular-nums text-text-primary">
+                                <span className="font-mono text-md tabular-nums text-text-primary">
                                     {phone}
                                 </span>
                             )}
@@ -357,7 +345,7 @@ export function PreProfileBody({
                         <LimitedTwoColumnGrid
                             items={data.contact.emails}
                             renderItem={(email) => (
-                                <span className="truncate text-[14px] text-text-primary">{email}</span>
+                                <span className="truncate text-md text-text-primary">{email}</span>
                             )}
                         />
                     </DataTypeCard>
@@ -365,9 +353,9 @@ export function PreProfileBody({
 
                 {data.education.length > 0 && (
                     <DataTypeCard icon={GraduationCap} title="Education">
-                        <ul className="space-y-1.5">
+                        <ul className="space-y-1">
                             {data.education.map((entry, i) => (
-                                <li key={i} className="text-[14px] text-text-primary">
+                                <li key={i} className="text-md text-text-primary">
                                     {entry}
                                 </li>
                             ))}
@@ -379,12 +367,12 @@ export function PreProfileBody({
                     <DataTypeCard icon={Gavel} title="Legal records">
                         <div className="flex flex-wrap gap-2">
                             {data.legalRecords.nationwideCount != null && (
-                                <Pill>{data.legalRecords.nationwideCount} nationwide</Pill>
+                                <Badge color="gray" size="md">{data.legalRecords.nationwideCount} nationwide</Badge>
                             )}
                             {data.legalRecords.county && (
-                                <Pill>
+                                <Badge color="gray" size="md">
                                     {data.legalRecords.countyCount ?? "?"} in {data.legalRecords.county}
-                                </Pill>
+                                </Badge>
                             )}
                         </div>
                     </DataTypeCard>
@@ -402,56 +390,51 @@ export function PreProfileBody({
  * fallback.
  */
 export function PilotPreProfilePage() {
-    const navigate = useNavigate();
     const [{ data: stored }] = useState(() => loadConsolidatedProfile());
 
     if (!stored) {
         return (
-            <div
-                className="flex min-h-screen w-full flex-col items-center justify-center bg-bg-page p-4 font-sans"
-                role="main"
-                aria-label="Error loading profile"
-            >
-                <div className="w-full max-w-md text-center">
-                    <h1 className="mb-2 text-xl font-bold text-white">No profile data found</h1>
-                    <p className="mb-6 text-sm text-text-secondary">
+            <Page className="font-body" role="main" aria-label="Error loading profile">
+                <div className="flex min-h-full flex-col items-center justify-center p-4 text-center">
+                    <h1 className="mb-2 font-display text-xl font-semibold text-text-primary">No profile data found</h1>
+                    <p className="mb-6 text-md text-text-secondary">
                         Nothing came through from this scan — run it again from the start.
                     </p>
-                    <Link
-                        to="/pilot-scan"
-                        className="inline-flex h-[44px] items-center justify-center rounded-xl bg-accent-primary px-6 font-semibold text-white transition-all hover:bg-accent-hover"
-                        onClick={() => navigate("/pilot-scan")}
-                    >
+                    <Button href="/pilot-scan" size="xl" className="text-primary-on">
                         Start over
-                    </Link>
+                    </Button>
                 </div>
-            </div>
+            </Page>
         );
     }
 
     return (
-        <div
-            className="min-h-screen w-full bg-bg-page font-sans"
-            role="main"
-            aria-label="Pre-profile exposure summary"
-        >
-            <div className="mx-auto max-w-3xl px-4 pb-16 pt-4 sm:pt-6">
-                <header className="mb-6 flex h-14 items-center justify-between gap-4 sm:mb-8">
-                    <div className="w-10 shrink-0" aria-hidden />
-                    <div className="flex min-w-0 flex-1 justify-center">
-                        <img src={PrimaryLogoDark} alt="Vanyshr" className="h-[2.1875rem] w-auto sm:h-[2.5rem]" />
-                    </div>
+        <Page className="font-body" role="main" aria-label="Pre-profile exposure summary">
+            <Navbar
+                // Scrolls away with the page, as before (Konsta's default is sticky).
+                className="static! mb-6"
+                centerTitle
+                // Konsta's iOS glass bubble behind the slot isn't token-bridged (literal white); keep the plain button.
+                rightClassName="bg-transparent! shadow-none! backdrop-blur-none!"
+                title={
+                    <>
+                        <img src={PrimaryLogoDark} alt="Vanyshr" className="h-9 w-auto in-[.light]:hidden" />
+                        <img src={PrimaryLogoLight} alt="Vanyshr" className="hidden h-9 w-auto in-[.light]:block" />
+                    </>
+                }
+                right={
                     <button
                         type="button"
                         aria-label="Open menu"
-                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-white outline-none transition hover:bg-white/10"
+                        className="flex size-11 items-center justify-center rounded-md text-text-primary outline-none hover:bg-state-hover focus-visible:ring-2 focus-visible:ring-border-focus"
                     >
-                        <Menu className="h-6 w-6" />
+                        <Menu className="size-6" />
                     </button>
-                </header>
-
+                }
+            />
+            <div className="px-4 pb-12">
                 <PreProfileBody profile={stored.profile} />
             </div>
-        </div>
+        </Page>
     );
 }
