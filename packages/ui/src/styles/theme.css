@@ -1,22 +1,140 @@
+/* ════════════════════════════════════════════════════════════════════════════════
+   TOKEN BRIDGE PART A: Library Theme Wiring
+   ════════════════════════════════════════════════════════════════════════════════
+   All variables map to Vanyshr design tokens (packages/ui/src/styles/tokens.css).
+   No literal rgb/hex values permitted in bridge assignments (DESIGN.md §10a).
+   Theme toggle: .light class on root (never dark: variant or prefers-color-scheme).
+   Token-by-token mapping: see docs/TOKEN_BRIDGE.md
+
+   Three blocks (plus a TRANSITIONAL ALIASES block, removed as components
+   convert), because Tailwind v4 emits every @theme entry as a :root custom
+   property:
+   1. `@theme inline reference` — utilities whose Tailwind name IS the token
+      name (bg-primary → --color-primary). Declaring `--color-primary:
+      var(--color-primary)` in a plain @theme emits a self-referencing
+      variable, which is invalid CSS and resolves to nothing. `reference`
+      suppresses the emission; `inline` writes var(--token) straight into the
+      utility, where tokens.css supplies the value.
+   2. `@theme` — aliases whose name differs from the token they point at.
+   3. `@layer konsta` — Konsta's --k-color-* runtime vars (not a Tailwind
+      namespace, so they are plain custom properties, not @theme entries).
+*/
+
+/* ── 1. IDENTITY: Tailwind utility name === Vanyshr token name ── */
+@theme inline reference {
+  /* FONT FAMILY */
+  --font-display: var(--font-display);
+  --font-mono: var(--font-mono);
+
+  /* RADIUS */
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+
+  /* BORDER WIDTH */
+  --border-width: var(--border-width);
+
+  /* PRIMARY — hero cyan */
+  --color-primary: var(--color-primary);
+  --color-primary-hover: var(--color-primary-hover);
+  --color-primary-active: var(--color-primary-active);
+  --color-primary-on: var(--color-primary-on);
+  --color-primary-text: var(--color-primary-text);
+  --color-primary-muted: var(--color-primary-muted);
+  --color-primary-border: var(--color-primary-border);
+
+  /* SECONDARY */
+  --color-secondary: var(--color-secondary);
+  --color-secondary-on: var(--color-secondary-on);
+
+  /* ACCENT — orange signal */
+  --color-accent: var(--color-accent);
+  --color-accent-hover: var(--color-accent-hover);
+  --color-accent-active: var(--color-accent-active);
+  --color-accent-on: var(--color-accent-on);
+  --color-accent-text: var(--color-accent-text);
+  --color-accent-muted: var(--color-accent-muted);
+
+  /* SURFACES */
+  --color-bg-app: var(--color-bg-app);
+  --color-bg-surface: var(--color-bg-surface);
+  --color-bg-elevated: var(--color-bg-elevated);
+  --color-bg-overlay: var(--color-bg-overlay);
+  --color-bg-inverse: var(--color-bg-inverse);
+
+  /* TEXT */
+  --color-text-primary: var(--color-text-primary);
+  --color-text-secondary: var(--color-text-secondary);
+  --color-text-tertiary: var(--color-text-tertiary);
+  --color-text-disabled: var(--color-text-disabled);
+  --color-text-inverse: var(--color-text-inverse);
+
+  /* BORDER */
+  --color-border: var(--color-border);
+  --color-border-subtle: var(--color-border-subtle);
+  --color-border-strong: var(--color-border-strong);
+  --color-border-focus: var(--color-border-focus);
+  --color-ring-focus: var(--color-ring-focus);
+
+  /* STATE & INTERACTION */
+  --color-state-hover: var(--color-state-hover);
+  --color-state-active: var(--color-state-active);
+  --color-state-selected: var(--color-state-selected);
+  --color-state-disabled-bg: var(--color-state-disabled-bg);
+  --color-state-disabled-fg: var(--color-state-disabled-fg);
+
+  /* STATUS/SEMANTIC */
+  --color-status-success: var(--color-status-success);
+  --color-status-success-muted: var(--color-status-success-muted);
+  --color-status-success-on: var(--color-status-success-on);
+  --color-status-success-border: var(--color-status-success-border);
+
+  --color-status-warn: var(--color-status-warn);
+  --color-status-warn-muted: var(--color-status-warn-muted);
+  --color-status-warn-on: var(--color-status-warn-on);
+  --color-status-warn-border: var(--color-status-warn-border);
+
+  --color-status-danger: var(--color-status-danger);
+  --color-status-danger-muted: var(--color-status-danger-muted);
+  --color-status-danger-on: var(--color-status-danger-on);
+  --color-status-danger-hover: var(--color-status-danger-hover);
+  --color-status-danger-border: var(--color-status-danger-border);
+
+  --color-status-info: var(--color-status-info);
+  --color-status-info-muted: var(--color-status-info-muted);
+  --color-status-info-on: var(--color-status-info-on);
+
+  /* BRAND RAW (used sparingly) */
+  --color-brand-cyan: var(--color-brand-cyan);
+  --color-brand-orange: var(--color-brand-orange);
+  --color-brand-navy: var(--color-brand-navy);
+  --color-brand-cyan-on-light: var(--color-brand-cyan-on-light);
+  --color-brand-orange-on-light: var(--color-brand-orange-on-light);
+  --color-brand-primary1: var(--color-brand-primary1);
+  --color-brand-primary2: var(--color-brand-primary2);
+  --color-brand-primary3: var(--color-brand-primary3);
+
+  /* MOTION */
+  --duration-instant: var(--duration-instant);
+  --duration-fast: var(--duration-fast);
+  --duration-base: var(--duration-base);
+  --duration-slow: var(--duration-slow);
+  --duration-slower: var(--duration-slower);
+
+  --ease-linear: var(--ease-linear);
+  --ease-standard: var(--ease-standard);
+  --ease-emphasized: var(--ease-emphasized);
+  --ease-accelerate: var(--ease-accelerate);
+  --ease-decelerate: var(--ease-decelerate);
+}
+
+/* ── 2. ALIASES: name differs from the token it resolves to ── */
 @theme {
-  /* ════════════════════════════════════════════════════════════════════════════════
-     TOKEN BRIDGE PART A: Library Theme Wiring
-     ════════════════════════════════════════════════════════════════════════════════
-     All variables map to Vanyshr design tokens (packages/ui/src/styles/tokens.css).
-     No literal rgb/hex values permitted in bridge assignments (DESIGN.md §10a).
-     Theme toggle: .light class on root (never dark: variant or prefers-color-scheme).
-     Token-by-token mapping: see docs/TOKEN_BRIDGE.md
-  */
-
-  /* ── FOUNDATIONS: Base spacing, type, depth ── */
-
   /* Spacing base unit for responsive calculations */
   --spacing: var(--space-1); /* 4px */
 
-  /* FONT FAMILY — from Vanyshr type tokens */
+  /* FONT FAMILY */
   --font-body: var(--font-ui);
-  --font-display: var(--font-display);
-  --font-mono: var(--font-mono);
 
   /* FONT SIZE — type role tokens mapped to text-* utilities for Tailwind compatibility */
   --text-xs: var(--size-label);
@@ -49,19 +167,16 @@
   --text-display-2xl: var(--size-display);
   --text-display-2xl--line-height: calc(var(--size-display) * 1.33);
 
-  /* RADIUS — from Vanyshr depth tokens */
+  /* RADIUS */
   --radius-none: 0px;
   --radius-xs: calc(var(--radius-sm) / 2);
-  --radius-sm: var(--radius-sm);
   --radius-DEFAULT: var(--radius-sm);
-  --radius-md: var(--radius-md);
-  --radius-lg: var(--radius-lg);
   --radius-xl: var(--radius-lg);
   --radius-2xl: var(--radius-lg);
   --radius-3xl: var(--radius-lg);
   --radius-full: var(--radius-pill);
 
-  /* SHADOW — from Vanyshr depth tokens */
+  /* SHADOW */
   --shadow-xs: var(--shadow-1);
   --shadow-sm: var(--shadow-1);
   --shadow-md: var(--shadow-2);
@@ -73,143 +188,18 @@
   --shadow-skeumorphic: 0px 0px 0px 1px rgba(10, 13, 18, 0.18) inset;
   --shadow-xs-skeumorphic: var(--shadow-skeumorphic), var(--shadow-xs);
 
-  /* BORDER WIDTH */
-  --border-width: var(--border-width);
-
-  /* ── COLORS: Semantic mapping from Vanyshr tokens ── */
-
   /* Transparent & neutral anchors */
   --color-transparent: transparent;
   --color-white: var(--color-bg-inverse);
   --color-black: var(--color-text-inverse);
 
-  /* PRIMARY — hero cyan from Vanyshr */
-  --color-primary: var(--color-primary);
-  --color-primary-hover: var(--color-primary-hover);
-  --color-primary-active: var(--color-primary-active);
-  --color-primary-on: var(--color-primary-on);
-  --color-primary-text: var(--color-primary-text);
-  --color-primary-muted: var(--color-primary-muted);
-
-  /* SECONDARY — from Vanyshr */
-  --color-secondary: var(--color-secondary);
-  --color-secondary-on: var(--color-secondary-on);
-
-  /* ACCENT — orange signal from Vanyshr */
-  --color-accent: var(--color-accent);
-  --color-accent-hover: var(--color-accent-hover);
-  --color-accent-active: var(--color-accent-active);
-  --color-accent-on: var(--color-accent-on);
-  --color-accent-text: var(--color-accent-text);
-  --color-accent-muted: var(--color-accent-muted);
-
-  /* SURFACES — from Vanyshr bg tokens */
-  --color-bg-app: var(--color-bg-app);
-  --color-bg-surface: var(--color-bg-surface);
-  --color-bg-elevated: var(--color-bg-elevated);
-  --color-bg-overlay: var(--color-bg-overlay);
-  --color-bg-inverse: var(--color-bg-inverse);
-
-  /* TEXT — from Vanyshr text tokens */
-  --color-text-primary: var(--color-text-primary);
-  --color-text-secondary: var(--color-text-secondary);
-  --color-text-tertiary: var(--color-text-tertiary);
-  --color-text-disabled: var(--color-text-disabled);
-  --color-text-inverse: var(--color-text-inverse);
-
-  /* BORDER — from Vanyshr border tokens */
-  --color-border: var(--color-border);
-  --color-border-subtle: var(--color-border-subtle);
-  --color-border-strong: var(--color-border-strong);
-  --color-border-focus: var(--color-border-focus);
-  --color-ring-focus: var(--color-ring-focus);
-
-  /* STATE & INTERACTION — from Vanyshr state tokens */
-  --color-state-hover: var(--color-state-hover);
-  --color-state-active: var(--color-state-active);
-  --color-state-selected: var(--color-state-selected);
-  --color-state-disabled-bg: var(--color-state-disabled-bg);
-  --color-state-disabled-fg: var(--color-state-disabled-fg);
-
-  /* STATUS/SEMANTIC — from Vanyshr status tokens */
-  --color-status-success: var(--color-status-success);
-  --color-status-success-muted: var(--color-status-success-muted);
-  --color-status-success-on: var(--color-status-success-on);
-
-  --color-status-warn: var(--color-status-warn);
-  --color-status-warn-muted: var(--color-status-warn-muted);
-  --color-status-warn-on: var(--color-status-warn-on);
-
-  --color-status-danger: var(--color-status-danger);
-  --color-status-danger-muted: var(--color-status-danger-muted);
-  --color-status-danger-on: var(--color-status-danger-on);
-
-  --color-status-info: var(--color-status-info);
-  --color-status-info-muted: var(--color-status-info-muted);
-  --color-status-info-on: var(--color-status-info-on);
-
-  /* BRAND RAW — from Vanyshr brand tokens (used sparingly) */
-  --color-brand-cyan: var(--color-brand-cyan);
-  --color-brand-orange: var(--color-brand-orange);
-  --color-brand-navy: var(--color-brand-navy);
-  --color-brand-cyan-on-light: var(--color-brand-cyan-on-light);
-  --color-brand-orange-on-light: var(--color-brand-orange-on-light);
-
-  /* ── KONSTA UI THEME VARS (mobile chrome library) ── */
-  /* Mapped to Vanyshr tokens per konsta 5.4.0 pattern */
-
-  --k-color-primary: var(--color-primary);
-  --k-color-secondary: var(--color-secondary);
-  --k-color-accent: var(--color-accent);
-
-  --k-color-bg-primary: var(--color-bg-app);
-  --k-color-bg-secondary: var(--color-bg-surface);
-  --k-color-bg-tertiary: var(--color-bg-elevated);
-
-  --k-color-text-primary: var(--color-text-primary);
-  --k-color-text-secondary: var(--color-text-secondary);
-  --k-color-text-tertiary: var(--color-text-tertiary);
-
-  --k-color-border: var(--color-border);
-  --k-color-border-subtle: var(--color-border-subtle);
-
-  /* Material Design 3 color tokens — base and variants from Vanyshr */
-  --k-color-md-primary: var(--color-primary);
-  --k-color-md-primary-container: var(--color-primary-muted);
-  --k-color-md-on-primary: var(--color-primary-on);
-  --k-color-md-on-primary-container: var(--color-primary-text);
-
-  --k-color-md-secondary: var(--color-secondary);
-  --k-color-md-secondary-container: var(--color-primary-muted);
-  --k-color-md-on-secondary: var(--color-secondary-on);
-
-  --k-color-md-tertiary: var(--color-accent);
-  --k-color-md-tertiary-container: var(--color-accent-muted);
-  --k-color-md-on-tertiary: var(--color-accent-on);
-
-  --k-color-md-background: var(--color-bg-app);
-  --k-color-md-on-background: var(--color-text-primary);
-
-  --k-color-md-surface: var(--color-bg-surface);
-  --k-color-md-surface-dim: var(--color-bg-app);
-  --k-color-md-on-surface: var(--color-text-primary);
-
-  --k-color-md-outline: var(--color-border);
-  --k-color-md-outline-variant: var(--color-border-subtle);
-
-  --k-color-md-error: var(--color-status-danger);
-  --k-color-md-error-container: var(--color-status-danger-muted);
-  --k-color-md-on-error: var(--color-status-danger-on);
-
-  /* Deprecated brand names for compat (old naming) — still reference Vanyshr tokens */
+  /* Deprecated brand name for compat (old naming) */
   --color-brand-primary: var(--color-primary);
-  --color-brand-primary1: var(--color-brand-cyan);
-  --color-brand-primary2: var(--color-brand-orange);
-  --color-brand-primary3: var(--color-brand-navy);
 
-  /* Component & app-level semantic aliases — from Vanyshr tokens */
+  /* Component & app-level semantic aliases.
+     (--color-accent-hover is NOT aliased here: it is a Vanyshr token name —
+     orange accent hover — and the token file wins.) */
   --color-accent-primary: var(--color-primary);
-  --color-accent-hover: var(--color-primary-hover);
   --color-accent-orange: var(--color-accent);
   --color-accent-risk: var(--color-status-warn);
   --color-brand-dark: var(--color-brand-navy);
@@ -221,18 +211,18 @@
   --color-error: var(--color-status-danger);
   --color-disabled: var(--color-state-disabled-bg);
 
-  /* Page & surface backgrounds from Vanyshr */
+  /* Page & surface backgrounds */
   --color-bg-page: var(--color-bg-app);
   --color-bg-primary: var(--color-bg-app);
   --color-bg-secondary: var(--color-bg-surface);
   --color-bg-surface-secondary: var(--color-bg-elevated);
 
-  /* Text role aliases from Vanyshr */
+  /* Text role aliases */
   --text-primary: var(--color-text-primary);
   --text-secondary: var(--color-text-secondary);
   --text-muted: var(--color-text-tertiary);
 
-  /* Border aliases from Vanyshr */
+  /* Border aliases */
   --color-border-primary: var(--color-border);
   --color-border-secondary: var(--color-border-subtle);
   --color-border-tertiary: var(--color-border-strong);
@@ -240,19 +230,59 @@
   --color-border-brand: var(--color-primary);
   --color-border-error: var(--color-status-danger);
 
-  /* Foreground/icon colors from Vanyshr text tokens */
+  /* Foreground/icon colors */
   --color-fg-primary: var(--color-text-primary);
   --color-fg-secondary: var(--color-text-secondary);
   --color-fg-tertiary: var(--color-text-tertiary);
   --color-fg-brand-primary: var(--color-primary-text);
   --color-fg-disabled: var(--color-text-disabled);
 
-  /* Focus & interactive feedback from Vanyshr */
+  /* Focus & interactive feedback */
   --color-focus-ring: var(--color-border-focus);
   --color-focus-ring-error: var(--color-status-danger);
 
   /* Utility & special */
   --color-tooltip-supporting-text: var(--color-text-secondary);
+
+  /* ── KONSTA UTILITY COLORS ──
+     Konsta's own styles/colors.css is not imported (its color plugin parses a
+     hex brand color and cannot read tokens — see apps/app/src/index.css).
+     These are the utility names Konsta's component classes use, in its own
+     --color-X: var(--k-color-X) pattern, light slot only: the app runs
+     KonstaProvider dark={false}, so the md-dark / ios-dark classes are never
+     applied — the tokens themselves switch on .light. */
+  --color-md-light-primary: var(--k-color-md-light-primary);
+  --color-md-light-on-primary: var(--k-color-md-light-on-primary);
+  --color-md-light-primary-container: var(--k-color-md-light-primary-container);
+  --color-md-light-on-primary-container: var(--k-color-md-light-on-primary-container);
+  --color-md-light-secondary: var(--k-color-md-light-secondary);
+  --color-md-light-on-secondary: var(--k-color-md-light-on-secondary);
+  --color-md-light-secondary-container: var(--k-color-md-light-secondary-container);
+  --color-md-light-on-secondary-container: var(--k-color-md-light-on-secondary-container);
+  --color-md-light-surface: var(--k-color-md-light-surface);
+  --color-md-light-on-surface: var(--k-color-md-light-on-surface);
+  --color-md-light-surface-variant: var(--k-color-md-light-surface-variant);
+  --color-md-light-on-surface-variant: var(--k-color-md-light-on-surface-variant);
+  --color-md-light-outline: var(--k-color-md-light-outline);
+  --color-md-light-outline-variant: var(--k-color-md-light-outline-variant);
+  --color-md-light-surface-1: var(--k-color-md-light-surface-1);
+  --color-md-light-surface-2: var(--k-color-md-light-surface-2);
+  --color-md-light-surface-3: var(--k-color-md-light-surface-3);
+  --color-md-light-surface-4: var(--k-color-md-light-surface-4);
+  --color-md-light-surface-5: var(--k-color-md-light-surface-5);
+  --color-ios-primary: var(--k-color-ios-primary);
+  --color-ios-primary-tint: var(--k-color-ios-primary-tint);
+  --color-ios-primary-shade: var(--k-color-ios-primary-shade);
+
+  /* iOS surfaces are literal hex in Konsta (no --k-color-* var) — mapped to tokens */
+  --color-ios-light-surface: var(--color-bg-app);
+  --color-ios-light-surface-1: var(--color-bg-surface);
+  --color-ios-light-surface-1-shade: var(--color-bg-elevated);
+  --color-ios-light-surface-1-tint: var(--color-bg-surface);
+  --color-ios-light-surface-2: var(--color-bg-surface);
+  --color-ios-light-surface-3: var(--color-bg-elevated);
+  --color-ios-light-surface-variant: var(--color-bg-elevated);
+  --color-ios-hover-highlight: var(--color-state-hover);
 
   /* MAX WIDTH (layout constraint, mobile-first PWA) */
   --max-width-container: 1280px;
@@ -260,19 +290,6 @@
   /* BREAKPOINTS (mobile design baseline 390px, responsive touch-points) */
   --breakpoint-xxs: 320px;
   --breakpoint-xs: 600px;
-
-  /* MOTION — from Vanyshr motion tokens (if CSS-in-JS needs them) */
-  --duration-instant: var(--duration-instant);
-  --duration-fast: var(--duration-fast);
-  --duration-base: var(--duration-base);
-  --duration-slow: var(--duration-slow);
-  --duration-slower: var(--duration-slower);
-
-  --ease-linear: var(--ease-linear);
-  --ease-standard: var(--ease-standard);
-  --ease-emphasized: var(--ease-emphasized);
-  --ease-accelerate: var(--ease-accelerate);
-  --ease-decelerate: var(--ease-decelerate);
 
   /* ANIMATIONS (keyframes defined in globals.css) */
   --animate-marquee: marquee 60s linear infinite;
@@ -286,5 +303,263 @@
   @keyframes caret-blink {
     0%, 50% { opacity: 1; }
     51%, 100% { opacity: 0; }
+  }
+}
+
+/* ── TRANSITIONAL ALIASES — remove as components convert ──
+   Untitled UI class names in packages/ui/src/components that resolve to
+   nothing under the Vanyshr theme, pointed at Vanyshr tokens so unconverted
+   screens keep rendering (rulings 2026-09-17). Keys are namespaced per
+   utility (--background-color-*, --text-color-*, --border-color-*, …) so
+   e.g. bg-tertiary and text-tertiary resolve independently.
+   NOT a place to add new names. Removal protocol, usage sites and rationale
+   per line: docs/TRANSITIONAL_ALIASES.md — at zero usages, delete the line. */
+@theme {
+  /* Scaffolded shadcn components (never defined in any system) */
+  --background-color-background-surface-default: var(--color-bg-surface);
+  --background-color-background-surface-secondary: var(--color-bg-elevated);
+  --background-color-border-neutral-200: var(--color-border);
+  --background-color-border-neutral-300: var(--color-border-strong);
+  --background-color-utility-brand-600: var(--color-primary);
+  --border-color-border-neutral-200: var(--color-border);
+  --ring-offset-color-background-surface-default: var(--color-bg-surface);
+
+  /* Surfaces, states & overlays */
+  --background-color-active: var(--color-state-active);
+  --background-color-alpha-black: var(--color-text-primary);
+  --background-color-alpha-white: var(--color-text-inverse);
+  --background-color-disabled_subtle: var(--color-state-disabled-bg);
+  --background-color-overlay: var(--color-bg-overlay);
+  --background-color-primary-25: var(--color-bg-app);
+  --background-color-primary-solid: var(--color-bg-elevated);
+  --background-color-primary_alt: var(--color-bg-app);
+  --background-color-primary_hover: var(--color-state-hover);
+  --background-color-quaternary: var(--color-bg-elevated);
+  --background-color-secondary-solid: var(--color-bg-elevated);
+  --background-color-secondary_alt: var(--color-bg-surface);
+  --background-color-secondary_hover: var(--color-state-hover);
+  --background-color-tertiary: var(--color-bg-elevated);
+  --caret-color-alpha-black: var(--color-text-primary);
+  --fill-bg-primary-solid: var(--color-bg-elevated);
+  --fill-bg-tertiary: var(--color-bg-elevated);
+  --ring-color-disabled_subtle: var(--color-border-subtle);
+  --ring-color-secondary_alt: var(--color-border-subtle);
+  --stroke-bg-quaternary: var(--color-bg-elevated);
+  --text-color-alpha-black: var(--color-text-primary);
+  --text-color-bg-tertiary: var(--color-bg-elevated);
+  --text-color-primary_on-brand: var(--color-primary-on);
+  --text-color-quaternary: var(--color-text-tertiary);
+  --text-color-secondary_hover: var(--color-text-primary);
+  --text-color-secondary_on-brand: var(--color-primary-on);
+  --text-color-tertiary: var(--color-text-tertiary);
+  --color-bg-disabled_subtle: var(--color-state-disabled-bg);
+
+  /* Text & foreground (icons) */
+  --background-color-brand-primary_alt: var(--color-primary-muted);
+  --background-color-brand-secondary: var(--color-primary-muted);
+  --background-color-brand-solid: var(--color-primary);
+  --background-color-brand-solid_hover: var(--color-primary-hover);
+  --background-color-fg-brand-primary_alt: var(--color-primary);
+  --background-color-fg-brand-secondary: var(--color-primary);
+  --background-color-fg-disabled_subtle: var(--color-state-disabled-fg);
+  --background-color-fg-success-secondary: var(--color-status-success);
+  --background-color-fg-white: var(--color-primary-on);
+  --border-color-fg-brand-primary_alt: var(--color-primary);
+  --border-color-fg-error-primary: var(--color-status-danger);
+  --border-color-fg-success-primary: var(--color-status-success);
+  --border-color-fg-warning-primary: var(--color-status-warn);
+  --text-color-brand-secondary: var(--color-primary-text);
+  --text-color-brand-secondary_hover: var(--color-primary-hover);
+  --text-color-brand-tertiary: var(--color-primary-text);
+  --text-color-brand-tertiary_alt: var(--color-primary-text);
+  --text-color-button-destructive-primary-icon: var(--color-status-danger-on);
+  --text-color-button-destructive-primary-icon_hover: var(--color-status-danger-on);
+  --text-color-button-primary-icon: var(--color-primary-on);
+  --text-color-button-primary-icon_hover: var(--color-primary-on);
+  --text-color-featured-icon-light-fg-brand: var(--color-primary-text);
+  --text-color-featured-icon-light-fg-error: var(--color-status-danger);
+  --text-color-featured-icon-light-fg-gray: var(--color-text-tertiary);
+  --text-color-featured-icon-light-fg-success: var(--color-status-success);
+  --text-color-featured-icon-light-fg-warning: var(--color-status-warn);
+  --text-color-fg-brand-secondary_alt: var(--color-primary-text);
+  --text-color-fg-brand-secondary_hover: var(--color-primary-hover);
+  --text-color-fg-disabled_subtle: var(--color-text-disabled);
+  --text-color-fg-error-primary: var(--color-status-danger);
+  --text-color-fg-error-secondary: var(--color-status-danger);
+  --text-color-fg-quaternary: var(--color-text-tertiary);
+  --text-color-fg-quaternary_hover: var(--color-text-secondary);
+  --text-color-fg-secondary_hover: var(--color-text-primary);
+  --text-color-fg-success-primary: var(--color-status-success);
+  --text-color-fg-success-secondary: var(--color-status-success);
+  --text-color-fg-warning-primary: var(--color-status-warn);
+  --text-color-fg-white: var(--color-text-primary);
+  --text-color-placeholder: var(--color-text-secondary);
+  --text-color-placeholder_subtle: var(--color-text-tertiary);
+  --text-color-tertiary_hover: var(--color-text-secondary);
+
+  /* Brand, status & focus */
+  --background-color-error-primary: var(--color-status-danger-muted);
+  --background-color-error-secondary: var(--color-status-danger-muted);
+  --background-color-error-solid: var(--color-status-danger);
+  --background-color-error-solid_hover: var(--color-status-danger-hover);
+  --background-color-success-secondary: var(--color-status-success-muted);
+  --background-color-success-solid: var(--color-status-success);
+  --background-color-warning-secondary: var(--color-status-warn-muted);
+  --background-color-warning-solid: var(--color-status-warn);
+  --border-color-brand: var(--color-border-focus);
+  --border-color-brand_alt: var(--color-primary);
+  --outline-color-brand: var(--color-border-focus);
+  --ring-color-bg-brand-solid: var(--color-primary);
+  --ring-color-border-error_subtle: var(--color-status-danger);
+  --ring-color-brand: var(--color-border-focus);
+  --ring-color-error_subtle: var(--color-status-danger-border);
+  --text-color-error-primary: var(--color-status-danger);
+  --text-color-error-primary_hover: var(--color-status-danger);
+  --text-color-success-primary: var(--color-status-success);
+  --text-color-warning-400: var(--color-status-warn);
+
+  /* Utility palette (badges, illustrations) */
+  --background-color-utility-blue-100: var(--color-primary-muted);
+  --background-color-utility-blue-50: var(--color-primary-muted);
+  --background-color-utility-blue-light-100: var(--color-primary-muted);
+  --background-color-utility-blue-light-50: var(--color-primary-muted);
+  --background-color-utility-brand-100: var(--color-primary-muted);
+  --background-color-utility-brand-50: var(--color-primary-muted);
+  --background-color-utility-brand-500: var(--color-primary);
+  --background-color-utility-error-100: var(--color-status-danger-muted);
+  --background-color-utility-error-50: var(--color-status-danger-muted);
+  --background-color-utility-error-500: var(--color-status-danger);
+  --background-color-utility-gray-100: var(--color-bg-elevated);
+  --background-color-utility-gray-50: var(--color-bg-surface);
+  --background-color-utility-gray-500: var(--color-text-tertiary);
+  --background-color-utility-gray-blue-100: var(--color-bg-elevated);
+  --background-color-utility-gray-blue-50: var(--color-bg-surface);
+  --background-color-utility-indigo-100: var(--color-primary-muted);
+  --background-color-utility-indigo-50: var(--color-primary-muted);
+  --background-color-utility-orange-100: var(--color-status-warn-muted);
+  --background-color-utility-orange-50: var(--color-status-warn-muted);
+  --background-color-utility-pink-100: var(--color-status-danger-muted);
+  --background-color-utility-pink-50: var(--color-status-danger-muted);
+  --background-color-utility-purple-100: var(--color-bg-elevated);
+  --background-color-utility-purple-50: var(--color-bg-surface);
+  --background-color-utility-success-100: var(--color-status-success-muted);
+  --background-color-utility-success-50: var(--color-status-success-muted);
+  --background-color-utility-success-500: var(--color-status-success);
+  --background-color-utility-warning-100: var(--color-status-warn-muted);
+  --background-color-utility-warning-50: var(--color-status-warn-muted);
+  --background-color-utility-warning-500: var(--color-status-warn);
+  --border-color-utility-brand-200: var(--color-primary-border);
+  --border-color-utility-error-200: var(--color-status-danger-border);
+  --border-color-utility-gray-200: var(--color-border);
+  --border-color-utility-success-200: var(--color-status-success-border);
+  --border-color-utility-warning-200: var(--color-status-warn-border);
+  --fill-utility-gray-100: var(--color-bg-elevated);
+  --fill-utility-gray-200: var(--color-border);
+  --fill-utility-gray-300: var(--color-border);
+  --fill-utility-gray-50: var(--color-bg-surface);
+  --outline-color-utility-brand-100: var(--color-primary-muted);
+  --outline-color-utility-error-100: var(--color-status-danger-muted);
+  --outline-color-utility-gray-100: var(--color-border-subtle);
+  --outline-color-utility-success-100: var(--color-status-success-muted);
+  --outline-color-utility-warning-100: var(--color-status-warn-muted);
+  --ring-color-utility-blue-200: var(--color-primary-border);
+  --ring-color-utility-blue-light-200: var(--color-primary-border);
+  --ring-color-utility-brand-200: var(--color-primary-border);
+  --ring-color-utility-error-200: var(--color-status-danger-border);
+  --ring-color-utility-gray-200: var(--color-border);
+  --ring-color-utility-gray-blue-200: var(--color-border);
+  --ring-color-utility-indigo-200: var(--color-primary-border);
+  --ring-color-utility-orange-200: var(--color-status-warn-border);
+  --ring-color-utility-pink-200: var(--color-status-danger-border);
+  --ring-color-utility-purple-200: var(--color-border);
+  --ring-color-utility-success-200: var(--color-status-success-border);
+  --ring-color-utility-warning-200: var(--color-status-warn-border);
+  --text-color-utility-blue-400: var(--color-primary);
+  --text-color-utility-blue-500: var(--color-primary);
+  --text-color-utility-blue-700: var(--color-primary-text);
+  --text-color-utility-blue-light-400: var(--color-primary);
+  --text-color-utility-blue-light-500: var(--color-primary);
+  --text-color-utility-blue-light-700: var(--color-primary-text);
+  --text-color-utility-brand-400: var(--color-primary);
+  --text-color-utility-brand-500: var(--color-primary);
+  --text-color-utility-brand-700: var(--color-primary-text);
+  --text-color-utility-error-400: var(--color-status-danger);
+  --text-color-utility-error-500: var(--color-status-danger);
+  --text-color-utility-error-700: var(--color-status-danger);
+  --text-color-utility-gray-100: var(--color-bg-elevated);
+  --text-color-utility-gray-200: var(--color-border);
+  --text-color-utility-gray-400: var(--color-text-tertiary);
+  --text-color-utility-gray-50: var(--color-bg-surface);
+  --text-color-utility-gray-500: var(--color-text-tertiary);
+  --text-color-utility-gray-700: var(--color-text-secondary);
+  --text-color-utility-gray-blue-400: var(--color-text-tertiary);
+  --text-color-utility-gray-blue-500: var(--color-text-tertiary);
+  --text-color-utility-gray-blue-700: var(--color-text-secondary);
+  --text-color-utility-indigo-400: var(--color-primary);
+  --text-color-utility-indigo-500: var(--color-primary);
+  --text-color-utility-indigo-700: var(--color-primary-text);
+  --text-color-utility-orange-400: var(--color-status-warn);
+  --text-color-utility-orange-500: var(--color-status-warn);
+  --text-color-utility-orange-700: var(--color-status-warn);
+  --text-color-utility-pink-400: var(--color-status-danger);
+  --text-color-utility-pink-500: var(--color-status-danger);
+  --text-color-utility-pink-700: var(--color-status-danger);
+  --text-color-utility-purple-400: var(--color-text-tertiary);
+  --text-color-utility-purple-500: var(--color-text-tertiary);
+  --text-color-utility-purple-700: var(--color-text-secondary);
+  --text-color-utility-success-400: var(--color-status-success);
+  --text-color-utility-success-500: var(--color-status-success);
+  --text-color-utility-success-700: var(--color-status-success);
+  --text-color-utility-warning-400: var(--color-status-warn);
+  --text-color-utility-warning-500: var(--color-status-warn);
+  --text-color-utility-warning-700: var(--color-status-warn);
+
+  /* Component-specific (avatar, slider, toggle, store badge, type size) */
+  --background-color-avatar-bg: var(--color-bg-elevated);
+  --background-color-slider-handle-bg: var(--color-primary);
+  --background-color-toggle-button-fg_disabled: var(--color-state-disabled-fg);
+  --border-color-toggle-border: var(--color-border);
+  --border-color-toggle-slim-border_pressed: var(--color-primary);
+  --border-color-toggle-slim-border_pressed-hover: var(--color-primary-hover);
+  --fill-border-secondary_alt: var(--color-border-subtle);
+  --outline-color-avatar-contrast-border: var(--color-border-subtle);
+  --ring-color-app-store-badge-border: var(--color-border-strong);
+  --ring-color-slider-handle-border: var(--color-primary);
+  --stroke-border-secondary_alt: var(--color-border-subtle);
+  --text-display-xl: var(--size-display);
+  --text-display-xl--line-height: calc(var(--size-display) * 1.33);
+}
+
+/* ── 3. KONSTA RUNTIME VARS (konsta 5.4.0) ──
+   Exactly the --k-color-* names Konsta's components and styles read. MD3
+   surface is Konsta's page canvas; surface-1/2 are raised chrome (lists,
+   navbar); surface-3..5 float (dialogs, toasts). */
+@layer konsta {
+  :root {
+    --k-color-primary: var(--color-primary);
+
+    --k-color-ios-primary: var(--color-primary);
+    --k-color-ios-primary-tint: var(--color-primary-hover);
+    --k-color-ios-primary-shade: var(--color-primary-active);
+
+    --k-color-md-light-primary: var(--color-primary);
+    --k-color-md-light-on-primary: var(--color-primary-on);
+    --k-color-md-light-primary-container: var(--color-primary-muted);
+    --k-color-md-light-on-primary-container: var(--color-primary-text);
+    --k-color-md-light-secondary: var(--color-secondary);
+    --k-color-md-light-on-secondary: var(--color-secondary-on);
+    --k-color-md-light-secondary-container: var(--color-primary-muted);
+    --k-color-md-light-on-secondary-container: var(--color-primary-text);
+    --k-color-md-light-surface: var(--color-bg-app);
+    --k-color-md-light-on-surface: var(--color-text-primary);
+    --k-color-md-light-surface-variant: var(--color-bg-elevated);
+    --k-color-md-light-on-surface-variant: var(--color-text-secondary);
+    --k-color-md-light-outline: var(--color-border);
+    --k-color-md-light-outline-variant: var(--color-border-subtle);
+    --k-color-md-light-surface-1: var(--color-bg-surface);
+    --k-color-md-light-surface-2: var(--color-bg-surface);
+    --k-color-md-light-surface-3: var(--color-bg-elevated);
+    --k-color-md-light-surface-4: var(--color-bg-elevated);
+    --k-color-md-light-surface-5: var(--color-bg-elevated);
   }
 }

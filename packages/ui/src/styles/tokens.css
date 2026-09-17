@@ -26,6 +26,7 @@
   --color-primary-muted: #14abfe33;
   --color-primary-on: #0b0d10; /* ink on cyan fills — never white */
   --color-primary-text: #14abfe; /* colored text on dark UI */
+  --color-primary-border: #14abfe66; /* badge border on primary-muted */
 
   /* ── Secondary / accent ── */
   --color-secondary: #0b8fd9;
@@ -72,12 +73,16 @@
   --color-status-success: #3d9b6e;
   --color-status-success-muted: #3d9b6e33;
   --color-status-success-on: #0b0d10;
+  --color-status-success-border: #3d9b6e66;
   --color-status-warn: #d97706;
   --color-status-warn-muted: #d9770633;
   --color-status-warn-on: #0b0d10;
+  --color-status-warn-border: #d9770666;
   --color-status-danger: #e5484d;
+  --color-status-danger-hover: #e96368;
   --color-status-danger-muted: #e5484d33;
   --color-status-danger-on: #f5f5f5;
+  --color-status-danger-border: #e5484d66;
   --color-status-info: #14abfe;
   --color-status-info-muted: #14abfe33;
   --color-status-info-on: #0b0d10;
@@ -158,6 +163,7 @@
   --color-primary-muted: #14abfe1f;
   --color-primary-on: #0b0d10;
   --color-primary-text: #0077cc;
+  --color-primary-border: #14abfe4d;
 
   --color-secondary: #0077cc;
   --color-secondary-on: #fafafa;
@@ -198,12 +204,16 @@
   --color-status-success: #2f7d58;
   --color-status-success-muted: #2f7d581f;
   --color-status-success-on: #ffffff;
+  --color-status-success-border: #2f7d584d;
   --color-status-warn: #b45309;
   --color-status-warn-muted: #b453091f;
   --color-status-warn-on: #ffffff;
+  --color-status-warn-border: #b453094d;
   --color-status-danger: #c53d42;
+  --color-status-danger-hover: #ad363a;
   --color-status-danger-muted: #c53d421f;
   --color-status-danger-on: #ffffff;
+  --color-status-danger-border: #c53d424d;
   --color-status-info: #0077cc;
   --color-status-info-muted: #0077cc1f;
   --color-status-info-on: #ffffff;

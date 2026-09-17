@@ -8,12 +8,9 @@
 @plugin "tailwindcss-react-aria-components";
 @plugin "tailwindcss-animate";
 
-/* Dark: app toggle (.dark-mode), browser/extension (native-dark-active), or system preference */
-@custom-variant dark (
-  &:where(.dark-mode, .dark-mode *),
-  &:where([native-dark-active], [native-dark-active] *),
-  @media (prefers-color-scheme: dark)
-);
+/* No dark: variant here — the .light class on the root is the only theme
+   mechanism (DESIGN.md §12.4). dark: is neutralized in apps/app/src/index.css,
+   after Konsta's stylesheets (which register their own). */
 @custom-variant label (& [data-label]);
 @custom-variant focus-input-within (&:has(input:focus));
 
@@ -42,17 +39,9 @@
        actual values — nothing here is hardcoded anymore. */
 
     /* Brand — single signal-blue accent (Vanyshr Design System v2) */
-    --brand-primary: var(--color-brand-500);
     --brand-dark: var(--color-navy-hero);
-    --accent-hover: var(--color-brand-600);
-    --accent-orange: var(--color-warning-500);
-    --accent-risk: var(--color-warning-500);
 
     /* Semantic */
-    --success: var(--color-success-500);
-    --warning: var(--color-warning-500);
-    --error: var(--color-error-500);
-    --info: var(--color-brand-500);
     --disabled: var(--color-gray-700);
 
     /* Backgrounds */
@@ -68,18 +57,18 @@
 
     /* Borders */
     --border-subtle: var(--color-border-primary);
-    --border-brand: var(--color-brand-500);
 
-    /* Spacing */
-    --space-1: 4px;
-    --space-2: 8px;
-    --space-3: 12px;
-    --space-4: 16px;
-    --space-5: 20px;
-    --space-6: 24px;
-    --space-8: 32px;
+    /* Spacing — --space-1…8 live in tokens.css (source of truth) */
     --space-10: 40px;
     --space-12: 48px;
+}
+
+/* Native UI (scrollbars, form controls) follows the one theme toggle */
+:root {
+    color-scheme: dark;
+}
+:root.light {
+    color-scheme: light;
 }
 
 html,

@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useState } from "react";
 
 type Theme = "light" | "dark" | "system";
 
@@ -23,11 +23,6 @@ export const useTheme = (): ThemeContextType => {
 interface ThemeProviderProps {
     children: ReactNode;
     /**
-     * The class to add to the root element when the theme is dark
-     * @default "dark-mode"
-     */
-    darkModeClass?: string;
-    /**
      * The default theme to use if no theme is stored in localStorage
      * @default "system"
      */
@@ -39,15 +34,10 @@ interface ThemeProviderProps {
     storageKey?: string;
 }
 
-export const ThemeProvider = ({ children, darkModeClass = "dark-mode" }: ThemeProviderProps) => {
+// No DOM side effects: the .light class on the root is the only theme toggle
+// (DESIGN.md §12.4), and color-scheme follows it in globals.css.
+export const ThemeProvider = ({ children }: ThemeProviderProps) => {
     const [theme] = useState<Theme>("dark");
-
-    useEffect(() => {
-        const root = window.document.documentElement;
-        root.classList.remove("light-forced");
-        root.classList.add(darkModeClass);
-        root.style.colorScheme = "dark";
-    }, [darkModeClass]);
 
     return <ThemeContext.Provider value={{ theme, setTheme: () => {} }}>{children}</ThemeContext.Provider>;
 };

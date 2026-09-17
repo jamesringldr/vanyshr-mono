@@ -12,7 +12,7 @@ rules live here. If a value disagrees, the token file wins. If a rule disagrees,
 
 **Hard rules:** No raw hex, rgb(), or rgba() in component files. No arbitrary px for spacing. No font families outside 3 Type. When a component exists in the catalog, use it. Read 12 Component library stack before importing ANY component — each surface has exactly one owning library. One icon package only (`lucide-react`). Konsta owns all screen overlays. Touch targets ≥ 44px. When ambiguous, stop and ask.
 
-**Color:** `--color-primary` (+ `-hover`, `-active`, `-muted`, `-on`, `-text`), `--color-secondary`, `--color-accent` (+ `-hover`, `-active`, `-muted`, `-on`, `-text`), `--color-bg-app`, `--color-bg-surface`, `--color-bg-elevated`, `--color-bg-overlay`, `--color-text-primary`, `--color-text-secondary`, `--color-text-tertiary`, `--color-border` (+ `-subtle`, `-strong`, `-focus`), `--color-state-hover`, `--color-state-active`, `--color-state-selected`, `--color-status-success`, `--color-status-warn`, `--color-status-danger`, `--color-status-info` (each + `-muted`, `-on`), `--color-brand-cyan`, `--color-brand-orange`, `--color-brand-navy`
+**Color:** `--color-primary` (+ `-hover`, `-active`, `-muted`, `-on`, `-text`, `-border`), `--color-secondary`, `--color-accent` (+ `-hover`, `-active`, `-muted`, `-on`, `-text`), `--color-bg-app`, `--color-bg-surface`, `--color-bg-elevated`, `--color-bg-overlay`, `--color-text-primary`, `--color-text-secondary`, `--color-text-tertiary`, `--color-border` (+ `-subtle`, `-strong`, `-focus`), `--color-state-hover`, `--color-state-active`, `--color-state-selected`, `--color-status-success`, `--color-status-warn`, `--color-status-danger`, `--color-status-info` (each + `-muted`, `-on`; success/warn/danger + `-border`; danger + `-hover`), `--color-brand-cyan`, `--color-brand-orange`, `--color-brand-navy`
 
 Token file: `packages/ui/src/styles/tokens.css`. Catalog: `docs/COMPONENTS.md`.
 
@@ -58,6 +58,7 @@ This block must match the token file. Edit values via spec from Igor, not by han
   --color-primary-muted: #14abfe33;
   --color-primary-on: #0b0d10; /* ink on cyan fills — never white */
   --color-primary-text: #14abfe; /* colored text on dark UI */
+  --color-primary-border: #14abfe66; /* badge border on primary-muted */
 
   /* ── Secondary / accent ── */
   --color-secondary: #0b8fd9;
@@ -104,12 +105,16 @@ This block must match the token file. Edit values via spec from Igor, not by han
   --color-status-success: #3d9b6e;
   --color-status-success-muted: #3d9b6e33;
   --color-status-success-on: #0b0d10;
+  --color-status-success-border: #3d9b6e66;
   --color-status-warn: #d97706;
   --color-status-warn-muted: #d9770633;
   --color-status-warn-on: #0b0d10;
+  --color-status-warn-border: #d9770666;
   --color-status-danger: #e5484d;
+  --color-status-danger-hover: #e96368;
   --color-status-danger-muted: #e5484d33;
   --color-status-danger-on: #f5f5f5;
+  --color-status-danger-border: #e5484d66;
   --color-status-info: #14abfe;
   --color-status-info-muted: #14abfe33;
   --color-status-info-on: #0b0d10;
@@ -166,6 +171,7 @@ This block must match the token file. Edit values via spec from Igor, not by han
   --color-primary-muted: #14abfe1f;
   --color-primary-on: #0b0d10;
   --color-primary-text: #0077cc;
+  --color-primary-border: #14abfe4d;
 
   --color-secondary: #0077cc;
   --color-secondary-on: #fafafa;
@@ -206,12 +212,16 @@ This block must match the token file. Edit values via spec from Igor, not by han
   --color-status-success: #2f7d58;
   --color-status-success-muted: #2f7d581f;
   --color-status-success-on: #ffffff;
+  --color-status-success-border: #2f7d584d;
   --color-status-warn: #b45309;
   --color-status-warn-muted: #b453091f;
   --color-status-warn-on: #ffffff;
+  --color-status-warn-border: #b453094d;
   --color-status-danger: #c53d42;
+  --color-status-danger-hover: #ad363a;
   --color-status-danger-muted: #c53d421f;
   --color-status-danger-on: #ffffff;
+  --color-status-danger-border: #c53d424d;
   --color-status-info: #0077cc;
   --color-status-info-muted: #0077cc1f;
   --color-status-info-on: #ffffff;
@@ -231,6 +241,7 @@ This block must match the token file. Edit values via spec from Igor, not by han
 | `--color-primary-active` | #0b8fd9 | #0077cc |
 | `--color-primary-on` | #0b0d10 | #0b0d10 |
 | `--color-primary-text` | #14abfe | #0077cc |
+| `--color-primary-border` | #14abfe66 | #14abfe4d |
 | `--color-secondary` | #0b8fd9 | #0077cc |
 | `--color-accent` | #ff6924 | #ff6924 |
 | `--color-accent-hover` | #ff7f45 | #e55a18 |
@@ -246,8 +257,12 @@ This block must match the token file. Edit values via spec from Igor, not by han
 | `--color-border` | #4a4a4a | #e0e0e0 |
 | `--color-border-strong` | #6b6b6b | #c4c4c4 |
 | `--color-status-success` | #3d9b6e | #2f7d58 |
+| `--color-status-success-border` | #3d9b6e66 | #2f7d584d |
 | `--color-status-warn` | #d97706 | #b45309 |
+| `--color-status-warn-border` | #d9770666 | #b453094d |
 | `--color-status-danger` | #e5484d | #c53d42 |
+| `--color-status-danger-hover` | #e96368 | #ad363a |
+| `--color-status-danger-border` | #e5484d66 | #c53d424d |
 | `--color-status-info` | #14abfe | #0077cc |
 
 ### Brand Palette
@@ -269,6 +284,7 @@ Raw brand colors. `--color-primary` and `--color-secondary` are picked from thes
 | `--color-primary` | Primary fills (buttons, active tabs, selected states). Text/icons on it use `--color-primary-on` (ink — never white). |
 | `--color-primary-hover` / `-active` | Press/hover states of primary fills. Never swap hue on interaction. |
 | `--color-primary-muted` | Soft primary backgrounds (selected rows, info banners). |
+| `--color-primary-border` | Border/ring on a `--color-primary-muted` badge — one step stronger than the muted fill. Added 2026-09-17 (bible amendment). |
 | `--color-primary-text` | Cyan *text* on dark UI. On light UI it becomes `#0077cc` automatically. |
 | `--color-secondary` | Secondary actions, active indicators. |
 | `--color-accent` | Sparingly: high-interest callouts, key CTAs. Same hover/active/on discipline as primary. |
@@ -276,7 +292,7 @@ Raw brand colors. `--color-primary` and `--color-secondary` are picked from thes
 | `--color-text-primary` | Headings, body, primary icons. `--color-text-secondary`: captions, placeholders. `--color-text-tertiary`: de-emphasized metadata. |
 | `--color-border` | Default borders/dividers. `-subtle` for hairlines inside cards, `-strong` for emphasized outlines. |
 | `--color-state-hover` / `-active` / `-selected` | Interaction washes — translucent overlays, never hue swaps. |
-| `--color-status-*` | Base = fills and bold text. `-muted` = soft badge/banner backgrounds. `-on` = text/icons sitting on the base fill. Never use the base fill for large backgrounds. |
+| `--color-status-*` | Base = fills and bold text. `-muted` = soft badge/banner backgrounds. `-on` = text/icons sitting on the base fill. `-border` (success/warn/danger) = border/ring on a `-muted` badge. `--color-status-danger-hover` = press/hover of danger fills (same hue, same discipline as `--color-primary-hover`). Never use the base fill for large backgrounds. Added `-border`/`-hover` 2026-09-17 (bible amendment). |
 
 ## 3 Type
 

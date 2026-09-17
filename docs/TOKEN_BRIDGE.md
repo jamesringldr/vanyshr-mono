@@ -7,7 +7,7 @@
 
 ## Overview
 
-All library theme variables (`--k-*` for Konsta, Tailwind `@theme` for shadcn) are derived from the 93 core Vanyshr design tokens in `packages/ui/src/styles/tokens.css` via `var()` references only. No literal rgb/hex values in bridge assignments (§10a violation).
+All library theme variables (`--k-*` for Konsta, Tailwind `@theme` for shadcn) are derived from the 98 core Vanyshr design tokens in `packages/ui/src/styles/tokens.css` via `var()` references only. No literal rgb/hex values in bridge assignments (§10a violation).
 
 ## Token-by-Token Mapping
 
@@ -47,38 +47,39 @@ All library theme variables (`--k-*` for Konsta, Tailwind `@theme` for shadcn) a
 
 | Token | Library Var | Maps To | Purpose |
 |-------|-------------|---------|---------|
-| `--color-primary` | `--color-primary`, `--k-color-primary`, `--k-color-md-primary` | `#14abfe` (dark) | Primary action, active state |
-| `--color-primary-hover` | `--color-primary-hover`, `--k-color-md-primary-hover` | `#3bb8fe` (dark) | Hover state on primary |
+| `--color-primary` | `--color-primary` | `#14abfe` (dark) | Primary action, active state |
+| `--color-primary-hover` | `--color-primary-hover` | `#3bb8fe` (dark) | Hover state on primary |
 | `--color-primary-active` | `--color-primary-active` | `#0b8fd9` (dark) | Pressed/active state |
-| `--color-primary-muted` | `--color-primary-muted`, `--k-color-md-primary-container` | `#14abfe33` (dark) | Soft primary background |
-| `--color-primary-on` | `--color-primary-on`, `--k-color-md-on-primary` | `#0b0d10` | Ink on cyan fills |
-| `--color-primary-text` | `--color-primary-text`, `--k-color-md-on-primary-container` | `#14abfe` (dark) | Cyan text on dark UI |
+| `--color-primary-muted` | `--color-primary-muted` | `#14abfe33` (dark) | Soft primary background |
+| `--color-primary-on` | `--color-primary-on` | `#0b0d10` | Ink on cyan fills |
+| `--color-primary-text` | `--color-primary-text` | `#14abfe` (dark) | Cyan text on dark UI |
+| `--color-primary-border` | `--color-primary-border` | `#14abfe66` (dark) | Border/ring on a primary-muted badge |
 
 ### Color: Secondary
 
 | Token | Library Var | Maps To | Purpose |
 |-------|-------------|---------|---------|
-| `--color-secondary` | `--color-secondary`, `--k-color-secondary`, `--k-color-md-secondary` | `#0b8fd9` (dark) | Secondary action, badge |
+| `--color-secondary` | `--color-secondary` | `#0b8fd9` (dark) | Secondary action, badge |
 | `--color-secondary-on` | `--color-secondary-on` | `#f5f5f5` | Text/icons on secondary fill |
 
 ### Color: Accent (signal orange)
 
 | Token | Library Var | Maps To | Purpose |
 |-------|-------------|---------|---------|
-| `--color-accent` | `--color-accent`, `--k-color-accent`, `--k-color-md-tertiary` | `#ff6924` | High-interest callout, CTA |
+| `--color-accent` | `--color-accent` | `#ff6924` | High-interest callout, CTA |
 | `--color-accent-hover` | `--color-accent-hover` | `#ff7f45` (dark) | Hover on accent |
 | `--color-accent-active` | `--color-accent-active` | `#e55a18` (dark) | Pressed on accent |
-| `--color-accent-muted` | `--color-accent-muted`, `--k-color-md-tertiary-container` | `#ff692433` | Soft accent background |
-| `--color-accent-on` | `--color-accent-on`, `--k-color-md-on-tertiary` | `#0b0d10` | Ink on orange fills |
+| `--color-accent-muted` | `--color-accent-muted` | `#ff692433` | Soft accent background |
+| `--color-accent-on` | `--color-accent-on` | `#0b0d10` | Ink on orange fills |
 | `--color-accent-text` | `--color-accent-text` | `#ff6924` (dark) | Orange text on dark UI |
 
 ### Color: Surfaces
 
 | Token | Library Var | Maps To | Purpose |
 |-------|-------------|---------|---------|
-| `--color-bg-app` | `--color-bg-app`, `--color-bg-primary`, `--k-color-bg-primary`, `--k-color-md-background` | `#1a1a1a` | Screen canvas, page bg |
-| `--color-bg-surface` | `--color-bg-surface`, `--color-bg-secondary`, `--k-color-bg-secondary`, `--k-color-md-surface` | `#2a2a2a` | Cards, sheets, list rows |
-| `--color-bg-elevated` | `--color-bg-elevated`, `--color-bg-surface-secondary`, `--k-color-bg-tertiary` | `#3a3a3a` | Tooltips, dropdowns, floating |
+| `--color-bg-app` | `--color-bg-app`, `--color-bg-primary` | `#1a1a1a` | Screen canvas, page bg |
+| `--color-bg-surface` | `--color-bg-surface`, `--color-bg-secondary` | `#2a2a2a` | Cards, sheets, list rows |
+| `--color-bg-elevated` | `--color-bg-elevated`, `--color-bg-surface-secondary` | `#3a3a3a` | Tooltips, dropdowns, floating |
 | `--color-bg-overlay` | `--color-bg-overlay` | `#000000a6` | Semi-opaque overlay, modal backdrop |
 | `--color-bg-inverse` | `--color-bg-inverse`, `--color-white` | `#fafafa` | Light mode surface when dark mode bg |
 
@@ -86,9 +87,9 @@ All library theme variables (`--k-*` for Konsta, Tailwind `@theme` for shadcn) a
 
 | Token | Library Var | Maps To | Purpose |
 |-------|-------------|---------|---------|
-| `--color-text-primary` | `--color-text-primary`, `--k-color-text-primary`, `--k-color-md-on-background` | `#f5f5f5` (dark) | Headings, body, primary icons |
-| `--color-text-secondary` | `--color-text-secondary`, `--k-color-text-secondary` | `#9aa3ad` (dark) | Captions, placeholders, secondary icons |
-| `--color-text-tertiary` | `--color-text-tertiary`, `--k-color-text-tertiary` | `#6b7280` (dark) | De-emphasized metadata |
+| `--color-text-primary` | `--color-text-primary` | `#f5f5f5` (dark) | Headings, body, primary icons |
+| `--color-text-secondary` | `--color-text-secondary` | `#9aa3ad` (dark) | Captions, placeholders, secondary icons |
+| `--color-text-tertiary` | `--color-text-tertiary` | `#6b7280` (dark) | De-emphasized metadata |
 | `--color-text-disabled` | `--color-text-disabled` | `#5c5c5c` | Disabled text/controls |
 | `--color-text-inverse` | `--color-text-inverse`, `--color-black` | `#070f1c` | Navy ink (light mode) |
 
@@ -96,8 +97,8 @@ All library theme variables (`--k-*` for Konsta, Tailwind `@theme` for shadcn) a
 
 | Token | Library Var | Maps To | Purpose |
 |-------|-------------|---------|---------|
-| `--color-border` | `--color-border`, `--k-color-border`, `--color-border-primary`, `--k-color-md-outline` | `#4a4a4a` | Default dividers, outlines |
-| `--color-border-subtle` | `--color-border-subtle`, `--k-color-border-subtle`, `--color-border-secondary`, `--k-color-md-outline-variant` | `#4a4a4a80` | Hairlines inside cards |
+| `--color-border` | `--color-border`, `--color-border-primary` | `#4a4a4a` | Default dividers, outlines |
+| `--color-border-subtle` | `--color-border-subtle`, `--color-border-secondary` | `#4a4a4a80` | Hairlines inside cards |
 | `--color-border-strong` | `--color-border-strong`, `--color-border-tertiary` | `#6b6b6b` | Emphasized outlines |
 | `--color-border-focus` | `--color-border-focus`, `--color-focus-ring` | `#14abfe` | Focus ring outline |
 | `--color-ring-focus` | — | `#14abfe66` | Focus ring glow/shadow |
@@ -116,15 +117,19 @@ All library theme variables (`--k-*` for Konsta, Tailwind `@theme` for shadcn) a
 
 | Token | Library Var | Maps To | Purpose |
 |-------|-------------|---------|---------|
-| `--color-status-success` | `--color-status-success`, `--color-success`, `--k-color-md-surface-success` | `#3d9b6e` | Success fills, bold text |
+| `--color-status-success` | `--color-status-success`, `--color-success` | `#3d9b6e` | Success fills, bold text |
 | `--color-status-success-muted` | `--color-status-success-muted` | `#3d9b6e33` | Soft success badge/banner |
 | `--color-status-success-on` | `--color-status-success-on` | `#0b0d10` | Text/icons on success fill |
+| `--color-status-success-border` | `--color-status-success-border` | `#3d9b6e66` | Border/ring on success-muted badge |
 | `--color-status-warn` | `--color-status-warn`, `--color-warning`, `--color-accent-risk` | `#d97706` | Warning fills, bold text |
 | `--color-status-warn-muted` | `--color-status-warn-muted` | `#d9770633` | Soft warning badge/banner |
 | `--color-status-warn-on` | `--color-status-warn-on` | `#0b0d10` | Text/icons on warning fill |
-| `--color-status-danger` | `--color-status-danger`, `--color-error`, `--k-color-md-error` | `#e5484d` | Error fills, bold text |
-| `--color-status-danger-muted` | `--color-status-danger-muted`, `--k-color-md-error-container` | `#e5484d33` | Soft error badge/banner |
-| `--color-status-danger-on` | `--color-status-danger-on`, `--k-color-md-on-error` | `#f5f5f5` | Text/icons on error fill |
+| `--color-status-warn-border` | `--color-status-warn-border` | `#d9770666` | Border/ring on warn-muted badge |
+| `--color-status-danger` | `--color-status-danger`, `--color-error` | `#e5484d` | Error fills, bold text |
+| `--color-status-danger-muted` | `--color-status-danger-muted` | `#e5484d33` | Soft error badge/banner |
+| `--color-status-danger-on` | `--color-status-danger-on` | `#f5f5f5` | Text/icons on error fill |
+| `--color-status-danger-hover` | `--color-status-danger-hover` | `#e96368` | Hover/press on danger fills |
+| `--color-status-danger-border` | `--color-status-danger-border` | `#e5484d66` | Border/ring on danger-muted badge |
 | `--color-status-info` | `--color-status-info` | `#14abfe` | Info fills, bold text (cyan) |
 | `--color-status-info-muted` | `--color-status-info-muted` | `#14abfe33` | Soft info badge/banner |
 | `--color-status-info-on` | `--color-status-info-on` | `#0b0d10` | Text/icons on info fill |
@@ -138,6 +143,45 @@ All library theme variables (`--k-*` for Konsta, Tailwind `@theme` for shadcn) a
 | `--color-brand-navy` | `--color-brand-navy`, `--color-brand-primary3`, `--color-brand-dark`, `--color-brand-ink`, `--color-navy-hero` | `#070f1c` | Ink navy |
 | `--color-brand-cyan-on-light` | — | `#0077cc` | Cyan text on light mode (DESIGN.md implicit) |
 | `--color-brand-orange-on-light` | — | `#b84300` | Orange text on light mode (DESIGN.md implicit) |
+
+### Konsta (`--k-color-*`, konsta 5.4.0)
+
+Emitted by `theme.css` as plain custom properties in `@layer konsta { :root { … } }` — exactly the names Konsta's components and styles read. Konsta's own `styles/colors.css` is **not** imported (its color plugin parses a hex brand color and crashes on token `var()`s); the bridge replaces it. The app runs `<KonstaProvider theme="ios" dark={false}>`, so only the light slot is mapped — the tokens themselves switch on `.light`.
+
+| Konsta var | Maps To | Dark value | Konsta use |
+|------------|---------|------------|------------|
+| `--k-color-primary` | `--color-primary` | `#14abfe` | Primary (both themes) |
+| `--k-color-ios-primary` | `--color-primary` | `#14abfe` | iOS primary |
+| `--k-color-ios-primary-tint` | `--color-primary-hover` | `#3bb8fe` | iOS primary tint |
+| `--k-color-ios-primary-shade` | `--color-primary-active` | `#0b8fd9` | iOS primary shade |
+| `--k-color-md-light-primary` | `--color-primary` | `#14abfe` | MD primary |
+| `--k-color-md-light-on-primary` | `--color-primary-on` | `#0b0d10` | Ink on primary |
+| `--k-color-md-light-primary-container` | `--color-primary-muted` | `#14abfe33` | Soft primary fill |
+| `--k-color-md-light-on-primary-container` | `--color-primary-text` | `#14abfe` | Text on soft primary |
+| `--k-color-md-light-secondary` | `--color-secondary` | `#0b8fd9` | MD secondary |
+| `--k-color-md-light-on-secondary` | `--color-secondary-on` | `#f5f5f5` | Text on secondary |
+| `--k-color-md-light-secondary-container` | `--color-primary-muted` | `#14abfe33` | Selected list item fill |
+| `--k-color-md-light-on-secondary-container` | `--color-primary-text` | `#14abfe` | Selected list item text |
+| `--k-color-md-light-surface` | `--color-bg-app` | `#1a1a1a` | Page canvas, sheet |
+| `--k-color-md-light-on-surface` | `--color-text-primary` | `#f5f5f5` | Chrome text |
+| `--k-color-md-light-surface-variant` | `--color-bg-elevated` | `#3a3a3a` | Segmented track |
+| `--k-color-md-light-on-surface-variant` | `--color-text-secondary` | `#9aa3ad` | Secondary chrome text |
+| `--k-color-md-light-outline` | `--color-border` | `#4a4a4a` | Outlines |
+| `--k-color-md-light-outline-variant` | `--color-border-subtle` | `#4a4a4a80` | Hairline outlines |
+| `--k-color-md-light-surface-1` | `--color-bg-surface` | `#2a2a2a` | Lists, blocks |
+| `--k-color-md-light-surface-2` | `--color-bg-surface` | `#2a2a2a` | Navbar, toolbar |
+| `--k-color-md-light-surface-3` | `--color-bg-elevated` | `#3a3a3a` | Dialog |
+| `--k-color-md-light-surface-4` | `--color-bg-elevated` | `#3a3a3a` | Floating |
+| `--k-color-md-light-surface-5` | `--color-bg-elevated` | `#3a3a3a` | Toast |
+
+Konsta utility colors (Tailwind `@theme` in `theme.css`): `--color-md-light-*` → `var(--k-color-md-light-*)` and `--color-ios-primary*` → `var(--k-color-ios-primary*)`, following Konsta's own pattern. Konsta's iOS surfaces are literal hex upstream (no `--k-color-*` var), so they map straight to tokens:
+
+| Konsta utility color | Maps To |
+|----------------------|---------|
+| `--color-ios-light-surface` | `--color-bg-app` |
+| `--color-ios-light-surface-1`, `-1-tint`, `-2` | `--color-bg-surface` |
+| `--color-ios-light-surface-1-shade`, `-3`, `-variant` | `--color-bg-elevated` |
+| `--color-ios-hover-highlight` | `--color-state-hover` |
 
 ### Motion (optional for CSS-in-JS)
 
@@ -201,12 +245,12 @@ grep -E '(rgb|#[0-9a-f]|hsl|red|blue|green)' packages/ui/src/styles/theme.css | 
 ## Files Changed
 
 - `packages/ui/src/styles/tokens.css` — Moved bridge aliases to `:root` (available in both modes)
-- `packages/ui/src/styles/theme.css` — Refactored to use var() refs only, added Konsta --k-* vars
+- `packages/ui/src/styles/theme.css` — Refactored to use var() refs only; Konsta `--k-color-*` vars rewired to the names Konsta 5.4.0 reads (see Konsta table)
 - `docs/TOKEN_BRIDGE.md` — This document (token-by-token mapping)
 
 ## References
 
 - **Design Bible:** DESIGN.md §12 (Component library stack) & §12.4 (Token bridge contract)
-- **Token Source:** docs/tokens.json (93 core + 67 bridge aliases, locked 2026-09-17)
+- **Token Source:** docs/tokens.json (98 core + 67 bridge aliases, locked 2026-09-17; +5 core by bible amendment 2026-09-17)
 - **Konsta:** konsta 5.4.0, Material Design 3 color pattern
 - **Shadcn:** Radix + Tailwind v4 @theme (no separate dark mode mechanism)
