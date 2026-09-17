@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { useRef, useState } from "react";
 import { ChevronDown } from "@untitledui/icons";
 import { Button as AriaButton, Dialog as AriaDialog, DialogTrigger as AriaDialogTrigger, Popover as AriaPopover } from "react-aria-components";
-import { Button } from "@/components/base/buttons/button";
+import { Button } from "@/components/ui/buttons/button";
 import { UntitledLogo } from "@/components/foundations/logo/untitledui-logo";
 import { UntitledLogoMinimal } from "@/components/foundations/logo/untitledui-logo-minimal";
 import { DropdownMenuSimple } from "@/components/marketing/header-navigation/dropdown-header-navigation";
