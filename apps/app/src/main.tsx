@@ -5,7 +5,6 @@ import { KonstaProvider } from "konsta/react";
 import { RouteProvider, ThemeProvider } from "@vanyshr/ui";
 import App from "./App";
 import { BetaModalProvider } from "./components/BetaModalContext";
-import { DevToolbar } from "./components/DevToolbar";
 import "./index.css";
 
 createRoot(document.getElementById("root")!).render(
@@ -26,6 +25,5 @@ createRoot(document.getElementById("root")!).render(
                 </BrowserRouter>
             </ThemeProvider>
         </KonstaProvider>
-        {import.meta.env.DEV && <DevToolbar />}
     </StrictMode>,
 );
