@@ -48,13 +48,18 @@ export function DevToolbar() {
 
     if (!open) {
         return (
+            // Hit area (w-6) is deliberately bigger than the visible sliver inside
+            // it (w-1.5) -- a 6px-wide button is nearly impossible to hover/click
+            // precisely; group-hover on this wrapper still grows the visible bar.
             <button
                 type="button"
                 onClick={() => setOpen(true)}
                 title="Dev tools"
                 aria-label="Open dev tools"
-                className={`fixed left-0 top-1/2 z-50 h-16 w-1.5 -translate-y-1/2 rounded-r-full transition-all hover:w-3 ${statusColor}`}
-            />
+                className="group fixed left-0 top-1/2 z-50 flex h-24 w-6 -translate-y-1/2 items-center"
+            >
+                <span className={`h-16 w-1.5 rounded-r-full transition-all group-hover:w-3 ${statusColor}`} />
+            </button>
         );
     }
 
