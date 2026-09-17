@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Moon, Sun } from "lucide-react";
+import { Moon, Sun, X } from "lucide-react";
 import { isDisconnectedMode } from "@/lib/env";
 
 const STORAGE_KEY = "dev-theme-override";
@@ -12,7 +12,16 @@ function applyTheme(theme: ThemeOverride) {
     root.style.colorScheme = theme;
 }
 
+/**
+ * Fixed-position overlay, not real layout — a page-flow strip fought Konsta's
+ * <Page> (position: absolute; height: 100%) and per-page fixed footers/sheets,
+ * which resolve against the true viewport and need a transformed ancestor to
+ * be contained, producing a "scroll the wrapper to scroll the page" double
+ * scrollbar. An overlay sidesteps that entirely: it never touches app layout,
+ * so nothing here can regress on promotion to staging/prod.
+ */
 export function DevToolbar() {
+    const [open, setOpen] = useState(false);
     const [theme, setThemeState] = useState<ThemeOverride>(() => {
         try {
             return (localStorage.getItem(STORAGE_KEY) as ThemeOverride | null) ?? "dark";
@@ -35,33 +44,56 @@ export function DevToolbar() {
     };
 
     const disconnected = isDisconnectedMode();
+    const statusColor = disconnected ? "bg-amber-400" : "bg-green-400";
+
+    if (!open) {
+        return (
+            <button
+                type="button"
+                onClick={() => setOpen(true)}
+                title="Dev tools"
+                aria-label="Open dev tools"
+                className={`fixed left-0 top-1/2 z-50 h-16 w-1.5 -translate-y-1/2 rounded-r-full transition-all hover:w-3 ${statusColor}`}
+            />
+        );
+    }
 
     return (
-        <div className="flex shrink-0 items-center justify-between gap-3 border-t border-gray-700 bg-gray-600 px-4 py-2 text-white">
-            <span className="text-xs font-semibold uppercase tracking-wide text-gray-300">Dev</span>
-            <div className="flex items-center gap-3">
+        <div className="fixed left-0 top-1/2 z-50 -translate-y-1/2">
+            <div className="flex w-44 flex-col gap-3 rounded-r-xl border border-gray-700 bg-gray-600 p-3 text-white shadow-xl">
+                <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-gray-300">Dev</span>
+                    <button
+                        type="button"
+                        onClick={() => setOpen(false)}
+                        aria-label="Close dev tools"
+                        className="text-gray-400 hover:text-white"
+                    >
+                        <X size={14} />
+                    </button>
+                </div>
                 <div className="flex items-center gap-1 rounded-full bg-gray-700 p-1">
                     <button
                         type="button"
                         onClick={() => setTheme("light")}
                         aria-pressed={theme === "light"}
                         title="Light mode (dev only)"
-                        className={`rounded-full p-1.5 transition-colors ${
+                        className={`flex-1 rounded-full p-1.5 transition-colors ${
                             theme === "light" ? "bg-white text-amber-500" : "text-gray-400 hover:text-white"
                         }`}
                     >
-                        <Sun size={16} />
+                        <Sun size={16} className="mx-auto" />
                     </button>
                     <button
                         type="button"
                         onClick={() => setTheme("dark")}
                         aria-pressed={theme === "dark"}
                         title="Dark mode (dev only)"
-                        className={`rounded-full p-1.5 transition-colors ${
+                        className={`flex-1 rounded-full p-1.5 transition-colors ${
                             theme === "dark" ? "bg-white text-indigo-600" : "text-gray-400 hover:text-white"
                         }`}
                     >
-                        <Moon size={16} />
+                        <Moon size={16} className="mx-auto" />
                     </button>
                 </div>
                 <span
@@ -72,11 +104,7 @@ export function DevToolbar() {
                             : "bg-green-500/25 text-green-100"
                     }`}
                 >
-                    <span
-                        className={`h-1.5 w-1.5 rounded-full ${
-                            disconnected ? "bg-amber-400" : "bg-green-400"
-                        }`}
-                    />
+                    <span className={`h-1.5 w-1.5 rounded-full ${statusColor}`} />
                     {disconnected ? "Disconnected" : "Connected"}
                 </span>
             </div>
