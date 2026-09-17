@@ -7,6 +7,7 @@
  * own Zaba-match merge on raw broker data — see scan-result.ts, still used
  * by start.tsx).
  */
+import { isDisconnectedMode } from "@/lib/env";
 import type { Finding } from "./scan-result";
 
 export interface ConsolidatedProfile {
@@ -77,6 +78,55 @@ export interface ConsolidatedProfile {
 
 const STORAGE_KEY = "pilotConsolidatedProfile";
 
+/** Disconnected-mode stand-in so report/pre-profile/risk-summary/brokers render
+ *  when a page is opened directly instead of walking through a real scan. */
+function buildDummyConsolidatedProfile(): StoredConsolidatedProfile {
+  return {
+    quick_scan_id: "mock-scan-id",
+    brokerCount: 3,
+    brokers: ["fps", "zaba", "anywho"],
+    brokerFields: {
+      fps: ["Phone Numbers", "Current Address"],
+      zaba: ["Relatives"],
+      anywho: ["Email Addresses"],
+    },
+    profile: {
+      full_name: "Jamie Dev",
+      age: 34,
+      primary_address: "123 Main St, Austin, TX 78701",
+      previous_addresses: ["456 Oak Ave, Dallas, TX 75201"],
+      phones: ["5125550100"],
+      emails: ["jamie.dev@example.com"],
+      relatives: [{ name: "Alex Dev", relation: "Sibling", age: 30 }],
+      aliases: ["Jamie D. Developer"],
+      employment: [
+        { kind: "current", employer: "Acme Corp", title: "Product Manager", since: "2020" },
+      ],
+      education: [
+        { school: "University of Texas", degree: "B.S.", fieldOfStudy: "Computer Science" },
+      ],
+      properties: [
+        {
+          address: "123 Main St, Austin, TX 78701",
+          beds: "3",
+          baths: "2",
+          estimatedValue: 450000,
+        },
+      ],
+      legal_records: { countyRecords: { location: "Travis County", count: 1 }, nationwideCount: 1 },
+      services_found: ["netflix", "spotify"],
+      breaches: [
+        {
+          email: "jamie.dev@example.com",
+          breaches: [{ name: "Example Breach Co", date: "2021-05-01", year: "2021" }],
+          fields_exposed: ["Email", "Password"],
+        },
+      ],
+      breach_count: 1,
+    },
+  };
+}
+
 export interface StoredConsolidatedProfile {
   profile: ConsolidatedProfile;
   brokerCount: number;
@@ -91,7 +141,10 @@ export interface StoredConsolidatedProfile {
 /** Read the profile loading.tsx stored after the pick, or manage-emails refreshed after confirm. */
 export function loadConsolidatedProfile(): { data: StoredConsolidatedProfile | null; error: string | null } {
   const raw = sessionStorage.getItem(STORAGE_KEY);
-  if (!raw) return { data: null, error: "Nothing came through from this scan — run it again from the start." };
+  if (!raw) {
+    if (isDisconnectedMode()) return { data: buildDummyConsolidatedProfile(), error: null };
+    return { data: null, error: "Nothing came through from this scan — run it again from the start." };
+  }
   try {
     return { data: JSON.parse(raw) as StoredConsolidatedProfile, error: null };
   } catch {
