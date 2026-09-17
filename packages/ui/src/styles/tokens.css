@@ -21,6 +21,12 @@
   --color-brand-primary3: var(--color-brand-navy);
   --color-brand-primary4: #fafafa;
 
+  /* Peer brand color (Cash App green/purple model) — full-bleed moments,
+     not a sparing accent. Same hex as --color-accent by design; distinct
+     semantic role, see DESIGN.md 2 Usage. */
+  --color-brand-alternate: #ff6924;
+  --color-brand-alternate-on: #0b0d10; /* ink — matches --color-accent-on for the same hue */
+
   /* ── Primary (hero cyan) ── */
   --color-primary: #14abfe;
   --color-primary-hover: #3bb8fe;
@@ -68,7 +74,7 @@
   --color-state-hover: #ffffff0f;
   --color-state-active: #ffffff14;
   --color-state-selected: #14abfe22;
-  --color-state-disabled-bg: #2a2a2a;
+  --color-state-disabled-bg: #343434;
   --color-state-disabled-fg: #5c5c5c;
 
   /* ── Semantic ── */
@@ -155,10 +161,18 @@
   /* ── Bridge: color aliases (dark mode) ── */
   --color-transparent: transparent;
   --color-white: var(--color-bg-inverse);
+  /* Literal black in both themes: black is a scrim/backdrop color (Konsta's
+     bg-black/50 sheet backdrop), not ink. Pointing it at a text token made
+     backdrops brighten under .light. Ink uses remap to text tokens instead
+     (see .k-navbar in theme.css). Promoted from theme.css 2026-09-17. */
+  --color-black: #000;
 }
 
 /* Light mode — same names, navy ink, on-light text ramps for cyan/orange */
 .light {
+  --color-brand-alternate: #ff6924;
+  --color-brand-alternate-on: #0b0d10;
+
   --color-primary: #14abfe;
   --color-primary-hover: #0b8fd9;
   --color-primary-active: #0077cc;
@@ -176,13 +190,18 @@
   --color-accent-on: #0b0d10;
   --color-accent-text: #b84300;
 
-  --color-bg-app: #fafafa;
+  --color-bg-app: #f5f5f5;
   --color-bg-surface: #ffffff;
   --color-bg-elevated: #f0f0f0;
   --color-bg-overlay: #070f1c99;
-  --color-bg-inverse: #1a1a1a;
+  --color-bg-inverse: #242424;
 
-  --color-text-primary: #070f1c;
+  /* Experimental warm-paper canvas — light only, not referenced by any
+     component. Opt in via .theme-experimental on root (alongside .light);
+     see DESIGN.md 2 Color, "Experimental". */
+  --color-bg-experimental: #faf9f3;
+
+  --color-text-primary: #0b1b2a;
   --color-text-secondary: #5c6570;
   --color-text-tertiary: #8a939e;
   --color-text-disabled: #b0b0b0;
@@ -223,4 +242,13 @@
   --shadow-1: 0 1px 3px rgba(7, 15, 28, 0.08);
   --shadow-2: 0 4px 12px rgba(7, 15, 28, 0.1);
   --shadow-3: 0 10px 28px rgba(7, 15, 28, 0.14);
+
+  --color-black: #000;
+}
+
+/* Experimental warm-paper light surface. Opt in by adding this class
+   alongside .light on the root element (<html class="light theme-experimental">).
+   Unreferenced by any component — remap only, not wired into the app. */
+.theme-experimental {
+  --color-bg-app: var(--color-bg-experimental);
 }

@@ -44,7 +44,7 @@ export function DevToolbar() {
     };
 
     const disconnected = isDisconnectedMode();
-    const statusColor = disconnected ? "bg-amber-400" : "bg-green-400";
+    const statusColor = disconnected ? "bg-status-warn" : "bg-status-success";
 
     if (!open) {
         return (
@@ -65,26 +65,26 @@ export function DevToolbar() {
 
     return (
         <div className="fixed left-0 top-1/2 z-50 -translate-y-1/2">
-            <div className="flex w-44 flex-col gap-3 rounded-r-xl border border-gray-700 bg-gray-600 p-3 text-white shadow-xl">
+            <div className="flex w-44 flex-col gap-3 rounded-r-xl border border-border bg-elevated p-3 text-text-primary shadow-xl">
                 <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold uppercase tracking-wide text-gray-300">Dev</span>
+                    <span className="text-xs font-semibold uppercase tracking-wide text-text-secondary">Dev</span>
                     <button
                         type="button"
                         onClick={() => setOpen(false)}
                         aria-label="Close dev tools"
-                        className="text-gray-400 hover:text-white"
+                        className="text-text-tertiary hover:text-text-primary"
                     >
                         <X size={14} />
                     </button>
                 </div>
-                <div className="flex items-center gap-1 rounded-full bg-gray-700 p-1">
+                <div className="flex items-center gap-1 rounded-full bg-app p-1">
                     <button
                         type="button"
                         onClick={() => setTheme("light")}
                         aria-pressed={theme === "light"}
                         title="Light mode (dev only)"
                         className={`flex-1 rounded-full p-1.5 transition-colors ${
-                            theme === "light" ? "bg-white text-amber-500" : "text-gray-400 hover:text-white"
+                            theme === "light" ? "bg-white text-status-warn" : "text-text-tertiary hover:text-text-primary"
                         }`}
                     >
                         <Sun size={16} className="mx-auto" />
@@ -95,7 +95,7 @@ export function DevToolbar() {
                         aria-pressed={theme === "dark"}
                         title="Dark mode (dev only)"
                         className={`flex-1 rounded-full p-1.5 transition-colors ${
-                            theme === "dark" ? "bg-white text-indigo-600" : "text-gray-400 hover:text-white"
+                            theme === "dark" ? "bg-white text-primary" : "text-text-tertiary hover:text-text-primary"
                         }`}
                     >
                         <Moon size={16} className="mx-auto" />
@@ -105,8 +105,8 @@ export function DevToolbar() {
                     title="Set at dev server startup — edit VITE_DEV_MODE in apps/app/.env.local and restart to change"
                     className={`flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-medium ${
                         disconnected
-                            ? "bg-amber-500/25 text-amber-100"
-                            : "bg-green-500/25 text-green-100"
+                            ? "bg-status-warn-muted text-status-warn"
+                            : "bg-status-success-muted text-status-success"
                     }`}
                 >
                     <span className={`h-1.5 w-1.5 rounded-full ${statusColor}`} />

@@ -1,5 +1,5 @@
 import type { ReactNode, Ref } from "react";
-import { HelpCircle } from "@untitledui/icons";
+import { HelpCircle } from "lucide-react";
 import type { LabelProps as AriaLabelProps } from "react-aria-components";
 import { Label as AriaLabel } from "react-aria-components";
 import { Tooltip, TooltipTrigger } from "@/components/ui/tooltip/tooltip";

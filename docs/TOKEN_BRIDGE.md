@@ -7,7 +7,7 @@
 
 ## Overview
 
-All library theme variables (`--k-*` for Konsta, Tailwind `@theme` for shadcn) are derived from the 98 core Vanyshr design tokens in `packages/ui/src/styles/tokens.css` via `var()` references only. No literal rgb/hex values in bridge assignments (§10a violation).
+All library theme variables (`--k-*` for Konsta, Tailwind `@theme` for shadcn) are derived from the 101 core Vanyshr design tokens in `packages/ui/src/styles/tokens.css` via `var()` references only. No literal rgb/hex values in bridge assignments (§10a violation). (Was 98 before the 2026-09-17 color consolidation: +3 — `--color-black`, `--color-brand-alternate`, `--color-brand-alternate-on`. `--color-bg-experimental` is additional but experimental/light-only, excluded from this core count.)
 
 ## Token-by-Token Mapping
 
@@ -22,7 +22,7 @@ All library theme variables (`--k-*` for Konsta, Tailwind `@theme` for shadcn) a
 | `--size-heading` | `--text-lg` | `15px` | Section heading |
 | `--size-title` | `--text-xl` | `22px` | Panel/card title |
 | `--size-display` | `--text-display-*` | `30px` | Display/hero title |
-| `--size-data` | `--text-data` | `13px` | Data role — IDs, counts, timestamps (`text-data`) |
+| `--size-data` | `--text-data` | `13px` | Data role — IDs, counts, timestamps (`text-data`). `.text-data` also sets `font-variant-numeric: tabular-nums` (added 2026-09-17, `@layer utilities` in theme.css — not expressible via the `--text-data` theme pair alone) |
 
 ### Typography
 
@@ -74,6 +74,13 @@ All library theme variables (`--k-*` for Konsta, Tailwind `@theme` for shadcn) a
 | `--color-accent-on` | `--color-accent-on` | `#0b0d10` | Ink on orange fills |
 | `--color-accent-text` | `--color-accent-text` | `#ff6924` (dark) | Orange text on dark UI |
 
+### Color: Brand-alternate (peer brand, added 2026-09-17)
+
+| Token | Library Var | Maps To | Purpose |
+|-------|-------------|---------|---------|
+| `--color-brand-alternate` | `--color-brand-alternate` | `#ff6924` | Peer brand color (Cash App green/purple model) — full-bleed moments, not a sparing accent like `--color-accent`. Same hex as `--color-accent` by design; distinct semantic role. |
+| `--color-brand-alternate-on` | `--color-brand-alternate-on` | `#0b0d10` | Ink on brand-alternate fills — matches `--color-accent-on` for the same hue |
+
 ### Color: Surfaces
 
 | Token | Library Var | Maps To | Purpose |
@@ -94,7 +101,9 @@ All library theme variables (`--k-*` for Konsta, Tailwind `@theme` for shadcn) a
 | `--color-text-disabled` | `--color-text-disabled` | `#5c5c5c` | Disabled text/controls |
 | `--color-text-inverse` | `--color-text-inverse` | `#070f1c` | Navy ink (light mode) |
 
-`--color-black` is a literal `#000` in both themes (theme.css) — black means scrim/backdrop (Konsta `bg-black/50`), never ink. Inside `.k-navbar` it is re-pointed at `--color-text-primary`, because Konsta inks the iOS navbar title with `text-black`.
+`--color-black` is a literal `#000` in both themes (tokens.css, promoted from theme.css 2026-09-17) — black means scrim/backdrop (Konsta `bg-black/50`), never ink. Inside `.k-navbar` it is re-pointed at `--color-text-primary`, because Konsta inks the iOS navbar title with `text-black`.
+
+`--color-bg-experimental` (`#faf9f3`, light-scope only) is a warm-paper canvas under evaluation — opt in via `.theme-experimental` on root, alongside `.light`. Not wired into any component; excluded from tokens.json's dark-only mirror.
 
 ### Color: Borders
 
@@ -113,7 +122,7 @@ All library theme variables (`--k-*` for Konsta, Tailwind `@theme` for shadcn) a
 | `--color-state-hover` | `--color-state-hover` | `#ffffff0f` | Hover wash (translucent white) |
 | `--color-state-active` | `--color-state-active` | `#ffffff14` | Pressed/active wash |
 | `--color-state-selected` | `--color-state-selected` | `#14abfe22` | Selected row/item wash |
-| `--color-state-disabled-bg` | `--color-state-disabled-bg`, `--color-disabled` | `#2a2a2a` | Disabled element background |
+| `--color-state-disabled-bg` | `--color-state-disabled-bg`, `--color-disabled` | `#343434` (dark, amended 2026-09-17) | Disabled element background |
 | `--color-state-disabled-fg` | `--color-state-disabled-fg`, `--color-border-disabled` | `#5c5c5c` | Disabled text/border |
 
 ### Color: Status/Semantic

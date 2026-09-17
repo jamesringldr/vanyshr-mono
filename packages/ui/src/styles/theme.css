@@ -202,10 +202,9 @@
   /* Transparent & neutral anchors */
   --color-transparent: transparent;
   --color-white: var(--color-bg-inverse);
-  /* Literal black in both themes: black is a scrim/backdrop color (Konsta's
-     bg-black/50 sheet backdrop), not ink. Pointing it at a text token made
-     backdrops brighten under .light. Ink uses remap to text tokens instead. */
-  --color-black: #000;
+  /* --color-black: promoted to tokens.css 2026-09-17 (both themes, literal
+     #000) — no longer declared here. .k-navbar below still re-points it
+     locally for Konsta's iOS navbar title. */
 
   /* Deprecated brand name for compat (old naming) */
   --color-brand-primary: var(--color-primary);
@@ -317,6 +316,17 @@
   @keyframes caret-blink {
     0%, 50% { opacity: 1; }
     51%, 100% { opacity: 0; }
+  }
+}
+
+/* text-data's font-size/line-height come from the --text-data theme pair
+   above (Tailwind auto-generates that part); the data role also always sets
+   tabular figures (IDs, counts, timestamps must not jitter width), which
+   isn't one of the sub-properties Tailwind's font-size namespace supports —
+   added here instead, additive to the generated rule. */
+@layer utilities {
+  .text-data {
+    font-variant-numeric: tabular-nums;
   }
 }
 

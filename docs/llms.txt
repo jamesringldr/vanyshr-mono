@@ -4,7 +4,7 @@
 > The bible is the source of truth; tokens.json below is a machine-readable subset of it.
 > Stack: chrome → Konsta UI (React) · content → shadcn + Radix · viz → Recharts · icons → Lucide.
 
-Generated 2026-09-17 — 97 tokens (amended 2026-09-17: +5 — primary/status badge borders, danger hover; dark chrome ladder rebased to neutral grey #242424 / #343434 / #444444 / #545454, count unchanged).
+Generated 2026-09-17 — 100 tokens (amended 2026-09-17, color consolidation: +3 — `--color-black` (promoted from theme.css, literal in both themes), `--color-brand-alternate` + `-on` (peer brand color, Cash App green/purple model); dark `--color-state-disabled-bg` → #343434, light `--color-text-primary` → #0b1b2a, light `--color-bg-app` → #f5f5f5, light `--color-bg-inverse` → #242424. `--color-bg-experimental` (#faf9f3) exists light-only — excluded from this dark-only mirror, see DESIGN.md 2 Color).
 
 ## Docs
 

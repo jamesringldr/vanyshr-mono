@@ -53,6 +53,12 @@ This block must match the token file. Edit values via spec from Igor, not by han
   --color-brand-primary3: var(--color-brand-navy);
   --color-brand-primary4: #fafafa;
 
+  /* Peer brand color (Cash App green/purple model) — full-bleed moments,
+     not a sparing accent. Same hex as --color-accent by design; distinct
+     semantic role, see DESIGN.md 2 Usage. */
+  --color-brand-alternate: #ff6924;
+  --color-brand-alternate-on: #0b0d10; /* ink — matches --color-accent-on for the same hue */
+
   /* ── Primary (hero cyan) ── */
   --color-primary: #14abfe;
   --color-primary-hover: #3bb8fe;
@@ -100,7 +106,7 @@ This block must match the token file. Edit values via spec from Igor, not by han
   --color-state-hover: #ffffff0f;
   --color-state-active: #ffffff14;
   --color-state-selected: #14abfe22;
-  --color-state-disabled-bg: #2a2a2a;
+  --color-state-disabled-bg: #343434;
   --color-state-disabled-fg: #5c5c5c;
 
   /* ── Semantic ── */
@@ -163,10 +169,18 @@ This block must match the token file. Edit values via spec from Igor, not by han
   --font-ui: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* Literal black in both themes: black is a scrim/backdrop color (Konsta's
+     bg-black/50 sheet backdrop), not ink. Ink uses remap to text tokens
+     instead (see .k-navbar in theme.css). Promoted from theme.css 2026-09-17. */
+  --color-black: #000;
 }
 
 /* Light mode — same names, navy ink, on-light text ramps for cyan/orange */
 .light {
+  --color-brand-alternate: #ff6924;
+  --color-brand-alternate-on: #0b0d10;
+
   --color-primary: #14abfe;
   --color-primary-hover: #0b8fd9;
   --color-primary-active: #0077cc;
@@ -184,13 +198,18 @@ This block must match the token file. Edit values via spec from Igor, not by han
   --color-accent-on: #0b0d10;
   --color-accent-text: #b84300;
 
-  --color-bg-app: #fafafa;
+  --color-bg-app: #f5f5f5;
   --color-bg-surface: #ffffff;
   --color-bg-elevated: #f0f0f0;
   --color-bg-overlay: #070f1c99;
-  --color-bg-inverse: #1a1a1a;
+  --color-bg-inverse: #242424;
 
-  --color-text-primary: #070f1c;
+  /* Experimental warm-paper canvas — light only, not referenced by any
+     component. Opt in via .theme-experimental on root (alongside .light);
+     see "Experimental" above. */
+  --color-bg-experimental: #faf9f3;
+
+  --color-text-primary: #0b1b2a;
   --color-text-secondary: #5c6570;
   --color-text-tertiary: #8a939e;
   --color-text-disabled: #b0b0b0;
@@ -231,6 +250,15 @@ This block must match the token file. Edit values via spec from Igor, not by han
   --shadow-1: 0 1px 3px rgba(7, 15, 28, 0.08);
   --shadow-2: 0 4px 12px rgba(7, 15, 28, 0.1);
   --shadow-3: 0 10px 28px rgba(7, 15, 28, 0.14);
+
+  --color-black: #000;
+}
+
+/* Experimental warm-paper light surface. Opt in by adding this class
+   alongside .light on the root element (<html class="light theme-experimental">).
+   Unreferenced by any component — remap only, not wired into the app. */
+.theme-experimental {
+  --color-bg-app: var(--color-bg-experimental);
 }
 ```
 
@@ -250,14 +278,17 @@ This block must match the token file. Edit values via spec from Igor, not by han
 | `--color-accent-active` | #e55a18 | #b84300 |
 | `--color-accent-on` | #0b0d10 | #0b0d10 |
 | `--color-accent-text` | #ff6924 | #b84300 |
-| `--color-bg-app` | #242424 | #fafafa |
+| `--color-bg-app` | #242424 | #f5f5f5 |
 | `--color-bg-surface` | #343434 | #ffffff |
 | `--color-bg-elevated` | #444444 | #f0f0f0 |
-| `--color-text-primary` | #f5f5f5 | #070f1c |
+| `--color-bg-inverse` | #fafafa | #242424 |
+| `--color-black` | #000 | #000 |
+| `--color-text-primary` | #f5f5f5 | #0b1b2a |
 | `--color-text-secondary` | #9aa3ad | #5c6570 |
 | `--color-text-tertiary` | #6b7280 | #8a939e |
 | `--color-border` | #545454 | #e0e0e0 |
 | `--color-border-strong` | #757575 | #c4c4c4 |
+| `--color-state-disabled-bg` | #343434 | #f0f0f0 |
 | `--color-status-success` | #3d9b6e | #2f7d58 |
 | `--color-status-success-border` | #3d9b6e66 | #2f7d584d |
 | `--color-status-warn` | #d97706 | #b45309 |
@@ -278,6 +309,8 @@ Raw brand colors. `--color-primary` and `--color-secondary` are picked from thes
 | `--color-brand-navy` | Ink navy | #070f1c | #070f1c |
 | `--color-brand-cyan-on-light` | Cyan text on light | — | #0077cc |
 | `--color-brand-orange-on-light` | Orange text on light | — | #b84300 |
+| `--color-brand-alternate` | Peer brand (full-bleed) | #ff6924 | #ff6924 |
+| `--color-brand-alternate-on` | Ink on brand-alternate | #0b0d10 | #0b0d10 |
 
 ### Usage
 
@@ -295,6 +328,11 @@ Raw brand colors. `--color-primary` and `--color-secondary` are picked from thes
 | `--color-border` | Default borders/dividers. `-subtle` for hairlines inside cards, `-strong` for emphasized outlines. |
 | `--color-state-hover` / `-active` / `-selected` | Interaction washes — translucent overlays, never hue swaps. |
 | `--color-status-*` | Base = fills and bold text. `-muted` = soft badge/banner backgrounds. `-on` = text/icons sitting on the base fill. `-border` (success/warn/danger) = border/ring on a `-muted` badge. `--color-status-danger-hover` = press/hover of danger fills (same hue, same discipline as `--color-primary-hover`). Never use the base fill for large backgrounds. Added `-border`/`-hover` 2026-09-17 (bible amendment). |
+| `--color-brand-alternate` | Peer brand color (Cash App green/purple model) — an equally-weighted second brand color for full-bleed moments (a hero panel, a section takeover), not a sparing accent like `--color-accent`. Text/icons on it use `--color-brand-alternate-on`. Added 2026-09-17 (bible amendment). |
+
+**Input rule (2026-09-17):** inputs are never darker than their container. Preferred: one surface step lighter than the container (container on `--color-bg-app` → input `--color-bg-surface`; container on `--color-bg-surface` → input `--color-bg-elevated`). Minimum acceptable: equal surface to the container, plus a semantic border token (`--color-border`) to separate it. Never step down a surface level for an input.
+
+**Experimental:** `--color-bg-experimental` (`#faf9f3`, light only) and the `.theme-experimental` root class (remaps `--color-bg-app` to it) are a warm-paper canvas under evaluation. Not referenced by any component — do not wire it in without a spec from Igor.
 
 ## 3 Type
 
