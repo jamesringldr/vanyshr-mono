@@ -133,7 +133,7 @@ function DataTypeCard({
         <Card role="region" aria-label={title} className="px-4 py-3">
             <div className="flex items-center gap-2">
                 <Icon className="size-4 shrink-0 text-text-tertiary" aria-hidden />
-                <h3 className="text-(length:--size-data) font-medium uppercase tracking-widest text-text-tertiary">{title}</h3>
+                <h3 className="text-data font-medium uppercase tracking-widest text-text-tertiary">{title}</h3>
             </div>
             <div className="mt-2">{children}</div>
         </Card>
@@ -160,7 +160,7 @@ function LimitedTwoColumnGrid<T>({
                 <li key={i}>{renderItem(item, i)}</li>
             ))}
             {remaining > 0 && (
-                <li className="text-(length:--size-data) font-medium text-text-tertiary">
+                <li className="text-data font-medium text-text-tertiary">
                     +{remaining} more
                 </li>
             )}
@@ -204,7 +204,7 @@ export function PreProfileBody({
                     <h2 className="font-display text-lg font-semibold tracking-tight text-text-primary">
                         {data.contact.fullName}
                         {data.contact.age != null && (
-                            <span className="ml-1 font-body text-(length:--size-data) font-normal text-text-tertiary">{data.contact.age}</span>
+                            <span className="ml-1 font-body text-data font-normal text-text-tertiary">{data.contact.age}</span>
                         )}
                     </h2>
                     <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3">
@@ -317,7 +317,7 @@ export function PreProfileBody({
                                         </p>
                                     )}
                                     {cityState(addr) && (
-                                        <p className="text-(length:--size-data) font-normal text-text-secondary">
+                                        <p className="text-data font-normal text-text-secondary">
                                             {cityState(addr)}
                                         </p>
                                     )}
@@ -400,7 +400,7 @@ export function PilotPreProfilePage() {
                     <p className="mb-6 text-md text-text-secondary">
                         Nothing came through from this scan — run it again from the start.
                     </p>
-                    <Button href="/pilot-scan" size="xl" className="text-primary-on">
+                    <Button href="/pilot-scan" size="xl">
                         Start over
                     </Button>
                 </div>

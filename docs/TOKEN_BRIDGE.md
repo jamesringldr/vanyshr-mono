@@ -22,6 +22,7 @@ All library theme variables (`--k-*` for Konsta, Tailwind `@theme` for shadcn) a
 | `--size-heading` | `--text-lg` | `15px` | Section heading |
 | `--size-title` | `--text-xl` | `22px` | Panel/card title |
 | `--size-display` | `--text-display-*` | `30px` | Display/hero title |
+| `--size-data` | `--text-data` | `13px` | Data role — IDs, counts, timestamps (`text-data`) |
 
 ### Typography
 
@@ -77,9 +78,9 @@ All library theme variables (`--k-*` for Konsta, Tailwind `@theme` for shadcn) a
 
 | Token | Library Var | Maps To | Purpose |
 |-------|-------------|---------|---------|
-| `--color-bg-app` | `--color-bg-app`, `--color-bg-primary` | `#1a1a1a` | Screen canvas, page bg |
-| `--color-bg-surface` | `--color-bg-surface`, `--color-bg-secondary` | `#2a2a2a` | Cards, sheets, list rows |
-| `--color-bg-elevated` | `--color-bg-elevated`, `--color-bg-surface-secondary` | `#3a3a3a` | Tooltips, dropdowns, floating |
+| `--color-bg-app` | `--color-bg-app`, `--color-bg-primary` | `#242424` | Screen canvas, page bg |
+| `--color-bg-surface` | `--color-bg-surface`, `--color-bg-secondary` | `#343434` | Cards, sheets, list rows |
+| `--color-bg-elevated` | `--color-bg-elevated`, `--color-bg-surface-secondary` | `#444444` | Tooltips, dropdowns, floating |
 | `--color-bg-overlay` | `--color-bg-overlay` | `#000000a6` | Semi-opaque overlay, modal backdrop |
 | `--color-bg-inverse` | `--color-bg-inverse`, `--color-white` | `#fafafa` | Light mode surface when dark mode bg |
 
@@ -91,15 +92,17 @@ All library theme variables (`--k-*` for Konsta, Tailwind `@theme` for shadcn) a
 | `--color-text-secondary` | `--color-text-secondary` | `#9aa3ad` (dark) | Captions, placeholders, secondary icons |
 | `--color-text-tertiary` | `--color-text-tertiary` | `#6b7280` (dark) | De-emphasized metadata |
 | `--color-text-disabled` | `--color-text-disabled` | `#5c5c5c` | Disabled text/controls |
-| `--color-text-inverse` | `--color-text-inverse`, `--color-black` | `#070f1c` | Navy ink (light mode) |
+| `--color-text-inverse` | `--color-text-inverse` | `#070f1c` | Navy ink (light mode) |
+
+`--color-black` is a literal `#000` in both themes (theme.css) — black means scrim/backdrop (Konsta `bg-black/50`), never ink. Inside `.k-navbar` it is re-pointed at `--color-text-primary`, because Konsta inks the iOS navbar title with `text-black`.
 
 ### Color: Borders
 
 | Token | Library Var | Maps To | Purpose |
 |-------|-------------|---------|---------|
-| `--color-border` | `--color-border`, `--color-border-primary` | `#4a4a4a` | Default dividers, outlines |
-| `--color-border-subtle` | `--color-border-subtle`, `--color-border-secondary` | `#4a4a4a80` | Hairlines inside cards |
-| `--color-border-strong` | `--color-border-strong`, `--color-border-tertiary` | `#6b6b6b` | Emphasized outlines |
+| `--color-border` | `--color-border`, `--color-border-primary` | `#545454` | Default dividers, outlines |
+| `--color-border-subtle` | `--color-border-subtle`, `--color-border-secondary` | `#54545480` | Hairlines inside cards |
+| `--color-border-strong` | `--color-border-strong`, `--color-border-tertiary` | `#757575` | Emphasized outlines |
 | `--color-border-focus` | `--color-border-focus`, `--color-focus-ring` | `#14abfe` | Focus ring outline |
 | `--color-ring-focus` | — | `#14abfe66` | Focus ring glow/shadow |
 
@@ -162,17 +165,17 @@ Emitted by `theme.css` as plain custom properties in `@layer konsta { :root { �
 | `--k-color-md-light-on-secondary` | `--color-secondary-on` | `#f5f5f5` | Text on secondary |
 | `--k-color-md-light-secondary-container` | `--color-primary-muted` | `#14abfe33` | Selected list item fill |
 | `--k-color-md-light-on-secondary-container` | `--color-primary-text` | `#14abfe` | Selected list item text |
-| `--k-color-md-light-surface` | `--color-bg-app` | `#1a1a1a` | Page canvas, sheet |
+| `--k-color-md-light-surface` | `--color-bg-app` | `#242424` | Page canvas, sheet |
 | `--k-color-md-light-on-surface` | `--color-text-primary` | `#f5f5f5` | Chrome text |
-| `--k-color-md-light-surface-variant` | `--color-bg-elevated` | `#3a3a3a` | Segmented track |
+| `--k-color-md-light-surface-variant` | `--color-bg-elevated` | `#444444` | Segmented track |
 | `--k-color-md-light-on-surface-variant` | `--color-text-secondary` | `#9aa3ad` | Secondary chrome text |
-| `--k-color-md-light-outline` | `--color-border` | `#4a4a4a` | Outlines |
-| `--k-color-md-light-outline-variant` | `--color-border-subtle` | `#4a4a4a80` | Hairline outlines |
-| `--k-color-md-light-surface-1` | `--color-bg-surface` | `#2a2a2a` | Lists, blocks |
-| `--k-color-md-light-surface-2` | `--color-bg-surface` | `#2a2a2a` | Navbar, toolbar |
-| `--k-color-md-light-surface-3` | `--color-bg-elevated` | `#3a3a3a` | Dialog |
-| `--k-color-md-light-surface-4` | `--color-bg-elevated` | `#3a3a3a` | Floating |
-| `--k-color-md-light-surface-5` | `--color-bg-elevated` | `#3a3a3a` | Toast |
+| `--k-color-md-light-outline` | `--color-border` | `#545454` | Outlines |
+| `--k-color-md-light-outline-variant` | `--color-border-subtle` | `#54545480` | Hairline outlines |
+| `--k-color-md-light-surface-1` | `--color-bg-surface` | `#343434` | Lists, blocks |
+| `--k-color-md-light-surface-2` | `--color-bg-surface` | `#343434` | Navbar, toolbar |
+| `--k-color-md-light-surface-3` | `--color-bg-elevated` | `#444444` | Dialog |
+| `--k-color-md-light-surface-4` | `--color-bg-elevated` | `#444444` | Floating |
+| `--k-color-md-light-surface-5` | `--color-bg-elevated` | `#444444` | Toast |
 
 Konsta utility colors (Tailwind `@theme` in `theme.css`): `--color-md-light-*` → `var(--k-color-md-light-*)` and `--color-ios-primary*` → `var(--k-color-ios-primary*)`, following Konsta's own pattern. Konsta's iOS surfaces are literal hex upstream (no `--k-color-*` var), so they map straight to tokens:
 
@@ -184,6 +187,8 @@ Konsta utility colors (Tailwind `@theme` in `theme.css`): `--color-md-light-*` �
 | `--color-ios-hover-highlight` | `--color-state-hover` |
 
 ### Motion (optional for CSS-in-JS)
+
+Utilities: `duration-instant` / `-fast` / `-base` / `-slow` / `-slower` via `--transition-duration-*` aliases in theme.css; `ease-*` utilities resolve directly (Tailwind namespace).
 
 | Token | Library Var | Maps To | Purpose |
 |-------|-------------|---------|---------|
@@ -207,7 +212,7 @@ Both dark and light modes are controlled by the `.light` class on the root eleme
   /* Dark mode (default) — Vanyshr tokens as defined */
   --color-primary: #14abfe;
   --color-text-primary: #f5f5f5;
-  --color-bg-app: #1a1a1a;
+  --color-bg-app: #242424;
   /* ... */
 }
 

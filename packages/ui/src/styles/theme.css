@@ -167,6 +167,17 @@
   --text-display-2xl: var(--size-display);
   --text-display-2xl--line-height: calc(var(--size-display) * 1.33);
 
+  /* data role (IDs, counts, timestamps) — the one type role without a text-* utility */
+  --text-data: var(--size-data);
+  --text-data--line-height: calc(var(--size-data) * 1.38);
+
+  /* DURATION — motion scale as duration-* utilities (Tailwind reads --transition-duration-*) */
+  --transition-duration-instant: var(--duration-instant);
+  --transition-duration-fast: var(--duration-fast);
+  --transition-duration-base: var(--duration-base);
+  --transition-duration-slow: var(--duration-slow);
+  --transition-duration-slower: var(--duration-slower);
+
   /* RADIUS */
   --radius-none: 0px;
   --radius-xs: calc(var(--radius-sm) / 2);
@@ -191,7 +202,10 @@
   /* Transparent & neutral anchors */
   --color-transparent: transparent;
   --color-white: var(--color-bg-inverse);
-  --color-black: var(--color-text-inverse);
+  /* Literal black in both themes: black is a scrim/backdrop color (Konsta's
+     bg-black/50 sheet backdrop), not ink. Pointing it at a text token made
+     backdrops brighten under .light. Ink uses remap to text tokens instead. */
+  --color-black: #000;
 
   /* Deprecated brand name for compat (old naming) */
   --color-brand-primary: var(--color-primary);
@@ -561,5 +575,12 @@
     --k-color-md-light-surface-3: var(--color-bg-elevated);
     --k-color-md-light-surface-4: var(--color-bg-elevated);
     --k-color-md-light-surface-5: var(--color-bg-elevated);
+  }
+
+  /* Konsta inks the iOS Navbar with `text-black` (its light-slot class; the
+     app runs dark={false}). Black is literal #000 for scrims, so re-point it
+     at the text token inside the navbar only. */
+  .k-navbar {
+    --color-black: var(--color-text-primary);
   }
 }

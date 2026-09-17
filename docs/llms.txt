@@ -4,7 +4,7 @@
 > The bible is the source of truth; tokens.json below is a machine-readable subset of it.
 > Stack: chrome → Konsta UI (React) · content → shadcn + Radix · viz → Recharts · icons → Lucide.
 
-Generated 2026-09-17 — 97 tokens (amended 2026-09-17: +5 — primary/status badge borders, danger hover).
+Generated 2026-09-17 — 97 tokens (amended 2026-09-17: +5 — primary/status badge borders, danger hover; dark chrome ladder rebased to neutral grey #242424 / #343434 / #444444 / #545454, count unchanged).
 
 ## Docs
 

@@ -32,14 +32,14 @@ export function BreachesBody({ profile }: { profile: ConsolidatedProfile }) {
     return (
         <div>
             <h1 className="sr-only">Breaches</h1>
-            <p className="text-(length:--size-data) font-medium uppercase tracking-widest text-text-tertiary">
+            <p className="text-data font-medium uppercase tracking-widest text-text-tertiary">
                 Dark web
             </p>
             <p className="mt-2 text-lg leading-relaxed text-text-secondary">
                 A breach is a leak from a company or site — emails, passwords, or personal
                 details that then get posted or traded.
             </p>
-            <p className="mt-1 text-(length:--size-data) text-text-tertiary">
+            <p className="mt-1 text-data text-text-tertiary">
                 {breachCards.length === 0
                     ? "No breaches found for any confirmed email"
                     : `${breachCards.length} found across ${emailCount} email${emailCount === 1 ? "" : "s"}`}
@@ -65,7 +65,7 @@ export function BreachesBody({ profile }: { profile: ConsolidatedProfile }) {
                                             {formatBreachDate(b.date, b.year)}
                                         </p>
                                     </div>
-                                    <p className="truncate text-(length:--size-data) text-text-secondary">
+                                    <p className="truncate text-data text-text-secondary">
                                         {b.email}
                                     </p>
                                     <FieldChips fields={b.fieldsExposed} />

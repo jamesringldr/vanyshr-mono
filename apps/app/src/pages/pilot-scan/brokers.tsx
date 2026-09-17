@@ -40,7 +40,7 @@ function BrokerCard({ code, fields }: { code: string; fields: string[] }) {
         <Card className="px-4 py-3">
             <p className="text-lg font-semibold text-text-primary">{brokerLabel(code)}</p>
             {BROKER_DESCRIPTIONS[code] ? (
-                <p className="text-(length:--size-data) leading-snug text-text-secondary">{BROKER_DESCRIPTIONS[code]}</p>
+                <p className="text-data leading-snug text-text-secondary">{BROKER_DESCRIPTIONS[code]}</p>
             ) : null}
             <FieldChips fields={fields} />
         </Card>
@@ -56,7 +56,7 @@ function CreateAccountPrompt({ extraCount }: { extraCount: number }) {
             <p className="mt-2 text-md leading-snug text-text-secondary">
                 Create an account to see all sources exposing your data
             </p>
-            <Button href="/signup" size="xl" className="mt-4 w-full text-primary-on">
+            <Button href="/signup" size="xl" className="mt-4 w-full">
                 Create a Free Account
             </Button>
         </>
@@ -90,7 +90,7 @@ export function BrokersBody({
             <p className="text-lg leading-relaxed text-text-secondary">
                 Sources where we found your exposure data and private details...
             </p>
-            <p className="mt-1 text-(length:--size-data) text-text-tertiary">
+            <p className="mt-1 text-data text-text-tertiary">
                 {ordered.length} source{ordered.length === 1 ? "" : "s"} had a listing for you
             </p>
 

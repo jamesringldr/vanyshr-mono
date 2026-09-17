@@ -93,7 +93,7 @@ export function PilotReportPage() {
           <p className="mb-6 text-md text-text-secondary">
             Nothing came through from this scan — run it again from the start.
           </p>
-          <Button href="/pilot-scan" size="xl" className="text-primary-on">
+          <Button href="/pilot-scan" size="xl">
             Start over
           </Button>
         </div>
@@ -111,18 +111,18 @@ export function PilotReportPage() {
         <div className="px-4">
           <TabsList
             aria-label="Report sections"
-            className="scrollbar-hide h-auto w-full justify-start gap-4 overflow-x-auto rounded-none bg-transparent p-0"
+            className="scrollbar-hide w-full justify-start gap-4 overflow-x-auto rounded-none bg-transparent p-0"
           >
             {SLIDES.map((label, i) => (
               <TabsTrigger
                 key={label}
                 value={String(i)}
-                className="group relative h-11 shrink-0 rounded-none px-0 py-0 text-md font-medium text-text-secondary ring-offset-bg-app hover:text-text-primary data-[state=active]:bg-transparent data-[state=active]:text-text-primary data-[state=active]:shadow-none"
+                className="group relative shrink-0 rounded-none px-0 py-0 text-md font-medium text-text-secondary ring-offset-bg-app hover:text-text-primary data-[state=active]:bg-transparent data-[state=active]:text-text-primary data-[state=active]:shadow-none"
               >
                 {label}
                 <span
                   aria-hidden
-                  className="absolute inset-x-0 bottom-1 h-0.5 scale-x-0 rounded-full bg-primary transition-transform duration-(--duration-base) ease-standard group-data-[state=active]:scale-x-100 motion-reduce:transition-none"
+                  className="absolute inset-x-0 bottom-1 h-0.5 scale-x-0 rounded-full bg-primary transition-transform duration-base ease-standard group-data-[state=active]:scale-x-100 motion-reduce:transition-none"
                 />
               </TabsTrigger>
             ))}
@@ -162,7 +162,7 @@ export function PilotReportPage() {
           CSS transition (instant under prefers-reduced-motion). */}
       <div
         className={cx(
-          "fixed inset-x-0 bottom-0 z-30 transition-transform duration-(--duration-slower) ease-standard motion-reduce:transition-none",
+          "fixed inset-x-0 bottom-0 z-30 transition-transform duration-slower ease-standard motion-reduce:transition-none",
           footerVisible ? "translate-y-0" : "translate-y-full",
         )}
       >
@@ -177,7 +177,7 @@ export function PilotReportPage() {
             <p className="mt-1 text-md leading-snug text-text-secondary">
               Start removing your exposed data from every broker we found
             </p>
-            <Button href="/pilot-scan/start" size="xl" className="mt-4 w-full text-primary-on">
+            <Button href="/pilot-scan/start" size="xl" className="mt-4 w-full">
               Start Vanyshing
             </Button>
           </footer>

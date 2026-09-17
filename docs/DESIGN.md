@@ -32,7 +32,9 @@ This block must match the token file. Edit values via spec from Igor, not by han
 ```css
 /* Vanyshr design tokens — color locked 2026-09-17
    Hero #14ABFE · Accent #FF6924 · Navy #070F1C
-   Dark chrome: #1A1A1A / #2A2A2A / #3A3A3A / #4A4A4A
+   Dark chrome (neutral grey, amended 2026-09-17): #242424 / #343434 / #444444 / #545454
+     — was #1A1A1A / #2A2A2A / #3A3A3A / #4A4A4A; same per-channel steps rebased on #242424.
+     No blue-tinted backgrounds (supersedes the navy proposal).
    :root = dark (app default). .light = light overrides (same token names).
    Type: system stacks (default set 2026-09-17 — change via spec from Igor, not by hand).
 */
@@ -71,9 +73,9 @@ This block must match the token file. Edit values via spec from Igor, not by han
   --color-accent-text: #ff6924;
 
   /* ── Surfaces (true grey ladder) ── */
-  --color-bg-app: #1a1a1a;
-  --color-bg-surface: #2a2a2a;
-  --color-bg-elevated: #3a3a3a;
+  --color-bg-app: #242424;
+  --color-bg-surface: #343434;
+  --color-bg-elevated: #444444;
   --color-bg-overlay: #000000a6;
   --color-bg-inverse: #fafafa;
 
@@ -88,9 +90,9 @@ This block must match the token file. Edit values via spec from Igor, not by han
   --color-text-on-accent: var(--color-accent-on);
 
   /* ── Borders / focus ── */
-  --color-border: #4a4a4a;
-  --color-border-subtle: #4a4a4a80;
-  --color-border-strong: #6b6b6b;
+  --color-border: #545454;
+  --color-border-subtle: #54545480;
+  --color-border-strong: #757575;
   --color-border-focus: #14abfe;
   --color-ring-focus: #14abfe66;
 
@@ -248,14 +250,14 @@ This block must match the token file. Edit values via spec from Igor, not by han
 | `--color-accent-active` | #e55a18 | #b84300 |
 | `--color-accent-on` | #0b0d10 | #0b0d10 |
 | `--color-accent-text` | #ff6924 | #b84300 |
-| `--color-bg-app` | #1a1a1a | #fafafa |
-| `--color-bg-surface` | #2a2a2a | #ffffff |
-| `--color-bg-elevated` | #3a3a3a | #f0f0f0 |
+| `--color-bg-app` | #242424 | #fafafa |
+| `--color-bg-surface` | #343434 | #ffffff |
+| `--color-bg-elevated` | #444444 | #f0f0f0 |
 | `--color-text-primary` | #f5f5f5 | #070f1c |
 | `--color-text-secondary` | #9aa3ad | #5c6570 |
 | `--color-text-tertiary` | #6b7280 | #8a939e |
-| `--color-border` | #4a4a4a | #e0e0e0 |
-| `--color-border-strong` | #6b6b6b | #c4c4c4 |
+| `--color-border` | #545454 | #e0e0e0 |
+| `--color-border-strong` | #757575 | #c4c4c4 |
 | `--color-status-success` | #3d9b6e | #2f7d58 |
 | `--color-status-success-border` | #3d9b6e66 | #2f7d584d |
 | `--color-status-warn` | #d97706 | #b45309 |

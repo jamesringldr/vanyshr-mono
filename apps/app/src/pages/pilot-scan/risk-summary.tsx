@@ -229,7 +229,7 @@ export function RiskSummaryBody({ profile }: { profile: ConsolidatedProfile }) {
                     <button
                       type="button"
                       onClick={() => openArea(area)}
-                      className="flex w-full items-center gap-3 px-4 py-3 text-left outline-none transition-colors duration-(--duration-fast) hover:bg-state-hover focus-visible:ring-2 focus-visible:ring-border-focus focus-visible:ring-inset"
+                      className="flex w-full items-center gap-3 px-4 py-3 text-left outline-none transition-colors duration-fast hover:bg-state-hover focus-visible:ring-2 focus-visible:ring-border-focus focus-visible:ring-inset"
                     >
                       <span className="flex size-9 shrink-0 items-center justify-center text-text-primary">
                         <Icon className="size-5" />
@@ -274,7 +274,7 @@ export function RiskSummaryBody({ profile }: { profile: ConsolidatedProfile }) {
                 type="button"
                 aria-label="Close"
                 onClick={() => setOpen(false)}
-                className="absolute right-2 top-2 flex size-11 items-center justify-center rounded-full text-text-secondary outline-none transition-colors duration-(--duration-fast) hover:text-text-primary focus-visible:ring-2 focus-visible:ring-border-focus"
+                className="absolute right-2 top-2 flex size-11 items-center justify-center rounded-full text-text-secondary outline-none transition-colors duration-fast hover:text-text-primary focus-visible:ring-2 focus-visible:ring-border-focus"
               >
                 <X className="size-5" />
               </button>
@@ -383,7 +383,7 @@ export function PilotRiskSummaryPage() {
           <p className="mb-6 text-md text-text-secondary">
             Nothing came through from this scan — run it again from the start.
           </p>
-          <Button href="/pilot-scan" size="xl" className="text-primary-on">
+          <Button href="/pilot-scan" size="xl">
             Start over
           </Button>
         </div>
