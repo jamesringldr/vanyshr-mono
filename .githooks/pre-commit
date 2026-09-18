@@ -27,8 +27,9 @@ if [ -x "$HOME/.githooks/pre-commit" ]; then
 fi
 
 # --- 2. Design-token guard ---
-# Files allowed to define raw color values.
-EXEMPT_FILES='^packages/ui/src/styles/theme\.css$'
+# Files allowed to define raw color values — token-definition and docs
+# sources contain hex by design, not as a violation.
+EXEMPT_FILES='(^packages/ui/src/styles/(theme|tokens)\.css$|^docs/|\.md$|(^|/)tokens\.json$|^apps/app/index\.html$)'
 
 # Tailwind arbitrary-value hex, e.g. bg-[#282828], text-[#14ABFE]/40, fill-[#fff]
 HEX_PATTERN='(bg|text|border|fill|stroke|ring|from|to|via|shadow|outline|decoration|caret|accent|divide)-\[#[0-9a-fA-F]{3,8}\]'
