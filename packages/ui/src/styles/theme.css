@@ -1,521 +1,596 @@
-@theme {
-    /* FONT FAMILY */
-    --font-body: "Ubuntu", -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
-    --font-display: "Ubuntu", -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
-    --font-mono: ui-monospace, "Roboto Mono", SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-    /* Reserved for status-log / terminal output — never general UI chrome. */
-    --font-terminal: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+/* ════════════════════════════════════════════════════════════════════════════════
+   TOKEN BRIDGE PART A: Library Theme Wiring
+   ════════════════════════════════════════════════════════════════════════════════
+   All variables map to Vanyshr design tokens (packages/ui/src/styles/tokens.css).
+   No literal rgb/hex values permitted in bridge assignments (DESIGN.md §10a).
+   Theme toggle: .light class on root (never dark: variant or prefers-color-scheme).
+   Token-by-token mapping: see docs/TOKEN_BRIDGE.md
 
-    /* FONT SIZE */
-    --text-xs: calc(var(--spacing) * 3);
-    --text-xs--line-height: calc(var(--spacing) * 4.5);
+   Three blocks (plus a TRANSITIONAL ALIASES block, removed as components
+   convert), because Tailwind v4 emits every @theme entry as a :root custom
+   property:
+   1. `@theme inline reference` — utilities whose Tailwind name IS the token
+      name (bg-primary → --color-primary). Declaring `--color-primary:
+      var(--color-primary)` in a plain @theme emits a self-referencing
+      variable, which is invalid CSS and resolves to nothing. `reference`
+      suppresses the emission; `inline` writes var(--token) straight into the
+      utility, where tokens.css supplies the value.
+   2. `@theme` — aliases whose name differs from the token they point at.
+   3. `@layer konsta` — Konsta's --k-color-* runtime vars (not a Tailwind
+      namespace, so they are plain custom properties, not @theme entries).
+*/
 
-    --text-sm: calc(var(--spacing) * 3.5);
-    --text-sm--line-height: calc(var(--spacing) * 5);
+/* ── 1. IDENTITY: Tailwind utility name === Vanyshr token name ── */
+@theme inline reference {
+  /* FONT FAMILY */
+  --font-display: var(--font-display);
+  --font-mono: var(--font-mono);
 
-    --text-md: calc(var(--spacing) * 4);
-    --text-md--line-height: calc(var(--spacing) * 6);
+  /* RADIUS */
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
 
-    --text-lg: calc(var(--spacing) * 4.5);
-    --text-lg--line-height: calc(var(--spacing) * 7);
+  /* BORDER WIDTH */
+  --border-width: var(--border-width);
 
-    --text-xl: calc(var(--spacing) * 5);
-    --text-xl--line-height: calc(var(--spacing) * 7.5);
+  /* PRIMARY — hero cyan */
+  --color-primary: var(--color-primary);
+  --color-primary-hover: var(--color-primary-hover);
+  --color-primary-active: var(--color-primary-active);
+  --color-primary-on: var(--color-primary-on);
+  --color-primary-text: var(--color-primary-text);
+  --color-primary-muted: var(--color-primary-muted);
+  --color-primary-border: var(--color-primary-border);
 
-    --text-display-xs: calc(var(--spacing) * 6);
-    --text-display-xs--line-height: calc(var(--spacing) * 8);
+  /* SECONDARY */
+  --color-secondary: var(--color-secondary);
+  --color-secondary-on: var(--color-secondary-on);
 
-    --text-display-sm: calc(var(--spacing) * 7.5);
-    --text-display-sm--line-height: calc(var(--spacing) * 9.5);
+  /* ACCENT — orange signal */
+  --color-accent: var(--color-accent);
+  --color-accent-hover: var(--color-accent-hover);
+  --color-accent-active: var(--color-accent-active);
+  --color-accent-on: var(--color-accent-on);
+  --color-accent-text: var(--color-accent-text);
+  --color-accent-muted: var(--color-accent-muted);
 
-    --text-display-md: calc(var(--spacing) * 9);
-    --text-display-md--line-height: calc(var(--spacing) * 11);
-    --text-display-md--letter-spacing: -0.72px;
+  /* SURFACES */
+  --color-bg-app: var(--color-bg-app);
+  --color-bg-surface: var(--color-bg-surface);
+  --color-bg-elevated: var(--color-bg-elevated);
+  --color-bg-overlay: var(--color-bg-overlay);
+  --color-bg-inverse: var(--color-bg-inverse);
 
-    --text-display-lg: calc(var(--spacing) * 12);
-    --text-display-lg--line-height: calc(var(--spacing) * 15);
-    --text-display-lg--letter-spacing: -0.96px;
+  /* TEXT */
+  --color-text-primary: var(--color-text-primary);
+  --color-text-secondary: var(--color-text-secondary);
+  --color-text-tertiary: var(--color-text-tertiary);
+  --color-text-disabled: var(--color-text-disabled);
+  --color-text-inverse: var(--color-text-inverse);
 
-    --text-display-xl: calc(var(--spacing) * 15);
-    --text-display-xl--line-height: calc(var(--spacing) * 18);
-    --text-display-xl--letter-spacing: -1.2px;
+  /* BORDER */
+  --color-border: var(--color-border);
+  --color-border-subtle: var(--color-border-subtle);
+  --color-border-strong: var(--color-border-strong);
+  --color-border-focus: var(--color-border-focus);
+  --color-ring-focus: var(--color-ring-focus);
 
-    --text-display-2xl: calc(var(--spacing) * 18);
-    --text-display-2xl--line-height: calc(var(--spacing) * 22.5);
-    --text-display-2xl--letter-spacing: -1.44px;
+  /* STATE & INTERACTION */
+  --color-state-hover: var(--color-state-hover);
+  --color-state-active: var(--color-state-active);
+  --color-state-selected: var(--color-state-selected);
+  --color-state-disabled-bg: var(--color-state-disabled-bg);
+  --color-state-disabled-fg: var(--color-state-disabled-fg);
 
-    /* MAX WIDTH */
-    --max-width-container: 1280px;
+  /* STATUS/SEMANTIC */
+  --color-status-success: var(--color-status-success);
+  --color-status-success-muted: var(--color-status-success-muted);
+  --color-status-success-on: var(--color-status-success-on);
+  --color-status-success-border: var(--color-status-success-border);
 
-    /* BREAKPOINTS */
-    --breakpoint-xxs: 320px;
-    /* This must match the breakpoint in Sonner: https://github.com/emilkowalski/sonner/blob/main/src/styles.css */
-    --breakpoint-xs: 600px;
+  --color-status-warn: var(--color-status-warn);
+  --color-status-warn-muted: var(--color-status-warn-muted);
+  --color-status-warn-on: var(--color-status-warn-on);
+  --color-status-warn-border: var(--color-status-warn-border);
 
-    /* RADIUS */
-    --radius-none: 0px;
-    --radius-xs: 0.125rem;
-    --radius-sm: 0.25rem;
-    --radius-DEFAULT: 0.25rem;
-    --radius-md: 0.375rem;
-    --radius-lg: 0.5rem;
-    --radius-xl: 0.75rem;
-    --radius-2xl: 1rem;
-    --radius-3xl: 1.5rem;
-    --radius-full: 9999px;
+  --color-status-danger: var(--color-status-danger);
+  --color-status-danger-muted: var(--color-status-danger-muted);
+  --color-status-danger-on: var(--color-status-danger-on);
+  --color-status-danger-hover: var(--color-status-danger-hover);
+  --color-status-danger-border: var(--color-status-danger-border);
 
-    /* SHADOW */
-    --shadow-xs: 0px 1px 2px rgba(10, 13, 18, 0.05);
-    --shadow-sm: 0px 1px 3px rgba(10, 13, 18, 0.1), 0px 1px 2px -1px rgba(10, 13, 18, 0.1);
-    --shadow-md: 0px 4px 6px -1px rgba(10, 13, 18, 0.1), 0px 2px 4px -2px rgba(10, 13, 18, 0.06);
-    --shadow-lg: 0px 12px 16px -4px rgba(10, 13, 18, 0.08), 0px 4px 6px -2px rgba(10, 13, 18, 0.03), 0px 2px 2px -1px rgba(10, 13, 18, 0.04);
-    --shadow-xl: 0px 20px 24px -4px rgba(10, 13, 18, 0.08), 0px 8px 8px -4px rgba(10, 13, 18, 0.03), 0px 3px 3px -1.5px rgba(10, 13, 18, 0.04);
-    --shadow-2xl: 0px 24px 48px -12px rgba(10, 13, 18, 0.18), 0px 4px 4px -2px rgba(10, 13, 18, 0.04);
-    --shadow-3xl: 0px 32px 64px -12px rgba(10, 13, 18, 0.14), 0px 5px 5px -2.5px rgba(10, 13, 18, 0.04);
+  --color-status-info: var(--color-status-info);
+  --color-status-info-muted: var(--color-status-info-muted);
+  --color-status-info-on: var(--color-status-info-on);
 
-    --shadow-skeumorphic: 0px 0px 0px 1px rgba(10, 13, 18, 0.18) inset, 0px -2px 0px 0px rgba(10, 13, 18, 0.05) inset;
-    --shadow-xs-skeumorphic: var(--shadow-skeumorphic), var(--shadow-xs);
+  /* BRAND RAW (used sparingly) */
+  --color-brand-cyan: var(--color-brand-cyan);
+  --color-brand-orange: var(--color-brand-orange);
+  --color-brand-navy: var(--color-brand-navy);
+  --color-brand-cyan-on-light: var(--color-brand-cyan-on-light);
+  --color-brand-orange-on-light: var(--color-brand-orange-on-light);
+  --color-brand-primary1: var(--color-brand-primary1);
+  --color-brand-primary2: var(--color-brand-primary2);
+  --color-brand-primary3: var(--color-brand-primary3);
 
-    --shadow-modern-mockup-inner-lg: 0px 0px 3.765px 1.255px rgba(10, 13, 18, 0.08) inset, 0px 0px 2.51px 1.255px rgba(10, 13, 18, 0.03) inset;
-    --shadow-modern-mockup-inner-md: 0px 0px 1.692px 0.564px rgba(10, 13, 18, 0.08) inset, 0px 0px 1.128px 0.564px rgba(10, 13, 18, 0.03) inset;
-    --shadow-modern-mockup-inner-sm: 0px 0px 4.48px 1.493px rgba(10, 13, 18, 0.08) inset, 0px 0px 2.987px 1.493px rgba(10, 13, 18, 0.03) inset;
+  /* MOTION */
+  --duration-instant: var(--duration-instant);
+  --duration-fast: var(--duration-fast);
+  --duration-base: var(--duration-base);
+  --duration-slow: var(--duration-slow);
+  --duration-slower: var(--duration-slower);
 
-    --shadow-modern-mockup-outer-lg:
-        0px 7.529px 10.039px -2.51px rgba(10, 13, 18, 0.08), 0px 2.51px 3.765px -1.255px rgba(10, 13, 18, 0.03),
-        0px 1.255px 1.255px -0.627px rgba(10, 13, 18, 0.04);
-    --shadow-modern-mockup-outer-md:
-        0px 3.385px 4.513px -1.128px rgba(10, 13, 18, 0.08), 0px 1.128px 1.692px -0.564px rgba(10, 13, 18, 0.03),
-        0px 0.564px 0.564px -0.282px rgba(10, 13, 18, 0.04);
-
-    --drop-shadow-iphone-mockup: 20px 12px 18px rgba(16, 24, 40, 0.2);
-
-    /* ANIMATIONS */
-    --animate-marquee: marquee 60s linear infinite;
-    --animate-caret-blink: caret-blink 1s infinite;
-
-    @keyframes marquee {
-        0% {
-            transform: translateX(0);
-        }
-        100% {
-            transform: translateX(-100%);
-        }
-    }
-
-    @keyframes caret-blink {
-        0%,
-        50% {
-            opacity: 1;
-        }
-        51%,
-        100% {
-            opacity: 0;
-        }
-    }
-
-    /* BASE COLOR */
-    --color-transparent: rgb(0 0 0 / 0);
-
-    --color-white: rgb(255 255 255);
-    --color-black: rgb(0 0 0);
-
-    --color-alpha-white: rgb(12 14 18);
-    --color-alpha-black: rgb(255 255 255);
-
-    /* Reserved hero-only surface — not a general background */
-    --color-navy-hero: rgb(10 22 40);
-
-    /* Ink for content sitting on the solid brand fill */
-    --color-brand-ink: rgb(26 26 26);
-
-    /* BRAND — single signal-blue accent (Vanyshr Design System v2) */
-    --color-brand-25: rgb(236 248 255);
-    --color-brand-50: rgb(220 242 255);
-    --color-brand-100: rgb(189 231 255);
-    --color-brand-200: rgb(142 215 255);
-    --color-brand-300: rgb(95 198 254);
-    --color-brand-400: rgb(53 183 254);
-    --color-brand-500: rgb(20 171 254);
-    --color-brand-600: rgb(11 143 217);
-    --color-brand-700: rgb(9 112 169);
-    --color-brand-800: rgb(6 83 126);
-    --color-brand-900: rgb(4 57 87);
-    --color-brand-950: rgb(3 34 52);
-
-    /* ERROR */
-    --color-error-25: rgb(253 240 241);
-    --color-error-50: rgb(251 228 228);
-    --color-error-100: rgb(248 204 205);
-    --color-error-200: rgb(243 167 170);
-    --color-error-300: rgb(237 131 134);
-    --color-error-400: rgb(233 98 102);
-    --color-error-500: rgb(229 72 77);
-    --color-error-600: rgb(188 59 63);
-    --color-error-700: rgb(147 46 49);
-    --color-error-800: rgb(110 35 37);
-    --color-error-900: rgb(78 24 26);
-    --color-error-950: rgb(46 14 15);
-
-    /* WARNING / ACCENT */
-    --color-warning-25: rgb(255 242 237);
-    --color-warning-50: rgb(255 231 221);
-    --color-warning-100: rgb(255 210 192);
-    --color-warning-200: rgb(255 178 147);
-    --color-warning-300: rgb(255 146 103);
-    --color-warning-400: rgb(255 117 62);
-    --color-warning-500: rgb(255 94 31);
-    --color-warning-600: rgb(209 77 25);
-    --color-warning-700: rgb(163 60 20);
-    --color-warning-800: rgb(122 45 15);
-    --color-warning-900: rgb(87 32 11);
-    --color-warning-950: rgb(51 19 6);
-
-    /* SUCCESS */
-    --color-success-25: rgb(239 252 247);
-    --color-success-50: rgb(226 250 239);
-    --color-success-100: rgb(201 245 226);
-    --color-success-200: rgb(162 238 205);
-    --color-success-300: rgb(123 231 184);
-    --color-success-400: rgb(88 225 166);
-    --color-success-500: rgb(61 220 151);
-    --color-success-600: rgb(50 180 124);
-    --color-success-700: rgb(39 141 97);
-    --color-success-800: rgb(29 106 72);
-    --color-success-900: rgb(21 75 51);
-    --color-success-950: rgb(12 44 30);
-
-    /* NEUTRALS — collapsed to the design guide's anchor values (no interpolated ramp) */
-    --color-gray-25: rgb(255 255 255);
-    --color-gray-50: rgb(255 255 255);
-    --color-gray-100: rgb(224 222 220);
-    --color-gray-200: rgb(224 222 220);
-    --color-gray-300: rgb(163 163 163);
-    --color-gray-400: rgb(163 163 163);
-    --color-gray-500: rgb(163 163 163);
-    --color-gray-600: rgb(64 64 64);
-    --color-gray-700: rgb(64 64 64);
-    --color-gray-800: rgb(51 51 51);
-    --color-gray-900: rgb(40 40 40);
-    --color-gray-950: rgb(30 30 30);
-
-    /* UTILITY COLORS */
-
-    --color-utility-brand-50: var(--color-brand-950);
-    --color-utility-brand-50_alt: var(--color-utility-gray-50);
-    --color-utility-brand-100: var(--color-brand-900);
-    --color-utility-brand-100_alt: var(--color-utility-gray-100);
-    --color-utility-brand-200: var(--color-brand-800);
-    --color-utility-brand-200_alt: var(--color-utility-gray-200);
-    --color-utility-brand-300: var(--color-brand-700);
-    --color-utility-brand-300_alt: var(--color-utility-gray-300);
-    --color-utility-brand-400: var(--color-brand-600);
-    --color-utility-brand-400_alt: var(--color-utility-gray-400);
-    --color-utility-brand-500: var(--color-brand-500);
-    --color-utility-brand-500_alt: var(--color-utility-gray-500);
-    --color-utility-brand-600: var(--color-brand-400);
-    --color-utility-brand-600_alt: var(--color-utility-gray-600);
-    --color-utility-brand-700: var(--color-brand-300);
-    --color-utility-brand-700_alt: var(--color-utility-gray-700);
-    --color-utility-brand-800: var(--color-brand-200);
-    --color-utility-brand-800_alt: var(--color-utility-gray-800);
-    --color-utility-brand-900: var(--color-brand-100);
-    --color-utility-brand-900_alt: var(--color-utility-gray-900);
-
-    --color-utility-gray-50: var(--color-gray-900);
-    --color-utility-gray-100: var(--color-gray-800);
-    --color-utility-gray-200: var(--color-gray-700);
-    --color-utility-gray-300: var(--color-gray-700);
-    --color-utility-gray-400: var(--color-gray-600);
-    --color-utility-gray-500: var(--color-gray-500);
-    --color-utility-gray-600: var(--color-gray-400);
-    --color-utility-gray-700: var(--color-gray-300);
-    --color-utility-gray-800: var(--color-gray-200);
-    --color-utility-gray-900: var(--color-gray-100);
-
-    --color-utility-error-50: var(--color-error-950);
-    --color-utility-error-100: var(--color-error-900);
-    --color-utility-error-200: var(--color-error-800);
-    --color-utility-error-300: var(--color-error-700);
-    --color-utility-error-400: var(--color-error-600);
-    --color-utility-error-500: var(--color-error-500);
-    --color-utility-error-600: var(--color-error-400);
-    --color-utility-error-700: var(--color-error-300);
-
-    --color-utility-warning-50: var(--color-warning-950);
-    --color-utility-warning-100: var(--color-warning-900);
-    --color-utility-warning-200: var(--color-warning-800);
-    --color-utility-warning-300: var(--color-warning-700);
-    --color-utility-warning-400: var(--color-warning-600);
-    --color-utility-warning-500: var(--color-warning-500);
-    --color-utility-warning-600: var(--color-warning-400);
-    --color-utility-warning-700: var(--color-warning-300);
-
-    --color-utility-success-50: var(--color-success-950);
-    --color-utility-success-100: var(--color-success-900);
-    --color-utility-success-200: var(--color-success-800);
-    --color-utility-success-300: var(--color-success-700);
-    --color-utility-success-400: var(--color-success-600);
-    --color-utility-success-500: var(--color-success-500);
-    --color-utility-success-600: var(--color-success-400);
-    --color-utility-success-700: var(--color-success-300);
-
-    /* TEXT COLORS */
-    --color-text-white: var(--color-white);
-    --color-text-primary: var(--color-gray-50);
-    --color-text-secondary: var(--color-gray-300);
-    --color-text-secondary_hover: var(--color-gray-200);
-    --color-text-tertiary: var(--color-gray-400);
-    --color-text-tertiary_hover: var(--color-gray-300);
-    --color-text-quaternary: var(--color-gray-400);
-    --color-text-error-primary: var(--color-error-400);
-    --color-text-warning-primary: var(--color-warning-400);
-    --color-text-success-primary: var(--color-success-400);
-    --color-text-disabled: rgb(163 163 163 / 0.5);
-    --color-text-brand-primary: var(--color-gray-50);
-    --color-text-brand-secondary: var(--color-gray-300);
-    --color-text-brand-tertiary: var(--color-gray-400);
-    --color-text-placeholder: var(--color-gray-500);
-    --color-text-placeholder_subtle: var(--color-gray-700);
-    --color-text-editor-icon-fg: var(--color-gray-400);
-    --color-text-editor-icon-fg_active: var(--color-white);
-    --color-text-primary_on-brand: var(--color-gray-50);
-    --color-text-secondary_on-brand: var(--color-gray-300);
-    --color-text-tertiary_on-brand: var(--color-gray-400);
-    --color-text-quaternary_on-brand: var(--color-gray-400);
-    --color-text-brand-secondary_hover: var(--color-gray-200);
-    --color-text-brand-tertiary_alt: var(--color-gray-50);
-    --color-text-error-primary_hover: var(--color-error-300);
-
-    /* BORDER COLORS */
-    --color-border-primary: rgb(255 255 255 / 0.10);
-    --color-border-secondary: rgb(255 255 255 / 0.10);
-    --color-border-secondary_alt: rgb(255 255 255 / 0.10);
-    --color-border-tertiary: rgb(255 255 255 / 0.10);
-    --color-border-brand: var(--color-brand-500);
-    --color-border-brand_alt: var(--color-brand-600);
-    --color-border-error: var(--color-error-400);
-    --color-border-error_subtle: var(--color-error-500);
-    --color-border-disabled: rgb(255 255 255 / 0.06);
-    --color-border-disabled_subtle: rgb(255 255 255 / 0.06);
-
-    /* FOREGROUND COLORS */
-    --color-fg-white: var(--color-white);
-    --color-fg-primary: var(--color-white);
-    --color-fg-secondary: var(--color-gray-300);
-    --color-fg-tertiary: var(--color-gray-400);
-    --color-fg-tertiary_hover: var(--color-gray-300);
-    --color-fg-quaternary: var(--color-gray-600);
-    --color-fg-quaternary_hover: var(--color-gray-500);
-    --color-fg-error-primary: var(--color-error-500);
-    --color-fg-error-secondary: var(--color-error-400);
-    --color-fg-warning-primary: var(--color-warning-500);
-    --color-fg-warning-secondary: var(--color-warning-400);
-    --color-fg-success-primary: var(--color-success-500);
-    --color-fg-success-secondary: var(--color-success-400);
-    --color-fg-secondary_hover: var(--color-gray-200);
-    --color-fg-disabled: var(--color-gray-500);
-    --color-fg-disabled_subtle: var(--color-gray-600);
-    --color-fg-brand-primary: var(--color-brand-500);
-    --color-fg-brand-secondary: var(--color-brand-500);
-    --color-fg-brand-primary_alt: var(--color-gray-300);
-    --color-fg-brand-secondary_alt: var(--color-gray-600);
-    --color-fg-brand-secondary_hover: var(--color-gray-500);
-
-    /* BACKGROUND COLORS */
-    --color-bg-primary: var(--color-gray-950);
-    --color-bg-primary-solid: var(--color-bg-secondary);
-    --color-bg-primary_alt: var(--color-bg-secondary);
-    --color-bg-primary_hover: var(--color-gray-800);
-    --color-bg-secondary: var(--color-gray-900);
-    --color-bg-secondary-solid: var(--color-gray-600);
-    --color-bg-secondary_subtle: var(--color-gray-900);
-    --color-bg-secondary_hover: var(--color-gray-800);
-    --color-bg-tertiary: var(--color-gray-800);
-    --color-bg-quaternary: var(--color-gray-700);
-    --color-bg-error-primary: var(--color-error-950);
-    --color-bg-error-secondary: var(--color-error-600);
-    --color-bg-error-solid: var(--color-error-600);
-    --color-bg-error-solid_hover: var(--color-error-500);
-    --color-bg-warning-primary: var(--color-warning-950);
-    --color-bg-warning-secondary: var(--color-warning-600);
-    --color-bg-warning-solid: var(--color-warning-600);
-    --color-bg-success-primary: var(--color-success-950);
-    --color-bg-success-secondary: var(--color-success-600);
-    --color-bg-success-solid: var(--color-success-600);
-    --color-bg-active: var(--color-gray-800);
-    --color-bg-disabled: var(--color-gray-800);
-    --color-bg-disabled_subtle: var(--color-gray-900);
-    --color-bg-brand-primary: var(--color-brand-500);
-    --color-bg-brand-primary_alt: var(--color-bg-secondary);
-    --color-bg-brand-secondary: var(--color-brand-600);
-    --color-bg-secondary_alt: var(--color-bg-primary);
-    --color-bg-brand-solid: var(--color-brand-500);
-    --color-bg-brand-solid_hover: var(--color-brand-600);
-    --color-bg-overlay: var(--color-gray-800);
-    --color-bg-brand-section: var(--color-bg-secondary);
-    --color-bg-brand-section_subtle: var(--color-bg-primary);
-
-    /* COMPONENT COLORS */
-    --color-app-store-badge-border: var(--color-white);
-    --color-avatar-bg: var(--color-gray-800);
-    --color-avatar-contrast-border: rgb(255 255 255 / 0.12);
-    --color-avatar-profile-photo-border: var(--color-gray-950);
-    --color-avatar-styles-bg-neutral: rgb(224 224 224 / 1);
-    --color-button-destructive-primary-icon: var(--color-error-300);
-    --color-button-destructive-primary-icon_hover: var(--color-error-200);
-    --color-button-primary-icon: var(--color-brand-ink);
-    --color-button-primary-icon_hover: var(--color-brand-ink);
-    --color-featured-icon-light-fg-brand: var(--color-brand-200);
-    --color-featured-icon-light-fg-error: var(--color-error-200);
-    --color-featured-icon-light-fg-gray: var(--color-gray-200);
-    --color-featured-icon-light-fg-success: var(--color-success-200);
-    --color-featured-icon-light-fg-warning: var(--color-warning-200);
-    --color-focus-ring-error: var(--color-error-500);
-    --color-focus-ring: var(--color-brand-500);
-    --color-footer-button-fg: var(--color-gray-300);
-    --color-footer-button-fg_hover: var(--color-gray-100);
-    --color-icon-fg-brand: var(--color-gray-400);
-    --color-icon-fg-brand_on-brand: var(--color-gray-400);
-    --color-nav-item-button-icon-fg: var(--color-gray-400);
-    --color-nav-item-button-icon-fg_active: var(--color-gray-300);
-    --color-nav-item-icon-fg: var(--color-gray-400);
-    --color-nav-item-icon-fg_active: var(--color-gray-300);
-    --color-screen-mockup-border: var(--color-gray-700);
-    --color-slider-handle-bg: var(--color-fg-brand-primary);
-    --color-slider-handle-border: var(--color-bg-primary);
-    --color-toggle-border: var(--color-transparent);
-    --color-toggle-button-fg_disabled: var(--color-gray-600);
-    --color-toggle-slim-border_pressed-hover: var(--color-transparent);
-    --color-toggle-slim-border_pressed: var(--color-transparent);
-    --color-tooltip-supporting-text: var(--color-gray-300);
-    --color-text-editor-icon-fg: var(--color-gray-400);
-    --color-text-editor-icon-fg_active: var(--color-white);
-
-    /* BACKGROUND PROPERTY COLORS */
-    --background-color-primary: var(--color-bg-primary);
-    --background-color-primary-solid: var(--color-bg-primary-solid);
-    --background-color-primary_alt: var(--color-bg-primary_alt);
-    --background-color-primary_hover: var(--color-bg-primary_hover);
-    --background-color-secondary: var(--color-bg-secondary);
-    --background-color-secondary-solid: var(--color-bg-secondary-solid);
-    --background-color-secondary_alt: var(--color-bg-secondary_alt);
-    --background-color-secondary_hover: var(--color-bg-secondary_hover);
-    --background-color-secondary_subtle: var(--color-bg-secondary_subtle);
-    --background-color-tertiary: var(--color-bg-tertiary);
-    --background-color-quaternary: var(--color-bg-quaternary);
-    --background-color-active: var(--color-bg-active);
-    --background-color-disabled: var(--color-bg-disabled);
-    --background-color-disabled_subtle: var(--color-bg-disabled_subtle);
-    --background-color-overlay: var(--color-bg-overlay);
-    --background-color-brand-primary: var(--color-bg-brand-primary);
-    --background-color-brand-primary_alt: var(--color-bg-brand-primary_alt);
-    --background-color-brand-secondary: var(--color-bg-brand-secondary);
-    --background-color-brand-solid: var(--color-bg-brand-solid);
-    --background-color-brand-solid_hover: var(--color-bg-brand-solid_hover);
-    --background-color-brand-section: var(--color-bg-brand-section);
-    --background-color-brand-section_subtle: var(--color-bg-brand-section_subtle);
-    --background-color-error-primary: var(--color-bg-error-primary);
-    --background-color-error-secondary: var(--color-bg-error-secondary);
-    --background-color-error-solid: var(--color-bg-error-solid);
-    --background-color-error-solid_hover: var(--color-bg-error-solid_hover);
-    --background-color-warning-primary: var(--color-bg-warning-primary);
-    --background-color-warning-secondary: var(--color-bg-warning-secondary);
-    --background-color-warning-solid: var(--color-bg-warning-solid);
-    --background-color-success-primary: var(--color-bg-success-primary);
-    --background-color-success-secondary: var(--color-bg-success-secondary);
-    --background-color-success-solid: var(--color-bg-success-solid);
-    --background-color-border-brand: var(--color-border-brand);
-    --background-color-border-tertiary: var(--color-border-tertiary);
-    --background-color-border-brand_alt: var(--color-border-brand_alt);
-
-    /* TEXT PROPERTY COLORS */
-    --text-color-primary: var(--color-text-primary);
-    --text-color-primary_on-brand: var(--color-text-primary_on-brand);
-    --text-color-secondary: var(--color-text-secondary);
-    --text-color-secondary_hover: var(--color-text-secondary_hover);
-    --text-color-secondary_on-brand: var(--color-text-secondary_on-brand);
-    --text-color-tertiary: var(--color-text-tertiary);
-    --text-color-tertiary_hover: var(--color-text-tertiary_hover);
-    --text-color-tertiary_on-brand: var(--color-text-tertiary_on-brand);
-    --text-color-quaternary: var(--color-text-quaternary);
-    --text-color-quaternary_on-brand: var(--color-text-quaternary_on-brand);
-    --text-color-disabled: var(--color-text-disabled);
-    --text-color-placeholder: var(--color-text-placeholder);
-    --text-color-placeholder_subtle: var(--color-text-placeholder_subtle);
-    --text-color-brand-primary: var(--color-text-brand-primary);
-    --text-color-brand-secondary: var(--color-text-brand-secondary);
-    --text-color-brand-secondary_hover: var(--color-text-brand-secondary_hover);
-    --text-color-brand-tertiary: var(--color-text-brand-tertiary);
-    --text-color-brand-tertiary_alt: var(--color-text-brand-tertiary_alt);
-    --text-color-error-primary: var(--color-text-error-primary);
-    --text-color-error-primary_hover: var(--color-text-error-primary_hover);
-    --text-color-warning-primary: var(--color-text-warning-primary);
-    --text-color-success-primary: var(--color-text-success-primary);
-    --text-color-tooltip-supporting-text: var(--color-tooltip-supporting-text);
-
-    /* BORDER PROPERTY COLORS */
-    --border-color-primary: var(--color-border-primary);
-    --border-color-secondary: var(--color-border-secondary);
-    --border-color-secondary_alt: var(--color-border-secondary_alt);
-    --border-color-tertiary: var(--color-border-tertiary);
-    --border-color-disabled: var(--color-border-disabled);
-    --border-color-brand: var(--color-border-brand);
-    --border-color-brand-solid: var(--color-bg-brand-solid);
-    --border-color-brand-solid_hover: var(--color-bg-brand-solid_hover);
-    --border-color-error: var(--color-border-error);
-    --border-color-disabled_subtle: var(--color-border-disabled_subtle);
-    --border-color-brand_alt: var(--color-border-brand_alt);
-    --border-color-error_subtle: var(--color-border-error_subtle);
-
-    /* RING PROPERTY COLORS */
-    --ring-color-primary: var(--color-border-primary);
-    --ring-color-secondary: var(--color-border-secondary);
-    --ring-color-secondary_alt: var(--color-border-secondary_alt);
-    --ring-color-tertiary: var(--color-border-tertiary);
-    --ring-color-brand: var(--color-border-brand);
-    --ring-color-brand-solid: var(--color-bg-brand-solid);
-    --ring-color-brand-solid_hover: var(--color-bg-brand-solid_hover);
-    --ring-color-error: var(--color-border-error);
-    --ring-color-error_subtle: var(--color-border-error_subtle);
-    --ring-color-disabled: var(--color-border-disabled);
-    --ring-color-disabled_subtle: var(--color-border-disabled_subtle);
-    --ring-color-brand_alt: var(--color-border-brand_alt);
-    --ring-color-bg-brand-solid: var(--color-bg-brand-solid);
-
-    /* OUTLINE PROPERTY COLORS */
-    --outline-color-primary: var(--color-border-primary);
-    --outline-color-secondary: var(--color-border-secondary);
-    --outline-color-secondary_alt: var(--color-border-secondary_alt);
-    --outline-color-tertiary: var(--color-border-tertiary);
-    --outline-color-disabled: var(--color-border-disabled);
-    --outline-color-disabled_subtle: var(--color-border-disabled_subtle);
-    --outline-color-brand: var(--color-border-brand);
-    --outline-color-brand-solid: var(--color-bg-brand-solid);
-    --outline-color-brand-solid_hover: var(--color-bg-brand-solid_hover);
-    --outline-color-error: var(--color-border-error);
-    --outline-color-error_subtle: var(--color-border-error_subtle);
-    --outline-color-brand: var(--color-border-brand);
-    --outline-color-brand_alt: var(--color-border-brand_alt);
-
-    /* APP-SHELL TOKENS — flat semantic names used directly by apps/app
-       page-level code (self-scan, pilot-scan, onboarding, auth, etc.),
-       as opposed to the Untitled-UI-derived vocabulary above used by the
-       packages/ui component library. This is the single source of truth
-       for these names: globals.css's plain --var aliases point back here,
-       and apps/app's index.css no longer redeclares them independently. */
-    --color-accent-primary: var(--color-brand-500);
-    --color-accent-hover: var(--color-brand-600);
-    --color-accent-orange: var(--color-warning-500);
-    --color-accent-risk: var(--color-warning-500);
-    --color-brand-dark: var(--color-navy-hero);
-    --color-bg-page: var(--color-gray-900);
-    --color-bg-surface: var(--color-gray-800);
-    --color-bg-surface-secondary: var(--color-gray-700);
-    --color-border-subtle: var(--color-border-primary);
-    --color-border-accent: var(--color-brand-500);
-    --color-success: var(--color-success-500);
-    --color-warning: var(--color-warning-500);
-    --color-error: var(--color-error-500);
-    --color-disabled: var(--color-gray-700);
+  --ease-linear: var(--ease-linear);
+  --ease-standard: var(--ease-standard);
+  --ease-emphasized: var(--ease-emphasized);
+  --ease-accelerate: var(--ease-accelerate);
+  --ease-decelerate: var(--ease-decelerate);
 }
-    --color-scratch-test: rgb(1 2 3);
+
+/* ── 2. ALIASES: name differs from the token it resolves to ── */
+@theme {
+  /* Spacing base unit for responsive calculations */
+  --spacing: var(--space-1); /* 4px */
+
+  /* FONT FAMILY */
+  --font-body: var(--font-ui);
+
+  /* FONT SIZE — type role tokens mapped to text-* utilities for Tailwind compatibility */
+  --text-xs: var(--size-label);
+  --text-xs--line-height: calc(var(--size-label) * 1.33);
+
+  --text-sm: var(--size-caption);
+  --text-sm--line-height: calc(var(--size-caption) * 1.33);
+
+  --text-md: var(--size-body);
+  --text-md--line-height: calc(var(--size-body) * 1.43);
+
+  --text-lg: var(--size-heading);
+  --text-lg--line-height: calc(var(--size-heading) * 1.47);
+
+  --text-xl: var(--size-title);
+  --text-xl--line-height: calc(var(--size-title) * 1.36);
+
+  --text-display-xs: var(--size-display);
+  --text-display-xs--line-height: calc(var(--size-display) * 1.33);
+
+  --text-display-sm: var(--size-display);
+  --text-display-sm--line-height: calc(var(--size-display) * 1.33);
+
+  --text-display-md: var(--size-display);
+  --text-display-md--line-height: calc(var(--size-display) * 1.33);
+
+  --text-display-lg: var(--size-display);
+  --text-display-lg--line-height: calc(var(--size-display) * 1.33);
+
+  --text-display-2xl: var(--size-display);
+  --text-display-2xl--line-height: calc(var(--size-display) * 1.33);
+
+  /* data role (IDs, counts, timestamps) — the one type role without a text-* utility */
+  --text-data: var(--size-data);
+  --text-data--line-height: calc(var(--size-data) * 1.38);
+
+  /* DURATION — motion scale as duration-* utilities (Tailwind reads --transition-duration-*) */
+  --transition-duration-instant: var(--duration-instant);
+  --transition-duration-fast: var(--duration-fast);
+  --transition-duration-base: var(--duration-base);
+  --transition-duration-slow: var(--duration-slow);
+  --transition-duration-slower: var(--duration-slower);
+
+  /* RADIUS */
+  --radius-none: 0px;
+  --radius-xs: calc(var(--radius-sm) / 2);
+  --radius-DEFAULT: var(--radius-sm);
+  --radius-xl: var(--radius-lg);
+  --radius-2xl: var(--radius-lg);
+  --radius-3xl: var(--radius-lg);
+  --radius-full: var(--radius-pill);
+
+  /* SHADOW */
+  --shadow-xs: var(--shadow-1);
+  --shadow-sm: var(--shadow-1);
+  --shadow-md: var(--shadow-2);
+  --shadow-lg: var(--shadow-2);
+  --shadow-xl: var(--shadow-3);
+  --shadow-2xl: var(--shadow-3);
+  --shadow-3xl: var(--shadow-3);
+
+  --shadow-skeumorphic: 0px 0px 0px 1px rgba(10, 13, 18, 0.18) inset;
+  --shadow-xs-skeumorphic: var(--shadow-skeumorphic), var(--shadow-xs);
+
+  /* Transparent & neutral anchors */
+  --color-transparent: transparent;
+  --color-white: var(--color-bg-inverse);
+  /* --color-black: promoted to tokens.css 2026-09-17 (both themes, literal
+     #000) — no longer declared here. .k-navbar below still re-points it
+     locally for Konsta's iOS navbar title. */
+
+  /* Deprecated brand name for compat (old naming) */
+  --color-brand-primary: var(--color-primary);
+
+  /* Component & app-level semantic aliases.
+     (--color-accent-hover is NOT aliased here: it is a Vanyshr token name —
+     orange accent hover — and the token file wins.) */
+  --color-accent-primary: var(--color-primary);
+  --color-accent-orange: var(--color-accent);
+  --color-accent-risk: var(--color-status-warn);
+  --color-brand-dark: var(--color-brand-navy);
+  --color-brand-ink: var(--color-brand-navy);
+  --color-navy-hero: var(--color-brand-navy);
+
+  --color-success: var(--color-status-success);
+  --color-warning: var(--color-status-warn);
+  --color-error: var(--color-status-danger);
+  --color-disabled: var(--color-state-disabled-bg);
+
+  /* Page & surface backgrounds */
+  --color-bg-page: var(--color-bg-app);
+  --color-bg-primary: var(--color-bg-app);
+  --color-bg-secondary: var(--color-bg-surface);
+  --color-bg-surface-secondary: var(--color-bg-elevated);
+
+  /* Text role aliases */
+  --text-primary: var(--color-text-primary);
+  --text-secondary: var(--color-text-secondary);
+  --text-muted: var(--color-text-tertiary);
+
+  /* Border aliases */
+  --color-border-primary: var(--color-border);
+  --color-border-secondary: var(--color-border-subtle);
+  --color-border-tertiary: var(--color-border-strong);
+  --color-border-disabled: var(--color-state-disabled-fg);
+  --color-border-brand: var(--color-primary);
+  --color-border-error: var(--color-status-danger);
+
+  /* Foreground/icon colors */
+  --color-fg-primary: var(--color-text-primary);
+  --color-fg-secondary: var(--color-text-secondary);
+  --color-fg-tertiary: var(--color-text-tertiary);
+  --color-fg-brand-primary: var(--color-primary-text);
+  --color-fg-disabled: var(--color-text-disabled);
+
+  /* Focus & interactive feedback */
+  --color-focus-ring: var(--color-border-focus);
+  --color-focus-ring-error: var(--color-status-danger);
+
+  /* Utility & special */
+  --color-tooltip-supporting-text: var(--color-text-secondary);
+
+  /* ── KONSTA UTILITY COLORS ──
+     Konsta's own styles/colors.css is not imported (its color plugin parses a
+     hex brand color and cannot read tokens — see apps/app/src/index.css).
+     These are the utility names Konsta's component classes use, in its own
+     --color-X: var(--k-color-X) pattern, light slot only: the app runs
+     KonstaProvider dark={false}, so the md-dark / ios-dark classes are never
+     applied — the tokens themselves switch on .light. */
+  --color-md-light-primary: var(--k-color-md-light-primary);
+  --color-md-light-on-primary: var(--k-color-md-light-on-primary);
+  --color-md-light-primary-container: var(--k-color-md-light-primary-container);
+  --color-md-light-on-primary-container: var(--k-color-md-light-on-primary-container);
+  --color-md-light-secondary: var(--k-color-md-light-secondary);
+  --color-md-light-on-secondary: var(--k-color-md-light-on-secondary);
+  --color-md-light-secondary-container: var(--k-color-md-light-secondary-container);
+  --color-md-light-on-secondary-container: var(--k-color-md-light-on-secondary-container);
+  --color-md-light-surface: var(--k-color-md-light-surface);
+  --color-md-light-on-surface: var(--k-color-md-light-on-surface);
+  --color-md-light-surface-variant: var(--k-color-md-light-surface-variant);
+  --color-md-light-on-surface-variant: var(--k-color-md-light-on-surface-variant);
+  --color-md-light-outline: var(--k-color-md-light-outline);
+  --color-md-light-outline-variant: var(--k-color-md-light-outline-variant);
+  --color-md-light-surface-1: var(--k-color-md-light-surface-1);
+  --color-md-light-surface-2: var(--k-color-md-light-surface-2);
+  --color-md-light-surface-3: var(--k-color-md-light-surface-3);
+  --color-md-light-surface-4: var(--k-color-md-light-surface-4);
+  --color-md-light-surface-5: var(--k-color-md-light-surface-5);
+  --color-ios-primary: var(--k-color-ios-primary);
+  --color-ios-primary-tint: var(--k-color-ios-primary-tint);
+  --color-ios-primary-shade: var(--k-color-ios-primary-shade);
+
+  /* iOS surfaces are literal hex in Konsta (no --k-color-* var) — mapped to tokens */
+  --color-ios-light-surface: var(--color-bg-app);
+  --color-ios-light-surface-1: var(--color-bg-surface);
+  --color-ios-light-surface-1-shade: var(--color-bg-elevated);
+  --color-ios-light-surface-1-tint: var(--color-bg-surface);
+  --color-ios-light-surface-2: var(--color-bg-surface);
+  --color-ios-light-surface-3: var(--color-bg-elevated);
+  --color-ios-light-surface-variant: var(--color-bg-elevated);
+  --color-ios-hover-highlight: var(--color-state-hover);
+
+  /* MAX WIDTH (layout constraint, mobile-first PWA) */
+  --max-width-container: 1280px;
+
+  /* BREAKPOINTS (mobile design baseline 390px, responsive touch-points) */
+  --breakpoint-xxs: 320px;
+  --breakpoint-xs: 600px;
+
+  /* ANIMATIONS (keyframes defined in globals.css) */
+  --animate-marquee: marquee 60s linear infinite;
+  --animate-caret-blink: caret-blink 1s infinite;
+
+  @keyframes marquee {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-100%); }
+  }
+
+  @keyframes caret-blink {
+    0%, 50% { opacity: 1; }
+    51%, 100% { opacity: 0; }
+  }
+}
+
+/* text-data's font-size/line-height come from the --text-data theme pair
+   above (Tailwind auto-generates that part); the data role also always sets
+   tabular figures (IDs, counts, timestamps must not jitter width), which
+   isn't one of the sub-properties Tailwind's font-size namespace supports —
+   added here instead, additive to the generated rule. */
+@layer utilities {
+  .text-data {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* ── TRANSITIONAL ALIASES — remove as components convert ──
+   Untitled UI class names in packages/ui/src/components that resolve to
+   nothing under the Vanyshr theme, pointed at Vanyshr tokens so unconverted
+   screens keep rendering (rulings 2026-09-17). Keys are namespaced per
+   utility (--background-color-*, --text-color-*, --border-color-*, …) so
+   e.g. bg-tertiary and text-tertiary resolve independently.
+   NOT a place to add new names. Removal protocol, usage sites and rationale
+   per line: docs/TRANSITIONAL_ALIASES.md — at zero usages, delete the line. */
+@theme {
+  /* Scaffolded shadcn components (never defined in any system) */
+  --background-color-background-surface-default: var(--color-bg-surface);
+  --background-color-background-surface-secondary: var(--color-bg-elevated);
+  --background-color-border-neutral-200: var(--color-border);
+  --background-color-border-neutral-300: var(--color-border-strong);
+  --background-color-utility-brand-600: var(--color-primary);
+  --border-color-border-neutral-200: var(--color-border);
+  --ring-offset-color-background-surface-default: var(--color-bg-surface);
+
+  /* Surfaces, states & overlays */
+  --background-color-active: var(--color-state-active);
+  --background-color-alpha-black: var(--color-text-primary);
+  --background-color-alpha-white: var(--color-text-inverse);
+  --background-color-disabled_subtle: var(--color-state-disabled-bg);
+  --background-color-overlay: var(--color-bg-overlay);
+  --background-color-primary-25: var(--color-bg-app);
+  --background-color-primary-solid: var(--color-bg-elevated);
+  --background-color-primary_alt: var(--color-bg-app);
+  --background-color-primary_hover: var(--color-state-hover);
+  --background-color-quaternary: var(--color-bg-elevated);
+  --background-color-secondary-solid: var(--color-bg-elevated);
+  --background-color-secondary_alt: var(--color-bg-surface);
+  --background-color-secondary_hover: var(--color-state-hover);
+  --background-color-tertiary: var(--color-bg-elevated);
+  --caret-color-alpha-black: var(--color-text-primary);
+  --fill-bg-primary-solid: var(--color-bg-elevated);
+  --fill-bg-tertiary: var(--color-bg-elevated);
+  --ring-color-disabled_subtle: var(--color-border-subtle);
+  --ring-color-secondary_alt: var(--color-border-subtle);
+  --stroke-bg-quaternary: var(--color-bg-elevated);
+  --text-color-alpha-black: var(--color-text-primary);
+  --text-color-bg-tertiary: var(--color-bg-elevated);
+  --text-color-primary_on-brand: var(--color-primary-on);
+  --text-color-quaternary: var(--color-text-tertiary);
+  --text-color-secondary_hover: var(--color-text-primary);
+  --text-color-secondary_on-brand: var(--color-primary-on);
+  --text-color-tertiary: var(--color-text-tertiary);
+  --color-bg-disabled_subtle: var(--color-state-disabled-bg);
+
+  /* Text & foreground (icons) */
+  --background-color-brand-primary_alt: var(--color-primary-muted);
+  --background-color-brand-secondary: var(--color-primary-muted);
+  --background-color-brand-solid: var(--color-primary);
+  --background-color-brand-solid_hover: var(--color-primary-hover);
+  --background-color-fg-brand-primary_alt: var(--color-primary);
+  --background-color-fg-brand-secondary: var(--color-primary);
+  --background-color-fg-disabled_subtle: var(--color-state-disabled-fg);
+  --background-color-fg-success-secondary: var(--color-status-success);
+  --background-color-fg-white: var(--color-primary-on);
+  --border-color-fg-brand-primary_alt: var(--color-primary);
+  --border-color-fg-error-primary: var(--color-status-danger);
+  --border-color-fg-success-primary: var(--color-status-success);
+  --border-color-fg-warning-primary: var(--color-status-warn);
+  --text-color-brand-secondary: var(--color-primary-text);
+  --text-color-brand-secondary_hover: var(--color-primary-hover);
+  --text-color-brand-tertiary: var(--color-primary-text);
+  --text-color-brand-tertiary_alt: var(--color-primary-text);
+  --text-color-button-destructive-primary-icon: var(--color-status-danger-on);
+  --text-color-button-destructive-primary-icon_hover: var(--color-status-danger-on);
+  --text-color-button-primary-icon: var(--color-primary-on);
+  --text-color-button-primary-icon_hover: var(--color-primary-on);
+  --text-color-featured-icon-light-fg-brand: var(--color-primary-text);
+  --text-color-featured-icon-light-fg-error: var(--color-status-danger);
+  --text-color-featured-icon-light-fg-gray: var(--color-text-tertiary);
+  --text-color-featured-icon-light-fg-success: var(--color-status-success);
+  --text-color-featured-icon-light-fg-warning: var(--color-status-warn);
+  --text-color-fg-brand-secondary_alt: var(--color-primary-text);
+  --text-color-fg-brand-secondary_hover: var(--color-primary-hover);
+  --text-color-fg-disabled_subtle: var(--color-text-disabled);
+  --text-color-fg-error-primary: var(--color-status-danger);
+  --text-color-fg-error-secondary: var(--color-status-danger);
+  --text-color-fg-quaternary: var(--color-text-tertiary);
+  --text-color-fg-quaternary_hover: var(--color-text-secondary);
+  --text-color-fg-secondary_hover: var(--color-text-primary);
+  --text-color-fg-success-primary: var(--color-status-success);
+  --text-color-fg-success-secondary: var(--color-status-success);
+  --text-color-fg-warning-primary: var(--color-status-warn);
+  --text-color-fg-white: var(--color-text-primary);
+  --text-color-placeholder: var(--color-text-secondary);
+  --text-color-placeholder_subtle: var(--color-text-tertiary);
+  --text-color-tertiary_hover: var(--color-text-secondary);
+
+  /* Brand, status & focus */
+  --background-color-error-primary: var(--color-status-danger-muted);
+  --background-color-error-secondary: var(--color-status-danger-muted);
+  --background-color-error-solid: var(--color-status-danger);
+  --background-color-error-solid_hover: var(--color-status-danger-hover);
+  --background-color-success-secondary: var(--color-status-success-muted);
+  --background-color-success-solid: var(--color-status-success);
+  --background-color-warning-secondary: var(--color-status-warn-muted);
+  --background-color-warning-solid: var(--color-status-warn);
+  --border-color-brand: var(--color-border-focus);
+  --border-color-brand_alt: var(--color-primary);
+  --outline-color-brand: var(--color-border-focus);
+  --ring-color-bg-brand-solid: var(--color-primary);
+  --ring-color-border-error_subtle: var(--color-status-danger);
+  --ring-color-brand: var(--color-border-focus);
+  --ring-color-error_subtle: var(--color-status-danger-border);
+  --text-color-error-primary: var(--color-status-danger);
+  --text-color-error-primary_hover: var(--color-status-danger);
+  --text-color-success-primary: var(--color-status-success);
+  --text-color-warning-400: var(--color-status-warn);
+
+  /* Utility palette (badges, illustrations) */
+  --background-color-utility-blue-100: var(--color-primary-muted);
+  --background-color-utility-blue-50: var(--color-primary-muted);
+  --background-color-utility-blue-light-100: var(--color-primary-muted);
+  --background-color-utility-blue-light-50: var(--color-primary-muted);
+  --background-color-utility-brand-100: var(--color-primary-muted);
+  --background-color-utility-brand-50: var(--color-primary-muted);
+  --background-color-utility-brand-500: var(--color-primary);
+  --background-color-utility-error-100: var(--color-status-danger-muted);
+  --background-color-utility-error-50: var(--color-status-danger-muted);
+  --background-color-utility-error-500: var(--color-status-danger);
+  --background-color-utility-gray-100: var(--color-bg-elevated);
+  --background-color-utility-gray-50: var(--color-bg-surface);
+  --background-color-utility-gray-500: var(--color-text-tertiary);
+  --background-color-utility-gray-blue-100: var(--color-bg-elevated);
+  --background-color-utility-gray-blue-50: var(--color-bg-surface);
+  --background-color-utility-indigo-100: var(--color-primary-muted);
+  --background-color-utility-indigo-50: var(--color-primary-muted);
+  --background-color-utility-orange-100: var(--color-status-warn-muted);
+  --background-color-utility-orange-50: var(--color-status-warn-muted);
+  --background-color-utility-pink-100: var(--color-status-danger-muted);
+  --background-color-utility-pink-50: var(--color-status-danger-muted);
+  --background-color-utility-purple-100: var(--color-bg-elevated);
+  --background-color-utility-purple-50: var(--color-bg-surface);
+  --background-color-utility-success-100: var(--color-status-success-muted);
+  --background-color-utility-success-50: var(--color-status-success-muted);
+  --background-color-utility-success-500: var(--color-status-success);
+  --background-color-utility-warning-100: var(--color-status-warn-muted);
+  --background-color-utility-warning-50: var(--color-status-warn-muted);
+  --background-color-utility-warning-500: var(--color-status-warn);
+  --border-color-utility-brand-200: var(--color-primary-border);
+  --border-color-utility-error-200: var(--color-status-danger-border);
+  --border-color-utility-gray-200: var(--color-border);
+  --border-color-utility-success-200: var(--color-status-success-border);
+  --border-color-utility-warning-200: var(--color-status-warn-border);
+  --fill-utility-gray-100: var(--color-bg-elevated);
+  --fill-utility-gray-200: var(--color-border);
+  --fill-utility-gray-300: var(--color-border);
+  --fill-utility-gray-50: var(--color-bg-surface);
+  --outline-color-utility-brand-100: var(--color-primary-muted);
+  --outline-color-utility-error-100: var(--color-status-danger-muted);
+  --outline-color-utility-gray-100: var(--color-border-subtle);
+  --outline-color-utility-success-100: var(--color-status-success-muted);
+  --outline-color-utility-warning-100: var(--color-status-warn-muted);
+  --ring-color-utility-blue-200: var(--color-primary-border);
+  --ring-color-utility-blue-light-200: var(--color-primary-border);
+  --ring-color-utility-brand-200: var(--color-primary-border);
+  --ring-color-utility-error-200: var(--color-status-danger-border);
+  --ring-color-utility-gray-200: var(--color-border);
+  --ring-color-utility-gray-blue-200: var(--color-border);
+  --ring-color-utility-indigo-200: var(--color-primary-border);
+  --ring-color-utility-orange-200: var(--color-status-warn-border);
+  --ring-color-utility-pink-200: var(--color-status-danger-border);
+  --ring-color-utility-purple-200: var(--color-border);
+  --ring-color-utility-success-200: var(--color-status-success-border);
+  --ring-color-utility-warning-200: var(--color-status-warn-border);
+  --text-color-utility-blue-400: var(--color-primary);
+  --text-color-utility-blue-500: var(--color-primary);
+  --text-color-utility-blue-700: var(--color-primary-text);
+  --text-color-utility-blue-light-400: var(--color-primary);
+  --text-color-utility-blue-light-500: var(--color-primary);
+  --text-color-utility-blue-light-700: var(--color-primary-text);
+  --text-color-utility-brand-400: var(--color-primary);
+  --text-color-utility-brand-500: var(--color-primary);
+  --text-color-utility-brand-700: var(--color-primary-text);
+  --text-color-utility-error-400: var(--color-status-danger);
+  --text-color-utility-error-500: var(--color-status-danger);
+  --text-color-utility-error-700: var(--color-status-danger);
+  --text-color-utility-gray-100: var(--color-bg-elevated);
+  --text-color-utility-gray-200: var(--color-border);
+  --text-color-utility-gray-400: var(--color-text-tertiary);
+  --text-color-utility-gray-50: var(--color-bg-surface);
+  --text-color-utility-gray-500: var(--color-text-tertiary);
+  --text-color-utility-gray-700: var(--color-text-secondary);
+  --text-color-utility-gray-blue-400: var(--color-text-tertiary);
+  --text-color-utility-gray-blue-500: var(--color-text-tertiary);
+  --text-color-utility-gray-blue-700: var(--color-text-secondary);
+  --text-color-utility-indigo-400: var(--color-primary);
+  --text-color-utility-indigo-500: var(--color-primary);
+  --text-color-utility-indigo-700: var(--color-primary-text);
+  --text-color-utility-orange-400: var(--color-status-warn);
+  --text-color-utility-orange-500: var(--color-status-warn);
+  --text-color-utility-orange-700: var(--color-status-warn);
+  --text-color-utility-pink-400: var(--color-status-danger);
+  --text-color-utility-pink-500: var(--color-status-danger);
+  --text-color-utility-pink-700: var(--color-status-danger);
+  --text-color-utility-purple-400: var(--color-text-tertiary);
+  --text-color-utility-purple-500: var(--color-text-tertiary);
+  --text-color-utility-purple-700: var(--color-text-secondary);
+  --text-color-utility-success-400: var(--color-status-success);
+  --text-color-utility-success-500: var(--color-status-success);
+  --text-color-utility-success-700: var(--color-status-success);
+  --text-color-utility-warning-400: var(--color-status-warn);
+  --text-color-utility-warning-500: var(--color-status-warn);
+  --text-color-utility-warning-700: var(--color-status-warn);
+
+  /* Component-specific (avatar, slider, toggle, store badge, type size) */
+  --background-color-avatar-bg: var(--color-bg-elevated);
+  --background-color-slider-handle-bg: var(--color-primary);
+  --background-color-toggle-button-fg_disabled: var(--color-state-disabled-fg);
+  --border-color-toggle-border: var(--color-border);
+  --border-color-toggle-slim-border_pressed: var(--color-primary);
+  --border-color-toggle-slim-border_pressed-hover: var(--color-primary-hover);
+  --fill-border-secondary_alt: var(--color-border-subtle);
+  --outline-color-avatar-contrast-border: var(--color-border-subtle);
+  --ring-color-app-store-badge-border: var(--color-border-strong);
+  --ring-color-slider-handle-border: var(--color-primary);
+  --stroke-border-secondary_alt: var(--color-border-subtle);
+  --text-display-xl: var(--size-display);
+  --text-display-xl--line-height: calc(var(--size-display) * 1.33);
+}
+
+/* ── 3. KONSTA RUNTIME VARS (konsta 5.4.0) ──
+   Exactly the --k-color-* names Konsta's components and styles read. MD3
+   surface is Konsta's page canvas; surface-1/2 are raised chrome (lists,
+   navbar); surface-3..5 float (dialogs, toasts). */
+@layer konsta {
+  :root {
+    --k-color-primary: var(--color-primary);
+
+    --k-color-ios-primary: var(--color-primary);
+    --k-color-ios-primary-tint: var(--color-primary-hover);
+    --k-color-ios-primary-shade: var(--color-primary-active);
+
+    --k-color-md-light-primary: var(--color-primary);
+    --k-color-md-light-on-primary: var(--color-primary-on);
+    --k-color-md-light-primary-container: var(--color-primary-muted);
+    --k-color-md-light-on-primary-container: var(--color-primary-text);
+    --k-color-md-light-secondary: var(--color-secondary);
+    --k-color-md-light-on-secondary: var(--color-secondary-on);
+    --k-color-md-light-secondary-container: var(--color-primary-muted);
+    --k-color-md-light-on-secondary-container: var(--color-primary-text);
+    --k-color-md-light-surface: var(--color-bg-app);
+    --k-color-md-light-on-surface: var(--color-text-primary);
+    --k-color-md-light-surface-variant: var(--color-bg-elevated);
+    --k-color-md-light-on-surface-variant: var(--color-text-secondary);
+    --k-color-md-light-outline: var(--color-border);
+    --k-color-md-light-outline-variant: var(--color-border-subtle);
+    --k-color-md-light-surface-1: var(--color-bg-surface);
+    --k-color-md-light-surface-2: var(--color-bg-surface);
+    --k-color-md-light-surface-3: var(--color-bg-elevated);
+    --k-color-md-light-surface-4: var(--color-bg-elevated);
+    --k-color-md-light-surface-5: var(--color-bg-elevated);
+  }
+
+  /* Konsta inks the iOS Navbar with `text-black` (its light-slot class; the
+     app runs dark={false}). Black is literal #000 for scrims, so re-point it
+     at the text token inside the navbar only. */
+  .k-navbar {
+    --color-black: var(--color-text-primary);
+  }
+}

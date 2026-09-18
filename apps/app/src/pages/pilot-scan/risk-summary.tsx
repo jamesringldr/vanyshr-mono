@@ -1,39 +1,42 @@
 import { useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { Link } from "react-router";
-import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import { motion, useMotionValue, useReducedMotion, type PanInfo } from "framer-motion";
+import { Page, Sheet } from "konsta/react";
+import { PolarAngleAxis, PolarGrid, PolarRadiusAxis, Radar, RadarChart, ResponsiveContainer } from "recharts";
 import {
-  AlertTriangleFilled,
-  ShieldFilled,
-  MailFilled,
+  TriangleAlert,
+  Shield,
+  Mail,
   Fingerprint,
-  KeyFilled,
+  Key,
   Users,
-  HomeFilled,
+  House,
   UserSearch,
   X,
-  type IconComponent,
-} from "@appica/icons-react";
+  type LucideIcon,
+} from "lucide-react";
+import { Card } from "@vanyshr/ui/components/ui/card/card";
+import { Badge } from "@vanyshr/ui/components/ui/badge/badge";
+import { Button } from "@vanyshr/ui/components/ui/buttons/button";
 import { cx } from "@/utils/cx";
 import { buildRiskAreas, loadConsolidatedProfile, type ConsolidatedProfile, type RiskArea } from "./consolidated-profile";
 
-const DRAWER_EASE = [0.2, 0, 0, 1] as const;
 const LEVEL_BARS = 4;
+// Radar axis labels sit this far (px) beyond Recharts' tick position.
+const AXIS_LABEL_OFFSET = 16;
 
-const AREA_META: Record<
-  string,
-  { Icon: IconComponent; angleDeg?: number; onHex?: boolean }
-> = {
-  critical: { Icon: AlertTriangleFilled, angleDeg: -90, onHex: true },
-  scam: { Icon: ShieldFilled, angleDeg: -30, onHex: true },
-  family: { Icon: Users, angleDeg: 30, onHex: true },
-  identity: { Icon: Fingerprint, angleDeg: 90, onHex: true },
-  accounts: { Icon: KeyFilled, angleDeg: 150, onHex: true },
-  spam: { Icon: MailFilled, angleDeg: 210, onHex: true },
-  property: { Icon: HomeFilled },
-  other: { Icon: UserSearch },
+const AREA_ICONS: Record<string, LucideIcon> = {
+  critical: TriangleAlert,
+  scam: Shield,
+  family: Users,
+  identity: Fingerprint,
+  accounts: Key,
+  spam: Mail,
+  property: House,
+  other: UserSearch,
 };
 
+// Clockwise from the top — RadarChart's default start angle.
 const HEX_ORDER = ["critical", "scam", "family", "identity", "accounts", "spam"] as const;
 const LIST_ORDER = [
   "critical",
@@ -46,12 +49,6 @@ const LIST_ORDER = [
   "other",
 ] as const;
 
-const VIEW = 320;
-const CENTER = VIEW / 2;
-const GRID_RADII = [0.35, 0.55, 0.75, 1];
-const AXIS_RADIUS = 112;
-const LABEL_RADIUS = 148;
-
 type AreaView = {
   id: string;
   label: string;
@@ -60,35 +57,8 @@ type AreaView = {
   score: number;
   items: RiskArea["items"];
   breachCards?: RiskArea["breachCards"];
-  Icon: IconComponent;
-  angleDeg?: number;
+  Icon: LucideIcon;
 };
-
-function polar(radius: number, angleDeg: number) {
-  const rad = (angleDeg * Math.PI) / 180;
-  return {
-    x: CENTER + radius * Math.cos(rad),
-    y: CENTER + radius * Math.sin(rad),
-  };
-}
-
-function hexPoints(radius: number, hexAreas: AreaView[]) {
-  return hexAreas
-    .map((p) => {
-      const { x, y } = polar(radius, p.angleDeg ?? 0);
-      return `${x},${y}`;
-    })
-    .join(" ");
-}
-
-function scorePolygon(hexAreas: AreaView[]) {
-  return hexAreas
-    .map((p) => {
-      const { x, y } = polar(AXIS_RADIUS * p.score, p.angleDeg ?? 0);
-      return `${x},${y}`;
-    })
-    .join(" ");
-}
 
 function levelFromScore(score: number) {
   return Math.min(LEVEL_BARS, Math.max(1, Math.round(score * LEVEL_BARS)));
@@ -103,7 +73,7 @@ function LevelBars({ level }: { level: number }) {
         return (
           <span
             key={i}
-            className={cx("w-1.5 rounded-sm", on ? "bg-accent-primary" : "bg-bg-surface")}
+            className={cx("w-1.5 rounded-xs", on ? "bg-primary" : "bg-bg-elevated")}
             style={{ height }}
           />
         );
@@ -116,22 +86,53 @@ function isHttpUrl(value: string) {
   return /^https?:\/\//i.test(value);
 }
 
+/** Radar axis label: the area's icon in a ring, name underneath, pushed outward along the axis. */
+function AxisLabel({
+  x,
+  y,
+  payload,
+  areas,
+}: {
+  x: number;
+  y: number;
+  payload: { index: number; coordinate: number };
+  areas: AreaView[];
+}) {
+  const area = areas[payload.index];
+  const angle = (-payload.coordinate * Math.PI) / 180;
+  const px = x + Math.cos(angle) * AXIS_LABEL_OFFSET;
+  const py = y + Math.sin(angle) * AXIS_LABEL_OFFSET;
+  const Icon = area.Icon;
+  return (
+    <g transform={`translate(${px} ${py})`}>
+      <circle r={16} className="fill-bg-app stroke-border-subtle" />
+      <Icon x={-8} y={-8} width={16} height={16} className="text-text-primary" />
+      <text y={30} textAnchor="middle" className="fill-text-primary text-xs font-medium">
+        {area.label}
+      </text>
+    </g>
+  );
+}
+
 /**
- * Risk summary slide content — hex chart + area list, no page chrome. Used
- * standalone by PilotRiskSummaryPage's own header/background below, and as
- * one slide of the report carousel (report.tsx), which supplies its own
- * shared header instead.
+ * Risk summary slide content — radar chart + area list, no page chrome. Used
+ * standalone by PilotRiskSummaryPage below, and as one slide of the report
+ * carousel (report.tsx), which supplies its own shared header instead.
  *
- * The area-detail drawer is rendered via a portal to document.body rather
- * than inline: inside the carousel it sits under a swipe track that gets
- * animated with a CSS transform, and a `position: fixed` descendant of a
- * transformed ancestor is positioned relative to that ancestor instead of
- * the viewport — the portal sidesteps that entirely.
+ * The area-detail sheet is rendered via a portal to document.body rather
+ * than inline: inside the carousel it sits under a scroll track, and a
+ * `position: fixed` descendant of a transformed ancestor is positioned
+ * relative to that ancestor instead of the viewport — the portal sidesteps
+ * that entirely. The sheet is Konsta's; framer-motion stays only for its
+ * drag-to-dismiss gesture, which CSS can't express.
  */
 export function RiskSummaryBody({ profile }: { profile: ConsolidatedProfile }) {
   const prefersReducedMotion = useReducedMotion();
   const areas = useMemo(() => buildRiskAreas(profile), [profile]);
+  // activeArea outlives `open` so the sheet keeps its content while sliding out.
   const [activeArea, setActiveArea] = useState<AreaView | null>(null);
+  const [open, setOpen] = useState(false);
+  const dragY = useMotionValue(0);
 
   const byId = useMemo(() => {
     const map = new Map(areas.map((a) => [a.id, a]));
@@ -140,7 +141,6 @@ export function RiskSummaryBody({ profile }: { profile: ConsolidatedProfile }) {
 
   const hexAreas: AreaView[] = HEX_ORDER.map((id) => {
     const built = byId.get(id);
-    const meta = AREA_META[id];
     return {
       id,
       label: built?.label ?? id,
@@ -148,8 +148,7 @@ export function RiskSummaryBody({ profile }: { profile: ConsolidatedProfile }) {
       detail: built?.detail ?? "",
       score: built?.score ?? 0.1,
       items: built?.items ?? [],
-      Icon: meta.Icon,
-      angleDeg: meta.angleDeg,
+      Icon: AREA_ICONS[id],
     };
   });
 
@@ -157,132 +156,95 @@ export function RiskSummaryBody({ profile }: { profile: ConsolidatedProfile }) {
     const built = byId.get(id);
     if (!built) return [];
     if (id === "other" && built.items.length === 0) return [];
-    return [
-      {
-        ...built,
-        Icon: AREA_META[id].Icon,
-        angleDeg: AREA_META[id].angleDeg,
-      },
-    ];
+    return [{ ...built, Icon: AREA_ICONS[id] }];
   });
+
+  function openArea(area: AreaView) {
+    dragY.set(0);
+    setActiveArea(area);
+    setOpen(true);
+  }
+
+  // Konsta forwards unknown props to `component` (motion.div here), but types
+  // them as plain div props — so the drag props go through one untyped spread.
+  const sheetDragProps: Record<string, unknown> = {
+    style: { y: dragY },
+    drag: prefersReducedMotion ? false : "y",
+    dragConstraints: { top: 0 },
+    dragElastic: 0.2,
+    onDragEnd: (_: unknown, info: PanInfo) => {
+      if (info.offset.y > 120) setOpen(false);
+    },
+  };
 
   const ActiveIcon = activeArea?.Icon;
 
   return (
-    <div className="relative flex w-full flex-col items-center px-6 font-ubuntu">
-      <div>
-        <div className="relative mt-8 flex w-full max-w-md items-center justify-center">
-          <div className="relative aspect-square w-full max-w-[340px]">
-            <svg
-              viewBox={`0 0 ${VIEW} ${VIEW}`}
-              className="h-full w-full"
-              role="img"
-              aria-label="Risk categories arranged on a hexagonal chart"
-            >
-              {GRID_RADII.map((t) => (
-                <polygon
-                  key={t}
-                  points={hexPoints(AXIS_RADIUS * t, hexAreas)}
-                  fill="none"
-                  stroke="rgba(184, 196, 204, 0.18)"
-                  strokeWidth={1}
-                />
-              ))}
-
-              {hexAreas.map((p) => {
-                const end = polar(AXIS_RADIUS, p.angleDeg ?? 0);
-                return (
-                  <line
-                    key={`axis-${p.id}`}
-                    x1={CENTER}
-                    y1={CENTER}
-                    x2={end.x}
-                    y2={end.y}
-                    stroke="rgba(184, 196, 204, 0.14)"
-                    strokeWidth={1}
-                  />
-                );
-              })}
-
-              <polygon
-                points={scorePolygon(hexAreas)}
-                fill="rgba(20,171,254, 0.22)"
-                stroke="#14ABFE"
-                strokeWidth={1.5}
-                strokeLinejoin="round"
+    <div className="relative flex w-full flex-col items-center px-6">
+      <div className="w-full">
+        <div
+          role="img"
+          aria-label="Risk categories arranged on a hexagonal chart"
+          className="mx-auto mt-8 aspect-square w-full max-w-xs"
+        >
+          <ResponsiveContainer width="100%" height="100%">
+            <RadarChart data={hexAreas} outerRadius="62%">
+              <PolarGrid gridType="polygon" stroke="var(--color-border-subtle)" />
+              <PolarRadiusAxis domain={[0, 1]} tickCount={5} tick={false} axisLine={false} />
+              <PolarAngleAxis
+                dataKey="label"
+                tickLine={false}
+                tick={(props: { x: number; y: number; payload: { index: number; coordinate: number } }) => (
+                  <AxisLabel {...props} areas={hexAreas} />
+                )}
               />
-
-              {hexAreas.map((p) => {
-                const pt = polar(AXIS_RADIUS * p.score, p.angleDeg ?? 0);
-                return (
-                  <circle
-                    key={`dot-${p.id}`}
-                    cx={pt.x}
-                    cy={pt.y}
-                    r={3.5}
-                    fill="#14ABFE"
-                  />
-                );
-              })}
-
-              <circle cx={CENTER} cy={CENTER} r={5} fill="#14ABFE" />
-            </svg>
-
-            {hexAreas.map((p) => {
-              const pt = polar(LABEL_RADIUS, p.angleDeg ?? 0);
-              const left = (pt.x / VIEW) * 100;
-              const top = (pt.y / VIEW) * 100;
-              const Icon = p.Icon;
-              return (
-                <div
-                  key={`label-${p.id}`}
-                  className="pointer-events-none absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-1"
-                  style={{ left: `${left}%`, top: `${top}%` }}
-                >
-                  <span className="flex h-8 w-8 items-center justify-center rounded-full border border-white/15 bg-bg-page/80 text-white">
-                    <Icon size={16} />
-                  </span>
-                  <span className="max-w-[88px] text-center text-[11px] font-medium leading-tight text-white sm:text-xs">
-                    {p.label}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
+              <Radar
+                dataKey="score"
+                stroke="var(--color-primary)"
+                strokeWidth={1.5}
+                fill="var(--color-primary-muted)"
+                fillOpacity={1}
+                dot={{ r: 3.5, fill: "var(--color-primary)", stroke: "none" }}
+                isAnimationActive={false}
+              />
+            </RadarChart>
+          </ResponsiveContainer>
         </div>
 
-        <section className="mt-10 w-full max-w-sm" aria-label="Your areas">
-          <div className="mb-3 px-0.5">
-            <h2 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-text-secondary">
+        <section className="mt-8 w-full" aria-label="Your areas">
+          <div className="mb-3">
+            <h2 className="text-xs font-semibold uppercase tracking-widest text-text-secondary">
               Your areas
             </h2>
-            <p className="mt-0.5 text-xs text-text-secondary">(tap to see what we found)</p>
+            <p className="text-sm text-text-secondary">(tap to see what we found)</p>
           </div>
 
-          <ul className="flex flex-col gap-2.5">
+          <ul className="flex flex-col gap-2">
             {listAreas.map((area) => {
               const Icon = area.Icon;
               const level = levelFromScore(area.score);
               return (
                 <li key={area.id}>
-                  <button
-                    type="button"
-                    onClick={() => setActiveArea(area)}
-                    className="flex w-full items-center gap-3 rounded-2xl bg-bg-surface-secondary px-4 py-3.5 text-left outline-none transition hover:bg-white/5 focus-visible:ring-2 focus-visible:ring-accent-primary"
-                  >
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center text-white">
-                      <Icon size={20} />
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-[15px] font-semibold text-white">
-                        {area.label}
+                  <Card className="overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => openArea(area)}
+                      className="flex w-full items-center gap-3 px-4 py-3 text-left outline-none transition-colors duration-fast hover:bg-state-hover focus-visible:ring-2 focus-visible:ring-border-focus focus-visible:ring-inset"
+                    >
+                      <span className="flex size-9 shrink-0 items-center justify-center text-text-primary">
+                        <Icon className="size-5" />
                       </span>
-                      <span className="mt-0.5 block text-xs text-text-secondary">
-                        {area.summary}
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-lg font-semibold text-text-primary">
+                          {area.label}
+                        </span>
+                        <span className="block text-sm text-text-secondary">
+                          {area.summary}
+                        </span>
                       </span>
-                    </span>
-                    <LevelBars level={level} />
-                  </button>
+                      <LevelBars level={level} />
+                    </button>
+                  </Card>
                 </li>
               );
             })}
@@ -290,119 +252,91 @@ export function RiskSummaryBody({ profile }: { profile: ConsolidatedProfile }) {
         </section>
       </div>
 
-
       {createPortal(
-        <AnimatePresence>
-        {activeArea && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2, ease: DRAWER_EASE }}
-              onClick={() => setActiveArea(null)}
-              className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
-              aria-hidden
-            />
-            <motion.div
-              role="dialog"
-              aria-modal="true"
-              aria-label={`${activeArea.label} details`}
-              initial={{ y: "100%" }}
-              animate={{ y: 0 }}
-              exit={{ y: "100%" }}
-              transition={
-                prefersReducedMotion
-                  ? { duration: 0 }
-                  : { duration: 0.38, ease: DRAWER_EASE }
-              }
-              drag={prefersReducedMotion ? false : "y"}
-              dragConstraints={{ top: 0 }}
-              dragElastic={0.2}
-              onDragEnd={(_, info) => {
-                if (info.offset.y > 120) setActiveArea(null);
-              }}
-              className="fixed bottom-0 left-0 right-0 z-50 flex justify-center"
-            >
-              <div className="relative max-h-[88vh] w-full max-w-md overflow-y-auto rounded-t-[28px] bg-bg-surface-secondary px-6 pb-10 pt-3 shadow-[0_0_40px_rgba(20,171,254,0.2)]">
-                <div className="flex justify-center pb-3">
-                  <div className="h-1.5 w-12 rounded-full bg-bg-surface" />
+        <Sheet
+          component={motion.div}
+          opened={open}
+          onBackdropClick={() => setOpen(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-label={activeArea ? `${activeArea.label} details` : undefined}
+          aria-hidden={!open}
+          inert={!open}
+          className="flex max-h-9/10 flex-col rounded-t-lg! shadow-xl motion-reduce:transition-none"
+          {...sheetDragProps}
+        >
+          {activeArea && (
+            <div className="relative min-h-0 flex-1 overflow-y-auto px-6 pb-safe-8 pt-3">
+              <div className="flex justify-center pb-3">
+                <div className="h-1.5 w-12 rounded-full bg-border" />
+              </div>
+              <button
+                type="button"
+                aria-label="Close"
+                onClick={() => setOpen(false)}
+                className="absolute right-2 top-2 flex size-11 items-center justify-center rounded-full text-text-secondary outline-none transition-colors duration-fast hover:text-text-primary focus-visible:ring-2 focus-visible:ring-border-focus"
+              >
+                <X className="size-5" />
+              </button>
+
+              <div className="mt-2 flex items-start gap-3">
+                <span className="flex size-11 shrink-0 items-center justify-center rounded-full border border-primary-border bg-primary-muted text-primary-text">
+                  {ActiveIcon ? <ActiveIcon className="size-5" /> : null}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <h3 className="font-display text-xl font-semibold tracking-tight text-text-primary">
+                    {activeArea.label}
+                  </h3>
+                  <p className="mt-1 text-md text-text-secondary">{activeArea.summary}</p>
                 </div>
-                <button
-                  type="button"
-                  aria-label="Close"
-                  onClick={() => setActiveArea(null)}
-                  className="absolute right-4 top-3 rounded-full p-1.5 text-text-secondary transition hover:text-white"
-                >
-                  <X size={20} />
-                </button>
+                <LevelBars level={levelFromScore(activeArea.score)} />
+              </div>
 
-                <div className="mt-2 flex items-start gap-3">
-                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-accent-primary/30 bg-accent-primary/10 text-accent-primary">
-                    {ActiveIcon ? (
-                      <ActiveIcon size={20} />
-                    ) : null}
-                  </span>
-                  <div className="min-w-0 flex-1 pt-0.5">
-                    <h3 className="text-xl font-bold tracking-tight text-white">
-                      {activeArea.label}
-                    </h3>
-                    <p className="mt-1 text-sm text-text-secondary">{activeArea.summary}</p>
-                  </div>
-                  <LevelBars level={levelFromScore(activeArea.score)} />
-                </div>
+              <p className="mt-4 text-lg leading-relaxed text-text-secondary">
+                {activeArea.detail}
+              </p>
 
-                <p className="mt-5 text-[15px] leading-relaxed text-text-secondary">
-                  {activeArea.detail}
-                </p>
-
-                {activeArea.breachCards ? (
-                  activeArea.breachCards.length === 0 ? (
-                    <p className="mt-5 text-sm text-text-secondary">
-                      No breaches found for any confirmed email.
-                    </p>
-                  ) : (
-                    <ul className="mt-5 flex flex-col gap-2">
-                      {activeArea.breachCards.map((b, i) => (
-                        <li
-                          key={`${b.email}-${b.name}-${i}`}
-                          className="rounded-xl bg-bg-page/55 px-3.5 py-3"
-                        >
-                          <p className="break-all text-[11px] font-semibold uppercase tracking-[0.12em] text-text-secondary">
+              {activeArea.breachCards ? (
+                activeArea.breachCards.length === 0 ? (
+                  <p className="mt-4 text-md text-text-secondary">
+                    No breaches found for any confirmed email.
+                  </p>
+                ) : (
+                  <ul className="mt-4 flex flex-col gap-2">
+                    {activeArea.breachCards.map((b, i) => (
+                      <li key={`${b.email}-${b.name}-${i}`}>
+                        <Card className="bg-bg-app px-3 py-3 shadow-none">
+                          <p className="break-all text-xs font-semibold uppercase tracking-widest text-text-secondary">
                             {b.email}
                           </p>
-                          <p className="mt-1 text-sm leading-snug text-white">
+                          <p className="mt-1 text-md leading-snug text-text-primary">
                             {b.name}
                             {(b.date || b.year) ? ` · ${b.date || b.year}` : ""}
                           </p>
                           {b.fieldsExposed.length > 0 && (
-                            <div className="mt-2.5 flex flex-wrap gap-1.5">
+                            <div className="mt-2 flex flex-wrap gap-1">
                               {b.fieldsExposed.map((field) => (
-                                <span
-                                  key={field}
-                                  className="rounded-full bg-white/10 px-2 py-0.5 text-[11px] text-text-secondary"
-                                >
+                                <Badge key={field} color="gray" size="sm">
                                   {field}
-                                </span>
+                                </Badge>
                               ))}
                             </div>
                           )}
-                        </li>
-                      ))}
-                    </ul>
-                  )
-                ) : activeArea.items.length === 0 ? (
-                  <p className="mt-5 text-sm text-text-secondary">
-                    Nothing in this category from the current scan.
-                  </p>
-                ) : (
-                  <ul className="mt-5 flex flex-col gap-2">
-                    {activeArea.items.map((item, i) => (
-                      <li
-                        key={`${item.label}-${item.value}-${i}`}
-                        className="rounded-xl bg-bg-page/55 px-3.5 py-3"
-                      >
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-text-secondary">
+                        </Card>
+                      </li>
+                    ))}
+                  </ul>
+                )
+              ) : activeArea.items.length === 0 ? (
+                <p className="mt-4 text-md text-text-secondary">
+                  Nothing in this category from the current scan.
+                </p>
+              ) : (
+                <ul className="mt-4 flex flex-col gap-2">
+                  {activeArea.items.map((item, i) => (
+                    <li key={`${item.label}-${item.value}-${i}`}>
+                      <Card className="bg-bg-app px-3 py-3 shadow-none">
+                        <p className="text-xs font-semibold uppercase tracking-widest text-text-secondary">
                           {item.label}
                           {item.source ? ` · ${item.source}` : ""}
                         </p>
@@ -411,22 +345,21 @@ export function RiskSummaryBody({ profile }: { profile: ConsolidatedProfile }) {
                             href={item.value}
                             target="_blank"
                             rel="noreferrer"
-                            className="mt-1 block break-all text-sm text-accent-primary underline-offset-2 hover:underline"
+                            className="mt-1 block break-all text-md text-primary-text underline-offset-2 hover:underline"
                           >
                             {item.value}
                           </a>
                         ) : (
-                          <p className="mt-1 text-sm leading-snug text-white">{item.value}</p>
+                          <p className="mt-1 text-md leading-snug text-text-primary">{item.value}</p>
                         )}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            </motion.div>
-          </>
-        )}
-        </AnimatePresence>,
+                      </Card>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+        </Sheet>,
         document.body,
       )}
     </div>
@@ -444,30 +377,23 @@ export function PilotRiskSummaryPage() {
 
   if (!stored) {
     return (
-      <div
-        className="flex min-h-screen w-full flex-col items-center justify-center bg-bg-page p-4 font-ubuntu"
-        role="main"
-        aria-label="Error loading risk summary"
-      >
-        <div className="w-full max-w-md text-center">
-          <h1 className="mb-2 text-xl font-bold text-white">No scan data found</h1>
-          <p className="mb-6 text-sm text-text-secondary">
+      <Page className="font-body" role="main" aria-label="Error loading risk summary">
+        <div className="flex min-h-full flex-col items-center justify-center p-4 text-center">
+          <h1 className="mb-2 font-display text-xl font-semibold text-text-primary">No scan data found</h1>
+          <p className="mb-6 text-md text-text-secondary">
             Nothing came through from this scan — run it again from the start.
           </p>
-          <Link
-            to="/pilot-scan"
-            className="inline-flex h-[44px] items-center justify-center rounded-xl bg-accent-primary px-6 font-semibold text-white transition-all hover:bg-accent-hover"
-          >
+          <Button href="/pilot-scan" size="xl">
             Start over
-          </Link>
+          </Button>
         </div>
-      </div>
+      </Page>
     );
   }
 
   return (
-    <div className="min-h-screen w-full bg-bg-page pt-12" role="main" aria-label="Risk summary">
+    <Page className="pt-12 font-body" role="main" aria-label="Risk summary">
       <RiskSummaryBody profile={stored.profile} />
-    </div>
+    </Page>
   );
 }

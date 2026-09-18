@@ -1,8 +1,53 @@
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&family=Ubuntu:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400;1,500;1,700&display=swap');
+/* Cascade order (DESIGN.md §12 rule 5): preflight → tokens → konsta → shadcn →
+   utilities. Declared before anything else so the order never depends on
+   import order. Tailwind's own layers: theme (@theme vars), base (preflight). */
+@layer theme, base, tokens, konsta, shadcn, components, utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&display=swap');
+
+/* globals.css (which imports tailwindcss) must come before Konsta: Tailwind
+   emits its theme variables at the first @theme it meets, and only inside
+   @layer theme when that is its own. */
 @import "@vanyshr/ui/styles/globals.css";
+@import "@vanyshr/ui/styles/tokens.css" layer(tokens);
+
+/* Konsta UI 5.4.0 — every stylesheet konsta/react/theme.css pulls in EXCEPT
+   styles/colors.css, whose color plugin derives --k-color-* by parsing a hex
+   brand color and crashes on token var()s. The token bridge in @vanyshr/ui's
+   theme.css supplies --k-color-* and Konsta's color utilities instead.
+   Only preloader.css can take layer(konsta): the others hold @utility /
+   @theme / @custom-variant, which Tailwind forbids nesting and hoists into
+   its own layers anyway. (Relative paths: konsta's package exports don't
+   expose styles/*.) */
+@import "../node_modules/konsta/styles/base.css";
+@import "../node_modules/konsta/styles/glass.css";
+@import "../node_modules/konsta/styles/touch-ripple.css";
+@import "../node_modules/konsta/styles/no-scrollbar.css";
+@import "../node_modules/konsta/styles/ios-material.css";
+@import "../node_modules/konsta/styles/preloader.css" layer(konsta);
+@import "../node_modules/konsta/styles/hairlines.css";
+@import "../node_modules/konsta/styles/range.css";
+@import "../node_modules/konsta/styles/safe-areas.css";
+
+/* Konsta component class sources (mirrors konsta/react/theme.css) */
+@source "../node_modules/konsta/react";
+@source "../node_modules/konsta/shared";
+@source "../node_modules/konsta/styles";
+
+/* No dark: variant. The only theme mechanism is the .light class on the root
+   (tokens.css, DESIGN.md §12.4). Tailwind can't unregister a variant, and
+   both its default (prefers-color-scheme) and Konsta's base.css (.dark class)
+   would otherwise be live, so dark: is pinned to a never-matching media
+   query — declared after Konsta so it wins; the production minifier drops
+   those rules entirely. */
+@custom-variant dark {
+  @media not all {
+    @slot;
+  }
+}
 
 @theme {
-  --font-sans: "Ubuntu", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-ui);
   --font-terminal: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
   --tracking-tighter: -0.05em;
 

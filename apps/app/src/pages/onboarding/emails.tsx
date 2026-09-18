@@ -276,7 +276,7 @@ export function OnboardingEmails() {
                         className={cx(
                             "flex h-[52px] flex-1 items-center justify-center rounded-xl text-sm font-semibold outline-none transition",
                             "border border-[var(--border-subtle)] dark:border-[#1E3A52]",
-                            "text-[#0B1B2B] dark:text-white bg-transparent hover:bg-black/5 dark:hover:bg-white/10",
+                            "text-[#0B1B2B] dark:text-white bg-transparent hover:bg-state-hover dark:hover:bg-white/10",
                             "focus-visible:ring-2 focus-visible:ring-[#14ABFE] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#0B1B2B]",
                         )}
                     >
