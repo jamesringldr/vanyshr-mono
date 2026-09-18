@@ -1,0 +1,11 @@
+{
+  "source": "jamesringldr/vanyshrdesignsys",
+  "sha": "0ea25698",
+  "syncedAt": "2026-09-18T12:18:09.981Z",
+  "files": [
+    "packages/ui/src/styles/tokens.css",
+    "docs/DESIGN.md",
+    "docs/COMPONENTS.md",
+    "docs/llms.txt"
+  ]
+}

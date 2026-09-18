@@ -66,3 +66,20 @@ if [ -n "$violations" ]; then
     exit 1
   fi
 fi
+
+# --- 3. Token sync-lock guard ---
+# packages/ui/src/styles/tokens.css is a read-only mirror of the canonical
+# design bible (jamesringldr/vanyshrdesignsys) and must only change via
+# scripts/sync-tokens.mjs, never by hand. tokens.sync.json is that script's
+# provenance record (source SHA) — requiring it to change in the same commit
+# is the proof the change actually came through the sync script.
+staged_all=$(git diff --cached --name-only --diff-filter=ACM 2>/dev/null || true)
+if echo "$staged_all" | grep -qx 'packages/ui/src/styles/tokens.css'; then
+  if ! echo "$staged_all" | grep -qx 'packages/ui/src/styles/tokens.sync.json'; then
+    echo "🔒 Commit blocked: packages/ui/src/styles/tokens.css staged without packages/ui/src/styles/tokens.sync.json" >&2
+    echo "   tokens.css is a synced mirror of jamesringldr/vanyshrdesignsys — it must never be" >&2
+    echo "   hand-edited. Run \`node scripts/sync-tokens.mjs <designsys-commit-sha>\` instead," >&2
+    echo "   which updates tokens.sync.json in the same commit as proof of the sync source." >&2
+    exit 1
+  fi
+fi

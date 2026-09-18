@@ -58,6 +58,16 @@ Only merge `staging` → `main` when explicitly instructed by the user. Never su
 
 ## Design
 
+The canonical design bible is the **jamesringldr/vanyshrdesignsys** repo — not
+this one. `docs/DESIGN.md`, `docs/COMPONENTS.md`, `docs/llms.txt`, and
+`packages/ui/src/styles/tokens.css` here are **read-only synced mirrors**
+(see `scripts/sync-tokens.mjs` and `packages/ui/src/styles/tokens.sync.json`
+for provenance). No agent ever hand-edits these files — the pre-commit hook
+enforces that `tokens.css` can only change alongside `tokens.sync.json`,
+proving the change came from a sync, not a hand edit. To change the system,
+file an amendment proposal for James; only Igor applies approved amendments
+(see `GOVERNANCE.md` and `AMENDMENTS.md` in vanyshrdesignsys).
+
 Read `docs/DESIGN.md` BEFORE writing or editing ANY UI code. No exceptions. Read DESIGN.md §12 before importing ANY component.
 If that file does not exist, STOP — do not proceed with styling.
 
