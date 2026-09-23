@@ -40,6 +40,7 @@ import { SelfScanEntryPage } from "./pages/self-scan/entry";
 import { SelfScanSplashPage } from "./pages/self-scan/splash";
 import { SelfScanLoadingPage } from "./pages/self-scan/loading";
 import { SelfScanReportPage } from "./pages/self-scan/report";
+import { FindMyDataPage } from "./pages/find-my-data";
 
 // Dashboard pages
 import { DashboardHome } from "./views/Dashboard/DashboardHome";
@@ -179,6 +180,8 @@ export default function App() {
             <Route path="/self-scan/splash" element={<SelfScanSplashPage />} />
             <Route path="/self-scan/loading" element={<SelfScanLoadingPage />} />
             <Route path="/self-scan/report" element={<SelfScanReportPage />} />
+
+            <Route path="/find-my-data" element={<FindMyDataPage />} />
 
             {/* Settings */}
             <Route path="/settings/notifications" element={<RequireAuth><NotificationsPage /></RequireAuth>} />
