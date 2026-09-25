@@ -4,9 +4,9 @@ import type { FileIcon } from "@untitledui/file-icons";
 import { FileIcon as FileTypeIcon } from "@untitledui/file-icons";
 import { CheckCircle, Trash01, UploadCloud02, XCircle } from "@untitledui/icons";
 import { AnimatePresence, motion } from "motion/react";
-import { Button } from "@/components/base/buttons/button";
-import { ButtonUtility } from "@/components/base/buttons/button-utility";
-import { ProgressBar } from "@/components/base/progress-indicators/progress-indicators";
+import { Button } from "@/components/ui/buttons/button";
+import { ButtonUtility } from "@/components/ui/buttons/button-utility";
+import { ProgressBar } from "@/components/ui/progress-indicators/progress-indicators";
 import { FeaturedIcon } from "@/components/foundations/featured-icon/featured-icon";
 import { cx } from '@/utils/cx';
 

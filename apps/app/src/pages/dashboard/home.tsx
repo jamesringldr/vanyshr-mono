@@ -1,6 +1,6 @@
 import { BookOpen01, Check, Copy01, Cube01, HelpCircle } from "@untitledui/icons";
-import { Button } from "@vanyshr/ui/components/base/buttons/button";
-import { ButtonUtility } from "@vanyshr/ui/components/base/buttons/button-utility";
+import { Button } from "@vanyshr/ui/components/ui/buttons/button";
+import { ButtonUtility } from "@vanyshr/ui/components/ui/buttons/button-utility";
 import { UntitledLogoMinimal } from "@vanyshr/ui/components/foundations/logo/untitledui-logo-minimal";
 import { useClipboard } from "@vanyshr/shared/hooks" // use-clipboard";
 import { Link } from "react-router";

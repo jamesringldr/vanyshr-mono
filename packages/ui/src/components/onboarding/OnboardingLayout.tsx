@@ -125,7 +125,7 @@ export function OnboardingLayout({
                         onClick={handleDashboardClick}
                         className={cx(
                             "flex h-10 items-center justify-center rounded-xl px-4 text-sm font-semibold font-ubuntu outline-none transition-colors duration-150",
-                            "text-[#0B1B2B] dark:text-white bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10",
+                            "text-[#0B1B2B] dark:text-white bg-state-hover dark:bg-white/5 hover:bg-state-active dark:hover:bg-white/10",
                             "focus-visible:ring-2 focus-visible:ring-[#14ABFE] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#0B1B2B]",
                         )}
                     >

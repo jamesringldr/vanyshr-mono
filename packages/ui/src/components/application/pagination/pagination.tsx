@@ -1,6 +1,6 @@
 import { ArrowLeft, ArrowRight } from "@untitledui/icons";
-import { ButtonGroup, ButtonGroupItem } from "@/components/base/button-group/button-group";
-import { Button } from "@/components/base/buttons/button";
+import { ButtonGroup, ButtonGroupItem } from "@/components/ui/button-group/button-group";
+import { Button } from "@/components/ui/buttons/button";
 import { useBreakpoint } from "@vanyshr/shared/hooks";
 import { cx } from '@/utils/cx';
 import type { PaginationRootProps } from "./pagination-base";

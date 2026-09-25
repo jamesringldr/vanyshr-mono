@@ -1,0 +1,254 @@
+/* Vanyshr design tokens — color locked 2026-09-17
+   Hero #14ABFE · Accent #FF6924 · Navy #070F1C
+   Dark chrome (neutral grey, amended 2026-09-17): #242424 / #343434 / #444444 / #545454
+     — was #1A1A1A / #2A2A2A / #3A3A3A / #4A4A4A; same per-channel steps rebased on #242424.
+     No blue-tinted backgrounds (supersedes the navy proposal).
+   :root = dark (app default). .light = light overrides (same token names).
+   Type: system stacks (default set 2026-09-17 — change via spec from Igor, not by hand).
+*/
+
+:root {
+  /* ── Brand (raw) ── */
+  --color-brand-cyan: #14abfe;
+  --color-brand-orange: #ff6924;
+  --color-brand-navy: #070f1c;
+  --color-brand-cyan-on-light: #0077cc;
+  --color-brand-orange-on-light: #b84300;
+
+  /* Compat with old brand-primary* slots */
+  --color-brand-primary1: var(--color-brand-cyan);
+  --color-brand-primary2: var(--color-brand-orange);
+  --color-brand-primary3: var(--color-brand-navy);
+  --color-brand-primary4: #fafafa;
+
+  /* Peer brand color (Cash App green/purple model) — full-bleed moments,
+     not a sparing accent. Same hex as --color-accent by design; distinct
+     semantic role, see DESIGN.md 2 Usage. */
+  --color-brand-alternate: #ff6924;
+  --color-brand-alternate-on: #0b0d10; /* ink — matches --color-accent-on for the same hue */
+
+  /* ── Primary (hero cyan) ── */
+  --color-primary: #14abfe;
+  --color-primary-hover: #3bb8fe;
+  --color-primary-active: #0b8fd9;
+  --color-primary-muted: #14abfe33;
+  --color-primary-on: #0b0d10; /* ink on cyan fills — never white */
+  --color-primary-text: #14abfe; /* colored text on dark UI */
+  --color-primary-border: #14abfe66; /* badge border on primary-muted */
+
+  /* ── Secondary / accent ── */
+  --color-secondary: #0b8fd9;
+  --color-secondary-on: #f5f5f5;
+  --color-accent: #ff6924;
+  --color-accent-hover: #ff7f45;
+  --color-accent-active: #e55a18;
+  --color-accent-muted: #ff692433;
+  --color-accent-on: #0b0d10; /* ink on orange fills */
+  --color-accent-text: #ff6924;
+
+  /* ── Surfaces (true grey ladder) ── */
+  --color-bg-app: #242424;
+  --color-bg-surface: #343434;
+  --color-bg-elevated: #444444;
+  --color-bg-overlay: #000000a6;
+  --color-bg-inverse: #fafafa;
+
+  /* ── Text ── */
+  --color-text-primary: #f5f5f5;
+  --color-text-secondary: #9aa3ad;
+  --color-text-tertiary: #6b7280;
+  --color-text-disabled: #5c5c5c;
+  --color-text-inverse: #070f1c;
+  --color-text-link: var(--color-primary-text);
+  --color-text-on-primary: var(--color-primary-on);
+  --color-text-on-accent: var(--color-accent-on);
+
+  /* ── Borders / focus ── */
+  --color-border: #545454;
+  --color-border-subtle: #54545480;
+  --color-border-strong: #757575;
+  --color-border-focus: #14abfe;
+  --color-ring-focus: #14abfe66;
+
+  /* ── Interactive washes ── */
+  --color-state-hover: #ffffff0f;
+  --color-state-active: #ffffff14;
+  --color-state-selected: #14abfe22;
+  --color-state-disabled-bg: #343434;
+  --color-state-disabled-fg: #5c5c5c;
+
+  /* ── Semantic ── */
+  --color-status-success: #3d9b6e;
+  --color-status-success-muted: #3d9b6e33;
+  --color-status-success-on: #0b0d10;
+  --color-status-success-border: #3d9b6e66;
+  --color-status-warn: #d97706;
+  --color-status-warn-muted: #d9770633;
+  --color-status-warn-on: #0b0d10;
+  --color-status-warn-border: #d9770666;
+  --color-status-danger: #e5484d;
+  --color-status-danger-hover: #e96368;
+  --color-status-danger-muted: #e5484d33;
+  --color-status-danger-on: #f5f5f5;
+  --color-status-danger-border: #e5484d66;
+  --color-status-info: #14abfe;
+  --color-status-info-muted: #14abfe33;
+  --color-status-info-on: #0b0d10;
+
+  /* ── Space ── */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-8: 48px;
+
+  /* ── Depth ── */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --radius-pill: 999px;
+  --border-width: 1px;
+  --shadow-1: 0 1px 3px rgba(0, 0, 0, 0.18);
+  --shadow-2: 0 4px 12px rgba(0, 0, 0, 0.2);
+  --shadow-3: 0 10px 28px rgba(0, 0, 0, 0.28);
+
+  /* ── Motion ── */
+  --duration-instant: 50ms;
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+  --duration-slow: 320ms;
+  --duration-slower: 500ms;
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-emphasized: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-decelerate: cubic-bezier(0.05, 0.7, 0.1, 1);
+  --ease-accelerate: cubic-bezier(0.3, 0, 0.8, 0.15);
+  --ease-linear: linear;
+
+  /* ── Type ── */
+  --size-display: 30px;
+  --size-title: 22px;
+  --size-heading: 15px;
+  --size-body: 14px;
+  --size-caption: 12px;
+  --size-label: 11px;
+  --size-data: 13px;
+  --font-ui: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* ── Bridge: type aliases ── */
+  --spacing: 4px; /* base unit */
+  --font-body: var(--font-ui);
+  --text-xs: var(--size-label);
+  --text-sm: var(--size-caption);
+  --text-md: var(--size-body);
+  --text-lg: var(--size-heading);
+  --text-xl: var(--size-title);
+  --text-display-xs: var(--size-display);
+  --text-display-sm: var(--size-display);
+  --text-display-md: var(--size-display);
+  --text-display-lg: var(--size-display);
+  --text-display-2xl: var(--size-display);
+
+  /* ── Bridge: depth aliases ── */
+  --radius-xl: var(--radius-lg);
+  --border-subtle: var(--border-width);
+  --shadow-xs: var(--shadow-1);
+  --shadow-skeumorphic: 0 0 0 1px rgba(10, 13, 18, 0.18) inset;
+
+  /* ── Bridge: color aliases (dark mode) ── */
+  --color-transparent: transparent;
+  --color-white: var(--color-bg-inverse);
+  /* Literal black in both themes: black is a scrim/backdrop color (Konsta's
+     bg-black/50 sheet backdrop), not ink. Pointing it at a text token made
+     backdrops brighten under .light. Ink uses remap to text tokens instead
+     (see .k-navbar in theme.css). Promoted from theme.css 2026-09-17. */
+  --color-black: #000;
+}
+
+/* Light mode — same names, navy ink, on-light text ramps for cyan/orange */
+.light {
+  --color-brand-alternate: #ff6924;
+  --color-brand-alternate-on: #0b0d10;
+
+  --color-primary: #14abfe;
+  --color-primary-hover: #0b8fd9;
+  --color-primary-active: #0077cc;
+  --color-primary-muted: #14abfe1f;
+  --color-primary-on: #0b0d10;
+  --color-primary-text: #0077cc;
+  --color-primary-border: #14abfe4d;
+
+  --color-secondary: #0077cc;
+  --color-secondary-on: #fafafa;
+  --color-accent: #ff6924;
+  --color-accent-hover: #e55a18;
+  --color-accent-active: #b84300;
+  --color-accent-muted: #ff69241f;
+  --color-accent-on: #0b0d10;
+  --color-accent-text: #b84300;
+
+  --color-bg-app: #f5f5f5;
+  --color-bg-surface: #ffffff;
+  --color-bg-elevated: #f0f0f0;
+  --color-bg-overlay: #070f1c99;
+  --color-bg-inverse: #242424;
+
+  /* Experimental warm-paper canvas — light only, not referenced by any
+     component. Opt in via .theme-experimental on root (alongside .light);
+     see DESIGN.md 2 Color, "Experimental". */
+  --color-bg-experimental: #faf9f3;
+
+  --color-text-primary: #0b1b2a;
+  --color-text-secondary: #5c6570;
+  --color-text-tertiary: #8a939e;
+  --color-text-disabled: #b0b0b0;
+  --color-text-inverse: #f5f5f5;
+  --color-text-link: #0077cc;
+  --color-text-on-primary: #0b0d10;
+  --color-text-on-accent: #0b0d10;
+
+  --color-border: #e0e0e0;
+  --color-border-subtle: #eeeeee;
+  --color-border-strong: #c4c4c4;
+  --color-border-focus: #0077cc;
+  --color-ring-focus: #14abfe55;
+
+  --color-state-hover: #070f1c0a;
+  --color-state-active: #070f1c12;
+  --color-state-selected: #14abfe1a;
+  --color-state-disabled-bg: #f0f0f0;
+  --color-state-disabled-fg: #b0b0b0;
+
+  --color-status-success: #2f7d58;
+  --color-status-success-muted: #2f7d581f;
+  --color-status-success-on: #ffffff;
+  --color-status-success-border: #2f7d584d;
+  --color-status-warn: #b45309;
+  --color-status-warn-muted: #b453091f;
+  --color-status-warn-on: #ffffff;
+  --color-status-warn-border: #b453094d;
+  --color-status-danger: #c53d42;
+  --color-status-danger-hover: #ad363a;
+  --color-status-danger-muted: #c53d421f;
+  --color-status-danger-on: #ffffff;
+  --color-status-danger-border: #c53d424d;
+  --color-status-info: #0077cc;
+  --color-status-info-muted: #0077cc1f;
+  --color-status-info-on: #ffffff;
+
+  --shadow-1: 0 1px 3px rgba(7, 15, 28, 0.08);
+  --shadow-2: 0 4px 12px rgba(7, 15, 28, 0.1);
+  --shadow-3: 0 10px 28px rgba(7, 15, 28, 0.14);
+
+  --color-black: #000;
+}
+
+/* Experimental warm-paper light surface. Opt in by adding this class
+   alongside .light on the root element (<html class="light theme-experimental">).
+   Unreferenced by any component — remap only, not wired into the app. */
+.theme-experimental {
+  --color-bg-app: var(--color-bg-experimental);
+}

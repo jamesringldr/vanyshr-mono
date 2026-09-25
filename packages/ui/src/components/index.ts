@@ -1,5 +1,5 @@
 // Base components
-export * from "./base";
+export * from "./ui";
 
 // Application components
 export * from "./application";
