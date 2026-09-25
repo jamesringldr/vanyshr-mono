@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { useNavigate } from "react-router";
 import { Navbar, Page, Sheet } from "konsta/react";
 import { Menu } from "lucide-react";
 import { cx } from "@/utils/cx";
@@ -116,6 +117,7 @@ function RollingWord({
 }
 
 export function FindMyDataPage() {
+  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const prefersReducedMotion = useReducedMotion();
 
@@ -188,6 +190,7 @@ export function FindMyDataPage() {
       sessionStorage.removeItem("pilotPhase2Result");
       sessionStorage.removeItem("pilotConfirmedEmails");
       sessionStorage.removeItem("pendingScanId");
+      sessionStorage.removeItem("pilotConsolidatedProfile");
 
       try {
         const { data, error } = await supabase.functions.invoke("intro-scan", {
@@ -215,16 +218,14 @@ export function FindMyDataPage() {
           }),
         );
 
-        // TODO: navigate to the new /find-my-data loading page once it exists
-        // (James is building it next — do not point this at /self-scan/splash,
-        // that belongs to the old flow).
+        navigate("/find-my-data/loading");
       } catch (err) {
         setSubmitError(err instanceof Error ? err.message : "Could not start scan");
       } finally {
         setIsSubmitting(false);
       }
     },
-    [firstName, lastName, zipCode, zipLocation, isFormValid, isSubmitting],
+    [firstName, lastName, zipCode, zipLocation, isFormValid, isSubmitting, navigate],
   );
 
   return (

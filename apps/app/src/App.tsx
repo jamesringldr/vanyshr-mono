@@ -184,6 +184,7 @@ export default function App() {
 
             <Route path="/find-my-data" element={<FindMyDataPage />} />
             <Route path="/find-my-data/loading" element={<FindMyDataLoadingPage />} />
+            <Route path="/find-my-data/report" element={<SelfScanReportPage startOverPath="/find-my-data" />} />
 
             {/* Settings */}
             <Route path="/settings/notifications" element={<RequireAuth><NotificationsPage /></RequireAuth>} />

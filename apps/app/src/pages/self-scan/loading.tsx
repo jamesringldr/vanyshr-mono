@@ -224,18 +224,18 @@ function stepStatuses(phase: Phase, isConfirming: boolean): Record<string, StepS
   };
 }
 
-type IdentifyBroker = "fps" | "anywho" | "zaba" | "npd";
+export type IdentifyBroker = "fps" | "anywho" | "zaba" | "npd";
 // Keep in sync with supabase/functions/_shared/quickscan/identify-order.ts
 const IDENTIFY_ORDER: IdentifyBroker[] = ["fps", "anywho", "zaba", "npd"];
 
-type IdentifyCandidate = ScanMember & { result_id: string };
+export type IdentifyCandidate = ScanMember & { result_id: string };
 
-function nextIdentifyBroker(current: IdentifyBroker): IdentifyBroker | null {
+export function nextIdentifyBroker(current: IdentifyBroker): IdentifyBroker | null {
   const i = IDENTIFY_ORDER.indexOf(current);
   return i >= 0 ? IDENTIFY_ORDER[i + 1] ?? null : null;
 }
 
-function identifyBrokerFrom(data: { broker?: unknown } | null): IdentifyBroker {
+export function identifyBrokerFrom(data: { broker?: unknown } | null): IdentifyBroker {
   const raw = String(data?.broker || "").toLowerCase();
   if (raw === "anywho" || raw === "zaba" || raw === "npd") return raw;
   return "fps";
@@ -247,7 +247,7 @@ function pickHeadline(broker: IdentifyBroker, isFirstShown: boolean): string {
   return "Not on that list — any of these?";
 }
 
-function candidatesFrom(data: { candidates?: unknown; zaba_candidates?: unknown } | null): IdentifyCandidate[] {
+export function candidatesFrom(data: { candidates?: unknown; zaba_candidates?: unknown } | null): IdentifyCandidate[] {
   const raw = Array.isArray(data?.candidates) && data!.candidates!.length
     ? data!.candidates
     : Array.isArray(data?.zaba_candidates)
@@ -261,7 +261,7 @@ function splitList(raw?: string): string[] {
   return raw.split(/[,;|]|(?:\s+and\s+)/i).map((s) => s.trim()).filter((s) => s.length > 1);
 }
 
-function unique(values: string[]): string[] {
+export function unique(values: string[]): string[] {
   const seen = new Set<string>();
   const out: string[] = [];
   for (const v of values) {
@@ -274,7 +274,7 @@ function unique(values: string[]): string[] {
 }
 
 /** Stored candidate row id -> the QSProfileSummary shape the picker modal renders. */
-function candidateToProfile(member: ScanMember, index: number): QSProfileSummary {
+export function candidateToProfile(member: ScanMember, index: number): QSProfileSummary {
   const ageRaw = member.age;
   const age = typeof ageRaw === "number" ? ageRaw : ageRaw ? parseInt(String(ageRaw), 10) || undefined : undefined;
   return {
@@ -288,7 +288,7 @@ function candidateToProfile(member: ScanMember, index: number): QSProfileSummary
   };
 }
 
-function emailsFrom(data: { consolidated_profile?: { emails?: unknown } } | null): string[] {
+export function emailsFrom(data: { consolidated_profile?: { emails?: unknown } } | null): string[] {
   const raw = data?.consolidated_profile?.emails;
   const list = Array.isArray(raw) ? raw : [];
   return unique(list.filter((e): e is string => typeof e === "string" && e.includes("@")))
@@ -298,7 +298,7 @@ function emailsFrom(data: { consolidated_profile?: { emails?: unknown } } | null
 /** One in-flight invoke per quickscan+function so React Strict Mode doesn't scrape twice. */
 const inflight = new Map<string, Promise<{ data: Record<string, unknown> | null; error: { message?: string } | null }>>();
 
-function invokeOnce(key: string, fn: string, body: object) {
+export function invokeOnce(key: string, fn: string, body: object) {
   const existing = inflight.get(key);
   if (existing) return existing;
   const pending = supabase.functions
@@ -1100,7 +1100,7 @@ export function SelfScanLoadingPage() {
           initialEmails={unique(emailCandidates)}
           onConfirm={handleEmailsConfirmed}
           onCancel={() => {
-            if (phaseRef.current === "emails") go("pick");
+            if (phaseRef.current === "emails") go("report");
           }}
         />
       ) : null}

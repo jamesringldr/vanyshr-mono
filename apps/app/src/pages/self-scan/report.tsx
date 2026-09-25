@@ -72,7 +72,7 @@ function TabBar({ active, onSelect }: { active: number; onSelect: (index: number
  * document.body regardless, but a transform-free page is one less thing to
  * reason about).
  */
-export function SelfScanReportPage() {
+export function SelfScanReportPage({ startOverPath = "/self-scan" }: { startOverPath?: string }) {
   const navigate = useNavigate();
   const prefersReducedMotion = useReducedMotion();
   const [{ data: stored }] = useState(() => loadConsolidatedProfile());
@@ -109,7 +109,7 @@ export function SelfScanReportPage() {
           <p className="mb-6 text-[15px] text-text-secondary">
             Nothing came through from this scan — run it again from the start.
           </p>
-          <Link to="/self-scan" className={cx(scanUi.primaryBtn, "text-white")}>
+          <Link to={startOverPath} className={cx(scanUi.primaryBtn, "text-white")}>
             Start over
           </Link>
         </div>
