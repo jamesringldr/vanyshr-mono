@@ -145,6 +145,10 @@ This block must match the token file. Edit values via spec from Igor, not by han
   --shadow-1: 0 1px 3px rgba(0, 0, 0, 0.18);
   --shadow-2: 0 4px 12px rgba(0, 0, 0, 0.2);
   --shadow-3: 0 10px 28px rgba(0, 0, 0, 0.28);
+  --shadow-scan-card: 0 8px 32px #00000073, inset 0 1px 0 #ffffff0f;
+
+  /* ── Effects ── */
+  --gradient-text-shimmer: linear-gradient(110deg, color-mix(in srgb, var(--color-text-primary) 55%, transparent) 40%, var(--color-text-primary) 50%, color-mix(in srgb, var(--color-text-primary) 55%, transparent) 60%);
 
   /* ── Motion ── */
   --duration-instant: 50ms;
@@ -250,6 +254,7 @@ This block must match the token file. Edit values via spec from Igor, not by han
   --shadow-1: 0 1px 3px rgba(7, 15, 28, 0.08);
   --shadow-2: 0 4px 12px rgba(7, 15, 28, 0.1);
   --shadow-3: 0 10px 28px rgba(7, 15, 28, 0.14);
+  --shadow-scan-card: 0 8px 24px #070f1c24, inset 0 1px 0 #ffffff80;
 
   --color-black: #000;
 }
@@ -393,6 +398,9 @@ Radius style **Rounded**, shadow style **Soft**, border width **1px**.
 | `--shadow-1` | 0 1px 3px rgba(0, 0, 0, 0.18) | Raised controls, cards at rest |
 | `--shadow-2` | 0 4px 12px rgba(0, 0, 0, 0.2) | Popovers, menus, hovered cards |
 | `--shadow-3` | 0 10px 28px rgba(0, 0, 0, 0.28) | Dialogs, sheets |
+| `--shadow-scan-card` | 0 8px 32px #00000073, inset 0 1px 0 #ffffff0f | Scan-wait loader card (drop shadow + inset top highlight; lighter `.light` override) |
+
+**Effects** — `--gradient-text-shimmer` is the bible's first gradient token (2026-09-25): a 110° band built entirely from `--color-text-primary`, so it theme-flips with no `.light` override. Used with `background-clip: text` for the scan loader's active-phase shimmer.
 
 ## 7 Motion
 
