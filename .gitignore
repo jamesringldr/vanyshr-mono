@@ -8,10 +8,11 @@ dist/
 build/
 *.tsbuildinfo
 
-# Environment variables
+# Environment variables & local dev configs
 .env
 .env.local
 .env.*.local
+.vite.sandbox.config.json
 
 # IDE
 .vscode/

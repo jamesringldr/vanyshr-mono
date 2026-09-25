@@ -7,6 +7,17 @@ import fs from 'fs';
 const uiPath = path.resolve(__dirname, '../../packages/ui/src');
 const sharedPath = path.resolve(__dirname, '../../packages/shared/src');
 
+// Load local sandbox config if it exists (for Tailscale/local dev access)
+let sandboxOverrides = {};
+try {
+  const sandboxConfigPath = path.resolve(__dirname, '.vite.sandbox.config.json');
+  if (fs.existsSync(sandboxConfigPath)) {
+    sandboxOverrides = JSON.parse(fs.readFileSync(sandboxConfigPath, 'utf-8'));
+  }
+} catch (e) {
+  // Silently ignore if the file doesn't exist or can't be parsed
+}
+
 // Custom plugin to resolve @/ imports based on the importer location
 function resolveAtPrefixImports(): Plugin {
   const appSrc = path.resolve(__dirname, './src');
@@ -67,8 +78,7 @@ export default defineConfig({
   },
   server: {
     port: 5173,
-    host: true,
-    allowedHosts: ['minis-mac-mini.tail7e9bab.ts.net'],
+    ...sandboxOverrides.server,
   },
   build: {
     outDir: 'dist',
