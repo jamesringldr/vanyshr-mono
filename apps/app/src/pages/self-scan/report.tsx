@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
-import { Menu, DollarSign } from "lucide-react";
+import { Menu } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
 import PrimaryLogoDark from "@vanyshr/ui/assets/PrimaryLogo-DarkMode.png";
 import { cx } from "@/utils/cx";
@@ -9,19 +9,22 @@ import { RiskSummaryBody } from "../pilot-scan/risk-summary";
 import { PreProfileBody } from "../pilot-scan/pre-profile";
 import { BreachesBody } from "../pilot-scan/breaches";
 import { BrokersBody } from "../pilot-scan/brokers";
+import { EASE_OUT, scanUi } from "./chrome";
 
 const SLIDES = ["Exposed Data", "Risk Summary", "Breaches", "Brokers"] as const;
-const DRAWER_EASE = [0.2, 0, 0, 1] as const;
-// Room for the fixed CTA footer below, so its last slide's content can
-// scroll clear of it -- the footer is one persistent element shared by all
-// four slides (see below), not scoped to whichever tab is active. Measured
-// footer height is ~225px; 240px leaves a small safety margin.
-const FOOTER_CLEARANCE = "pb-[240px]";
+const FOOTER_CLEARANCE = "pb-[260px]";
 
 function TabBar({ active, onSelect }: { active: number; onSelect: (index: number) => void }) {
+  useEffect(() => {
+    document.getElementById(`report-tab-${active}`)?.scrollIntoView({
+      inline: "nearest",
+      block: "nearest",
+    });
+  }, [active]);
+
   return (
     <div
-      className="flex items-center gap-5 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      className="flex items-center gap-4 overflow-x-auto scroll-px-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       role="tablist"
       aria-label="Report sections"
     >
@@ -35,18 +38,21 @@ function TabBar({ active, onSelect }: { active: number; onSelect: (index: number
             role="tab"
             aria-selected={isActive}
             aria-controls={`report-panel-${i}`}
-            onClick={() => onSelect(i)}
+            onClick={(e) => {
+              onSelect(i);
+              e.currentTarget.scrollIntoView({ inline: "nearest", block: "nearest", behavior: "smooth" });
+            }}
             className={cx(
-              "relative shrink-0 whitespace-nowrap py-3 text-sm font-medium transition-colors",
-              isActive ? "text-white" : "text-white/60 hover:text-white/80",
+              "relative shrink-0 whitespace-nowrap py-3 text-[13px] font-medium transition-colors duration-150",
+              isActive ? "text-text-primary" : "text-text-tertiary hover:text-text-secondary",
             )}
           >
             {label}
             {isActive && (
               <motion.span
                 layoutId="report-tab-indicator"
-                className="absolute inset-x-0 bottom-1.5 h-[2px] rounded-full bg-accent-primary"
-                transition={{ type: "spring", stiffness: 380, damping: 32 }}
+                className="absolute inset-x-0 bottom-1.5 h-px rounded-full bg-accent-primary"
+                transition={{ duration: 0.28, ease: EASE_OUT }}
               />
             )}
           </button>
@@ -94,19 +100,16 @@ export function SelfScanReportPage() {
   if (!stored) {
     return (
       <div
-        className="flex min-h-screen w-full flex-col items-center justify-center bg-bg-page p-4 font-ubuntu"
+        className="flex min-h-dvh w-full flex-col items-center justify-center bg-bg-page p-4"
         role="main"
         aria-label="Error loading report"
       >
         <div className="w-full max-w-md text-center">
-          <h1 className="mb-2 text-xl font-bold text-white">No scan data found</h1>
-          <p className="mb-6 text-sm text-text-secondary">
+          <h1 className="mb-2 text-[18px] font-semibold text-text-primary">No scan data found</h1>
+          <p className="mb-6 text-[15px] text-text-secondary">
             Nothing came through from this scan — run it again from the start.
           </p>
-          <Link
-            to="/self-scan"
-            className="inline-flex h-[44px] items-center justify-center rounded-xl bg-accent-primary px-6 font-semibold text-white transition-all hover:bg-accent-hover"
-          >
+          <Link to="/self-scan" className={cx(scanUi.primaryBtn, "text-white")}>
             Start over
           </Link>
         </div>
@@ -119,22 +122,15 @@ export function SelfScanReportPage() {
     // tab panel below scrolls itself, independently, rather than sharing
     // one document scroll bound by whichever tab happens to be tallest.
     <div
-      className="flex h-screen w-full flex-col overflow-hidden bg-bg-page font-ubuntu"
+      className={cx(scanUi.page, "h-dvh overflow-hidden")}
       role="main"
       aria-label="Scan report"
     >
-      <div className="mx-auto w-full max-w-3xl shrink-0 px-4 pt-4 sm:pt-6">
-        <header className="flex h-14 items-center justify-between gap-4">
-          <div className="w-10 shrink-0" aria-hidden />
-          <div className="flex min-w-0 flex-1 justify-center">
-            <img src={PrimaryLogoDark} alt="Vanyshr" className="h-[2.1875rem] w-auto sm:h-[2.5rem]" />
-          </div>
-          <button
-            type="button"
-            aria-label="Open menu"
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-white outline-none transition hover:bg-white/10"
-          >
-            <Menu className="h-6 w-6" />
+      <div className={cx(scanUi.column, "shrink-0 px-6 pt-5")}>
+        <header className="flex items-center justify-between">
+          <img src={PrimaryLogoDark} alt="Vanyshr" className="h-7 w-auto object-contain" />
+          <button type="button" aria-label="Open menu" className={scanUi.ghostBtn}>
+            <Menu className="h-5 w-5" />
           </button>
         </header>
 
@@ -157,7 +153,7 @@ export function SelfScanReportPage() {
           className={cx("h-full w-full shrink-0 snap-start snap-always overflow-y-auto", FOOTER_CLEARANCE)}
           aria-hidden={slide !== 0}
         >
-          <div className="mx-auto max-w-3xl px-4">
+          <div className="mx-auto w-full max-w-md px-6">
             <PreProfileBody profile={stored.profile} selfScan />
           </div>
         </div>
@@ -177,7 +173,7 @@ export function SelfScanReportPage() {
           className={cx("h-full w-full shrink-0 snap-start snap-always overflow-y-auto", FOOTER_CLEARANCE)}
           aria-hidden={slide !== 2}
         >
-          <div className="mx-auto max-w-3xl px-4">
+          <div className="mx-auto w-full max-w-md px-6">
             <BreachesBody profile={stored.profile} />
           </div>
         </div>
@@ -188,8 +184,12 @@ export function SelfScanReportPage() {
           className={cx("h-full w-full shrink-0 snap-start snap-always overflow-y-auto", FOOTER_CLEARANCE)}
           aria-hidden={slide !== 3}
         >
-          <div className="mx-auto max-w-3xl px-4">
-            <BrokersBody brokers={stored.brokers ?? []} brokerFields={stored.brokerFields ?? {}} />
+          <div className="mx-auto w-full max-w-md px-6">
+            <BrokersBody
+              brokers={stored.brokers ?? []}
+              brokerFields={stored.brokerFields ?? {}}
+              gated
+            />
           </div>
         </div>
       </div>
@@ -198,30 +198,24 @@ export function SelfScanReportPage() {
           isn't scoped to whichever tab is active. Every slide's own bottom
           padding (FOOTER_CLEARANCE) exists so its content can scroll clear
           of this regardless of which tab is showing. */}
-      <div className="fixed inset-x-0 bottom-0 z-30 px-4">
+      <div className="fixed inset-x-0 bottom-0 z-30 px-4 pb-[env(safe-area-inset-bottom)]">
         <motion.footer
-          className="w-full rounded-t-[28px] bg-bg-surface-secondary px-5 pb-6 pt-5 shadow-[0_0_40px_rgba(20,171,254,0.18)]"
+          className="mx-auto w-full max-w-md rounded-t-2xl border-t border-border-subtle bg-bg-surface px-5 pb-6 pt-5"
           initial={prefersReducedMotion ? false : { y: "100%" }}
           animate={{ y: footerVisible ? 0 : "100%" }}
-          transition={{ duration: prefersReducedMotion ? 0 : 0.5, ease: DRAWER_EASE }}
+          transition={{ duration: prefersReducedMotion ? 0 : 0.44, ease: EASE_OUT }}
         >
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-border-subtle bg-bg-page px-3 py-1 text-[11px] font-medium text-accent-primary">
-            <DollarSign className="h-3 w-3" />
-            No Credit Card Required
-          </span>
-          <h2 className="mt-3 text-[26px] font-bold leading-[1.15] tracking-tight text-white">
+          <span className={scanUi.chip}>No credit card required</span>
+          <h2 className="mt-3 text-[20px] font-semibold leading-tight tracking-tight text-text-primary">
             Time to Vanysh
           </h2>
-          <p className="mt-1.5 text-sm leading-snug text-text-secondary">
+          <p className="mt-1.5 text-[14px] leading-snug text-text-secondary">
             Start removing your exposed data from every broker we found
           </p>
           <button
             type="button"
-            // No self-scan equivalent of the signup/start flow yet -- still
-            // hands off into pilot-scan's, same as the loading page's report
-            // destination fallback.
-            onClick={() => navigate("/pilot-scan/start")}
-            className="mt-5 flex h-12 w-full items-center justify-center rounded-2xl bg-accent-primary text-[17px] font-semibold text-white"
+            onClick={() => navigate("/signup")}
+            className={cx(scanUi.primaryBtn, "mt-4 w-full text-white")}
           >
             Start Vanyshing
           </button>

@@ -36,7 +36,6 @@ import { PilotLoadingPage } from "./pages/pilot-scan/loading";
 import { PilotRiskSummaryPage } from "./pages/pilot-scan/risk-summary";
 import { PilotPreProfilePage } from "./pages/pilot-scan/pre-profile";
 import { PilotReportPage } from "./pages/pilot-scan/report";
-import { VanyshScanEntryPage } from "./pages/vanysh-scan/entry";
 import { SelfScanEntryPage } from "./pages/self-scan/entry";
 import { SelfScanSplashPage } from "./pages/self-scan/splash";
 import { SelfScanLoadingPage } from "./pages/self-scan/loading";
@@ -59,7 +58,8 @@ import { OnboardingRemovalStrategyPage } from "./pages/onboarding/removal-strate
 // Other pages
 import { Pricing } from "./pages/pricing";
 import { NotFound } from "./pages/not-found";
-import { ReferralSlider } from "./pages/referral";
+import { ReferralPage } from "./pages/referral";
+import { ReferralSlider } from "./pages/referral/slider";
 import { Invite } from "./pages/invite";
 import { InviteLoading } from "./pages/invite-loading";
 
@@ -129,7 +129,7 @@ export default function App() {
     return (
         <Routes>
             {/* Dashboard — DevOnly until ready for users */}
-            <Route path="/" element={<VanyshScanEntryPage />} />
+            <Route path="/" element={<Navigate to="/self-scan" replace />} />
             <Route path="/dashboard" element={<DevOnly><RequireAuth productionOnly><DashboardHome /></RequireAuth></DevOnly>} />
             <Route path="/dashboard/home" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard/dark-web" element={<DevOnly><RequireAuth productionOnly><DarkWebPage /></RequireAuth></DevOnly>} />
@@ -184,7 +184,8 @@ export default function App() {
             <Route path="/settings/notifications" element={<RequireAuth><NotificationsPage /></RequireAuth>} />
 
             {/* Referral */}
-            <Route path="/referral" element={<ReferralSlider />} />
+            <Route path="/referral" element={<ReferralPage />} />
+            <Route path="/referral-v2" element={<ReferralSlider />} />
             <Route path="/invite" element={<Invite />} />
             <Route path="/invite/loading/:scanId?" element={<InviteLoading />} />
 
