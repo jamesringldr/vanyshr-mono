@@ -2,9 +2,8 @@ import { useCallback, useEffect, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Navbar, Page, Sheet } from "konsta/react";
 import { Menu } from "lucide-react";
-import PrimaryLogoDark from "@vanyshr/ui/assets/PrimaryLogo-DarkMode.png";
-import PrimaryLogoLight from "@vanyshr/ui/assets/PrimaryLogo.png";
 import { cx } from "@/utils/cx";
+import { BrandMark } from "@/components/BrandMark";
 import { supabase } from "@/lib/supabase";
 
 /**
@@ -46,15 +45,6 @@ function HalftoneBackdrop({ className }: { className?: string }) {
       </defs>
       <rect width="100%" height="100%" fill="url(#fmd-halftone-dots)" mask="url(#fmd-halftone-mask)" />
     </svg>
-  );
-}
-
-function BrandMark({ className }: { className?: string }) {
-  return (
-    <>
-      <img src={PrimaryLogoDark} alt="Vanyshr" className={cx(className, "in-[.light]:hidden")} />
-      <img src={PrimaryLogoLight} alt="Vanyshr" className={cx(className, "hidden in-[.light]:block")} />
-    </>
   );
 }
 

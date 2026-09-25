@@ -113,6 +113,16 @@
   --shadow-1: 0 1px 3px rgba(0, 0, 0, 0.18);
   --shadow-2: 0 4px 12px rgba(0, 0, 0, 0.2);
   --shadow-3: 0 10px 28px rgba(0, 0, 0, 0.28);
+  /* Scan-wait loader card: drop shadow plus inset top highlight (de-flattens
+     the card against the app bg). Added 2026-09-25. */
+  --shadow-scan-card: 0 8px 32px #00000073, inset 0 1px 0 #ffffff0f;
+
+  /* ── Effects ── */
+  /* First gradient token in the bible (2026-09-25). Built entirely from
+     --color-text-primary, so it theme-flips automatically: bright sweep on
+     dark, dark sweep on light. No .light override needed. Used for the scan
+     loader's active-phase text shimmer (with background-clip: text). */
+  --gradient-text-shimmer: linear-gradient(110deg, color-mix(in srgb, var(--color-text-primary) 55%, transparent) 40%, var(--color-text-primary) 50%, color-mix(in srgb, var(--color-text-primary) 55%, transparent) 60%);
 
   /* ── Motion ── */
   --duration-instant: 50ms;
@@ -242,6 +252,9 @@
   --shadow-1: 0 1px 3px rgba(7, 15, 28, 0.08);
   --shadow-2: 0 4px 12px rgba(7, 15, 28, 0.1);
   --shadow-3: 0 10px 28px rgba(7, 15, 28, 0.14);
+  /* Lighter lift for light mode: softer navy-tinted shadow, stronger white
+     inset (the 0.06-white highlight is invisible on light surfaces). */
+  --shadow-scan-card: 0 8px 24px #070f1c24, inset 0 1px 0 #ffffff80;
 
   --color-black: #000;
 }
