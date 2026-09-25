@@ -113,6 +113,7 @@
   --color-brand-primary1: var(--color-brand-primary1);
   --color-brand-primary2: var(--color-brand-primary2);
   --color-brand-primary3: var(--color-brand-primary3);
+  --shadow-scan-card: var(--shadow-scan-card);
 
   /* MOTION */
   --duration-instant: var(--duration-instant);
@@ -195,6 +196,7 @@
   --shadow-xl: var(--shadow-3);
   --shadow-2xl: var(--shadow-3);
   --shadow-3xl: var(--shadow-3);
+  --background-image-shimmer-text: var(--gradient-text-shimmer);
 
   --shadow-skeumorphic: 0px 0px 0px 1px rgba(10, 13, 18, 0.18) inset;
   --shadow-xs-skeumorphic: var(--shadow-skeumorphic), var(--shadow-xs);
