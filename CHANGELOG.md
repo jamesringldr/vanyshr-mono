@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Live `/find-my-data` flow: the entry form starts the real scan, `/find-my-data/loading` runs it behind the new scan-wait screen (education slides plus a progress card driven by the actual scan phases, with pick, email selection, no-results and error handling), and completion lands on `/find-my-data/report`. `?preview` on the loading page keeps the timer-driven mock.
+- Design-system foundation: the design bible (`docs/DESIGN.md`, `docs/COMPONENTS.md`), `tokens.css` as the single token source with the Konsta/shadcn token bridge, scaffolded shadcn primitives (card, switch, table, tabs, separator, skeleton), and `scripts/audit.mjs` for bible compliance
+- Dev-only Connected/Disconnected mode and DevToolbar for local development
+
 - Referral landing page at `/referral`, addressed to the person receiving an invite: the referrer's name is read from the link's query string (`?firstName=…&lastName=…`, falling back to "A friend"), over an animated `<Vinnie>` hero and a free-scan CTA. The previous five-slide carousel moves to `/referral-v2` and is still linked from the page.
 - Animated `<Vinnie>` mascot in `@vanyshr/ui` — live SVG with 16 expressions (idle, focused, surprised, …). Quick-scan compiling and scanning pages use it in place of the static icon; wordmark, favicon, and other pages stay PNG.
 
@@ -56,6 +60,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- `packages/ui/src/components/base/` renamed to `ui/` (shadcn convention), with all import sites updated
+- `/pilot-scan/report` partially converted to the design system (work in progress)
+
 - `RollingThreatWord` is extracted out of the self-scan entry page and shared with `/referral`, taking its word list as a prop. Its slot is now sized to the widest *rendered* word rather than the longest by character count — equal-length words differ in width, so the slot was under-sized and the line shifted as the word cycled. The positioning pill moved to `scanUi.pill` for the same reason.
 - The email step now asks which addresses to check for breaches, rather than which ones to remove. Every address the brokers found stays on the report either way; choosing one adds it to the dark web scan and nothing else. Previously, declining to scan an address also deleted it from the user's own results, because the same flag controlled both. Nothing is selected by default, and a quickscan covers up to three — a fourth prompts to sign up for unlimited monitoring.
 - Intro-scan picker is now FPS → AnyWho → Zaba → NPD. Only a genuine `no_results` walks to the next broker; a bot-check/block is retried once and then errors instead of showing another site's list. After a pick, that broker's full profile is scraped first so the other summaries are scored against phones/relatives the FPS summary page never has
@@ -93,6 +100,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `phone-lookup` now scrapes AnyWho instead of Zaba (whose live fetch has been dead-ended for a while — `fetchWithProxy()` always returned `null`). A 28-subject accuracy study (`testing.phone_results`, run 25) found AnyWho the clear single-source pick over reversephonelookup/usphonebook/fps: highest match rate, lowest miss rate, and the only source that ever uniquely caught a match the others missed. Also now populates `line_type`/`carrier`, fields the response shape has always carried but never had a live source for
 
 ### Fixed
+
+- Email selection modal: "Skip breach scan" reopened the "is this you?" picker instead of skipping to the report (self-scan and find-my-data); input, chips and buttons now follow the bible's input-surface rule and 44px touch targets
 
 - Most brokers were dropping out of the report. Post-pick matching scored phone and relatives as zero whenever either side had no value, and those two carry half the available points — so a summary card that agreed perfectly on name, address and age still capped at 50, under the 75 needed to merge. Because the picked profile's detail page supplies a phone the other brokers' summary cards cannot match, a *successful* scrape was the case that matched nobody, while a failed one matched fine. Only the picked broker reached the report.
 - A shared phone number was making a match weaker. Phone overlap was scored as a proportion of the shorter list, so one number in common between a six-number profile and a two-number card read as 0.50 and pulled the pair below the merge bar — evidence that two records are the same person counted against them. Any number in common now counts in full.
