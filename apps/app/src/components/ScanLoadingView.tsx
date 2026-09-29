@@ -145,12 +145,12 @@ export function ScanLoadingView({
         <AnimatePresence mode="wait" initial={false}>
           <motion.div key={index} {...slideMotion}>
             <div className="relative">
-              <h1 className="absolute bottom-full mb-3 font-display text-[40px] font-semibold leading-tight tracking-tight text-text-primary">
+              <h1 className="absolute bottom-full mb-3 font-display text-display-xs font-semibold leading-tight tracking-tight text-text-primary">
                 {current.headline}
               </h1>
               <span className="block h-1 w-12 rounded-full bg-primary" aria-hidden />
             </div>
-            <p className="m-0 mt-4 text-[20px] font-bold text-text-primary">
+            <p className="m-0 mt-4 text-xl font-bold text-text-primary">
               {current.sub}
               {current.note && <span className="italic text-accent-text"> {current.note}</span>}
             </p>
