@@ -127,27 +127,23 @@ export function ScanLoadingView({
         title={<BrandMark className="h-9 w-auto object-contain" />}
       />
 
-      {/* Icon: top of the content area, centered, 20px under the logo. The outer layer follows the
-          finger (dragX); the keyed inner layer owns the slide-in/out so the two never fight over x. */}
-      <div className="pointer-events-none flex min-h-0 flex-1 flex-col items-center px-6 pt-4">
-        <motion.div style={{ x: dragX }}>
-          <AnimatePresence mode="wait" initial={false}>
-            <motion.div key={index} {...slideMotion}>
-              <Icon className="size-16 text-primary" strokeWidth={2.5} aria-hidden />
-            </motion.div>
-          </AnimatePresence>
-        </motion.div>
-      </div>
+      {/* Spacer that keeps the footer pinned to the bottom. */}
+      <div className="min-h-0 flex-1" />
 
       {/* Text: the divider bar's top edge sits at 40% of the page height, on every slide.
-          Headline grows upward from the bar, subtitle downward. Left-aligned. */}
+          Icon and headline grow upward from the bar, subtitle downward. Left-aligned. */}
       <motion.div style={{ x: dragX }} className="pointer-events-none absolute inset-x-6 top-2/5 z-0">
         <AnimatePresence mode="wait" initial={false}>
           <motion.div key={index} {...slideMotion}>
             <div className="relative">
-              <h1 className="absolute bottom-full mb-3 font-display text-display-xs font-semibold leading-tight tracking-tight text-text-primary">
-                {current.headline}
-              </h1>
+              <div className="absolute bottom-full mb-3 flex flex-col items-start gap-3">
+                <div className="flex size-18 items-center justify-center rounded-full bg-primary" aria-hidden>
+                  <Icon className="size-12 text-primary-on" strokeWidth={2} />
+                </div>
+                <h1 className="m-0 font-display text-[45px] font-semibold leading-tight tracking-tight text-text-primary">
+                  {current.headline}
+                </h1>
+              </div>
               <span className="block h-1 w-12 rounded-full bg-primary" aria-hidden />
             </div>
             <p className="m-0 mt-4 text-xl font-bold text-text-primary">

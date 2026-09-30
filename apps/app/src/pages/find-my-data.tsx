@@ -43,8 +43,17 @@ function HalftoneBackdrop({ className }: { className?: string }) {
         <mask id="fmd-halftone-mask">
           <rect width="100%" height="100%" fill="url(#fmd-halftone-fade)" />
         </mask>
+        <linearGradient id="fmd-halftone-top-fade" x1="0" y1="0" x2="0" y2="96" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="white" stopOpacity="0" />
+          <stop offset="100%" stopColor="white" stopOpacity="1" />
+        </linearGradient>
+        <mask id="fmd-halftone-top-mask">
+          <rect width="100%" height="100%" fill="url(#fmd-halftone-top-fade)" />
+        </mask>
       </defs>
-      <rect width="100%" height="100%" fill="url(#fmd-halftone-dots)" mask="url(#fmd-halftone-mask)" />
+      <g mask="url(#fmd-halftone-top-mask)">
+        <rect width="100%" height="100%" fill="url(#fmd-halftone-dots)" mask="url(#fmd-halftone-mask)" />
+      </g>
     </svg>
   );
 }
@@ -311,7 +320,7 @@ export function FindMyDataPage() {
             />
           </h1>
           <p className="m-0 mt-4 text-xl font-bold text-text-primary">
-            We find where your personal data is exposed and make it <span className="text-primary-text">vanysh!</span>
+            We find where your personal data is exposed and make it <span className="text-primary-text italic">vanysh!</span>
           </p>
         </div>
 
