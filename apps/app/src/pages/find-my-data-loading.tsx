@@ -1,18 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { Dialog, DialogButton } from "konsta/react";
-import {
-  Binoculars,
-  FileText,
-  FileX,
-  Fingerprint,
-  Ghost,
-  Radar,
-  Receipt,
-  ScanEye,
-  ShieldAlert,
-  ShieldCheck,
-} from "lucide-react";
+import { FileText, Fingerprint, Radar, ScanEye, ShieldAlert, ShieldCheck } from "lucide-react";
 import {
   QSNoResultsModal,
   QSResultMultipleModal,
@@ -20,6 +9,9 @@ import {
   type QSProfileSummary,
 } from "@vanyshr/ui/components/application";
 import { ScanLoadingView, type ScanSlide } from "@/components/ScanLoadingView";
+import binocularsSvg from "@/assets/icons/styled/binoculars.svg?raw";
+import targetSvg from "@/assets/icons/styled/target.svg?raw";
+import trashSvg from "@/assets/icons/styled/trash.svg?raw";
 import { supabase } from "@/lib/supabase";
 import { signupPath } from "@/lib/pending-scan";
 import { EmailConfirmationModal } from "./pilot-scan/email-confirmation";
@@ -58,7 +50,6 @@ const PHASES = [
 ] as const;
 
 const SCAN_SLIDES: ScanSlide[] = [
-  { icon: ShieldCheck, headline: "Secure", sub: "Serious protection, minus the complexity." },
   { icon: Radar, headline: "Scan", sub: "We scan 1000s of brokers & dark web forums to find your data." },
   {
     icon: ScanEye,
@@ -66,18 +57,14 @@ const SCAN_SLIDES: ScanSlide[] = [
     sub: "We show you your real data and exactly where it's listed — totally free",
     note: "(Not just teased behind a paywall)",
   },
-  { icon: FileX, headline: "Shred", sub: "Our agents are deployed to shred the profiles they built on you." },
-  { icon: Ghost, headline: "Stuff", sub: "We stuff their files with synthetic data they can't trust." },
+  { artSvg: trashSvg, headline: "Shred", sub: "Our agents are deployed to shred the profiles they built on you." },
+  { artSvg: targetSvg, headline: "Stuff", sub: "We stuff their files with synthetic data they can't trust." },
   {
-    icon: Binoculars,
+    artSvg: binocularsSvg,
     headline: "Scout",
     sub: "We continuously scout out any new data that pops up and our agents automatically remove it.",
   },
-  {
-    icon: Receipt,
-    headline: "Supervise",
-    sub: "Every removal status and progress is backed by a receipt so you can supervise our work.",
-  },
+  { icon: ShieldCheck, headline: "Secure", sub: "Serious protection, minus the complexity." },
 ];
 
 const PREVIEW_PHASE_MS = 2500;

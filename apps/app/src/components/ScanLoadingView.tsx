@@ -1,16 +1,18 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useMotionValue, useReducedMotion, type MotionProps } from "framer-motion";
-import { Navbar, Page } from "konsta/react";
+import { Page } from "konsta/react";
 import { Radar, type LucideIcon } from "lucide-react";
 import {
   ScanProgressCard,
   type ScanPhase,
 } from "@vanyshr/ui/components/application/scan-progress-card/scan-progress-card";
 import { cx } from "@/utils/cx";
-import { BrandMark } from "./BrandMark";
 
 export interface ScanSlide {
-  icon: LucideIcon;
+  /** Lucide glyph, shown in the cyan circle. Set this or `artSvg`. */
+  icon?: LucideIcon;
+  /** Styled-tier brand icon (raw SVG markup), rendered large and inlined with no circle. */
+  artSvg?: string;
   headline: string;
   sub: string;
   /** Optional aside after the sub, rendered italic in the accent (orange) color. Include the parentheses. */
@@ -35,6 +37,18 @@ const INTRO_SLIDE: ScanSlide = {
   headline: "Scan",
   sub: "We scan brokers and the dark web to find your data",
 };
+
+// Default pairing for styled-tier icons; scoped to the icon wrapper so it doesn't leak.
+const ICON_VARS = {
+  "--icon-ink": "#070F1C",
+  "--icon-shadow": "#070F1C",
+  "--icon-paper": "#FFFFFF",
+} as React.CSSProperties;
+
+const FAQ_QUESTIONS = [
+  "How do you use my data from this scan if I don't sign up?",
+  "How does all this personal data get exposed?",
+] as const;
 
 // After a manual swipe or dot tap, auto-advance stays paused this long before its normal countdown restarts.
 const IDLE_RESUME_MS = 10000;
@@ -121,40 +135,49 @@ export function ScanLoadingView({
         className="absolute inset-0 z-0 touch-pan-y"
       />
 
-      <Navbar
-        className="static! mb-0"
-        centerTitle
-        title={<BrandMark className="h-9 w-auto object-contain" />}
-      />
+      <header className="relative z-10 mx-4 pt-[calc(env(safe-area-inset-top,0px)+1rem)]">
+        <ScanProgressCard phases={phases} activeIndex={activeIndex} status={status} className="w-full" />
+      </header>
 
-      {/* Spacer that keeps the footer pinned to the bottom. */}
-      <div className="min-h-0 flex-1" />
-
-      {/* Text: the divider bar's top edge sits at 40% of the page height, on every slide.
-          Icon and headline grow upward from the bar, subtitle downward. Left-aligned. */}
-      <motion.div style={{ x: dragX }} className="pointer-events-none absolute inset-x-6 top-2/5 z-0">
-        <AnimatePresence mode="wait" initial={false}>
-          <motion.div key={index} {...slideMotion}>
-            <div className="relative">
-              <div className="absolute bottom-full mb-3 flex flex-col items-start gap-3">
-                <div className="flex size-18 items-center justify-center rounded-full bg-primary" aria-hidden>
-                  <Icon className="size-12 text-primary-on" strokeWidth={2} />
+      {/* Slide text, centered between the status card and the dots. Fixed-height areas above
+          (icon + headline, pt-38) and below (subtitle, min-h-24) keep the divider bar in the
+          same place on every slide. */}
+      <div className="pointer-events-none relative z-0 flex min-h-0 flex-1 flex-col justify-center px-6">
+        <motion.div style={{ x: dragX }}>
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div key={index} {...slideMotion}>
+              <div className="relative pt-38 short:pt-31">
+                <div className="absolute bottom-4 left-0 flex flex-col items-start gap-3">
+                  {current.artSvg ? (
+                    <div
+                      className="size-20 rounded-2xl bg-primary p-2 short:size-16 [&>svg]:size-full"
+                      style={ICON_VARS}
+                      aria-hidden
+                      dangerouslySetInnerHTML={{ __html: current.artSvg }}
+                    />
+                  ) : (
+                    Icon && (
+                      <div className="flex size-18 items-center justify-center rounded-full bg-primary short:size-14" aria-hidden>
+                        <Icon className="size-12 text-primary-on short:size-9" strokeWidth={2} />
+                      </div>
+                    )
+                  )}
+                  <h1 className="m-0 font-display text-[45px] font-semibold leading-tight tracking-tight text-text-primary short:text-display-xs">
+                    {current.headline}
+                  </h1>
                 </div>
-                <h1 className="m-0 font-display text-[45px] font-semibold leading-tight tracking-tight text-text-primary">
-                  {current.headline}
-                </h1>
+                <span className="block h-1 w-12 rounded-full bg-primary" aria-hidden />
               </div>
-              <span className="block h-1 w-12 rounded-full bg-primary" aria-hidden />
-            </div>
-            <p className="m-0 mt-4 text-xl font-bold text-text-primary">
-              {current.sub}
-              {current.note && <span className="italic text-accent-text"> {current.note}</span>}
-            </p>
-          </motion.div>
-        </AnimatePresence>
-      </motion.div>
+              <p className="m-0 mt-4 min-h-30 text-xl font-bold text-text-primary short:min-h-22 short:text-lg">
+                {current.sub}
+                {current.note && <span className="italic text-accent-text"> {current.note}</span>}
+              </p>
+            </motion.div>
+          </AnimatePresence>
+        </motion.div>
+      </div>
 
-      {/* Bottom cluster: dots over card, fixed to the bottom on every slide. */}
+      {/* Bottom cluster: dots over the FAQs, fixed to the bottom on every slide. */}
       <footer className="relative z-10 flex flex-col">
         {total > 1 && (
           <div role="tablist" aria-label="Slides" className="mb-6 flex flex-wrap justify-center">
@@ -179,9 +202,20 @@ export function ScanLoadingView({
           </div>
         )}
 
-        <div className="mx-4 pb-[calc(env(safe-area-inset-bottom,0px)+3rem)]">
-          <ScanProgressCard phases={phases} activeIndex={activeIndex} status={status} className="w-full" />
-        </div>
+        {/* Placeholder rows: interaction (expand vs. swap the slide content) is undecided. */}
+        <section aria-labelledby="scan-faqs-title" className="mx-6 pb-[calc(env(safe-area-inset-bottom,0px)+1.5rem)]">
+          <h2 id="scan-faqs-title" className="m-0 text-lg font-semibold text-text-primary">
+            FAQs
+          </h2>
+          <ul className="m-0 mt-2 list-none p-0">
+            {FAQ_QUESTIONS.map((q) => (
+              <li key={q} className="flex min-h-11 items-center border-b border-border-subtle text-md text-text-secondary">
+                {q}
+              </li>
+            ))}
+            <li className="flex min-h-11 items-center text-md text-primary-text">More FAQs…</li>
+          </ul>
+        </section>
       </footer>
     </Page>
   );
