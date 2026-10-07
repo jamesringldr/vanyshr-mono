@@ -2,13 +2,13 @@ import { useCallback, useEffect, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useNavigate } from "react-router";
 import { Navbar, Page, Sheet } from "konsta/react";
-import { LoaderCircle, Menu, UserRoundSearch } from "lucide-react";
+import { ChevronDown, ChevronRight, LoaderCircle, Menu, UserRoundSearch } from "lucide-react";
 import { cx } from "@/utils/cx";
 import { BrandMark } from "@/components/BrandMark";
 import { supabase } from "@/lib/supabase";
 
 /**
- * /find-my-data — approved spec: scratchpad/spec-review/entry.spec.md
+ * / — approved spec: scratchpad/spec-review/entry.spec.md
  *
  * Two visual states on one page: closed (static hero + CTA) and open
  * (hero stays put under a dimmed backdrop, a bottom drawer collects first/last/zip).
@@ -262,7 +262,7 @@ export function FindMyDataPage() {
           }),
         );
 
-        navigate("/find-my-data/loading");
+        navigate("/loading");
       } catch (err) {
         setSubmitError(err instanceof Error ? err.message : "Could not start scan");
       } finally {
@@ -277,9 +277,10 @@ export function FindMyDataPage() {
       {isOpen ? (
         <Navbar
           className="static! mb-0"
-          centerTitle
           rightClassName="bg-transparent! shadow-none! backdrop-blur-none!"
-          title={<BrandMark className="h-13.5 w-auto object-contain" />}
+          left={<BrandMark className="h-13.5 w-auto object-contain" />}
+          innerClassName="pl-2.5!"
+          leftClassName="ml-0! bg-transparent! shadow-none! backdrop-blur-none!"
           right={
             <button
               type="button"
@@ -294,8 +295,20 @@ export function FindMyDataPage() {
       ) : (
         <Navbar
           className="static! mb-0"
-          centerTitle
-          title={<BrandMark className="h-16.5 w-auto object-contain" />}
+          rightClassName="bg-transparent! shadow-none! backdrop-blur-none!"
+          left={<BrandMark className="h-16.5 w-auto object-contain" />}
+          innerClassName="pl-2.5!"
+          leftClassName="ml-0! bg-transparent! shadow-none! backdrop-blur-none!"
+          right={
+            <button
+              type="button"
+              onClick={() => navigate("/login")}
+              className="flex h-11 items-center gap-1 text-md font-semibold text-text-primary outline-none focus-visible:outline-2 focus-visible:outline-border-focus"
+            >
+              Sign in
+              <ChevronRight className="size-4 shrink-0" aria-hidden="true" />
+            </button>
+          }
         />
       )}
 
@@ -325,21 +338,25 @@ export function FindMyDataPage() {
         </div>
 
         <div className="relative z-20 px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
-          <button
-            type="button"
-            onClick={() => setIsOpen(true)}
-            className={primaryButton}
-          >
-            Find my data
-          </button>
-          <p className="m-0 mt-3 flex items-center justify-center gap-4 text-base text-text-secondary">
-            <span>
-              <span aria-hidden="true" className="mr-2 inline-block size-2.5 rounded-full bg-primary-text align-middle" /> No Credit Card
-            </span>
-            <span>
-              <span aria-hidden="true" className="mr-2 inline-block size-2.5 rounded-full bg-primary-text align-middle" /> No Sign Up
-            </span>
-          </p>
+          <div className="flex items-center justify-between gap-4">
+            <button
+              type="button"
+              // TODO: wire Learn More target — not specified yet.
+              className="flex h-12 items-center gap-1 rounded-full px-2 text-lg font-semibold text-text-primary outline-none transition-colors duration-fast hover:bg-state-hover active:bg-state-active focus-visible:outline-2 focus-visible:outline-border-focus focus-visible:ring-4 focus-visible:ring-ring-focus"
+            >
+              Learn more
+              <ChevronDown className="size-4 shrink-0" aria-hidden="true" />
+            </button>
+            <div className="w-1/2">
+              <button
+                type="button"
+                onClick={() => setIsOpen(true)}
+                className={cx(primaryButton, "text-lg!")}
+              >
+                Get started
+              </button>
+            </div>
+          </div>
         </div>
 
         {isOpen && (

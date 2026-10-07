@@ -33,7 +33,7 @@ import {
 } from "./self-scan/loading";
 
 /**
- * /find-my-data/loading — runs the live scan behind ScanLoadingView.
+ * /loading — runs the live scan behind ScanLoadingView.
  *
  * Same sequence as self-scan/loading: summary-scan → pick (FPS → AnyWho → Zaba → NPD)
  * → full-profile-scan → email selection → manage-emails confirm → report.
@@ -68,8 +68,8 @@ const SCAN_SLIDES: ScanSlide[] = [
 ];
 
 const PREVIEW_PHASE_MS = 2500;
-const REPORT_PATH = "/find-my-data/report";
-const ENTRY_PATH = "/find-my-data";
+const REPORT_PATH = "/report";
+const ENTRY_PATH = "/";
 
 // Background brokers share a 60s scrape timeout; 75 × 1s covers it with headroom.
 const MAX_ATTEMPTS = 75;
