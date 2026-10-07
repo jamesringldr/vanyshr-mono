@@ -46,6 +46,9 @@
   }
 }
 
+/* Viewports too short for full-size hero content (iPhone SE is 667px tall). */
+@custom-variant short (@media (max-height: 720px));
+
 @theme {
   --font-sans: var(--font-ui);
   --font-terminal: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;

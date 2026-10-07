@@ -29,7 +29,7 @@ Import pattern used in `apps/app`: `@vanyshr/ui/components/ui/<component>/<compo
 
 | Name | Library | Import | Variants | When to use | When not to use |
 |---|---|---|---|---|---|
-| Button | shadcn | `packages/ui/src/components/ui/button` | primary, secondary, ghost, destructive | Content actions | Not for tab bar / nav chrome |
+| Button | shadcn | `packages/ui/src/components/ui/button` | primary (label: 700, `--color-primary-on`), secondary, outline, ghost, destructive — spec DESIGN.md §11.1 | Content actions | Not for tab bar / nav chrome |
 | Card | shadcn | `packages/ui/src/components/ui/card` | Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter | Content grouping, chart containers | Not for full-screen overlays |
 | EmptyState | shadcn | `packages/ui/src/components/ui/empty-state` — adopt during conversion | — | Empty list / empty screen placeholders | Not for loading states — use Skeleton |
 | Input / Textarea | shadcn | `packages/ui/src/components/ui/input` | — | Form fields (min 44px height, §14) | — |

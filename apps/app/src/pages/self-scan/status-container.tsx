@@ -73,7 +73,7 @@ export function StatusContainer({ isOpen, stages, progressMessages = [] }: Statu
 
   return (
     <div className="flex w-full shrink-0 justify-center px-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-      <div className="flex h-[334px] w-full max-w-md flex-col overflow-hidden rounded-xl border border-border-subtle bg-gray-950">
+      <div className="flex h-[334px] w-full max-w-md flex-col overflow-hidden rounded-xl border border-border-subtle bg-bg-deepest">
         <div className="flex shrink-0 items-start gap-3 px-4 py-3.5">
           <img src={PrimaryIcon} alt="" className="mt-0.5 h-7 w-7 shrink-0 object-contain" />
 

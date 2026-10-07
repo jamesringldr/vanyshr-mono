@@ -10,6 +10,7 @@ export const scanUi = {
     "text-[16px] font-semibold text-brand-ink",
     "transition-colors duration-150",
     "hover:bg-accent-hover",
+    "active:scale-[0.97] active:bg-accent-hover",
     "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-primary",
     "disabled:cursor-not-allowed disabled:bg-disabled disabled:text-text-tertiary",
   ),
@@ -18,6 +19,7 @@ export const scanUi = {
     "text-[16px] font-semibold text-text-primary",
     "transition-colors duration-150",
     "hover:bg-bg-surface-secondary",
+    "active:scale-[0.97] active:bg-accent-hover",
     "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-primary",
   ),
   ghostBtn: cx(

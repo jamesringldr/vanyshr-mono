@@ -2,13 +2,13 @@ import { useCallback, useEffect, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useNavigate } from "react-router";
 import { Navbar, Page, Sheet } from "konsta/react";
-import { Menu } from "lucide-react";
+import { ChevronDown, ChevronRight, LoaderCircle, Menu, UserRoundSearch } from "lucide-react";
 import { cx } from "@/utils/cx";
 import { BrandMark } from "@/components/BrandMark";
 import { supabase } from "@/lib/supabase";
 
 /**
- * /find-my-data — approved spec: scratchpad/spec-review/entry.spec.md
+ * / — approved spec: scratchpad/spec-review/entry.spec.md
  *
  * Two visual states on one page: closed (static hero + CTA) and open
  * (hero stays put under a dimmed backdrop, a bottom drawer collects first/last/zip).
@@ -43,8 +43,17 @@ function HalftoneBackdrop({ className }: { className?: string }) {
         <mask id="fmd-halftone-mask">
           <rect width="100%" height="100%" fill="url(#fmd-halftone-fade)" />
         </mask>
+        <linearGradient id="fmd-halftone-top-fade" x1="0" y1="0" x2="0" y2="96" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="white" stopOpacity="0" />
+          <stop offset="100%" stopColor="white" stopOpacity="1" />
+        </linearGradient>
+        <mask id="fmd-halftone-top-mask">
+          <rect width="100%" height="100%" fill="url(#fmd-halftone-top-fade)" />
+        </mask>
       </defs>
-      <rect width="100%" height="100%" fill="url(#fmd-halftone-dots)" mask="url(#fmd-halftone-mask)" />
+      <g mask="url(#fmd-halftone-top-mask)">
+        <rect width="100%" height="100%" fill="url(#fmd-halftone-dots)" mask="url(#fmd-halftone-mask)" />
+      </g>
     </svg>
   );
 }
@@ -116,10 +125,45 @@ function RollingWord({
   );
 }
 
+// Primary button, DESIGN.md §11.1 (md size).
+const primaryButton = cx(
+  "flex h-12 w-full items-center justify-center gap-2 rounded-full px-5 text-md font-bold transition-colors duration-fast",
+  "bg-primary text-primary-on enabled:hover:bg-primary-hover enabled:active:bg-primary-active",
+  "focus-visible:outline-2 focus-visible:outline-border-focus focus-visible:ring-4 focus-visible:ring-ring-focus",
+  "aria-disabled:pointer-events-none",
+  "disabled:cursor-not-allowed disabled:border disabled:border-border disabled:bg-state-disabled-bg disabled:text-text-disabled",
+);
+
+// Mobile keyboards overlay the layout viewport rather than resizing it; only visualViewport shrinks.
+function useKeyboardInset() {
+  const [state, setState] = useState({ inset: 0, visibleHeight: 0 });
+
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const update = () =>
+      setState({
+        inset: Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop)),
+        visibleHeight: Math.round(vv.height),
+      });
+    update();
+    vv.addEventListener("resize", update);
+    vv.addEventListener("scroll", update);
+    return () => {
+      vv.removeEventListener("resize", update);
+      vv.removeEventListener("scroll", update);
+    };
+  }, []);
+
+  return state;
+}
+
 export function FindMyDataPage() {
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const prefersReducedMotion = useReducedMotion();
+  const keyboard = useKeyboardInset();
+  const keyboardOpen = keyboard.inset > 0;
 
   // ── Form state ──
   const [firstName, setFirstName] = useState("");
@@ -218,7 +262,7 @@ export function FindMyDataPage() {
           }),
         );
 
-        navigate("/find-my-data/loading");
+        navigate("/loading");
       } catch (err) {
         setSubmitError(err instanceof Error ? err.message : "Could not start scan");
       } finally {
@@ -233,9 +277,10 @@ export function FindMyDataPage() {
       {isOpen ? (
         <Navbar
           className="static! mb-0"
-          centerTitle
           rightClassName="bg-transparent! shadow-none! backdrop-blur-none!"
-          title={<BrandMark className="h-13.5 w-auto object-contain" />}
+          left={<BrandMark className="h-13.5 w-auto object-contain" />}
+          innerClassName="pl-2.5!"
+          leftClassName="ml-0! bg-transparent! shadow-none! backdrop-blur-none!"
           right={
             <button
               type="button"
@@ -250,8 +295,20 @@ export function FindMyDataPage() {
       ) : (
         <Navbar
           className="static! mb-0"
-          centerTitle
-          title={<BrandMark className="h-16.5 w-auto object-contain" />}
+          rightClassName="bg-transparent! shadow-none! backdrop-blur-none!"
+          left={<BrandMark className="h-16.5 w-auto object-contain" />}
+          innerClassName="pl-2.5!"
+          leftClassName="ml-0! bg-transparent! shadow-none! backdrop-blur-none!"
+          right={
+            <button
+              type="button"
+              onClick={() => navigate("/login")}
+              className="flex h-11 items-center gap-1 text-md font-semibold text-text-primary outline-none focus-visible:outline-2 focus-visible:outline-border-focus"
+            >
+              Sign in
+              <ChevronRight className="size-4 shrink-0" aria-hidden="true" />
+            </button>
+          }
         />
       )}
 
@@ -276,26 +333,30 @@ export function FindMyDataPage() {
             />
           </h1>
           <p className="m-0 mt-4 text-xl font-bold text-text-primary">
-            We find where your personal data is exposed and make it <span className="text-primary-text">vanysh!</span>
+            We find where your personal data is exposed and make it <span className="text-primary-text italic">vanysh!</span>
           </p>
         </div>
 
         <div className="relative z-20 px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
-          <button
-            type="button"
-            onClick={() => setIsOpen(true)}
-            className="flex min-h-11 w-full items-center justify-center rounded-lg bg-primary px-4 text-xl font-medium text-[#ffffff]"
-          >
-            find your data
-          </button>
-          <p className="m-0 mt-3 flex items-center justify-center gap-4 text-base text-text-secondary">
-            <span>
-              <span aria-hidden="true" className="mr-2 inline-block size-2.5 rounded-full bg-primary-text align-middle" /> No Credit Card
-            </span>
-            <span>
-              <span aria-hidden="true" className="mr-2 inline-block size-2.5 rounded-full bg-primary-text align-middle" /> No Sign Up
-            </span>
-          </p>
+          <div className="flex items-center justify-between gap-4">
+            <button
+              type="button"
+              // TODO: wire Learn More target — not specified yet.
+              className="flex h-12 items-center gap-1 rounded-full px-2 text-lg font-semibold text-text-primary outline-none transition-colors duration-fast hover:bg-state-hover active:bg-state-active focus-visible:outline-2 focus-visible:outline-border-focus focus-visible:ring-4 focus-visible:ring-ring-focus"
+            >
+              Learn more
+              <ChevronDown className="size-4 shrink-0" aria-hidden="true" />
+            </button>
+            <div className="w-1/2">
+              <button
+                type="button"
+                onClick={() => setIsOpen(true)}
+                className={cx(primaryButton, "text-lg!")}
+              >
+                Get started
+              </button>
+            </div>
+          </div>
         </div>
 
         {isOpen && (
@@ -303,110 +364,126 @@ export function FindMyDataPage() {
             opened={isOpen}
             onBackdropClick={() => setIsOpen(false)}
             className="flex max-h-[66%] flex-col rounded-t-lg! shadow-xl!"
+            style={
+              keyboardOpen
+                ? {
+                    top: `calc(100% - ${keyboard.inset}px)`,
+                    maxHeight: `${keyboard.visibleHeight - 16}px`,
+                  }
+                : undefined
+            }
           >
-            <form
-              onSubmit={handleSubmit}
-              className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-5"
-            >
-              <p className="m-0 px-2 text-center text-lg font-semibold text-text-primary">
-                Find your exposures and get a clear plan on how to start vanyshing
-              </p>
+            <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+              <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-6 pt-5">
+                <div className="flex items-stretch gap-3">
+                  <div className="relative w-1/5 shrink-0" aria-hidden="true">
+                    <UserRoundSearch className="absolute inset-0 size-full text-text-primary" />
+                  </div>
+                  <p className="m-0 w-4/5 text-left text-lg font-semibold text-text-primary">
+                    Find your exposures and get a clear plan on how to start vanyshing
+                  </p>
+                </div>
 
-              <div className="flex flex-col gap-3">
-                <div>
-                  <label htmlFor="fmd-first-name" className="sr-only">
-                    First Name
-                  </label>
-                  <input
-                    id="fmd-first-name"
-                    type="text"
-                    placeholder="First Name"
-                    value={firstName}
-                    onChange={(e) => setFirstName(e.target.value)}
-                    disabled={isSubmitting}
-                    autoFocus
-                    autoComplete="given-name"
-                    className="h-11 w-full rounded-md border border-border bg-bg-elevated px-4 text-sm text-text-primary placeholder:text-text-tertiary outline-none transition-colors duration-fast focus:border-border-focus disabled:opacity-50"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="fmd-last-name" className="sr-only">
-                    Last Name
-                  </label>
-                  <input
-                    id="fmd-last-name"
-                    type="text"
-                    placeholder="Last Name"
-                    value={lastName}
-                    onChange={(e) => setLastName(e.target.value)}
-                    disabled={isSubmitting}
-                    autoComplete="family-name"
-                    className="h-11 w-full rounded-md border border-border bg-bg-elevated px-4 text-sm text-text-primary placeholder:text-text-tertiary outline-none transition-colors duration-fast focus:border-border-focus disabled:opacity-50"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="fmd-zip" className="sr-only">
-                    Zip Code
-                  </label>
-                  <input
-                    id="fmd-zip"
-                    type="text"
-                    inputMode="numeric"
-                    maxLength={5}
-                    placeholder="Zip Code"
-                    value={zipCode}
-                    onChange={(e) => setZipCode(e.target.value.replace(/\D/g, "").slice(0, 5))}
-                    disabled={isSubmitting}
-                    autoComplete="postal-code"
-                    className={cx(
-                      "h-11 w-full rounded-md border bg-bg-elevated px-4 text-sm text-text-primary placeholder:text-text-tertiary outline-none transition-colors duration-fast disabled:opacity-50",
-                      zipStatus === "invalid" ? "border-status-danger" : "border-border focus:border-border-focus",
+                <div className="flex flex-col gap-3">
+                  <div>
+                    <label htmlFor="fmd-first-name" className="sr-only">
+                      First Name
+                    </label>
+                    <input
+                      id="fmd-first-name"
+                      type="text"
+                      placeholder="First Name"
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                      disabled={isSubmitting}
+                      autoFocus
+                      autoComplete="given-name"
+                      className="h-11 w-full rounded-md border border-border bg-bg-elevated px-4 text-sm text-text-primary placeholder:text-text-tertiary outline-none transition-colors duration-fast focus:border-border-focus disabled:opacity-50"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="fmd-last-name" className="sr-only">
+                      Last Name
+                    </label>
+                    <input
+                      id="fmd-last-name"
+                      type="text"
+                      placeholder="Last Name"
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                      disabled={isSubmitting}
+                      autoComplete="family-name"
+                      className="h-11 w-full rounded-md border border-border bg-bg-elevated px-4 text-sm text-text-primary placeholder:text-text-tertiary outline-none transition-colors duration-fast focus:border-border-focus disabled:opacity-50"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="fmd-zip" className="sr-only">
+                      Zip Code
+                    </label>
+                    <input
+                      id="fmd-zip"
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={5}
+                      placeholder="Zip Code"
+                      value={zipCode}
+                      onChange={(e) => setZipCode(e.target.value.replace(/\D/g, "").slice(0, 5))}
+                      disabled={isSubmitting}
+                      autoComplete="postal-code"
+                      className={cx(
+                        "h-11 w-full rounded-md border bg-bg-elevated px-4 text-sm text-text-primary placeholder:text-text-tertiary outline-none transition-colors duration-fast disabled:opacity-50",
+                        zipStatus === "invalid" ? "border-status-danger" : "border-border focus:border-border-focus",
+                      )}
+                    />
+                    {zipStatus === "valid" && zipLocation && (
+                      <p className="mt-1 px-1 text-xs font-medium text-primary-text">
+                        {zipLocation.city}, {zipLocation.state}
+                      </p>
                     )}
-                  />
-                  {zipStatus === "valid" && zipLocation && (
-                    <p className="mt-1 px-1 text-xs font-medium text-primary-text">
-                      {zipLocation.city}, {zipLocation.state}
-                    </p>
-                  )}
-                  {zipStatus === "invalid" && (
-                    <p className="mt-1 px-1 text-xs font-medium text-status-danger">Enter a valid US zip code</p>
-                  )}
-                  {zipStatus === "checking" && (
-                    <p className="mt-1 px-1 text-xs text-text-tertiary">Checking zip…</p>
-                  )}
+                    {zipStatus === "invalid" && (
+                      <p className="mt-1 px-1 text-xs font-medium text-status-danger">Enter a valid US zip code</p>
+                    )}
+                    {zipStatus === "checking" && (
+                      <p className="mt-1 px-1 text-xs text-text-tertiary">Checking zip…</p>
+                    )}
+                  </div>
                 </div>
+
+                <p className="m-0 text-center text-xs text-text-secondary">No Credit Card or Sign Up Required</p>
               </div>
 
-              <p className="m-0 text-center text-xs text-text-secondary">No Credit Card or Sign Up Required</p>
-
-              {submitError && (
-                <p className="m-0 text-center text-xs font-medium text-status-danger">{submitError}</p>
-              )}
-
-              <button
-                type="submit"
-                disabled={!isFormValid || isSubmitting}
+              <div
                 className={cx(
-                  "flex min-h-11 w-full items-center justify-center rounded-lg px-4 text-sm font-medium transition-opacity duration-fast",
-                  isFormValid && !isSubmitting
-                    ? "bg-primary text-primary-on"
-                    : "cursor-not-allowed bg-state-disabled-bg text-state-disabled-fg",
+                  "flex shrink-0 flex-col gap-4 px-6 pt-4",
+                  keyboardOpen ? "pb-4" : "pb-[max(1.5rem,env(safe-area-inset-bottom))]",
                 )}
               >
-                {isSubmitting ? "Starting scan…" : "scan now"}
-              </button>
+                {submitError && (
+                  <p className="m-0 text-center text-xs font-medium text-status-danger">{submitError}</p>
+                )}
 
-              <p className="m-0 text-center text-xs leading-snug text-text-tertiary">
-                By continuing, you agree to vanyshr&apos;s
-                <br />
-                <a href="/terms" className="text-primary-text no-underline">
-                  Terms of use
-                </a>{" "}
-                and{" "}
-                <a href="/privacy" className="text-primary-text no-underline">
-                  Privacy Policy
-                </a>
-              </p>
+                <button
+                  type="submit"
+                  disabled={!isFormValid && !isSubmitting}
+                  aria-disabled={isSubmitting || undefined}
+                  className={primaryButton}
+                >
+                  {isSubmitting && <LoaderCircle className="size-4 shrink-0 animate-spin" aria-hidden="true" />}
+                  Find my data
+                </button>
+
+                <p className="m-0 text-center text-xs leading-snug text-text-tertiary">
+                  By continuing, you agree to vanyshr&apos;s
+                  <br />
+                  <a href="/terms" className="text-primary-text no-underline">
+                    Terms of use
+                  </a>{" "}
+                  and{" "}
+                  <a href="/privacy" className="text-primary-text no-underline">
+                    Privacy Policy
+                  </a>
+                </p>
+              </div>
             </form>
           </Sheet>
         )}

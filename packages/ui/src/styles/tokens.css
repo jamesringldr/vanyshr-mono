@@ -32,7 +32,7 @@
   --color-primary-hover: #3bb8fe;
   --color-primary-active: #0b8fd9;
   --color-primary-muted: #14abfe33;
-  --color-primary-on: #0b0d10; /* ink on cyan fills — never white */
+  --color-primary-on: #ffffff; /* white 700-weight label on cyan fills (dark) */
   --color-primary-text: #14abfe; /* colored text on dark UI */
   --color-primary-border: #14abfe66; /* badge border on primary-muted */
 

@@ -231,6 +231,7 @@
   --color-bg-primary: var(--color-bg-app);
   --color-bg-secondary: var(--color-bg-surface);
   --color-bg-surface-secondary: var(--color-bg-elevated);
+  --color-bg-deepest: var(--color-gray-950);
 
   /* Text role aliases */
   --text-primary: var(--color-text-primary);

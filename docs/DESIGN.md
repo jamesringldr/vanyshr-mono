@@ -64,7 +64,7 @@ This block must match the token file. Edit values via spec from Igor, not by han
   --color-primary-hover: #3bb8fe;
   --color-primary-active: #0b8fd9;
   --color-primary-muted: #14abfe33;
-  --color-primary-on: #0b0d10; /* ink on cyan fills — never white */
+  --color-primary-on: #ffffff; /* white 700-weight label on cyan fills (dark) */
   --color-primary-text: #14abfe; /* colored text on dark UI */
   --color-primary-border: #14abfe66; /* badge border on primary-muted */
 
@@ -274,7 +274,7 @@ This block must match the token file. Edit values via spec from Igor, not by han
 | `--color-primary` | #14abfe | #14abfe |
 | `--color-primary-hover` | #3bb8fe | #0b8fd9 |
 | `--color-primary-active` | #0b8fd9 | #0077cc |
-| `--color-primary-on` | #0b0d10 | #0b0d10 |
+| `--color-primary-on` | #ffffff | #0b0d10 |
 | `--color-primary-text` | #14abfe | #0077cc |
 | `--color-primary-border` | #14abfe66 | #14abfe4d |
 | `--color-secondary` | #0b8fd9 | #0077cc |
@@ -321,7 +321,7 @@ Raw brand colors. `--color-primary` and `--color-secondary` are picked from thes
 
 | Seed token | What it controls |
 |---|---|
-| `--color-primary` | Primary fills (buttons, active tabs, selected states). Text/icons on it use `--color-primary-on` (ink — never white). |
+| `--color-primary` | Primary fills (buttons, active tabs, selected states). Text/icons on it use `--color-primary-on` (white 700-weight label in dark; ink in light). |
 | `--color-primary-hover` / `-active` | Press/hover states of primary fills. Never swap hue on interaction. |
 | `--color-primary-muted` | Soft primary backgrounds (selected rows, info banners). |
 | `--color-primary-border` | Border/ring on a `--color-primary-muted` badge — one step stronger than the muted fill. Added 2026-09-17 (bible amendment). |
@@ -440,7 +440,7 @@ Hover, focus, active, disabled, loading, and error are token assignments, not pe
 - Pressed/active: `--color-state-active` wash.
 - Selected: `--color-state-selected` wash + `--color-primary-text` label.
 - Focus: 2px `--color-border-focus` outline + `--color-ring-focus` glow. Visible on every interactive element.
-- Disabled: `--color-text-disabled` on `--color-state-disabled-bg`.
+- Disabled: `--color-text-disabled` on `--color-state-disabled-bg`, plus a 1px `--color-border` outline so the control keeps its button affordance.
 - Semantic: base token for fills and bold text, `-muted` for soft badge/banner backgrounds, `-on` for text/icons on the base fill. Never use a base status fill for a large background.
 - Loading: skeleton blocks in `--color-bg-elevated` with shimmer for content; spinner only for blocking actions.
 
@@ -480,6 +480,59 @@ NEVER in component files:
 Stack: chrome → Konsta UI (React) · content → shadcn + Radix · viz → Recharts · icons → Lucide.
 
 Catalog: `docs/COMPONENTS.md` — seeded with the ownership map. Add a row when a primitive is adopted; every row names its owning library.
+
+### 11.1 Buttons
+
+Content-surface buttons only (shadcn `Button`, `packages/ui/src/components/ui/button`).
+Konsta chrome keeps Konsta's own button — this section does not cover navbars, tab bars, or overlays.
+
+**Variants**
+
+| Variant | Fill | Label | Border | Hover | Pressed |
+|---|---|---|---|---|---|
+| primary | `--color-primary` | `--color-primary-on`, 700 | none | `--color-primary-hover` | `--color-primary-active` |
+| secondary | `--color-bg-elevated` | `--color-text-primary`, 600 | none | `--color-state-hover` wash over fill | `--color-state-active` wash over fill |
+| outline | transparent | `--color-text-primary`, 600 | 1px `--color-border` | `--color-state-hover` wash | `--color-state-active` wash |
+| ghost | transparent | `--color-text-primary`, 600 | none | `--color-state-hover` wash | `--color-state-active` wash |
+| destructive | `--color-status-danger` | `--color-status-danger-on`, 600 | none | `--color-status-danger-hover` | `--color-state-active` wash over fill |
+
+No accent/orange button variant. Existing accent-filled CTAs keep their current treatment until specced.
+Never swap hue on hover beyond each token's own ramp (§9) — the washes are overlays, not fills.
+Outline vs secondary: default to secondary on `--color-bg-app`. Use outline on surfaces near
+`--color-bg-elevated` (cards, sheets, elevated containers) where the secondary fill would collide
+with the container background.
+
+**Anatomy**
+
+- Sizes: `md` (default) — 48px height, 20px horizontal padding; `sm` — 44px height, 16px horizontal padding.
+  Both clear the 44px touch-target floor with the visual size itself.
+- Icon-only: square at the size height (48×48 / 44×44), 20px Lucide icon, ghost treatment unless specified.
+- Label: `--size-body` (14px), `--font-ui`. Primary 700; all other variants 600.
+- Icon + label: 16px icon, 8px gap (`--space-2`).
+- Radius: `--radius-pill` (999px), all variants, all sizes.
+- Loading: 16px spinner in the label color, 8px gap before the label; label stays visible; width locked
+  with min-width so the button doesn't shift; interaction blocked (`aria-disabled`). Variant colors are
+  retained — loading is not the disabled treatment.
+
+**States**
+
+- Focus-visible: 2px `--color-border-focus` outline + `--color-ring-focus` glow, all variants (§9).
+- Disabled (all variants): label `--color-text-disabled`; fill `--color-state-disabled-bg`
+  (ghost and outline keep transparent fill); 1px `--color-border` outline; no hover, pressed, or focus styling.
+- Selected is not a button state. A toggling button is a segmented control or switch — use the owning component.
+
+**Behavior & placement**
+
+- One primary per screen. Secondary, outline, and ghost support it; never two primaries together.
+- Full-width: primary CTAs inside sheets and bottom drawers are full-width. Inline everywhere else.
+- Stacks: vertical, 12px gap (`--space-3`), primary on top. No side-by-side button pairs on mobile.
+- Sheet / bottom-drawer CTA block: full-width primary with full-width secondary or ghost beneath it,
+  12px gap, 16px horizontal inset, safe-area bottom padding. Distinctiveness comes from scale and
+  placement; the fill stays electric cyan.
+- Destructive confirmations: destructive full-width on top, ghost "Cancel" below. Destructive is never
+  the only action on screen.
+- Labels are verbs naming the action ("Start scan", "Save changes").
+- Sentence case — first word and proper nouns only ("Get started", "Add money"), never title case.
 
 ## 12 Component library stack
 
