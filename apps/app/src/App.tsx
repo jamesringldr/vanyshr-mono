@@ -131,7 +131,7 @@ export default function App() {
     return (
         <Routes>
             {/* Dashboard — DevOnly until ready for users */}
-            <Route path="/" element={<Navigate to="/self-scan" replace />} />
+            <Route path="/" element={<FindMyDataPage />} />
             <Route path="/dashboard" element={<DevOnly><RequireAuth productionOnly><DashboardHome /></RequireAuth></DevOnly>} />
             <Route path="/dashboard/home" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard/dark-web" element={<DevOnly><RequireAuth productionOnly><DarkWebPage /></RequireAuth></DevOnly>} />
@@ -182,9 +182,8 @@ export default function App() {
             <Route path="/self-scan/loading" element={<SelfScanLoadingPage />} />
             <Route path="/self-scan/report" element={<SelfScanReportPage />} />
 
-            <Route path="/find-my-data" element={<FindMyDataPage />} />
-            <Route path="/find-my-data/loading" element={<FindMyDataLoadingPage />} />
-            <Route path="/find-my-data/report" element={<SelfScanReportPage startOverPath="/find-my-data" />} />
+            <Route path="/loading" element={<FindMyDataLoadingPage />} />
+            <Route path="/report" element={<SelfScanReportPage startOverPath="/" />} />
 
             {/* Settings */}
             <Route path="/settings/notifications" element={<RequireAuth><NotificationsPage /></RequireAuth>} />

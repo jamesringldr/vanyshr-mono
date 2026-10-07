@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" aria-hidden="true">
+  <filter id="vi-id-binoculars-wobble" x="-10%" y="-10%" width="120%" height="120%">
+    <feTurbulence type="fractalNoise" baseFrequency="0.06" numOctaves="2" seed="7" result="n"/>
+    <feDisplacementMap in="SourceGraphic" in2="n" scale="1.6" xChannelSelector="R" yChannelSelector="G"/>
+  </filter>
+  <g filter="url(#vi-id-binoculars-wobble)">
+    <g transform="rotate(-10 32 32)">
+      <ellipse style="fill:var(--icon-shadow, #14ABFE);stroke:var(--icon-shadow, #14ABFE);stroke-width:1.5;stroke-linejoin:round" cx="36" cy="57" rx="22" ry="4"/>
+      <rect style="fill:var(--icon-paper, #FFFFFF);stroke:var(--icon-ink, #070F1C);stroke-width:3.2;stroke-linecap:round;stroke-linejoin:round" x="12" y="10" width="12" height="12" rx="3"/>
+      <rect style="fill:var(--icon-paper, #FFFFFF);stroke:var(--icon-ink, #070F1C);stroke-width:3.2;stroke-linecap:round;stroke-linejoin:round" x="40" y="10" width="12" height="12" rx="3"/>
+      <rect style="fill:var(--icon-shadow, #14ABFE);stroke:var(--icon-shadow, #14ABFE);stroke-width:1.5;stroke-linejoin:round" x="12" y="23" width="18" height="30" rx="7"/>
+      <rect style="fill:var(--icon-shadow, #14ABFE);stroke:var(--icon-shadow, #14ABFE);stroke-width:1.5;stroke-linejoin:round" x="40" y="23" width="18" height="30" rx="7"/>
+      <rect style="fill:var(--icon-paper, #FFFFFF);stroke:var(--icon-ink, #070F1C);stroke-width:3.2;stroke-linecap:round;stroke-linejoin:round" x="24" y="24" width="16" height="9" rx="2"/>
+      <rect style="fill:var(--icon-paper, #FFFFFF);stroke:var(--icon-ink, #070F1C);stroke-width:3.2;stroke-linecap:round;stroke-linejoin:round" x="9" y="20" width="18" height="30" rx="7"/>
+      <rect style="fill:var(--icon-paper, #FFFFFF);stroke:var(--icon-ink, #070F1C);stroke-width:3.2;stroke-linecap:round;stroke-linejoin:round" x="37" y="20" width="18" height="30" rx="7"/>
+      <circle style="fill:var(--icon-shadow, #14ABFE);stroke:var(--icon-shadow, #14ABFE);stroke-width:1.5;stroke-linejoin:round" cx="32" cy="23" r="3.5"/>
+      <path style="fill:none;stroke:var(--icon-ink, #070F1C);stroke-width:3.2;stroke-linecap:round;stroke-linejoin:round" d="M13 27 Q18 25.5 23 27"/>
+      <path style="fill:none;stroke:var(--icon-ink, #070F1C);stroke-width:3.2;stroke-linecap:round;stroke-linejoin:round" d="M41 27 Q46 25.5 51 27"/>
+      <ellipse style="fill:var(--icon-ink, #070F1C);stroke:var(--icon-ink, #070F1C);stroke-width:1.5;stroke-linejoin:round" cx="18" cy="41" rx="6" ry="5.5"/>
+      <ellipse style="fill:var(--icon-ink, #070F1C);stroke:var(--icon-ink, #070F1C);stroke-width:1.5;stroke-linejoin:round" cx="46" cy="41" rx="6" ry="5.5"/>
+      <path style="fill:none;stroke:var(--icon-paper, #FFFFFF);stroke-width:2.4;stroke-linecap:round" d="M15.5 39.5 Q16.5 37.5 18.5 37.5"/>
+      <path style="fill:none;stroke:var(--icon-paper, #FFFFFF);stroke-width:2.4;stroke-linecap:round" d="M43.5 39.5 Q44.5 37.5 46.5 37.5"/>
+    </g>
+    <path style="fill:none;stroke:var(--icon-ink, #070F1C);stroke-width:3.2;stroke-linecap:round;stroke-linejoin:round" d="M55 9 L58.5 5.5"/>
+    <path style="fill:none;stroke:var(--icon-ink, #070F1C);stroke-width:3.2;stroke-linecap:round;stroke-linejoin:round" d="M57 14 L61.5 14"/>
+    <path style="fill:none;stroke:var(--icon-ink, #070F1C);stroke-width:3.2;stroke-linecap:round;stroke-linejoin:round" d="M51 6 L51.5 2"/>
+  </g>
+</svg>
