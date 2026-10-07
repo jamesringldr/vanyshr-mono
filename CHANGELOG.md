@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Live `/find-my-data` flow: the entry form starts the real scan, `/find-my-data/loading` runs it behind the new scan-wait screen (education slides plus a progress card driven by the actual scan phases, with pick, email selection, no-results and error handling), and completion lands on `/find-my-data/report`. `?preview` on the loading page keeps the timer-driven mock.
+- Live find-my-data flow (now served at `/`): the entry form starts the real scan, `/loading` runs it behind the new scan-wait screen (education slides plus a progress card driven by the actual scan phases, with pick, email selection, no-results and error handling), and completion lands on `/report`. `?preview` on the loading page keeps the timer-driven mock.
 - Design-system foundation: the design bible (`docs/DESIGN.md`, `docs/COMPONENTS.md`), `tokens.css` as the single token source with the Konsta/shadcn token bridge, scaffolded shadcn primitives (card, switch, table, tabs, separator, skeleton), and `scripts/audit.mjs` for bible compliance
 - Dev-only Connected/Disconnected mode and DevToolbar for local development
 
@@ -61,6 +61,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - `packages/ui/src/components/base/` renamed to `ui/` (shadcn convention), with all import sites updated
+- The find-my-data entry page is now the root route (`/` no longer redirects to `/self-scan`); its scan steps moved to `/loading` and `/report`, and the old `/find-my-data/*` paths are gone. The landing screen gets a half-width "Get started" button with a "Learn more" link beside it, a left-aligned logo, and a "Sign in" link in the app bar.
 - `/pilot-scan/report` partially converted to the design system (work in progress)
 
 - `RollingThreatWord` is extracted out of the self-scan entry page and shared with `/referral`, taking its word list as a prop. Its slot is now sized to the widest *rendered* word rather than the longest by character count — equal-length words differ in width, so the slot was under-sized and the line shifted as the word cycled. The positioning pill moved to `scanUi.pill` for the same reason.
