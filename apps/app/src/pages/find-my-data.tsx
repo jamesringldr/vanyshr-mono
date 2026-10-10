@@ -192,7 +192,7 @@ export function FindMyDataPage() {
     return () => targets.forEach((el, i) => (el.style.backgroundColor = prev[i]));
   }, []);
   useEffect(() => {
-    const color = drawerKeyboardUp ? "var(--color-bg-surface)" : "var(--color-brand-navy)";
+    const color = drawerKeyboardUp ? "var(--color-bg-surface)" : "var(--color-temp-blue-test)";
     for (const el of [document.documentElement, document.body]) el.style.backgroundColor = color;
   }, [drawerKeyboardUp]);
 
@@ -347,7 +347,7 @@ export function FindMyDataPage() {
       />
     )}
     <Page
-      className={cx("flex flex-col bg-brand-navy! font-body", isOpen && "overflow-hidden!")}
+      className={cx("flex flex-col bg-temp-blue-test! font-body", isOpen && "overflow-hidden!")}
       role="main"
       aria-label="Find my data"
       // iOS scrolls the layout viewport to reveal a focused input, which exposed the
@@ -439,7 +439,7 @@ export function FindMyDataPage() {
 
         {/* Fixed to the bottom edge with the page navy: Safari 26 tints its toolbar from fixed elements
             touching that edge, so this is what it re-samples once the drawer closes. */}
-        <div className="fixed inset-x-0 bottom-0 z-20 bg-brand-navy px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+        <div className="fixed inset-x-0 bottom-0 z-20 bg-temp-blue-test px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
           <div className="flex items-center justify-between gap-4">
             <button
               type="button"
