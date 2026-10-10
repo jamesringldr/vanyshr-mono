@@ -16,6 +16,8 @@ export interface ScanProgressCardProps {
     activeIndex: number;
     /** `scanning` runs the tracer, shimmer and pulses; `complete` settles everything static. */
     status?: "scanning" | "complete";
+    /** Contents only: no card border, background, shadow, padding or border tracer. */
+    bare?: boolean;
     className?: string;
 }
 
@@ -125,7 +127,7 @@ function ShimmerLabel({ children, animated }: { children: ReactNode; animated: b
  * ScanProgressCard — a "Finding your data" title (with the pulsing loader while scanning) over
  * Vinnie on the left and a three-row phase ticker on the right. The active phase sits in the middle row.
  */
-export function ScanProgressCard({ phases, activeIndex, status = "scanning", className }: ScanProgressCardProps) {
+export function ScanProgressCard({ phases, activeIndex, status = "scanning", bare = false, className }: ScanProgressCardProps) {
     const reduceMotion = useReducedMotion();
     const scanning = status === "scanning";
     const animated = scanning && !reduceMotion;
@@ -139,11 +141,12 @@ export function ScanProgressCard({ phases, activeIndex, status = "scanning", cla
             role="status"
             aria-live="polite"
             className={cx(
-                "relative flex flex-col gap-3 rounded-lg border border-text-primary/10 bg-bg-elevated p-4 shadow-scan-card",
+                "relative flex flex-col gap-3",
+                !bare && "rounded-lg border border-text-primary/10 bg-bg-elevated p-4 shadow-scan-card",
                 className,
             )}
         >
-            {animated && <PerimeterTracer />}
+            {animated && !bare && <PerimeterTracer />}
 
             <p className="m-0 flex items-center text-lg font-bold text-text-primary">
                 Finding your data
