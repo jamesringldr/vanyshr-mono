@@ -16,8 +16,10 @@ export interface ScanProgressCardProps {
     activeIndex: number;
     /** `scanning` runs the tracer, shimmer and pulses; `complete` settles everything static. */
     status?: "scanning" | "complete";
-    /** Contents only: no card border, background, shadow, padding or border tracer. */
-    bare?: boolean;
+    /** Active phase row ~30% larger (row height, icon, label). */
+    largeActive?: boolean;
+    /** Tighter spacing: shorter phase rows and less space under the title. */
+    dense?: boolean;
     className?: string;
 }
 
@@ -84,24 +86,46 @@ export function ScanVinnie({ className }: { className?: string }) {
     );
 }
 
-/** Comet traveling the card border. pathLength=100 keeps the dash relative to the perimeter. */
+/**
+ * Comet layers, tail to head: each is a dash ending at the same head point, longer ones thinner.
+ * Stacked with round caps they read as one stroke that's thick at the head and tapers to a
+ * point. Lengths are in pathLength units (100 = the full perimeter).
+ */
+const COMET_LAYERS = [
+    { length: 26, width: 0.5 },
+    { length: 21, width: 1 },
+    { length: 16, width: 1.5 },
+    { length: 11, width: 2 },
+    { length: 6, width: 2.5 },
+    { length: 2, width: 3 },
+] as const;
+const COMET_LENGTH = COMET_LAYERS[0].length;
+
+/** Comet traveling the card border. pathLength=100 keeps the dashes relative to the perimeter. */
 function PerimeterTracer() {
     return (
         <svg className="pointer-events-none absolute inset-0 size-full overflow-visible" aria-hidden>
-            <motion.rect
-                width="100%"
-                height="100%"
-                style={{ rx: "var(--radius-lg)" }}
-                fill="none"
-                className="stroke-primary/45"
-                strokeWidth={1.5}
-                strokeLinecap="round"
-                pathLength={100}
-                strokeDasharray="20 80"
-                initial={{ strokeDashoffset: 0 }}
-                animate={{ strokeDashoffset: -100 }}
-                transition={{ duration: 5, ease: "linear", repeat: Infinity }}
-            />
+            {COMET_LAYERS.map(({ length, width }) => {
+                // Shift each dash so its leading end lines up with the longest one's.
+                const start = length - COMET_LENGTH;
+                return (
+                    <motion.rect
+                        key={length}
+                        width="100%"
+                        height="100%"
+                        style={{ rx: "var(--radius-lg)" }}
+                        fill="none"
+                        className="stroke-primary"
+                        strokeWidth={width}
+                        strokeLinecap="round"
+                        pathLength={100}
+                        strokeDasharray={`${length} ${100 - length}`}
+                        initial={{ strokeDashoffset: start }}
+                        animate={{ strokeDashoffset: start - 100 }}
+                        transition={{ duration: 5, ease: "linear", repeat: Infinity }}
+                    />
+                );
+            })}
         </svg>
     );
 }
@@ -127,7 +151,7 @@ function ShimmerLabel({ children, animated }: { children: ReactNode; animated: b
  * ScanProgressCard — a "Finding your data" title (with the pulsing loader while scanning) over
  * Vinnie on the left and a three-row phase ticker on the right. The active phase sits in the middle row.
  */
-export function ScanProgressCard({ phases, activeIndex, status = "scanning", bare = false, className }: ScanProgressCardProps) {
+export function ScanProgressCard({ phases, activeIndex, status = "scanning", largeActive = false, dense = false, className }: ScanProgressCardProps) {
     const reduceMotion = useReducedMotion();
     const scanning = status === "scanning";
     const animated = scanning && !reduceMotion;
@@ -141,12 +165,12 @@ export function ScanProgressCard({ phases, activeIndex, status = "scanning", bar
             role="status"
             aria-live="polite"
             className={cx(
-                "relative flex flex-col gap-3",
-                !bare && "rounded-lg border border-text-primary/10 bg-bg-elevated p-4 shadow-scan-card",
+                "relative flex flex-col rounded-lg border border-text-primary/10 bg-bg-elevated p-4 shadow-scan-card",
+                dense ? "gap-1.5" : "gap-3",
                 className,
             )}
         >
-            {animated && !bare && <PerimeterTracer />}
+            {animated && <PerimeterTracer />}
 
             <p className="m-0 flex items-center text-lg font-bold text-text-primary">
                 Finding your data
@@ -159,9 +183,10 @@ export function ScanProgressCard({ phases, activeIndex, status = "scanning", bar
             <ul className="flex min-w-0 flex-1 flex-col">
                 {slots.map((index) => {
                     const phase = phases[index];
-                    if (!phase) return <li key={`pad${index}`} aria-hidden className="h-8" />;
+                    if (!phase) return <li key={`pad${index}`} aria-hidden className={dense ? "h-6" : "h-8"} />;
 
                     const isActive = index === active;
+                    const large = largeActive && isActive;
                     const isDone = !scanning || index < active;
                     const Icon = phase.icon;
 
@@ -173,13 +198,21 @@ export function ScanProgressCard({ phases, activeIndex, status = "scanning", bar
                             animate={{ opacity: 1 }}
                             transition={{ duration: reduceMotion ? 0 : 0.2, ease: [0.2, 0, 0, 1] }}
                             aria-hidden={!isActive}
-                            className="flex h-8 items-center gap-2 text-lg"
+                            className={cx(
+                                "flex items-center gap-2",
+                                large ? (dense ? "h-8" : "h-10") : dense ? "h-6" : "h-8",
+                                large ? "text-[19.5px]" : "text-lg",
+                            )}
                         >
                             {isDone ? (
-                                <Check className="size-4 shrink-0 text-primary" aria-hidden />
+                                <Check className={cx("shrink-0 text-primary", large ? "size-5" : "size-4")} aria-hidden />
                             ) : (
                                 <Icon
-                                    className={cx("size-4 shrink-0", isActive ? "text-text-primary" : "text-text-primary/40")}
+                                    className={cx(
+                                        "shrink-0",
+                                        large ? "size-5" : "size-4",
+                                        isActive ? "text-text-primary" : "text-text-primary/40",
+                                    )}
                                     aria-hidden
                                 />
                             )}

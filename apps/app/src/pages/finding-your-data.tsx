@@ -7,6 +7,10 @@ import {
   ArrowLeft,
   BookOpen,
   Bot,
+  Eye,
+  Fingerprint,
+  Megaphone,
+  Terminal,
   Ghost,
   MapPinOff,
   UserX,
@@ -65,12 +69,21 @@ export function FindingYourDataPage() {
   );
 }
 
+// Who finds the data brokers publish (matching view).
+const DATA_SEEKERS: readonly { label: string; icon: LucideIcon }[] = [
+  { label: "Identity Thieves", icon: Fingerprint },
+  { label: "Sales Spammers", icon: Megaphone },
+  { label: "Hackers", icon: Terminal },
+  { label: "Stalkers", icon: Eye },
+];
+
 function MatchingProfileView() {
   const reduceMotion = useReducedMotion();
 
   return (
     <Page
-      className="flex flex-col items-center justify-center bg-temp-blue-test! px-6 font-body"
+      // Top-aligned with Vinnie inside the top ~40% of the screen (18dvh + his 192px).
+      className="flex flex-col items-center bg-temp-blue-test! px-6 pt-[18dvh] font-body"
       role="main"
       aria-label="Matching your profile"
     >
@@ -86,6 +99,22 @@ function MatchingProfileView() {
         Scanning millions of public broker listings
         <PulseDots animated={!reduceMotion} />
       </p>
+
+      <h2 className="m-0 mt-10 self-stretch text-left text-lg font-bold text-text-primary">
+        Data brokers harvest your private data and share it publicly for anyone
+        to find like:
+      </h2>
+      <ul className="m-0 mt-4 grid list-none grid-cols-2 gap-x-6 gap-y-3 p-0">
+        {DATA_SEEKERS.map(({ label, icon: Icon }) => (
+          <li
+            key={label}
+            className="flex items-center gap-3 text-[18px] font-semibold text-text-primary"
+          >
+            <Icon className="size-5 shrink-0 text-accent-text" aria-hidden />
+            {label}
+          </li>
+        ))}
+      </ul>
     </Page>
   );
 }
@@ -124,6 +153,8 @@ interface InfoStep {
   pinBody?: boolean;
   /** Move on by itself after INFO_ADVANCE_MS, with no Back/Next buttons. */
   autoAdvance?: boolean;
+  /** Smaller title (18px, 60% of the usual 30px) so the body leads. */
+  smallTitle?: boolean;
 }
 
 // Carousel steps, in order.
@@ -143,6 +174,7 @@ const STEPS: readonly (QuestionStep | InfoStep)[] = [
     key: "more_than_delete_info",
     type: "info",
     title: "We do more than just delete your data",
+    smallTitle: true,
     body: (
       <FeatureList
         features={[
@@ -163,10 +195,10 @@ const STEPS: readonly (QuestionStep | InfoStep)[] = [
           },
           {
             icon: Bot,
-            title: "Use your own agent",
+            title: "Use Your Own Agent",
             highlight: true,
             description:
-              "Connect Vanyshr directly to your model of choice - access full features, create your own workflows, reports or dashboards without ever having opening the Vanyshr app.",
+              "Connect Vanyshr directly to your model of choice - access full features, create your own workflows, reports or dashboards without ever opening the Vanyshr app.",
             plan: "Premium Plans",
           },
           {
@@ -174,7 +206,7 @@ const STEPS: readonly (QuestionStep | InfoStep)[] = [
             title: "Account Janitor",
             description:
               "Connect your email and we'll surface every account you've ever made. You pick the stale ones — we find the privacy policy and file the deletion request for each.",
-            plan: "Premium Plan",
+            plan: "Premium Plans",
           },
           {
             icon: BookOpen,
@@ -185,9 +217,9 @@ const STEPS: readonly (QuestionStep | InfoStep)[] = [
           },
           {
             icon: MapPinOff,
-            title: "Street view residence blur",
+            title: "Street View Residence Blur",
             description:
-              "We submit requests to google to blur your residence from being visible on Google Street View",
+              "We submit requests to Google to blur your residence from being visible on Google Street View.",
             plan: "Pro & Premium Plans",
           },
         ]}
@@ -430,155 +462,194 @@ function PickedView({
 
   return (
     <Page
-      className="flex h-dvh flex-col bg-temp-blue-test! font-body"
+      className="flex h-dvh flex-col bg-bg-app! font-body"
       role="main"
       aria-label="Scanning in progress"
     >
-      <header className="mx-6 shrink-0 pt-[calc(env(safe-area-inset-top,0px)+1rem)]">
-        <ScanProgressCard
-          phases={PHASES}
-          activeIndex={activeIndex}
-          status={status}
-          bare
-          className="w-full"
-        />
-      </header>
-
-      {/* Question sheet: rounded top corners, runs to the bottom edge under the status on the page blue. */}
-      <div className="mt-6 flex min-h-0 flex-1 flex-col rounded-t-lg bg-bg-app">
+      <div className="relative flex min-h-0 flex-1 flex-col">
         <div
           className={cx(
-            "min-h-0 flex-1 overflow-y-auto px-6 pt-2.5",
-            // Info slides fill the sheet so a pinned body can sit at the bottom; with no footer
-            // that's 30px off the bottom edge.
-            isInfo && "flex flex-col",
+            "flex min-h-0 flex-1 flex-col overflow-y-auto",
+            // With no footer, a pinned info body sits 30px off the bottom edge.
             autoAdvances && "pb-[calc(env(safe-area-inset-bottom,0px)+30px)]",
+            // Room for the last card to scroll clear of the floating footer.
+            !autoAdvances && "pb-36",
           )}
         >
-          <AnimatePresence mode="wait" initial={false} custom={direction}>
-            <motion.section
-              key={step.key}
-              custom={direction}
-              variants={reduceMotion ? STEP_VARIANTS_REDUCED : STEP_VARIANTS}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              transition={{
-                duration: reduceMotion ? 0 : 0.3,
-                ease: [0.2, 0, 0, 1],
-              }}
-              aria-labelledby="fyd-step-title"
-              className={cx(isInfo && "flex flex-1 flex-col")}
-            >
-              {step.type === "info" && step.artSvg && (
-                // No tile: white ink, page-colored paper (reads as clear), cyan shadow.
-                <div
-                  className="mx-auto mb-4 size-40 [--icon-ink:var(--color-text-primary)] [--icon-paper:var(--color-bg-app)] [--icon-shadow:var(--color-primary)] [&>svg]:size-full"
-                  aria-hidden
-                  dangerouslySetInnerHTML={{ __html: step.artSvg }}
-                />
+          {/* Sticky inside the scroller so content passes behind the status card. */}
+          <header className="sticky top-0 z-10 shrink-0 px-4 pt-[calc(env(safe-area-inset-top,0px)+1rem)] pb-6">
+            {/* Same blur material as the footer, flipped: solid behind the card, fading out over
+                the gap below it so cards blur away as they scroll up with no hard edge. */}
+            <div
+              className={cx(
+                "absolute inset-0 backdrop-blur-xl",
+                "bg-[linear-gradient(to_top,transparent,color-mix(in_srgb,var(--color-bg-page)_55%,transparent)_45%,color-mix(in_srgb,var(--color-bg-page)_92%,transparent))]",
+                "[-webkit-mask-image:linear-gradient(to_top,transparent,black_45%)] [mask-image:linear-gradient(to_top,transparent,black_45%)]",
               )}
-              <h1
-                id="fyd-step-title"
-                className="m-0 font-display text-display-xs font-bold leading-tight tracking-tight text-text-primary"
+              aria-hidden
+            />
+            <ScanProgressCard
+              phases={PHASES}
+              activeIndex={activeIndex}
+              status={status}
+              largeActive
+              dense
+              // Card on the dark blue at 80% opacity; the tracer stays.
+              className="w-full bg-temp-blue-test/80!"
+            />
+          </header>
+
+          <div
+            className={cx(
+              "px-6 pt-2.5",
+              // Info slides fill the space so a pinned body can sit at the bottom.
+              isInfo && "flex flex-1 flex-col",
+            )}
+          >
+            <AnimatePresence mode="wait" initial={false} custom={direction}>
+              <motion.section
+                key={step.key}
+                custom={direction}
+                variants={reduceMotion ? STEP_VARIANTS_REDUCED : STEP_VARIANTS}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                transition={{
+                  duration: reduceMotion ? 0 : 0.3,
+                  ease: [0.2, 0, 0, 1],
+                }}
+                aria-labelledby="fyd-step-title"
+                className={cx(isInfo && "flex flex-1 flex-col")}
               >
-                {step.title}
-              </h1>
-              {step.subtitle && (
-                <p className="m-0 mt-2 text-md text-text-secondary">
-                  {step.subtitle}
-                </p>
-              )}
-
-              {/* Pinned bodies sit at the bottom of the sheet; pt-10 keeps a gap on short screens. */}
-              {step.type === "info" && step.body && (
-                <div className={step.pinBody ? "mt-auto pt-10" : "mt-6"}>
-                  {step.body}
-                </div>
-              )}
-
-              {step.type !== "info" && (
-                <div
-                  role={step.type === "multi" ? "group" : "radiogroup"}
-                  aria-labelledby="fyd-step-title"
-                  className="mt-8 flex flex-col gap-3"
+                {step.type === "info" && step.artSvg && (
+                  // No tile: white ink, page-colored paper (reads as clear), cyan shadow.
+                  <div
+                    className="mx-auto mb-4 size-40 [--icon-ink:var(--color-text-primary)] [--icon-paper:var(--color-bg-app)] [--icon-shadow:var(--color-primary)] [&>svg]:size-full"
+                    aria-hidden
+                    dangerouslySetInnerHTML={{ __html: step.artSvg }}
+                  />
+                )}
+                <h1
+                  id="fyd-step-title"
+                  className={cx(
+                    "m-0 font-display font-bold leading-tight tracking-tight text-text-primary",
+                    step.type === "info" && step.smallTitle
+                      ? "text-[18px]"
+                      : "text-display-xs",
+                  )}
                 >
-                  {step.options.map(({ id, label, icon: Icon }) => {
-                    const selected = selectedIds.includes(id);
-                    return (
-                      <button
-                        key={id}
-                        type="button"
-                        role={step.type === "multi" ? "checkbox" : "radio"}
-                        aria-checked={selected}
-                        onClick={() => choose(id)}
-                        className={cx(
-                          "flex min-h-16 w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-lg font-semibold transition-colors duration-fast",
-                          "outline-none focus-visible:outline-2 focus-visible:outline-border-focus focus-visible:ring-4 focus-visible:ring-ring-focus",
-                          selected
-                            ? "bg-primary text-primary-on"
-                            : "bg-bg-surface text-text-primary active:bg-state-active",
-                        )}
-                      >
-                        <span
+                  {step.title}
+                </h1>
+                {step.subtitle && (
+                  <p className="m-0 mt-2 text-md text-text-secondary">
+                    {step.subtitle}
+                  </p>
+                )}
+
+                {/* Pinned bodies sit at the bottom of the sheet; pt-10 keeps a gap on short screens. */}
+                {step.type === "info" && step.body && (
+                  <div className={step.pinBody ? "mt-auto pt-10" : "mt-6"}>
+                    {step.body}
+                  </div>
+                )}
+
+                {step.type !== "info" && (
+                  <div
+                    role={step.type === "multi" ? "group" : "radiogroup"}
+                    aria-labelledby="fyd-step-title"
+                    className="mt-8 flex flex-col gap-3"
+                  >
+                    {step.options.map(({ id, label, icon: Icon }) => {
+                      const selected = selectedIds.includes(id);
+                      return (
+                        <button
+                          key={id}
+                          type="button"
+                          role={step.type === "multi" ? "checkbox" : "radio"}
+                          aria-checked={selected}
+                          onClick={() => choose(id)}
                           className={cx(
-                            "flex size-10 shrink-0 items-center justify-center rounded-full transition-colors duration-fast",
+                            "flex min-h-16 w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-lg font-semibold transition-colors duration-fast",
+                            "outline-none focus-visible:outline-2 focus-visible:outline-border-focus focus-visible:ring-4 focus-visible:ring-ring-focus",
                             selected
-                              ? "bg-primary-on text-primary"
-                              : "bg-bg-elevated text-text-primary",
+                              ? "bg-primary text-primary-on"
+                              : "bg-bg-surface text-text-primary active:bg-state-active",
                           )}
-                          aria-hidden
                         >
-                          <Icon className="size-5" />
-                        </span>
-                        {label}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </motion.section>
-          </AnimatePresence>
+                          <span
+                            className={cx(
+                              "flex size-10 shrink-0 items-center justify-center rounded-full transition-colors duration-fast",
+                              selected
+                                ? "bg-primary-on text-primary"
+                                : "bg-bg-elevated text-text-primary",
+                            )}
+                            aria-hidden
+                          >
+                            <Icon className="size-5" />
+                          </span>
+                          {label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </motion.section>
+            </AnimatePresence>
+          </div>
         </div>
         {/* Auto-advancing info slides have no buttons; they move on by themselves. */}
         {!autoAdvances && (
-          <footer className="flex shrink-0 items-center justify-between px-6 pt-4 pb-[calc(env(safe-area-inset-bottom,0px)+1.5rem)]">
-            {/* Back to the previous step; hidden (but holding its space) when there's nowhere to go. */}
-            <button
-              type="button"
-              onClick={goBack}
-              aria-label="Previous question"
-              disabled={!canGoBack}
+          // Floats over the scrolling content. pointer-events-none so the faded top doesn't swallow
+          // scrolls and taps meant for the cards; only the buttons take input.
+          <footer className="pointer-events-none absolute inset-x-0 bottom-0 pt-12">
+            {/* Blur that fades in from the top (HIG bar material): cards soften as they pass under
+                with no hard edge. The gradient alone is the fallback where backdrop-filter is off. */}
+            <div
               className={cx(
-                "flex size-11 items-center justify-center rounded-full bg-bg-surface text-text-primary transition-colors duration-fast",
-                "outline-none hover:bg-state-hover active:bg-state-active focus-visible:outline-2 focus-visible:outline-border-focus focus-visible:ring-4 focus-visible:ring-ring-focus",
-                !canGoBack && "invisible",
+                "absolute inset-0 backdrop-blur-xl",
+                "bg-[linear-gradient(to_bottom,transparent,color-mix(in_srgb,var(--color-bg-page)_55%,transparent)_45%,color-mix(in_srgb,var(--color-bg-page)_92%,transparent))]",
+                "[-webkit-mask-image:linear-gradient(to_bottom,transparent,black_45%)] [mask-image:linear-gradient(to_bottom,transparent,black_45%)]",
               )}
-            >
-              <ArrowLeft className="size-5" aria-hidden />
-            </button>
-            {/* Secondary "Skip" until an answer is picked, then primary "Next" (DESIGN.md §11.1, md size).
+              aria-hidden
+            />
+            <div className="relative flex items-center justify-between px-6 pb-[max(1rem,env(safe-area-inset-bottom))]">
+              {/* Back to the previous step; hidden (but holding its space) when there's nowhere to go. */}
+              <button
+                type="button"
+                onClick={goBack}
+                aria-label="Previous question"
+                disabled={!canGoBack}
+                className={cx(
+                  "pointer-events-auto flex size-11 items-center justify-center rounded-full bg-bg-surface text-text-primary transition-colors duration-fast",
+                  "outline-none hover:bg-state-hover active:bg-state-active focus-visible:outline-2 focus-visible:outline-border-focus focus-visible:ring-4 focus-visible:ring-ring-focus",
+                  !canGoBack && "invisible",
+                )}
+              >
+                <ArrowLeft className="size-5" aria-hidden />
+              </button>
+              {/* Secondary "Skip" until an answer is picked, then primary "Next" (DESIGN.md §11.1, md size).
                 Info slides always show "Next". */}
-            <button
-              type="button"
-              onClick={nextOrSkip}
-              className={cx(
-                "flex h-12 w-1/2 items-center justify-center gap-2 rounded-full px-5 text-md transition-colors duration-fast",
-                "outline-none focus-visible:outline-2 focus-visible:outline-border-focus focus-visible:ring-4 focus-visible:ring-ring-focus",
-                hasAnswer || isInfo
-                  ? "bg-primary font-bold text-primary-on hover:bg-primary-hover active:bg-primary-active"
-                  : "bg-bg-elevated font-semibold text-text-primary hover:bg-state-hover active:bg-state-active",
-              )}
-            >
-              {hasAnswer || isInfo ? (
-                "Next"
-              ) : (
-                <>
-                  Skip
-                  <ChevronRight className="size-4 shrink-0" aria-hidden />
-                </>
-              )}
-            </button>
+              <button
+                type="button"
+                onClick={nextOrSkip}
+                className={cx(
+                  "pointer-events-auto flex h-12 w-1/2 items-center justify-center gap-2 rounded-full px-5 text-md transition-colors duration-fast",
+                  "outline-none focus-visible:outline-2 focus-visible:outline-border-focus focus-visible:ring-4 focus-visible:ring-ring-focus",
+                  hasAnswer || isInfo
+                    ? "bg-primary font-bold text-primary-on hover:bg-primary-hover active:bg-primary-active"
+                    : "bg-bg-elevated font-semibold text-text-primary hover:bg-state-hover active:bg-state-active",
+                )}
+              >
+                {hasAnswer || isInfo ? (
+                  "Next"
+                ) : (
+                  <>
+                    Skip
+                    <ChevronRight className="size-4 shrink-0" aria-hidden />
+                  </>
+                )}
+              </button>
+            </div>
           </footer>
         )}
       </div>
