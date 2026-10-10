@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useNavigate } from "react-router";
 import { Navbar, Page, Sheet } from "konsta/react";
-import { ChevronDown, ChevronRight, LoaderCircle, Menu, UserRoundSearch } from "lucide-react";
+import { ChevronDown, ChevronRight, LoaderCircle, Menu, ShieldCheck, UserRoundSearch, Zap } from "lucide-react";
 import { cx } from "@/utils/cx";
 import { BrandMark } from "@/components/BrandMark";
 import { supabase } from "@/lib/supabase";
@@ -165,6 +165,21 @@ export function FindMyDataPage() {
   const keyboard = useKeyboardInset();
   const keyboardOpen = keyboard.inset > 0;
 
+  // Viewport vertical center, in the hero container's own coordinates, so the
+  // title's "from" row can be anchored to the true viewport center (the
+  // container starts below the app bar, so 50% of it is not viewport center).
+  const heroRef = useRef<HTMLDivElement>(null);
+  const [viewportCenterY, setViewportCenterY] = useState<number | null>(null);
+  useLayoutEffect(() => {
+    const update = () => {
+      const top = heroRef.current?.getBoundingClientRect().top ?? 0;
+      setViewportCenterY(window.innerHeight / 2 - top);
+    };
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
+
   // ── Form state ──
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -273,10 +288,11 @@ export function FindMyDataPage() {
   );
 
   return (
-    <Page className="flex flex-col font-body" role="main" aria-label="Find my data">
+    <Page className="flex flex-col bg-brand-navy! font-body" role="main" aria-label="Find my data">
       {isOpen ? (
         <Navbar
-          className="static! mb-0"
+          className="static! mb-0 bg-transparent! [&>div:empty]:hidden!"
+          bgClassName="bg-transparent! backdrop-blur-none! border-transparent!"
           rightClassName="bg-transparent! shadow-none! backdrop-blur-none!"
           left={<BrandMark className="h-13.5 w-auto object-contain" />}
           innerClassName="pl-2.5!"
@@ -294,7 +310,8 @@ export function FindMyDataPage() {
         />
       ) : (
         <Navbar
-          className="static! mb-0"
+          className="static! mb-0 bg-transparent! [&>div:empty]:hidden!"
+          bgClassName="bg-transparent! backdrop-blur-none! border-transparent!"
           rightClassName="bg-transparent! shadow-none! backdrop-blur-none!"
           left={<BrandMark className="h-16.5 w-auto object-contain" />}
           innerClassName="pl-2.5!"
@@ -303,7 +320,7 @@ export function FindMyDataPage() {
             <button
               type="button"
               onClick={() => navigate("/login")}
-              className="flex h-11 items-center gap-1 text-md font-semibold text-text-primary outline-none focus-visible:outline-2 focus-visible:outline-border-focus"
+              className="flex h-11 items-center gap-1 whitespace-nowrap text-md font-semibold text-text-primary outline-none focus-visible:outline-2 focus-visible:outline-border-focus"
             >
               Sign in
               <ChevronRight className="size-4 shrink-0" aria-hidden="true" />
@@ -312,9 +329,21 @@ export function FindMyDataPage() {
         />
       )}
 
-      <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
+      <div ref={heroRef} className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
         <HalftoneBackdrop className="h-full" />
-        <div className="relative z-10 flex flex-1 flex-col justify-center px-6">
+        <div className="relative z-10 flex flex-1 flex-col justify-start px-6 pt-10">
+          <span className="inline-flex w-fit items-center gap-1.5 self-center rounded-full border border-primary bg-primary-muted px-3 py-1 text-sm font-medium text-primary-text">
+            <ShieldCheck className="size-4 shrink-0" aria-hidden="true" />
+            Agentic Consumer Cyber Defense
+          </span>
+          {/* Anchored so the middle of the "from" row (1.5 lines down the h1) sits at viewport center. */}
+          <div
+            className="absolute inset-x-6"
+            style={{
+              top: viewportCenterY ?? "50%",
+              transform: "translateY(calc(-1.5 * 1.02 * 60px))",
+            }}
+          >
           <h1
             className="m-0 font-display font-bold tracking-tight text-text-primary"
             style={{ fontSize: 60, lineHeight: 1.02 }}
@@ -328,20 +357,21 @@ export function FindMyDataPage() {
               reducedMotion={Boolean(prefersReducedMotion)}
               className="text-accent-text"
               // Rolling word stays at the same 68:80 ratio to the static
-              // lines that it had before the 25% title reduction.
+              // lines (title 60/51).
               style={{ fontSize: 51 }}
             />
           </h1>
           <p className="m-0 mt-4 text-xl font-bold text-text-primary">
-            We find where your personal data is exposed and make it <span className="text-primary-text italic">vanysh!</span>
+            We find where your personal data is exposed and make it <span className="font-extrabold italic">vanysh!</span>
           </p>
+          </div>
         </div>
 
         <div className="relative z-20 px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
           <div className="flex items-center justify-between gap-4">
             <button
               type="button"
-              // TODO: wire Learn More target — not specified yet.
+              onClick={() => navigate("/learn-more")}
               className="flex h-12 items-center gap-1 rounded-full px-2 text-lg font-semibold text-text-primary outline-none transition-colors duration-fast hover:bg-state-hover active:bg-state-active focus-visible:outline-2 focus-visible:outline-border-focus focus-visible:ring-4 focus-visible:ring-ring-focus"
             >
               Learn more
@@ -375,12 +405,24 @@ export function FindMyDataPage() {
           >
             <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
               <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-6 pt-5">
+                <span className="inline-flex w-fit items-center gap-1.5 rounded-pill border border-primary-border bg-primary-muted px-3 py-1 text-xs font-medium text-primary-text">
+                  <Zap className="size-3.5 shrink-0" aria-hidden="true" />
+                  Get Real Results in ~3min
+                </span>
+
                 <div className="flex items-stretch gap-3">
                   <div className="relative w-1/5 shrink-0" aria-hidden="true">
                     <UserRoundSearch className="absolute inset-0 size-full text-text-primary" />
                   </div>
                   <p className="m-0 w-4/5 text-left text-lg font-semibold text-text-primary">
                     Find your exposures and get a clear plan on how to start vanyshing
+                  </p>
+                </div>
+
+                <div className="text-left">
+                  <p className="m-0 text-sm font-bold text-text-primary">Your privacy is paramount</p>
+                  <p className="m-0 mt-1 text-xs text-text-secondary">
+                    Data from scans is not saved, shared, or used for marketing
                   </p>
                 </div>
 
@@ -448,8 +490,6 @@ export function FindMyDataPage() {
                     )}
                   </div>
                 </div>
-
-                <p className="m-0 text-center text-xs text-text-secondary">No Credit Card or Sign Up Required</p>
               </div>
 
               <div
@@ -461,6 +501,15 @@ export function FindMyDataPage() {
                 {submitError && (
                   <p className="m-0 text-center text-xs font-medium text-status-danger">{submitError}</p>
                 )}
+
+                <ul className="m-0 flex list-none items-center justify-center gap-4 p-0 text-xs text-text-secondary">
+                  {["No Credit Card", "No Sign Up"].map((label) => (
+                    <li key={label} className="flex items-center gap-1.5">
+                      <span className="size-1.5 shrink-0 rounded-full bg-primary" aria-hidden="true" />
+                      {label}
+                    </li>
+                  ))}
+                </ul>
 
                 <button
                   type="submit"
