@@ -174,18 +174,28 @@ function useKeyboardInset() {
 export function FindMyDataPage() {
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
+  // A drawer field has focus, i.e. the iOS keyboard is up. Tracked from focus events because they
+  // fire immediately, unlike visualViewport which can lag until the user scrolls.
+  const [fieldFocused, setFieldFocused] = useState(false);
   const prefersReducedMotion = useReducedMotion();
   const keyboard = useKeyboardInset();
   const keyboardOpen = keyboard.inset > 0;
 
-  // Navy document behind the Page, so any area iOS exposes (status bar, rubber-banding) matches.
-  // It never changes color: Safari tints its toolbar from it and doesn't reliably re-sample.
+  // The document behind the Page shows in the strip iOS keeps between the drawer and the keyboard
+  // (accessory bar, URL pill), which nothing inside the page wrapper can reliably cover. While a
+  // drawer field has focus it's the drawer surface so that strip matches the drawer; otherwise it's
+  // navy. Safari's bottom toolbar is hidden while the keyboard is up, and the fixed navy CTA row
+  // gives it navy to re-sample once the drawer closes.
+  const drawerKeyboardUp = isOpen && fieldFocused;
   useEffect(() => {
     const targets = [document.documentElement, document.body];
     const prev = targets.map((el) => el.style.backgroundColor);
-    for (const el of targets) el.style.backgroundColor = "var(--color-brand-navy)";
     return () => targets.forEach((el, i) => (el.style.backgroundColor = prev[i]));
   }, []);
+  useEffect(() => {
+    const color = drawerKeyboardUp ? "var(--color-bg-surface)" : "var(--color-brand-navy)";
+    for (const el of [document.documentElement, document.body]) el.style.backgroundColor = color;
+  }, [drawerKeyboardUp]);
 
   // While the drawer is open, nothing behind it may scroll. With the keyboard up iOS pans the
   // visual viewport on any drag, and overflow: hidden doesn't stop that — only cancelling
@@ -479,11 +489,22 @@ export function FindMyDataPage() {
         {isOpen && (
           <Sheet
             opened={isOpen}
-            onBackdropClick={() => setIsOpen(false)}
+            onBackdropClick={() => {
+              setIsOpen(false);
+              setFieldFocused(false);
+            }}
             className="flex max-h-[66%] flex-col rounded-t-lg! shadow-xl!"
             style={keyboardOpen ? { maxHeight: `${keyboard.visibleHeight - 16}px` } : undefined}
           >
-            <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+            <form
+              onSubmit={handleSubmit}
+              onFocus={() => setFieldFocused(true)}
+              // Ignore blur when focus is just moving to another field in the form.
+              onBlur={(e) => {
+                if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setFieldFocused(false);
+              }}
+              className="flex min-h-0 flex-1 flex-col"
+            >
               <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-6 pt-5">
                 <span className="inline-flex w-fit items-center gap-1.5 self-center rounded-full border border-primary-border bg-primary-muted px-3 py-1 text-xs font-medium text-primary-text">
                   <Zap className="size-3.5 shrink-0" aria-hidden="true" />
