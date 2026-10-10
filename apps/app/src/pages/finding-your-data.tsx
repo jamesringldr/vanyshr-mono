@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Page } from "konsta/react";
-import { useNavigate, useSearchParams } from "react-router";
+import { useNavigate, useParams, useSearchParams } from "react-router";
 import {
   ArrowLeft,
   ChevronRight,
@@ -18,6 +18,7 @@ import {
   ScanProgressCard,
   ScanVinnie,
 } from "@vanyshr/ui/components/application/scan-progress-card/scan-progress-card";
+import { supabase } from "@/lib/supabase";
 import { cx } from "@/utils/cx";
 import { LiveScan, PHASES, REPORT_PATH, SCAN_SLIDES } from "./find-my-data-loading";
 
@@ -124,8 +125,24 @@ const STEP_VARIANTS_REDUCED = { enter: { opacity: 0 }, center: { opacity: 1 }, e
 // Pause after a single-select pick so the selected state registers before the slide moves on.
 const AUTO_ADVANCE_MS = 350;
 
+/**
+ * Stores one answer in quick_scan_responses via the save-scan-response edge function.
+ * Fire-and-forget: a failed save must never block the carousel. No-op without a scan id
+ * (?preview=questions).
+ */
+function saveAnswer(quickscanId: string | undefined, questionKey: string, answer: string[], skipped: boolean) {
+  if (!quickscanId) return;
+  void supabase.functions
+    .invoke("save-scan-response", { body: { quickscanId, questionKey, answer, skipped } })
+    .then(({ error }) => {
+      if (error) console.warn("save-scan-response failed:", error.message);
+    });
+}
+
 function PickedView({ activeIndex, status }: { activeIndex: number; status: "scanning" | "complete" }) {
   const navigate = useNavigate();
+  // Set on the URL when the profile was picked (/finding-your-data/:scanId).
+  const { scanId } = useParams();
   const reduceMotion = useReducedMotion();
   const [stepIndex, setStepIndex] = useState(0);
   // 1 = moving forward (slides in from the right), -1 = back (slides in from the left).
@@ -166,7 +183,18 @@ function PickedView({ activeIndex, status }: { activeIndex: number; status: "sca
     }
     setAnswers((prev) => ({ ...prev, [step.key]: [id] }));
     window.clearTimeout(autoAdvanceRef.current);
-    autoAdvanceRef.current = window.setTimeout(advance, AUTO_ADVANCE_MS);
+    // Saved when the slide moves on, so changing your mind inside the pause saves once.
+    const key = step.key;
+    autoAdvanceRef.current = window.setTimeout(() => {
+      saveAnswer(scanId, key, [id], false);
+      advance();
+    }, AUTO_ADVANCE_MS);
+  };
+
+  // Next saves the selection; Skip records an explicit skip.
+  const nextOrSkip = () => {
+    saveAnswer(scanId, step.key, selectedIds, !hasAnswer);
+    advance();
   };
 
   return (
@@ -247,7 +275,7 @@ function PickedView({ activeIndex, status }: { activeIndex: number; status: "sca
         {/* Secondary "Skip" until an answer is picked, then primary "Next" (DESIGN.md §11.1, md size). */}
         <button
           type="button"
-          onClick={advance}
+          onClick={nextOrSkip}
           className={cx(
             "flex h-12 w-1/2 items-center justify-center gap-2 rounded-full px-5 text-md transition-colors duration-fast",
             "outline-none focus-visible:outline-2 focus-visible:outline-border-focus focus-visible:ring-4 focus-visible:ring-ring-focus",
