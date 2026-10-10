@@ -364,7 +364,7 @@ export function FindMyDataPage() {
           className="static! mb-0 bg-transparent! [&>div:empty]:hidden!"
           bgClassName="bg-transparent! backdrop-blur-none! border-transparent!"
           rightClassName="bg-transparent! shadow-none! backdrop-blur-none!"
-          left={<BrandMark className="h-13.5 w-auto object-contain" />}
+          left={<BrandMark className="ml-2.5 h-11.5 w-auto object-contain" />}
           innerClassName="pl-2.5!"
           leftClassName="ml-0! bg-transparent! shadow-none! backdrop-blur-none!"
           right={
@@ -383,7 +383,7 @@ export function FindMyDataPage() {
           className="static! mb-0 bg-transparent! [&>div:empty]:hidden!"
           bgClassName="bg-transparent! backdrop-blur-none! border-transparent!"
           rightClassName="bg-transparent! shadow-none! backdrop-blur-none!"
-          left={<BrandMark className="h-16.5 w-auto object-contain" />}
+          left={<BrandMark className="ml-2.5 h-14 w-auto object-contain" />}
           innerClassName="pl-2.5!"
           leftClassName="ml-0! bg-transparent! shadow-none! backdrop-blur-none!"
           right={
