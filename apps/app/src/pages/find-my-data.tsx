@@ -2,10 +2,9 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useNavigate } from "react-router";
 import { Navbar, Page, Sheet } from "konsta/react";
-import { ChevronDown, ChevronRight, LoaderCircle, Menu, ShieldCheck, Zap } from "lucide-react";
+import { ChevronDown, ChevronRight, Menu, ShieldCheck, Zap } from "lucide-react";
 import { cx } from "@/utils/cx";
 import { BrandMark } from "@/components/BrandMark";
-import { supabase } from "@/lib/supabase";
 
 /**
  * / — approved spec: scratchpad/spec-review/entry.spec.md
@@ -257,8 +256,6 @@ export function FindMyDataPage() {
   const [zipCode, setZipCode] = useState("");
   const [zipStatus, setZipStatus] = useState<"idle" | "checking" | "valid" | "invalid">("idle");
   const [zipLocation, setZipLocation] = useState<{ city: string; state: string } | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
 
   // Zip validation — ported from packages/ui/src/components/application/quick-scan-form.tsx
   // lines 249-292 (same debounced Zippopotam.us lookup, no Edge Function).
@@ -305,15 +302,12 @@ export function FindMyDataPage() {
   const isFormValid =
     firstName.trim().length >= 2 && lastName.trim().length >= 2 && zipStatus === "valid" && zipLocation !== null;
 
-  // Submit — ported from apps/app/src/pages/self-scan/entry.tsx lines 26-56
-  // (same sessionStorage keys, same intro-scan edge function call).
+  // Submit — same sessionStorage keys as apps/app/src/pages/self-scan/entry.tsx, but goes straight
+  // to /finding-your-data, which starts the scan (intro-scan) itself.
   const handleSubmit = useCallback(
-    async (e: React.FormEvent) => {
+    (e: React.FormEvent) => {
       e.preventDefault();
-      if (!isFormValid || !zipLocation || isSubmitting) return;
-
-      setSubmitError(null);
-      setIsSubmitting(true);
+      if (!isFormValid || !zipLocation) return;
 
       sessionStorage.removeItem("pilotScanResult");
       sessionStorage.removeItem("pilotScanError");
@@ -322,40 +316,21 @@ export function FindMyDataPage() {
       sessionStorage.removeItem("pendingScanId");
       sessionStorage.removeItem("pilotConsolidatedProfile");
 
-      try {
-        const { data, error } = await supabase.functions.invoke("intro-scan", {
-          body: {
-            firstName: firstName.trim(),
-            lastName: lastName.trim(),
-            zipCode,
-            city: zipLocation.city,
-            state: zipLocation.state,
-          },
-        });
-        if (error || data?.error || !data?.id) {
-          throw new Error(error?.message || data?.error || "Could not start scan");
-        }
+      sessionStorage.setItem("pendingScanRequest", crypto.randomUUID());
+      sessionStorage.setItem(
+        "pilotScanFields",
+        JSON.stringify({
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
+          zipCode,
+          city: zipLocation.city,
+          state: zipLocation.state,
+        }),
+      );
 
-        sessionStorage.setItem("pendingScanId", data.id);
-        sessionStorage.setItem(
-          "pilotScanFields",
-          JSON.stringify({
-            firstName: firstName.trim(),
-            lastName: lastName.trim(),
-            zipCode,
-            city: zipLocation.city,
-            state: zipLocation.state,
-          }),
-        );
-
-        navigate("/finding-your-data");
-      } catch (err) {
-        setSubmitError(err instanceof Error ? err.message : "Could not start scan");
-      } finally {
-        setIsSubmitting(false);
-      }
+      navigate("/finding-your-data");
     },
-    [firstName, lastName, zipCode, zipLocation, isFormValid, isSubmitting, navigate],
+    [firstName, lastName, zipCode, zipLocation, isFormValid, navigate],
   );
 
   return (
@@ -530,7 +505,6 @@ export function FindMyDataPage() {
                         placeholder="First Name"
                         value={firstName}
                         onChange={(e) => setFirstName(e.target.value)}
-                        disabled={isSubmitting}
                         autoFocus
                         autoComplete="given-name"
                         className="h-11 w-full rounded-md border border-border bg-bg-elevated px-4 text-[16px] text-text-primary placeholder:text-text-tertiary outline-none transition-colors duration-fast focus:border-border-focus disabled:opacity-50"
@@ -547,7 +521,6 @@ export function FindMyDataPage() {
                         placeholder="Last Name"
                         value={lastName}
                         onChange={(e) => setLastName(e.target.value)}
-                        disabled={isSubmitting}
                         autoComplete="family-name"
                         className="h-11 w-full rounded-md border border-border bg-bg-elevated px-4 text-[16px] text-text-primary placeholder:text-text-tertiary outline-none transition-colors duration-fast focus:border-border-focus disabled:opacity-50"
                       />
@@ -567,7 +540,6 @@ export function FindMyDataPage() {
                       placeholder="Zip Code"
                       value={zipCode}
                       onChange={(e) => setZipCode(e.target.value.replace(/\D/g, "").slice(0, 5))}
-                      disabled={isSubmitting}
                       autoComplete="postal-code"
                       className={cx(
                         "h-11 w-full rounded-md border bg-bg-elevated px-4 text-[16px] text-text-primary placeholder:text-text-tertiary outline-none transition-colors duration-fast disabled:opacity-50",
@@ -602,10 +574,6 @@ export function FindMyDataPage() {
                   keyboardOpen ? "pb-4" : "pb-[max(1.5rem,env(safe-area-inset-bottom))]",
                 )}
               >
-                {submitError && (
-                  <p className="m-0 text-center text-xs font-medium text-status-danger">{submitError}</p>
-                )}
-
                 <ul className="m-0 flex list-none items-center justify-center gap-4 p-0 text-xs text-text-secondary">
                   {["No Credit Card", "No Sign Up"].map((label) => (
                     <li key={label} className="flex items-center gap-1.5">
@@ -617,11 +585,9 @@ export function FindMyDataPage() {
 
                 <button
                   type="submit"
-                  disabled={!isFormValid && !isSubmitting}
-                  aria-disabled={isSubmitting || undefined}
+                  disabled={!isFormValid}
                   className={primaryButton}
                 >
-                  {isSubmitting && <LoaderCircle className="size-4 shrink-0 animate-spin" aria-hidden="true" />}
                   Find my data
                 </button>
 
