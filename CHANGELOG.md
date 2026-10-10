@@ -69,6 +69,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The find-my-data Get Started drawer's backdrop is now a single solid drawer-colored surface, so the strip beneath the drawer no longer flips between blue, black and gray as the iOS screen shifts.
 - The find-my-data page behind the Get Started drawer can no longer be scrolled while the drawer is open, and the browser's bottom bar is nudged back to the page color after the drawer closes.
 - On iOS, dragging is blocked behind the open Get Started drawer, a drawer-colored strip fills the gap above the keyboard, the page background stays navy, and the Learn more / Get started row is pinned to the bottom edge so Safari's toolbar returns to navy after the drawer closes.
+- The drawer-colored strip above the iOS keyboard is now placed correctly on the first tap of Get started, instead of only after scrolling.
 - `/pilot-scan/report` partially converted to the design system (work in progress)
 
 - `RollingThreatWord` is extracted out of the self-scan entry page and shared with `/referral`, taking its word list as a prop. Its slot is now sized to the widest *rendered* word rather than the longest by character count — equal-length words differ in width, so the slot was under-sized and the line shifted as the word cycled. The positioning pill moved to `scanUi.pill` for the same reason.
