@@ -166,59 +166,51 @@ export function FindMyDataPage() {
   const keyboard = useKeyboardInset();
   const keyboardOpen = keyboard.inset > 0;
 
-  // The document behind the Page shows wherever iOS reserves space the Page can't cover
-  // (status bar, the keyboard's accessory bar) and whenever the visual viewport is panned.
-  // Which part of it is visible varies, so the whole thing is a solid color rather than a
-  // gradient: navy normally, the drawer surface while the drawer is open (plus a navy status-bar
-  // band so the top still matches the app bar). The document is locked so it can't be dragged.
+  // Navy document behind the Page, so any area iOS exposes (status bar, rubber-banding) matches.
+  // It never changes color: Safari tints its toolbar from it and doesn't reliably re-sample.
   useEffect(() => {
+    const targets = [document.documentElement, document.body];
+    const prev = targets.map((el) => el.style.backgroundColor);
+    for (const el of targets) el.style.backgroundColor = "var(--color-brand-navy)";
+    return () => targets.forEach((el, i) => (el.style.backgroundColor = prev[i]));
+  }, []);
+
+  // While the drawer is open, nothing behind it may scroll. With the keyboard up iOS pans the
+  // visual viewport on any drag, and overflow: hidden doesn't stop that — only cancelling
+  // touchmove does. Drags inside an element that genuinely has content to scroll still work.
+  useEffect(() => {
+    if (!isOpen) return;
     const html = document.documentElement;
     const body = document.body;
-    const targets = [html, body];
-    const props = ["backgroundColor", "backgroundImage", "backgroundSize", "backgroundRepeat", "backgroundPosition"] as const;
-    const prevStyles = targets.map((el) => props.map((p) => el.style[p]));
-    const prevLock = {
+    const prev = {
       htmlOverflow: html.style.overflow,
       htmlOverscroll: html.style.overscrollBehavior,
       bodyPosition: body.style.position,
       bodyInset: body.style.inset,
       bodyWidth: body.style.width,
     };
-    for (const el of targets) {
-      el.style.backgroundColor = isOpen ? "var(--color-bg-surface)" : "var(--color-brand-navy)";
-      if (isOpen) {
-        el.style.backgroundImage = "linear-gradient(var(--color-brand-navy), var(--color-brand-navy))";
-        el.style.backgroundSize = "100% env(safe-area-inset-top)";
-        el.style.backgroundRepeat = "no-repeat";
-        el.style.backgroundPosition = "top";
+    html.style.overflow = "hidden";
+    html.style.overscrollBehavior = "none";
+    body.style.position = "fixed";
+    body.style.inset = "0";
+    body.style.width = "100%";
+
+    const onTouchMove = (e: TouchEvent) => {
+      for (let el = e.target as HTMLElement | null; el && el !== body; el = el.parentElement) {
+        const { overflowY } = getComputedStyle(el);
+        if ((overflowY === "auto" || overflowY === "scroll") && el.scrollHeight > el.clientHeight) return;
       }
-    }
-    if (isOpen) {
-      html.style.overflow = "hidden";
-      html.style.overscrollBehavior = "none";
-      body.style.position = "fixed";
-      body.style.inset = "0";
-      body.style.width = "100%";
-    }
-    // Safari tints its bottom toolbar from the page color and can keep the drawer's gray after
-    // the drawer closes; re-applying the color on the next frames forces it to re-sample.
-    let raf = 0;
-    if (!isOpen) {
-      raf = requestAnimationFrame(() => {
-        for (const el of targets) el.style.backgroundColor = "transparent";
-        raf = requestAnimationFrame(() => {
-          for (const el of targets) el.style.backgroundColor = "var(--color-brand-navy)";
-        });
-      });
-    }
+      e.preventDefault();
+    };
+    document.addEventListener("touchmove", onTouchMove, { passive: false });
+
     return () => {
-      cancelAnimationFrame(raf);
-      targets.forEach((el, t) => props.forEach((p, k) => (el.style[p] = prevStyles[t][k])));
-      html.style.overflow = prevLock.htmlOverflow;
-      html.style.overscrollBehavior = prevLock.htmlOverscroll;
-      body.style.position = prevLock.bodyPosition;
-      body.style.inset = prevLock.bodyInset;
-      body.style.width = prevLock.bodyWidth;
+      document.removeEventListener("touchmove", onTouchMove);
+      html.style.overflow = prev.htmlOverflow;
+      html.style.overscrollBehavior = prev.htmlOverscroll;
+      body.style.position = prev.bodyPosition;
+      body.style.inset = prev.bodyInset;
+      body.style.width = prev.bodyWidth;
     };
   }, [isOpen]);
 
@@ -345,6 +337,17 @@ export function FindMyDataPage() {
   );
 
   return (
+    <>
+    {/* iOS keeps a strip between the visual viewport and the keyboard (its accessory bar and URL
+        pill) that the Page can't reach; fill it with the drawer's surface so the drawer appears to
+        run down to the keyboard. Fixed to the layout viewport, outside the transformed Page. */}
+    {isOpen && keyboardOpen && (
+      <div
+        aria-hidden="true"
+        className="pointer-events-none fixed inset-x-0 z-40 bg-bg-surface"
+        style={{ top: keyboard.offsetTop + keyboard.visibleHeight, height: window.innerHeight }}
+      />
+    )}
     <Page
       className={cx("flex flex-col bg-brand-navy! font-body", isOpen && "overflow-hidden!")}
       role="main"
@@ -436,7 +439,9 @@ export function FindMyDataPage() {
           </div>
         </div>
 
-        <div className="relative z-20 px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+        {/* Fixed to the bottom edge with the page navy: Safari 26 tints its toolbar from fixed elements
+            touching that edge, so this is what it re-samples once the drawer closes. */}
+        <div className="fixed inset-x-0 bottom-0 z-20 bg-brand-navy px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
           <div className="flex items-center justify-between gap-4">
             <button
               type="button"
@@ -600,5 +605,6 @@ export function FindMyDataPage() {
         )}
       </div>
     </Page>
+    </>
   );
 }
