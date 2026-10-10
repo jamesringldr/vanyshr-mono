@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { Navigate, Route, Routes } from "react-router";
+import { Navigate, Route, Routes, useLocation } from "react-router";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { supabase } from "./lib/supabase";
 import { allowLocalRouteBypass, isProductionApp } from "./lib/env";
 
@@ -42,6 +43,7 @@ import { SelfScanLoadingPage } from "./pages/self-scan/loading";
 import { SelfScanReportPage } from "./pages/self-scan/report";
 import { FindMyDataPage } from "./pages/find-my-data";
 import { FindMyDataLoadingPage } from "./pages/find-my-data-loading";
+import { LearnMorePage } from "./pages/learn-more";
 
 // Dashboard pages
 import { DashboardHome } from "./views/Dashboard/DashboardHome";
@@ -127,7 +129,45 @@ function RequireAuth({
     return <>{children}</>;
 }
 
+// `/` and `/learn-more` behave as one tall page: navigating between them
+// scrolls vertically, the outgoing page sliding away as the incoming one arrives.
+const PAGER_PATHS = ["/", "/learn-more"];
+
+function VerticalPager() {
+    const location = useLocation();
+    const reducedMotion = useReducedMotion();
+    const dir = location.pathname === "/learn-more" ? 1 : -1;
+    const variants = {
+        enter: (d: number) => ({ y: d > 0 ? "100%" : "-100%" }),
+        center: { y: 0 },
+        exit: (d: number) => ({ y: d > 0 ? "-100%" : "100%" }),
+    };
+    return (
+        <div className="fixed inset-0 overflow-hidden">
+            <AnimatePresence initial={false} custom={dir}>
+                <motion.div
+                    key={location.pathname}
+                    custom={dir}
+                    variants={variants}
+                    initial="enter"
+                    animate="center"
+                    exit="exit"
+                    transition={{ duration: reducedMotion ? 0 : 0.5, ease: [0.2, 0, 0, 1] }}
+                    className="absolute inset-0"
+                >
+                    <Routes location={location}>
+                        <Route path="/" element={<FindMyDataPage />} />
+                        <Route path="/learn-more" element={<LearnMorePage />} />
+                    </Routes>
+                </motion.div>
+            </AnimatePresence>
+        </div>
+    );
+}
+
 export default function App() {
+    const location = useLocation();
+    if (PAGER_PATHS.includes(location.pathname)) return <VerticalPager />;
     return (
         <Routes>
             {/* Dashboard — DevOnly until ready for users */}
