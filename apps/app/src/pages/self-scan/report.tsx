@@ -205,13 +205,10 @@ export function SelfScanReportPage({ startOverPath = "/self-scan" }: { startOver
           animate={{ y: footerVisible ? 0 : "100%" }}
           transition={{ duration: prefersReducedMotion ? 0 : 0.44, ease: EASE_OUT }}
         >
-          <span className={scanUi.chip}>No credit card required</span>
-          <h2 className="mt-3 text-[20px] font-semibold leading-tight tracking-tight text-text-primary">
-            Time to Vanysh
-          </h2>
-          <p className="mt-1.5 text-[14px] leading-snug text-text-secondary">
-            Start removing your exposed data from every broker we found
-          </p>
+          {/* Green pill, centered: same shape as the find-my-data drawer pill, ~25% larger. */}
+          <span className="mx-auto flex w-fit items-center rounded-full border border-status-success-border bg-status-success-muted px-4 py-1.5 text-md font-medium text-status-success">
+            No credit card required
+          </span>
           <button
             type="button"
             onClick={() => navigate("/signup")}
