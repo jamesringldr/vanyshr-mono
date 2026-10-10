@@ -163,28 +163,25 @@ export function EmailConfirmationModal({
       >
         <div className="border-b border-border-subtle p-4">
           <h2 className="text-xl font-semibold tracking-tight text-text-primary">
-            Choose emails for the dark-web scan
+            Dark Web Scan
           </h2>
           <p className="mt-1 text-md text-text-secondary">
-            We&apos;ll search breach databases and leak announcements for the addresses you pick.
+            Scan billions of records from dark web breach databases for credential &amp; account leaks
           </p>
         </div>
 
         <div className="max-h-[40vh] overflow-y-auto p-4">
           <div className="mb-1 flex items-center justify-between">
-            <span className="text-xs font-medium uppercase tracking-widest text-text-tertiary">
+            <span className="text-xs font-medium uppercase tracking-widest text-text-primary">
               Select up to {MAX_SELECTED}
             </span>
             <span
-              className={cx(
-                "text-sm font-medium tabular-nums",
-                atLimit ? "text-primary-text" : "text-text-tertiary",
-              )}
+              className="text-sm font-medium tabular-nums text-text-primary"
             >
               {selectedCount} of {MAX_SELECTED}
             </span>
           </div>
-          <p className="mb-3 text-sm text-text-tertiary">Registered plans include unlimited emails</p>
+          <p className="mb-3 text-sm text-text-primary">All plans include Dark Web Monitoring for unlimited emails</p>
 
           {emails.length > 0 ? (
             <div className="flex flex-wrap gap-2" role="group" aria-label="Emails to include">
