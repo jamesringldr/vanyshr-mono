@@ -100,7 +100,8 @@ function ShimmerLabel({ children, animated }: { children: ReactNode; animated: b
 }
 
 /**
- * ScanProgressCard — Vinnie on the left, a three-row phase ticker on the right. The active phase sits in the middle row.
+ * ScanProgressCard — a "Finding your data" title (with the pulsing loader while scanning) over
+ * Vinnie on the left and a three-row phase ticker on the right. The active phase sits in the middle row.
  */
 export function ScanProgressCard({ phases, activeIndex, status = "scanning", className }: ScanProgressCardProps) {
     const isLight = useIsLightTheme();
@@ -117,12 +118,18 @@ export function ScanProgressCard({ phases, activeIndex, status = "scanning", cla
             role="status"
             aria-live="polite"
             className={cx(
-                "relative flex items-center gap-4 rounded-lg border border-text-primary/10 bg-bg-elevated p-4 shadow-scan-card",
+                "relative flex flex-col gap-3 rounded-lg border border-text-primary/10 bg-bg-elevated p-4 shadow-scan-card",
                 className,
             )}
         >
             {animated && <PerimeterTracer />}
 
+            <p className="m-0 flex items-center text-lg font-bold text-text-primary">
+                Finding your data
+                {scanning && <PulseDots animated={!reduceMotion} />}
+            </p>
+
+            <div className="flex items-center gap-4">
             <motion.div
                 className="shrink-0"
                 animate={reduceMotion ? undefined : { y: ["0%", "-8%", "0%"] }}
@@ -169,13 +176,11 @@ export function ScanProgressCard({ phases, activeIndex, status = "scanning", cla
                             ) : (
                                 <span className="truncate text-text-primary/40">{phase.label}</span>
                             )}
-                            {isActive && !isDone && (
-                                <PulseDots animated={!reduceMotion} />
-                            )}
                         </motion.li>
                     );
                 })}
             </ul>
+            </div>
         </div>
     );
 }
