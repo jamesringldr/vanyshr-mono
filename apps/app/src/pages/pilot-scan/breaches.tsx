@@ -19,6 +19,41 @@ function formatBreachDate(date?: string | null, year?: string | null): string {
     return year || date || "Date unknown";
 }
 
+/** "Zacks.com (2024)" -> "zacks.com"; null when the source name has no domain ("AT&T"). */
+function breachDomain(name: string): string | null {
+    const m = /\b((?:[a-z0-9-]+\.)+[a-z]{2,})\b/i.exec(name);
+    return m ? m[1].toLowerCase() : null;
+}
+
+/**
+ * Logo badge for a breach source: the site's favicon via DuckDuckGo's icon service (no tracking;
+ * no-referrer so the report URL isn't sent), else the source's first letter.
+ */
+function BreachLogo({ name }: { name: string }) {
+    const domain = breachDomain(name);
+    const [failed, setFailed] = useState(false);
+
+    return (
+        <span
+            className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-md bg-bg-elevated"
+            aria-hidden
+        >
+            {domain && !failed ? (
+                <img
+                    src={`https://icons.duckduckgo.com/ip3/${domain}.ico`}
+                    alt=""
+                    referrerPolicy="no-referrer"
+                    loading="lazy"
+                    onError={() => setFailed(true)}
+                    className="size-6 object-contain"
+                />
+            ) : (
+                <span className="text-md font-bold text-text-secondary">{name.trim().charAt(0).toUpperCase()}</span>
+            )}
+        </span>
+    );
+}
+
 /**
  * Breaches slide — same breach-card list previously reachable only as a
  * drill-down under risk-summary's "Critical" area, now its own page.
@@ -94,8 +129,9 @@ export function BreachesBody({ profile }: { profile: ConsolidatedProfile }) {
                                     {cards.map((b, i) => (
                                         <li key={`${b.name}-${i}`}>
                                             <Card className="px-4 py-3">
-                                                <div className="flex items-baseline justify-between gap-3">
-                                                    <p className="truncate text-lg font-semibold text-text-primary">
+                                                <div className="flex items-center gap-3">
+                                                    <BreachLogo name={b.name} />
+                                                    <p className="min-w-0 flex-1 truncate text-lg font-semibold text-text-primary">
                                                         {b.name}
                                                     </p>
                                                     <p className="shrink-0 text-md font-bold tabular-nums text-text-primary">
