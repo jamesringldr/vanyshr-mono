@@ -20,7 +20,12 @@ import {
 } from "@vanyshr/ui/components/application/scan-progress-card/scan-progress-card";
 import { supabase } from "@/lib/supabase";
 import { cx } from "@/utils/cx";
-import { LiveScan, PHASES, REPORT_PATH, SCAN_SLIDES } from "./find-my-data-loading";
+import {
+  LiveScan,
+  PHASES,
+  REPORT_PATH,
+  SCAN_SLIDES,
+} from "./find-my-data-loading";
 
 /**
  * /finding-your-data/:scanId? — the find-my-data flow's scan page. Same live scan and modals as
@@ -36,7 +41,8 @@ export function FindingYourDataPage() {
   const [searchParams] = useSearchParams();
   const preview = searchParams.get("preview");
 
-  if (preview === "questions") return <PickedView activeIndex={1} status="scanning" />;
+  if (preview === "questions")
+    return <PickedView activeIndex={1} status="scanning" />;
   if (preview !== null) return <MatchingProfileView />;
 
   return (
@@ -45,7 +51,9 @@ export function FindingYourDataPage() {
       matchingView={<MatchingProfileView />}
       renderPickedView={(card) => <PickedView {...card} />}
       // Same route with the optional :scanId param, so this doesn't remount the running scan.
-      onProfilePicked={(scanId) => navigate(`/finding-your-data/${scanId}`, { replace: true })}
+      onProfilePicked={(scanId) =>
+        navigate(`/finding-your-data/${scanId}`, { replace: true })
+      }
     />
   );
 }
@@ -54,10 +62,17 @@ function MatchingProfileView() {
   const reduceMotion = useReducedMotion();
 
   return (
-    <Page className="flex flex-col items-center justify-center bg-temp-blue-test! px-6 font-body" role="main" aria-label="Matching your profile">
+    <Page
+      className="flex flex-col items-center justify-center bg-temp-blue-test! px-6 font-body"
+      role="main"
+      aria-label="Matching your profile"
+    >
       {/* Same Vinnie as the scan status card (h-16), 3x larger. */}
       <ScanVinnie className="h-48 w-48" />
-      <h1 role="status" className="m-0 mt-6 text-center text-xl font-bold text-text-primary">
+      <h1
+        role="status"
+        className="m-0 mt-6 text-center text-xl font-bold text-text-primary"
+      >
         Matching your profile
       </h1>
       <p className="m-0 mt-2 flex items-center justify-center text-center text-md text-text-secondary">
@@ -98,8 +113,16 @@ const STEPS: readonly QuestionStep[] = [
     type: "multi",
     options: [
       { id: "exposure", label: "See if my data is exposed", icon: ScanSearch },
-      { id: "identity", label: "Protect against hackers/Identity Thieves", icon: ShieldAlert },
-      { id: "spam", label: "Stop the Spam calls, texts & emails", icon: MessageSquareOff },
+      {
+        id: "identity",
+        label: "Protect against hackers/Identity Thieves",
+        icon: ShieldAlert,
+      },
+      {
+        id: "spam",
+        label: "Stop the Spam calls, texts & emails",
+        icon: MessageSquareOff,
+      },
       { id: "privacy", label: "Improve my general privacy", icon: EyeOff },
     ],
   },
@@ -120,7 +143,11 @@ const STEP_VARIANTS = {
   center: { opacity: 1, x: 0 },
   exit: (d: 1 | -1) => ({ opacity: 0, x: -32 * d }),
 };
-const STEP_VARIANTS_REDUCED = { enter: { opacity: 0 }, center: { opacity: 1 }, exit: { opacity: 0 } };
+const STEP_VARIANTS_REDUCED = {
+  enter: { opacity: 0 },
+  center: { opacity: 1 },
+  exit: { opacity: 0 },
+};
 
 // Pause after a single-select pick so the selected state registers before the slide moves on.
 const AUTO_ADVANCE_MS = 350;
@@ -130,16 +157,29 @@ const AUTO_ADVANCE_MS = 350;
  * Fire-and-forget: a failed save must never block the carousel. No-op without a scan id
  * (?preview=questions).
  */
-function saveAnswer(quickscanId: string | undefined, questionKey: string, answer: string[], skipped: boolean) {
+function saveAnswer(
+  quickscanId: string | undefined,
+  questionKey: string,
+  answer: string[],
+  skipped: boolean,
+) {
   if (!quickscanId) return;
   void supabase.functions
-    .invoke("save-scan-response", { body: { quickscanId, questionKey, answer, skipped } })
+    .invoke("save-scan-response", {
+      body: { quickscanId, questionKey, answer, skipped },
+    })
     .then(({ error }) => {
       if (error) console.warn("save-scan-response failed:", error.message);
     });
 }
 
-function PickedView({ activeIndex, status }: { activeIndex: number; status: "scanning" | "complete" }) {
+function PickedView({
+  activeIndex,
+  status,
+}: {
+  activeIndex: number;
+  status: "scanning" | "complete";
+}) {
   const navigate = useNavigate();
   // Set on the URL when the profile was picked (/finding-your-data/:scanId).
   const { scanId } = useParams();
@@ -153,7 +193,10 @@ function PickedView({ activeIndex, status }: { activeIndex: number; status: "sca
 
   useEffect(() => {
     if (status !== "complete") return;
-    const id = window.setTimeout(() => navigate(REPORT_PATH, { replace: true }), COMPLETE_BEAT_MS);
+    const id = window.setTimeout(
+      () => navigate(REPORT_PATH, { replace: true }),
+      COMPLETE_BEAT_MS,
+    );
     return () => window.clearTimeout(id);
   }, [status, navigate]);
 
@@ -177,7 +220,12 @@ function PickedView({ activeIndex, status }: { activeIndex: number; status: "sca
     if (step.type === "multi") {
       setAnswers((prev) => {
         const current = prev[step.key] ?? [];
-        return { ...prev, [step.key]: current.includes(id) ? current.filter((x) => x !== id) : [...current, id] };
+        return {
+          ...prev,
+          [step.key]: current.includes(id)
+            ? current.filter((x) => x !== id)
+            : [...current, id],
+        };
       });
       return;
     }
@@ -198,102 +246,129 @@ function PickedView({ activeIndex, status }: { activeIndex: number; status: "sca
   };
 
   return (
-    <Page className="flex h-dvh flex-col bg-temp-blue-test! font-body" role="main" aria-label="Scanning in progress">
-      <header className="mx-4 shrink-0 pt-[calc(env(safe-area-inset-top,0px)+1rem)]">
-        <ScanProgressCard phases={PHASES} activeIndex={activeIndex} status={status} className="w-full" />
+    <Page
+      className="flex h-dvh flex-col bg-temp-blue-test! font-body"
+      role="main"
+      aria-label="Scanning in progress"
+    >
+      <header className="mx-6 shrink-0 pt-[calc(env(safe-area-inset-top,0px)+1rem)]">
+        <ScanProgressCard
+          phases={PHASES}
+          activeIndex={activeIndex}
+          status={status}
+          bare
+          className="w-full"
+        />
       </header>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-6 pt-6">
-        {/* Back to the previous question; holds its space on the first one so the title doesn't jump. */}
-        <button
-          type="button"
-          onClick={goBack}
-          aria-label="Previous question"
-          disabled={stepIndex === 0}
-          className={cx(
-            "mb-4 flex size-11 items-center justify-center rounded-full bg-bg-surface text-text-primary transition-colors duration-fast",
-            "outline-none hover:bg-state-hover active:bg-state-active focus-visible:outline-2 focus-visible:outline-border-focus focus-visible:ring-4 focus-visible:ring-ring-focus",
-            stepIndex === 0 && "invisible",
-          )}
-        >
-          <ArrowLeft className="size-5" aria-hidden />
-        </button>
-        <AnimatePresence mode="wait" initial={false} custom={direction}>
-          <motion.section
-            key={step.key}
-            custom={direction}
-            variants={reduceMotion ? STEP_VARIANTS_REDUCED : STEP_VARIANTS}
-            initial="enter"
-            animate="center"
-            exit="exit"
-            transition={{ duration: reduceMotion ? 0 : 0.3, ease: [0.2, 0, 0, 1] }}
-            aria-labelledby="fyd-step-title"
-          >
-            <h1 id="fyd-step-title" className="m-0 font-display text-display-xs font-bold leading-tight tracking-tight text-text-primary">
-              {step.title}
-            </h1>
-            {step.subtitle && <p className="m-0 mt-2 text-md text-text-secondary">{step.subtitle}</p>}
-
-            <div
-              role={step.type === "multi" ? "group" : "radiogroup"}
+      {/* Question sheet: rounded top corners, runs to the bottom edge under the status on the page blue. */}
+      <div className="mt-6 flex min-h-0 flex-1 flex-col rounded-t-lg bg-bg-app">
+        <div className="min-h-0 flex-1 overflow-y-auto px-6 pt-2.5">
+          <AnimatePresence mode="wait" initial={false} custom={direction}>
+            <motion.section
+              key={step.key}
+              custom={direction}
+              variants={reduceMotion ? STEP_VARIANTS_REDUCED : STEP_VARIANTS}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{
+                duration: reduceMotion ? 0 : 0.3,
+                ease: [0.2, 0, 0, 1],
+              }}
               aria-labelledby="fyd-step-title"
-              className="mt-8 flex flex-col gap-3"
             >
-              {step.options.map(({ id, label, icon: Icon }) => {
-                const selected = selectedIds.includes(id);
-                return (
-                  <button
-                    key={id}
-                    type="button"
-                    role={step.type === "multi" ? "checkbox" : "radio"}
-                    aria-checked={selected}
-                    onClick={() => choose(id)}
-                    className={cx(
-                      "flex min-h-16 w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-lg font-semibold transition-colors duration-fast",
-                      "outline-none focus-visible:outline-2 focus-visible:outline-border-focus focus-visible:ring-4 focus-visible:ring-ring-focus",
-                      selected ? "bg-primary text-primary-on" : "bg-bg-surface text-text-primary active:bg-state-active",
-                    )}
-                  >
-                    <span
+              <h1
+                id="fyd-step-title"
+                className="m-0 font-display text-display-xs font-bold leading-tight tracking-tight text-text-primary"
+              >
+                {step.title}
+              </h1>
+              {step.subtitle && (
+                <p className="m-0 mt-2 text-md text-text-secondary">
+                  {step.subtitle}
+                </p>
+              )}
+
+              <div
+                role={step.type === "multi" ? "group" : "radiogroup"}
+                aria-labelledby="fyd-step-title"
+                className="mt-8 flex flex-col gap-3"
+              >
+                {step.options.map(({ id, label, icon: Icon }) => {
+                  const selected = selectedIds.includes(id);
+                  return (
+                    <button
+                      key={id}
+                      type="button"
+                      role={step.type === "multi" ? "checkbox" : "radio"}
+                      aria-checked={selected}
+                      onClick={() => choose(id)}
                       className={cx(
-                        "flex size-10 shrink-0 items-center justify-center rounded-full transition-colors duration-fast",
-                        selected ? "bg-primary-on text-primary" : "bg-bg-elevated text-text-primary",
+                        "flex min-h-16 w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-lg font-semibold transition-colors duration-fast",
+                        "outline-none focus-visible:outline-2 focus-visible:outline-border-focus focus-visible:ring-4 focus-visible:ring-ring-focus",
+                        selected
+                          ? "bg-primary text-primary-on"
+                          : "bg-bg-surface text-text-primary active:bg-state-active",
                       )}
-                      aria-hidden
                     >
-                      <Icon className="size-5" />
-                    </span>
-                    {label}
-                  </button>
-                );
-              })}
-            </div>
-          </motion.section>
-        </AnimatePresence>
+                      <span
+                        className={cx(
+                          "flex size-10 shrink-0 items-center justify-center rounded-full transition-colors duration-fast",
+                          selected
+                            ? "bg-primary-on text-primary"
+                            : "bg-bg-elevated text-text-primary",
+                        )}
+                        aria-hidden
+                      >
+                        <Icon className="size-5" />
+                      </span>
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+            </motion.section>
+          </AnimatePresence>
+        </div>
+        <footer className="flex shrink-0 items-center justify-between px-6 pt-4 pb-[calc(env(safe-area-inset-bottom,0px)+1.5rem)]">
+          {/* Back to the previous question; hidden on the first one but holds its space. */}
+          <button
+            type="button"
+            onClick={goBack}
+            aria-label="Previous question"
+            disabled={stepIndex === 0}
+            className={cx(
+              "flex size-11 items-center justify-center rounded-full bg-bg-surface text-text-primary transition-colors duration-fast",
+              "outline-none hover:bg-state-hover active:bg-state-active focus-visible:outline-2 focus-visible:outline-border-focus focus-visible:ring-4 focus-visible:ring-ring-focus",
+              stepIndex === 0 && "invisible",
+            )}
+          >
+            <ArrowLeft className="size-5" aria-hidden />
+          </button>
+          {/* Secondary "Skip" until an answer is picked, then primary "Next" (DESIGN.md §11.1, md size). */}
+          <button
+            type="button"
+            onClick={nextOrSkip}
+            className={cx(
+              "flex h-12 w-1/2 items-center justify-center gap-2 rounded-full px-5 text-md transition-colors duration-fast",
+              "outline-none focus-visible:outline-2 focus-visible:outline-border-focus focus-visible:ring-4 focus-visible:ring-ring-focus",
+              hasAnswer
+                ? "bg-primary font-bold text-primary-on hover:bg-primary-hover active:bg-primary-active"
+                : "bg-bg-elevated font-semibold text-text-primary hover:bg-state-hover active:bg-state-active",
+            )}
+          >
+            {hasAnswer ? (
+              "Next"
+            ) : (
+              <>
+                Skip
+                <ChevronRight className="size-4 shrink-0" aria-hidden />
+              </>
+            )}
+          </button>
+        </footer>
       </div>
-      <footer className="flex shrink-0 justify-end px-6 pt-4 pb-[calc(env(safe-area-inset-bottom,0px)+1.5rem)]">
-        {/* Secondary "Skip" until an answer is picked, then primary "Next" (DESIGN.md §11.1, md size). */}
-        <button
-          type="button"
-          onClick={nextOrSkip}
-          className={cx(
-            "flex h-12 w-1/2 items-center justify-center gap-2 rounded-full px-5 text-md transition-colors duration-fast",
-            "outline-none focus-visible:outline-2 focus-visible:outline-border-focus focus-visible:ring-4 focus-visible:ring-ring-focus",
-            hasAnswer
-              ? "bg-primary font-bold text-primary-on hover:bg-primary-hover active:bg-primary-active"
-              : "bg-bg-elevated font-semibold text-text-primary hover:bg-state-hover active:bg-state-active",
-          )}
-        >
-          {hasAnswer ? (
-            "Next"
-          ) : (
-            <>
-              Skip
-              <ChevronRight className="size-4 shrink-0" aria-hidden />
-            </>
-          )}
-        </button>
-      </footer>
     </Page>
   );
 }
