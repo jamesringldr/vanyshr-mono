@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { Dialog, DialogButton } from "konsta/react";
 import { FileText, Fingerprint, Radar, ScanEye, ShieldAlert, ShieldCheck } from "lucide-react";
@@ -49,7 +49,7 @@ const PHASES = [
   { label: "Building your report", icon: FileText },
 ] as const;
 
-const SCAN_SLIDES: ScanSlide[] = [
+export const SCAN_SLIDES: ScanSlide[] = [
   { icon: Radar, headline: "Scan", sub: "We scan 1000s of brokers & dark web forums to find your data." },
   {
     icon: ScanEye,
@@ -107,7 +107,15 @@ export function FindMyDataLoadingPage() {
   return <LiveScan slides={slides} autoAdvanceMs={autoAdvanceMs} />;
 }
 
-type ViewProps = { slides: ScanSlide[]; autoAdvanceMs?: number };
+type ViewProps = {
+  slides: ScanSlide[];
+  autoAdvanceMs?: number;
+  /**
+   * Replaces ScanLoadingView while the scan is still finding the user (searching, picking a
+   * profile, no results, error). /finding-your-data uses it; the modals render either way.
+   */
+  matchingView?: ReactNode;
+};
 
 function PreviewScan({ slides, autoAdvanceMs, complete }: ViewProps & { complete: boolean }) {
   const [activeIndex, setActiveIndex] = useState(0);
@@ -128,7 +136,7 @@ function PreviewScan({ slides, autoAdvanceMs, complete }: ViewProps & { complete
   );
 }
 
-function LiveScan({ slides, autoAdvanceMs }: ViewProps) {
+export function LiveScan({ slides, autoAdvanceMs, matchingView }: ViewProps) {
   const navigate = useNavigate();
 
   const [phase, setPhase] = useState<Phase>("searching");
@@ -420,9 +428,13 @@ function LiveScan({ slides, autoAdvanceMs }: ViewProps) {
   }
 
   const pickOpen = phase === "pick";
+  const stillMatching = phase === "searching" || phase === "pick" || phase === "no_results" || phase === "error";
 
   return (
     <>
+      {matchingView && stillMatching ? (
+        matchingView
+      ) : (
       <ScanLoadingView
         slides={slides}
         autoAdvanceMs={autoAdvanceMs}
@@ -431,6 +443,7 @@ function LiveScan({ slides, autoAdvanceMs }: ViewProps) {
         status={phase === "report" ? "complete" : "scanning"}
         onComplete={() => navigate(REPORT_PATH, { replace: true })}
       />
+      )}
 
       <QSResultSingleModal
         isOpen={pickOpen && profiles.length === 1}

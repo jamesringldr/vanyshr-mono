@@ -43,6 +43,7 @@ import { SelfScanLoadingPage } from "./pages/self-scan/loading";
 import { SelfScanReportPage } from "./pages/self-scan/report";
 import { FindMyDataPage } from "./pages/find-my-data";
 import { FindMyDataLoadingPage } from "./pages/find-my-data-loading";
+import { FindingYourDataPage } from "./pages/finding-your-data";
 import { LearnMorePage } from "./pages/learn-more";
 
 // Dashboard pages
@@ -223,6 +224,7 @@ export default function App() {
             <Route path="/self-scan/report" element={<SelfScanReportPage />} />
 
             <Route path="/loading" element={<FindMyDataLoadingPage />} />
+            <Route path="/finding-your-data" element={<FindingYourDataPage />} />
             <Route path="/report" element={<SelfScanReportPage startOverPath="/" />} />
 
             {/* Settings */}

@@ -40,7 +40,7 @@ function useIsLightTheme(): boolean {
 }
 
 /** Three white dots pulsing in sequence; static when not animated. */
-function PulseDots({ animated }: { animated: boolean }) {
+export function PulseDots({ animated }: { animated: boolean }) {
     return (
         <span className="ml-1 flex shrink-0 items-center gap-1" aria-hidden>
             {[0, 1, 2].map((dot) => (
@@ -57,6 +57,28 @@ function PulseDots({ animated }: { animated: boolean }) {
                 />
             ))}
         </span>
+    );
+}
+
+/** Vinnie bobbing through the scan expression cycle. Size him with `className` (h-/w-). */
+export function ScanVinnie({ className }: { className?: string }) {
+    const isLight = useIsLightTheme();
+    const reduceMotion = useReducedMotion();
+
+    return (
+        <motion.div
+            className="shrink-0"
+            animate={reduceMotion ? undefined : { y: ["0%", "-8%", "0%"] }}
+            transition={{ duration: 3, ease: "easeInOut", repeat: Infinity }}
+        >
+            <Vinnie
+                colorway={isLight ? "navy" : "primary"}
+                cycle={VINNIE_CYCLE}
+                hold={1400}
+                className={cx("drop-shadow-lg drop-shadow-primary/40", className)}
+                aria-hidden
+            />
+        </motion.div>
     );
 }
 
@@ -104,7 +126,6 @@ function ShimmerLabel({ children, animated }: { children: ReactNode; animated: b
  * Vinnie on the left and a three-row phase ticker on the right. The active phase sits in the middle row.
  */
 export function ScanProgressCard({ phases, activeIndex, status = "scanning", className }: ScanProgressCardProps) {
-    const isLight = useIsLightTheme();
     const reduceMotion = useReducedMotion();
     const scanning = status === "scanning";
     const animated = scanning && !reduceMotion;
@@ -130,19 +151,7 @@ export function ScanProgressCard({ phases, activeIndex, status = "scanning", cla
             </p>
 
             <div className="flex items-center gap-4">
-            <motion.div
-                className="shrink-0"
-                animate={reduceMotion ? undefined : { y: ["0%", "-8%", "0%"] }}
-                transition={{ duration: 3, ease: "easeInOut", repeat: Infinity }}
-            >
-                <Vinnie
-                    colorway={isLight ? "navy" : "primary"}
-                    cycle={VINNIE_CYCLE}
-                    hold={1400}
-                    className="h-16 w-16 drop-shadow-lg drop-shadow-primary/40"
-                    aria-hidden
-                />
-            </motion.div>
+            <ScanVinnie className="h-16 w-16" />
 
             <ul className="flex min-w-0 flex-1 flex-col">
                 {slots.map((index) => {
