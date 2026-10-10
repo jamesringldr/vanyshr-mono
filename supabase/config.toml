@@ -417,6 +417,10 @@ verify_jwt = false
 [functions.universal-details]
 verify_jwt = false
 
+# Pre-auth: called from /finding-your-data before signup; writes via service role.
+[functions.save-scan-response]
+verify_jwt = false
+
 [edge_runtime]
 enabled = true
 # Supported request policies: `oneshot`, `per_worker`.

@@ -348,7 +348,7 @@ export function FindMyDataPage() {
           }),
         );
 
-        navigate("/loading");
+        navigate("/finding-your-data");
       } catch (err) {
         setSubmitError(err instanceof Error ? err.message : "Could not start scan");
       } finally {

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { Dialog, DialogButton } from "konsta/react";
 import { FileText, Fingerprint, Radar, ScanEye, ShieldAlert, ShieldCheck } from "lucide-react";
@@ -42,14 +42,14 @@ import {
  * settled state); ?fast advances slides every 4s; ?empty passes no slides.
  */
 
-const PHASES = [
+export const PHASES = [
   { label: "Sweeping broker sites", icon: Radar },
   { label: "Matching listings to you", icon: Fingerprint },
   { label: "Checking the dark web", icon: ShieldAlert },
   { label: "Building your report", icon: FileText },
 ] as const;
 
-const SCAN_SLIDES: ScanSlide[] = [
+export const SCAN_SLIDES: ScanSlide[] = [
   { icon: Radar, headline: "Scan", sub: "We scan 1000s of brokers & dark web forums to find your data." },
   {
     icon: ScanEye,
@@ -68,14 +68,14 @@ const SCAN_SLIDES: ScanSlide[] = [
 ];
 
 const PREVIEW_PHASE_MS = 2500;
-const REPORT_PATH = "/report";
+export const REPORT_PATH = "/report";
 const ENTRY_PATH = "/";
 
 // Background brokers share a 60s scrape timeout; 75 × 1s covers it with headroom.
 const MAX_ATTEMPTS = 75;
 const RETRY_DELAY_MS = 1000;
 
-type Phase = "searching" | "pick" | "full_profile" | "emails" | "report" | "error" | "no_results";
+export type Phase = "searching" | "pick" | "full_profile" | "emails" | "report" | "error" | "no_results";
 
 type ScanFields = {
   firstName: string;
@@ -85,7 +85,7 @@ type ScanFields = {
   state: string;
 };
 
-function cardIndex(phase: Phase, isConfirming: boolean): number {
+export function cardIndex(phase: Phase, isConfirming: boolean): number {
   if (phase === "searching") return 0;
   if (phase === "report") return 3;
   if (phase === "emails" && isConfirming) return 2;
@@ -107,7 +107,22 @@ export function FindMyDataLoadingPage() {
   return <LiveScan slides={slides} autoAdvanceMs={autoAdvanceMs} />;
 }
 
-type ViewProps = { slides: ScanSlide[]; autoAdvanceMs?: number };
+type ViewProps = {
+  slides: ScanSlide[];
+  autoAdvanceMs?: number;
+  /**
+   * Replaces ScanLoadingView while the scan is still finding the user (searching, picking a
+   * profile, no results, error). /finding-your-data uses it; the modals render either way.
+   */
+  matchingView?: ReactNode;
+  /**
+   * Replaces ScanLoadingView once a profile is picked (full profile, emails, report). Gets the
+   * status-card props; navigating to the report on completion is then the view's job.
+   */
+  renderPickedView?: (card: { activeIndex: number; status: "scanning" | "complete" }) => ReactNode;
+  /** Fired when the user confirms a profile ("Yes, this is me"), with the quick-scan id. */
+  onProfilePicked?: (quickScanId: string) => void;
+};
 
 function PreviewScan({ slides, autoAdvanceMs, complete }: ViewProps & { complete: boolean }) {
   const [activeIndex, setActiveIndex] = useState(0);
@@ -128,7 +143,7 @@ function PreviewScan({ slides, autoAdvanceMs, complete }: ViewProps & { complete
   );
 }
 
-function LiveScan({ slides, autoAdvanceMs }: ViewProps) {
+export function LiveScan({ slides, autoAdvanceMs, matchingView, renderPickedView, onProfilePicked }: ViewProps) {
   const navigate = useNavigate();
 
   const [phase, setPhase] = useState<Phase>("searching");
@@ -282,6 +297,7 @@ function LiveScan({ slides, autoAdvanceMs }: ViewProps) {
     go("full_profile");
 
     const quickscanId = quickScanIdRef.current;
+    if (quickscanId) onProfilePicked?.(quickscanId);
     if (!quickscanId) {
       setEmailCandidates([]);
       go("emails");
@@ -420,9 +436,20 @@ function LiveScan({ slides, autoAdvanceMs }: ViewProps) {
   }
 
   const pickOpen = phase === "pick";
+  const stillMatching = phase === "searching" || phase === "pick" || phase === "no_results" || phase === "error";
+
+  const cardProps = {
+    activeIndex: cardIndex(phase, isConfirming),
+    status: phase === "report" ? ("complete" as const) : ("scanning" as const),
+  };
 
   return (
     <>
+      {matchingView && stillMatching ? (
+        matchingView
+      ) : renderPickedView && !stillMatching ? (
+        renderPickedView(cardProps)
+      ) : (
       <ScanLoadingView
         slides={slides}
         autoAdvanceMs={autoAdvanceMs}
@@ -431,6 +458,7 @@ function LiveScan({ slides, autoAdvanceMs }: ViewProps) {
         status={phase === "report" ? "complete" : "scanning"}
         onComplete={() => navigate(REPORT_PATH, { replace: true })}
       />
+      )}
 
       <QSResultSingleModal
         isOpen={pickOpen && profiles.length === 1}
