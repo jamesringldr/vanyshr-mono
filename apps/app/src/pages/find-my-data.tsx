@@ -167,25 +167,32 @@ export function FindMyDataPage() {
   const keyboardOpen = keyboard.inset > 0;
 
   // The document behind the Page shows wherever iOS reserves space the Page can't cover
-  // (status bar, the keyboard's accessory bar). Navy at the top matches the app bar; with the
-  // drawer open the bottom half matches the drawer surface instead, and the document is locked
-  // so it can't be dragged past the drawer.
+  // (status bar, the keyboard's accessory bar) and whenever the visual viewport is panned.
+  // Which part of it is visible varies, so the whole thing is a solid color rather than a
+  // gradient: navy normally, the drawer surface while the drawer is open (plus a navy status-bar
+  // band so the top still matches the app bar). The document is locked so it can't be dragged.
   useEffect(() => {
     const html = document.documentElement;
     const body = document.body;
-    const prev = {
-      htmlBg: html.style.background,
-      bodyBg: body.style.background,
+    const targets = [html, body];
+    const props = ["backgroundColor", "backgroundImage", "backgroundSize", "backgroundRepeat", "backgroundPosition"] as const;
+    const prevStyles = targets.map((el) => props.map((p) => el.style[p]));
+    const prevLock = {
       htmlOverflow: html.style.overflow,
       htmlOverscroll: html.style.overscrollBehavior,
       bodyPosition: body.style.position,
       bodyInset: body.style.inset,
       bodyWidth: body.style.width,
     };
-    const navy = "var(--color-brand-navy)";
-    const bg = isOpen ? `linear-gradient(to bottom, ${navy} 50%, var(--color-bg-surface) 50%)` : navy;
-    html.style.background = bg;
-    body.style.background = bg;
+    for (const el of targets) {
+      el.style.backgroundColor = isOpen ? "var(--color-bg-surface)" : "var(--color-brand-navy)";
+      if (isOpen) {
+        el.style.backgroundImage = "linear-gradient(var(--color-brand-navy), var(--color-brand-navy))";
+        el.style.backgroundSize = "100% env(safe-area-inset-top)";
+        el.style.backgroundRepeat = "no-repeat";
+        el.style.backgroundPosition = "top";
+      }
+    }
     if (isOpen) {
       html.style.overflow = "hidden";
       html.style.overscrollBehavior = "none";
@@ -194,13 +201,12 @@ export function FindMyDataPage() {
       body.style.width = "100%";
     }
     return () => {
-      html.style.background = prev.htmlBg;
-      body.style.background = prev.bodyBg;
-      html.style.overflow = prev.htmlOverflow;
-      html.style.overscrollBehavior = prev.htmlOverscroll;
-      body.style.position = prev.bodyPosition;
-      body.style.inset = prev.bodyInset;
-      body.style.width = prev.bodyWidth;
+      targets.forEach((el, t) => props.forEach((p, k) => (el.style[p] = prevStyles[t][k])));
+      html.style.overflow = prevLock.htmlOverflow;
+      html.style.overscrollBehavior = prevLock.htmlOverscroll;
+      body.style.position = prevLock.bodyPosition;
+      body.style.inset = prevLock.bodyInset;
+      body.style.width = prevLock.bodyWidth;
     };
   }, [isOpen]);
 
