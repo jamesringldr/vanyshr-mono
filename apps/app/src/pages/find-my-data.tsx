@@ -166,16 +166,43 @@ export function FindMyDataPage() {
   const keyboard = useKeyboardInset();
   const keyboardOpen = keyboard.inset > 0;
 
-  // Same navy as the Page, so any overscroll/rubber-banding shows brand color, not black.
+  // The document behind the Page shows wherever iOS reserves space the Page can't cover
+  // (status bar, the keyboard's accessory bar). Navy at the top matches the app bar; with the
+  // drawer open the bottom half matches the drawer surface instead, and the document is locked
+  // so it can't be dragged past the drawer.
   useEffect(() => {
-    const prev = [document.documentElement.style.background, document.body.style.background];
-    document.documentElement.style.background = "var(--color-brand-navy)";
-    document.body.style.background = "var(--color-brand-navy)";
-    return () => {
-      document.documentElement.style.background = prev[0];
-      document.body.style.background = prev[1];
+    const html = document.documentElement;
+    const body = document.body;
+    const prev = {
+      htmlBg: html.style.background,
+      bodyBg: body.style.background,
+      htmlOverflow: html.style.overflow,
+      htmlOverscroll: html.style.overscrollBehavior,
+      bodyPosition: body.style.position,
+      bodyInset: body.style.inset,
+      bodyWidth: body.style.width,
     };
-  }, []);
+    const navy = "var(--color-brand-navy)";
+    const bg = isOpen ? `linear-gradient(to bottom, ${navy} 50%, var(--color-bg-surface) 50%)` : navy;
+    html.style.background = bg;
+    body.style.background = bg;
+    if (isOpen) {
+      html.style.overflow = "hidden";
+      html.style.overscrollBehavior = "none";
+      body.style.position = "fixed";
+      body.style.inset = "0";
+      body.style.width = "100%";
+    }
+    return () => {
+      html.style.background = prev.htmlBg;
+      body.style.background = prev.bodyBg;
+      html.style.overflow = prev.htmlOverflow;
+      html.style.overscrollBehavior = prev.htmlOverscroll;
+      body.style.position = prev.bodyPosition;
+      body.style.inset = prev.bodyInset;
+      body.style.width = prev.bodyWidth;
+    };
+  }, [isOpen]);
 
   // Viewport vertical center, in the hero container's own coordinates, so the
   // title's "from" row can be anchored to the true viewport center (the
