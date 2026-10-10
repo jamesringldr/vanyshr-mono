@@ -147,12 +147,24 @@ function useKeyboardInset() {
         visibleHeight: Math.round(vv.height),
         offsetTop: Math.round(vv.offsetTop),
       });
+    // iOS can report mid-animation values on focus and not fire again until the user scrolls,
+    // so re-measure a few times while the keyboard settles.
+    let timers: number[] = [];
+    const settle = () => {
+      timers.forEach(clearTimeout);
+      timers = [100, 300, 600].map((ms) => window.setTimeout(update, ms));
+    };
     update();
     vv.addEventListener("resize", update);
     vv.addEventListener("scroll", update);
+    document.addEventListener("focusin", settle);
+    document.addEventListener("focusout", settle);
     return () => {
+      timers.forEach(clearTimeout);
       vv.removeEventListener("resize", update);
       vv.removeEventListener("scroll", update);
+      document.removeEventListener("focusin", settle);
+      document.removeEventListener("focusout", settle);
     };
   }, []);
 
@@ -340,8 +352,9 @@ export function FindMyDataPage() {
     <>
     {/* iOS keeps a strip between the visual viewport and the keyboard (its accessory bar and URL
         pill) that the Page can't reach; fill it with the drawer's surface so the drawer appears to
-        run down to the keyboard. Fixed to the layout viewport, outside the transformed Page. */}
-    {isOpen && keyboardOpen && (
+        run down to the keyboard. Fixed to the layout viewport, outside the transformed Page.
+        With the keyboard down its top is the screen bottom, so it's simply off-screen. */}
+    {isOpen && (
       <div
         aria-hidden="true"
         className="pointer-events-none fixed inset-x-0 z-40 bg-bg-surface"
