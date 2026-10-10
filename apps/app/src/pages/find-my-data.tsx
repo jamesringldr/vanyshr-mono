@@ -431,7 +431,7 @@ export function FindMyDataPage() {
                         disabled={isSubmitting}
                         autoFocus
                         autoComplete="given-name"
-                        className="h-11 w-full rounded-md border border-border bg-bg-elevated px-4 text-[13.2px] text-text-primary placeholder:text-text-tertiary outline-none transition-colors duration-fast focus:border-border-focus disabled:opacity-50"
+                        className="h-11 w-full rounded-md border border-border bg-bg-elevated px-4 text-[16px] text-text-primary placeholder:text-text-tertiary outline-none transition-colors duration-fast focus:border-border-focus disabled:opacity-50"
                       />
                     </div>
                     <div className="min-w-0 flex-1">
@@ -446,7 +446,7 @@ export function FindMyDataPage() {
                         onChange={(e) => setLastName(e.target.value)}
                         disabled={isSubmitting}
                         autoComplete="family-name"
-                        className="h-11 w-full rounded-md border border-border bg-bg-elevated px-4 text-[13.2px] text-text-primary placeholder:text-text-tertiary outline-none transition-colors duration-fast focus:border-border-focus disabled:opacity-50"
+                        className="h-11 w-full rounded-md border border-border bg-bg-elevated px-4 text-[16px] text-text-primary placeholder:text-text-tertiary outline-none transition-colors duration-fast focus:border-border-focus disabled:opacity-50"
                       />
                     </div>
                   </div>
@@ -466,30 +466,28 @@ export function FindMyDataPage() {
                       disabled={isSubmitting}
                       autoComplete="postal-code"
                       className={cx(
-                        "h-11 w-full rounded-md border bg-bg-elevated px-4 text-[13.2px] text-text-primary placeholder:text-text-tertiary outline-none transition-colors duration-fast disabled:opacity-50",
+                        "h-11 w-full rounded-md border bg-bg-elevated px-4 text-[16px] text-text-primary placeholder:text-text-tertiary outline-none transition-colors duration-fast disabled:opacity-50",
                         zipStatus === "invalid" ? "border-status-danger" : "border-border focus:border-border-focus",
                       )}
                     />
-                    {zipStatus === "valid" && zipLocation && (
+                    {(zipStatus === "checking" || zipStatus === "invalid" || (zipStatus === "valid" && zipLocation)) && (
                       // Mirrors the typed zip invisibly so the city/state lands right after it, inside the field.
                       <span
                         aria-hidden="true"
-                        className="pointer-events-none absolute inset-0 flex items-center whitespace-pre px-4 text-[13.2px]"
+                        className="pointer-events-none absolute inset-0 flex items-center whitespace-pre px-4 text-[16px]"
                       >
                         <span className="invisible">{zipCode}</span>
                         <span className="text-text-tertiary">{"  |  "}</span>
-                        <span className="font-medium text-primary-text">
-                          {zipLocation.city}, {zipLocation.state}
-                        </span>
+                        {zipStatus === "invalid" ? (
+                          <span className="font-medium text-status-danger">Invalid zip</span>
+                        ) : (
+                          <span className="font-medium text-text-secondary">
+                            {zipStatus === "checking" || !zipLocation ? "Checking zip…" : `${zipLocation.city}, ${zipLocation.state}`}
+                          </span>
+                        )}
                       </span>
                     )}
                     </div>
-                    {zipStatus === "invalid" && (
-                      <p className="mt-1 px-1 text-xs font-medium text-status-danger">Enter a valid US zip code</p>
-                    )}
-                    {zipStatus === "checking" && (
-                      <p className="mt-1 px-1 text-xs text-text-tertiary">Checking zip…</p>
-                    )}
                   </div>
                 </div>
               </div>
