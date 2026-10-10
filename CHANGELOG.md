@@ -66,6 +66,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The find-my-data Get Started drawer is redesigned: new "Let's find your data!" heading, first/last name side by side, a full-width zip field that shows city/state, "Checking zip…" and "Invalid zip" inside the field, and the privacy blurb removed. Inputs are 16px so iOS Safari no longer zooms on focus.
 - The find-my-data Get Started drawer no longer shows a black gap on iOS when the keyboard is open: the page is pinned to the visible area and the document behind it is brand navy.
 - The find-my-data Get Started drawer locks the page behind it so it can't be dragged, and the space around the iOS keyboard toolbar now matches the drawer color instead of showing the page background.
+- The find-my-data Get Started drawer's backdrop is now a single solid drawer-colored surface, so the strip beneath the drawer no longer flips between blue, black and gray as the iOS screen shifts.
 - `/pilot-scan/report` partially converted to the design system (work in progress)
 
 - `RollingThreatWord` is extracted out of the self-scan entry page and shared with `/referral`, taking its word list as a prop. Its slot is now sized to the widest *rendered* word rather than the longest by character count — equal-length words differ in width, so the slot was under-sized and the line shifted as the word cycled. The positioning pill moved to `scanUi.pill` for the same reason.
