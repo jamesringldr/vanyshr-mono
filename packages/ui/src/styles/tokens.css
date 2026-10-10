@@ -12,6 +12,8 @@
   --color-brand-cyan: #14abfe;
   --color-brand-orange: #ff6924;
   --color-brand-navy: #070f1c;
+  /* TEMPORARY (2026-10-10): side-by-side blue test on /finding-your-data. Not a brand color — remove once decided. */
+  --color-temp-blue-test: #0b1b2b;
   --color-brand-cyan-on-light: #0077cc;
   --color-brand-orange-on-light: #b84300;
 

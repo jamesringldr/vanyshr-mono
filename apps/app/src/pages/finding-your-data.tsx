@@ -54,7 +54,7 @@ function MatchingProfileView() {
   const reduceMotion = useReducedMotion();
 
   return (
-    <Page className="flex flex-col items-center justify-center bg-bg-app px-6 font-body" role="main" aria-label="Matching your profile">
+    <Page className="flex flex-col items-center justify-center bg-temp-blue-test! px-6 font-body" role="main" aria-label="Matching your profile">
       {/* Same Vinnie as the scan status card (h-16), 3x larger. */}
       <ScanVinnie className="h-48 w-48" />
       <h1 role="status" className="m-0 mt-6 text-center text-xl font-bold text-text-primary">
@@ -198,7 +198,7 @@ function PickedView({ activeIndex, status }: { activeIndex: number; status: "sca
   };
 
   return (
-    <Page className="flex h-dvh flex-col bg-bg-app font-body" role="main" aria-label="Scanning in progress">
+    <Page className="flex h-dvh flex-col bg-temp-blue-test! font-body" role="main" aria-label="Scanning in progress">
       <header className="mx-4 shrink-0 pt-[calc(env(safe-area-inset-top,0px)+1rem)]">
         <ScanProgressCard phases={PHASES} activeIndex={activeIndex} status={status} className="w-full" />
       </header>
