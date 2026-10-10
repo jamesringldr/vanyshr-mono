@@ -72,6 +72,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The drawer-colored strip above the iOS keyboard is now placed correctly on the first tap of Get started, instead of only after scrolling.
 - While a Get Started drawer field has focus, the page background matches the drawer so the gap above the iOS keyboard is drawer-colored from the first tap.
 - The Get Started drawer's first name, last name and zip inputs now carry `name` attributes alongside `autocomplete`, so iOS Safari can offer contact AutoFill.
+- Scan result modals ("Is this you?", no results) use the design-system buttons: white-on-cyan pill primary and outline secondary. The dark web email modal is retitled "Dark Web Scan" with new subtext, a white selection label and counter, and an "All plans include Dark Web Monitoring for unlimited emails" note.
 - `/pilot-scan/report` partially converted to the design system (work in progress)
 
 - `RollingThreatWord` is extracted out of the self-scan entry page and shared with `/referral`, taking its word list as a prop. Its slot is now sized to the widest *rendered* word rather than the longest by character count — equal-length words differ in width, so the slot was under-sized and the line shifted as the word cycled. The positioning pill moved to `scanUi.pill` for the same reason.
