@@ -525,6 +525,7 @@ export function FindMyDataPage() {
                       </label>
                       <input
                         id="fmd-first-name"
+                        name="given-name"
                         type="text"
                         placeholder="First Name"
                         value={firstName}
@@ -541,6 +542,7 @@ export function FindMyDataPage() {
                       </label>
                       <input
                         id="fmd-last-name"
+                        name="family-name"
                         type="text"
                         placeholder="Last Name"
                         value={lastName}
@@ -558,6 +560,7 @@ export function FindMyDataPage() {
                     <div className="relative">
                     <input
                       id="fmd-zip"
+                      name="postal-code"
                       type="text"
                       inputMode="numeric"
                       maxLength={5}
