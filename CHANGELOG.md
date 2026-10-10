@@ -74,6 +74,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The Get Started drawer's first name, last name and zip inputs now carry `name` attributes alongside `autocomplete`, so iOS Safari can offer contact AutoFill.
 - Scan result modals ("Is this you?", no results) use the design-system buttons: white-on-cyan pill primary and outline secondary. The dark web email modal is retitled "Dark Web Scan" with new subtext, a white selection label and counter, and an "All plans include Dark Web Monitoring for unlimited emails" note.
 - Dark web email modal: selected and newly added emails move to the top of the list, an "XX emails found" line shows the scan's count, the add-email input is 16px so iOS doesn't zoom, and when no emails are found it shows a thumbs-up "Great News!" state with "Add up to 3" / "Add Email" wording.
+- The scan status card on `/loading` has a bold "Finding your data" title with the pulsing loader after it; the loader no longer sits on the current step.
 - `/pilot-scan/report` partially converted to the design system (work in progress)
 
 - `RollingThreatWord` is extracted out of the self-scan entry page and shared with `/referral`, taking its word list as a prop. Its slot is now sized to the widest *rendered* word rather than the longest by character count — equal-length words differ in width, so the slot was under-sized and the line shifted as the word cycled. The positioning pill moved to `scanUi.pill` for the same reason.
