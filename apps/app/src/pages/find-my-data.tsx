@@ -136,7 +136,7 @@ const primaryButton = cx(
 
 // Mobile keyboards overlay the layout viewport rather than resizing it; only visualViewport shrinks.
 function useKeyboardInset() {
-  const [state, setState] = useState({ inset: 0, visibleHeight: 0 });
+  const [state, setState] = useState({ inset: 0, visibleHeight: 0, offsetTop: 0 });
 
   useEffect(() => {
     const vv = window.visualViewport;
@@ -145,6 +145,7 @@ function useKeyboardInset() {
       setState({
         inset: Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop)),
         visibleHeight: Math.round(vv.height),
+        offsetTop: Math.round(vv.offsetTop),
       });
     update();
     vv.addEventListener("resize", update);
@@ -164,6 +165,17 @@ export function FindMyDataPage() {
   const prefersReducedMotion = useReducedMotion();
   const keyboard = useKeyboardInset();
   const keyboardOpen = keyboard.inset > 0;
+
+  // Same navy as the Page, so any overscroll/rubber-banding shows brand color, not black.
+  useEffect(() => {
+    const prev = [document.documentElement.style.background, document.body.style.background];
+    document.documentElement.style.background = "var(--color-brand-navy)";
+    document.body.style.background = "var(--color-brand-navy)";
+    return () => {
+      document.documentElement.style.background = prev[0];
+      document.body.style.background = prev[1];
+    };
+  }, []);
 
   // Viewport vertical center, in the hero container's own coordinates, so the
   // title's "from" row can be anchored to the true viewport center (the
@@ -288,7 +300,19 @@ export function FindMyDataPage() {
   );
 
   return (
-    <Page className="flex flex-col bg-brand-navy! font-body" role="main" aria-label="Find my data">
+    <Page
+      className="flex flex-col bg-brand-navy! font-body"
+      role="main"
+      aria-label="Find my data"
+      // iOS scrolls the layout viewport to reveal a focused input, which exposed the
+      // (black) document behind this full-height Page. While the keyboard is up, pin the
+      // Page to the visual viewport instead so there is nothing behind it to scroll to.
+      style={
+        keyboardOpen
+          ? { height: keyboard.visibleHeight, transform: `translateY(${keyboard.offsetTop}px)` }
+          : undefined
+      }
+    >
       {isOpen ? (
         <Navbar
           className="static! mb-0 bg-transparent! [&>div:empty]:hidden!"
@@ -394,14 +418,7 @@ export function FindMyDataPage() {
             opened={isOpen}
             onBackdropClick={() => setIsOpen(false)}
             className="flex max-h-[66%] flex-col rounded-t-lg! shadow-xl!"
-            style={
-              keyboardOpen
-                ? {
-                    top: `calc(100% - ${keyboard.inset}px)`,
-                    maxHeight: `${keyboard.visibleHeight - 16}px`,
-                  }
-                : undefined
-            }
+            style={keyboardOpen ? { maxHeight: `${keyboard.visibleHeight - 16}px` } : undefined}
           >
             <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
               <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-6 pt-5">
