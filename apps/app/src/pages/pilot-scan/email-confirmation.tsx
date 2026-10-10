@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
-import { Plus } from "lucide-react";
+import { Plus, ThumbsUp } from "lucide-react";
 import { cx } from "@/utils/cx";
 
 export type EmailConfirmationModalProps = {
@@ -89,6 +89,8 @@ export function EmailConfirmationModal({
 }: EmailConfirmationModalProps) {
   const prefersReducedMotion = useReducedMotion();
   const [emails, setEmails] = useState<EmailItem[]>(() => toItems(uniqueEmailValues(initialEmails)));
+  // Emails the scan surfaced — fixed at open, so addresses the user types in don't count as "found".
+  const [foundCount] = useState(() => uniqueEmailValues(initialEmails).length);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [newEmailInput, setNewEmailInput] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -152,6 +154,16 @@ export function EmailConfirmationModal({
   };
 
   const selectedCount = selectedIds.length;
+  const noneFound = foundCount === 0;
+
+  // Selected (and newly added, which arrive selected) emails float to the top in the order they
+  // were picked; unselected ones keep their original order, so a deselected email drops back to
+  // where it started.
+  const byId = new Map(emails.map((e) => [e.id, e]));
+  const orderedEmails = [
+    ...selectedIds.map((id) => byId.get(id)).filter((e): e is EmailItem => e !== undefined),
+    ...emails.filter((e) => !selectedIds.includes(e.id)),
+  ];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-bg-page/80 p-4 backdrop-blur-sm">
@@ -171,9 +183,12 @@ export function EmailConfirmationModal({
         </div>
 
         <div className="max-h-[40vh] overflow-y-auto p-4">
+          <p className="mb-1 text-sm font-bold uppercase tracking-widest text-text-primary">
+            <span className={cx("text-lg", noneFound ? "text-status-success" : "text-accent-text")}>{foundCount}</span> {foundCount === 1 ? "email" : "emails"} found
+          </p>
           <div className="mb-1 flex items-center justify-between">
             <span className="text-xs font-medium uppercase tracking-widest text-text-primary">
-              Select up to {MAX_SELECTED}
+              {noneFound ? "Add" : "Select"} up to {MAX_SELECTED}
             </span>
             <span
               className="text-sm font-medium tabular-nums text-text-primary"
@@ -185,11 +200,13 @@ export function EmailConfirmationModal({
 
           {emails.length > 0 ? (
             <div className="flex flex-wrap gap-2" role="group" aria-label="Emails to include">
-              {emails.map((email) => {
+              {orderedEmails.map((email) => {
                 const isSelected = selectedIds.includes(email.id);
                 return (
-                  <button
+                  <motion.button
                     key={email.id}
+                    layout={!prefersReducedMotion}
+                    transition={{ duration: 0.22, ease: [0.2, 0, 0, 1] }}
                     type="button"
                     role="checkbox"
                     aria-checked={isSelected}
@@ -207,14 +224,18 @@ export function EmailConfirmationModal({
                     )}
                   >
                     {email.value}
-                  </button>
+                  </motion.button>
                 );
               })}
             </div>
           ) : (
-            <p className="rounded-md border border-border px-4 py-3 text-md text-text-tertiary">
-              We didn't find any emails on your broker profiles. Add one below to scan it.
-            </p>
+            <div className="flex flex-col items-center px-4 py-3 text-center">
+              <ThumbsUp className="size-8 text-status-success" aria-hidden="true" />
+              <p className="m-0 mt-2 text-md font-bold text-text-primary">
+                Great News! Our scan didn&apos;t find any of your emails
+              </p>
+              <p className="m-0 mt-1 text-sm text-text-secondary">Add emails for the dark web scan</p>
+            </div>
           )}
         </div>
 
@@ -224,7 +245,7 @@ export function EmailConfirmationModal({
             htmlFor="add-email"
             className="mb-2 block text-xs font-medium uppercase tracking-widest text-text-secondary"
           >
-            Add another email
+            {noneFound ? "Add Email" : "Add another email"}
           </label>
           <div className="flex gap-2">
             <input
@@ -237,7 +258,8 @@ export function EmailConfirmationModal({
               }}
               placeholder="another@email.com"
               className={cx(
-                "h-11 min-w-0 flex-1 rounded-md border px-3 text-md",
+                // 16px like the find-my-data drawer inputs — iOS Safari zooms in on focus below 16px.
+                "h-11 min-w-0 flex-1 rounded-md border px-3 text-[16px]",
                 "border-border bg-bg-elevated text-text-primary placeholder:text-text-tertiary",
                 "outline-none transition-colors duration-fast",
                 "focus:border-border-focus focus-visible:ring-2 focus-visible:ring-border-focus",
