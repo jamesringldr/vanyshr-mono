@@ -33,18 +33,19 @@ export const qsModal = {
         "border-border-subtle bg-bg-page text-text-primary placeholder:text-text-tertiary",
         "outline-none transition-colors duration-150 focus:border-accent-primary focus:ring-1 focus:ring-accent-primary",
     ),
+    // Primary button, DESIGN.md §11.1 (md size).
     primaryBtn: cx(
-        "inline-flex min-h-12 items-center justify-center rounded-lg bg-accent-primary px-4",
-        "text-[15px] font-semibold text-brand-ink transition-colors duration-150",
-        "hover:bg-accent-hover",
-        "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-primary",
-        "disabled:cursor-not-allowed disabled:bg-disabled disabled:text-text-tertiary",
+        "inline-flex h-12 items-center justify-center gap-2 rounded-full px-5 text-md font-bold transition-colors duration-fast",
+        "bg-primary text-primary-on enabled:hover:bg-primary-hover enabled:active:bg-primary-active",
+        "focus-visible:outline-2 focus-visible:outline-border-focus focus-visible:ring-4 focus-visible:ring-ring-focus",
+        "disabled:cursor-not-allowed disabled:border disabled:border-border disabled:bg-state-disabled-bg disabled:text-text-disabled",
     ),
+    // Outline button, DESIGN.md §11.1 — outline rather than secondary because it sits on bg-surface.
     secondaryBtn: cx(
-        "inline-flex min-h-12 items-center justify-center rounded-lg border border-border-subtle bg-bg-page px-4",
-        "text-[15px] font-semibold text-text-primary transition-colors duration-150",
-        "hover:bg-bg-surface-secondary",
-        "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-primary",
+        "inline-flex h-12 items-center justify-center gap-2 rounded-full border border-border bg-transparent px-5 text-md font-semibold text-text-primary transition-colors duration-fast",
+        "enabled:hover:bg-state-hover enabled:active:bg-state-active",
+        "focus-visible:outline-2 focus-visible:outline-border-focus focus-visible:ring-4 focus-visible:ring-ring-focus",
+        "disabled:cursor-not-allowed disabled:text-text-disabled",
     ),
     option: "flex w-full items-center gap-3 rounded-lg border px-4 py-3 text-left text-[15px] text-text-primary transition-colors duration-150",
     optionOn: "border-accent-primary",
