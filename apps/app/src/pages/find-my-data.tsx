@@ -2,7 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useNavigate } from "react-router";
 import { Navbar, Page, Sheet } from "konsta/react";
-import { ChevronDown, ChevronRight, LoaderCircle, Menu, ShieldCheck, UserRoundSearch, Zap } from "lucide-react";
+import { ChevronDown, ChevronRight, LoaderCircle, Menu, ShieldCheck, Zap } from "lucide-react";
 import { cx } from "@/utils/cx";
 import { BrandMark } from "@/components/BrandMark";
 import { supabase } from "@/lib/supabase";
@@ -405,63 +405,56 @@ export function FindMyDataPage() {
           >
             <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
               <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-6 pt-5">
-                <span className="inline-flex w-fit items-center gap-1.5 rounded-pill border border-primary-border bg-primary-muted px-3 py-1 text-xs font-medium text-primary-text">
+                <span className="inline-flex w-fit items-center gap-1.5 self-center rounded-full border border-primary-border bg-primary-muted px-3 py-1 text-xs font-medium text-primary-text">
                   <Zap className="size-3.5 shrink-0" aria-hidden="true" />
                   Get Real Results in ~3min
                 </span>
 
-                <div className="flex items-stretch gap-3">
-                  <div className="relative w-1/5 shrink-0" aria-hidden="true">
-                    <UserRoundSearch className="absolute inset-0 size-full text-text-primary" />
-                  </div>
-                  <p className="m-0 w-4/5 text-left text-lg font-semibold text-text-primary">
-                    Find your exposures and get a clear plan on how to start vanyshing
-                  </p>
-                </div>
-
-                <div className="text-left">
-                  <p className="m-0 text-sm font-bold text-text-primary">Your privacy is paramount</p>
-                  <p className="m-0 mt-1 text-xs text-text-secondary">
-                    Data from scans is not saved, shared, or used for marketing
-                  </p>
-                </div>
+                <p className="m-0 text-left text-lg font-semibold text-text-primary">
+                  <span style={{ fontSize: 18.75 }}>Let&apos;s find your data!</span>
+                  <br />
+                  Get a tailored plan to start Vanyshing
+                </p>
 
                 <div className="flex flex-col gap-3">
-                  <div>
-                    <label htmlFor="fmd-first-name" className="sr-only">
-                      First Name
-                    </label>
-                    <input
-                      id="fmd-first-name"
-                      type="text"
-                      placeholder="First Name"
-                      value={firstName}
-                      onChange={(e) => setFirstName(e.target.value)}
-                      disabled={isSubmitting}
-                      autoFocus
-                      autoComplete="given-name"
-                      className="h-11 w-full rounded-md border border-border bg-bg-elevated px-4 text-sm text-text-primary placeholder:text-text-tertiary outline-none transition-colors duration-fast focus:border-border-focus disabled:opacity-50"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="fmd-last-name" className="sr-only">
-                      Last Name
-                    </label>
-                    <input
-                      id="fmd-last-name"
-                      type="text"
-                      placeholder="Last Name"
-                      value={lastName}
-                      onChange={(e) => setLastName(e.target.value)}
-                      disabled={isSubmitting}
-                      autoComplete="family-name"
-                      className="h-11 w-full rounded-md border border-border bg-bg-elevated px-4 text-sm text-text-primary placeholder:text-text-tertiary outline-none transition-colors duration-fast focus:border-border-focus disabled:opacity-50"
-                    />
+                  <div className="flex gap-3">
+                    <div className="min-w-0 flex-1">
+                      <label htmlFor="fmd-first-name" className="sr-only">
+                        First Name
+                      </label>
+                      <input
+                        id="fmd-first-name"
+                        type="text"
+                        placeholder="First Name"
+                        value={firstName}
+                        onChange={(e) => setFirstName(e.target.value)}
+                        disabled={isSubmitting}
+                        autoFocus
+                        autoComplete="given-name"
+                        className="h-11 w-full rounded-md border border-border bg-bg-elevated px-4 text-[13.2px] text-text-primary placeholder:text-text-tertiary outline-none transition-colors duration-fast focus:border-border-focus disabled:opacity-50"
+                      />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <label htmlFor="fmd-last-name" className="sr-only">
+                        Last Name
+                      </label>
+                      <input
+                        id="fmd-last-name"
+                        type="text"
+                        placeholder="Last Name"
+                        value={lastName}
+                        onChange={(e) => setLastName(e.target.value)}
+                        disabled={isSubmitting}
+                        autoComplete="family-name"
+                        className="h-11 w-full rounded-md border border-border bg-bg-elevated px-4 text-[13.2px] text-text-primary placeholder:text-text-tertiary outline-none transition-colors duration-fast focus:border-border-focus disabled:opacity-50"
+                      />
+                    </div>
                   </div>
                   <div>
                     <label htmlFor="fmd-zip" className="sr-only">
                       Zip Code
                     </label>
+                    <div className="relative">
                     <input
                       id="fmd-zip"
                       type="text"
@@ -473,15 +466,24 @@ export function FindMyDataPage() {
                       disabled={isSubmitting}
                       autoComplete="postal-code"
                       className={cx(
-                        "h-11 w-full rounded-md border bg-bg-elevated px-4 text-sm text-text-primary placeholder:text-text-tertiary outline-none transition-colors duration-fast disabled:opacity-50",
+                        "h-11 w-full rounded-md border bg-bg-elevated px-4 text-[13.2px] text-text-primary placeholder:text-text-tertiary outline-none transition-colors duration-fast disabled:opacity-50",
                         zipStatus === "invalid" ? "border-status-danger" : "border-border focus:border-border-focus",
                       )}
                     />
                     {zipStatus === "valid" && zipLocation && (
-                      <p className="mt-1 px-1 text-xs font-medium text-primary-text">
-                        {zipLocation.city}, {zipLocation.state}
-                      </p>
+                      // Mirrors the typed zip invisibly so the city/state lands right after it, inside the field.
+                      <span
+                        aria-hidden="true"
+                        className="pointer-events-none absolute inset-0 flex items-center whitespace-pre px-4 text-[13.2px]"
+                      >
+                        <span className="invisible">{zipCode}</span>
+                        <span className="text-text-tertiary">{"  |  "}</span>
+                        <span className="font-medium text-primary-text">
+                          {zipLocation.city}, {zipLocation.state}
+                        </span>
+                      </span>
                     )}
+                    </div>
                     {zipStatus === "invalid" && (
                       <p className="mt-1 px-1 text-xs font-medium text-status-danger">Enter a valid US zip code</p>
                     )}
