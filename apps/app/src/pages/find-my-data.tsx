@@ -200,7 +200,19 @@ export function FindMyDataPage() {
       body.style.inset = "0";
       body.style.width = "100%";
     }
+    // Safari tints its bottom toolbar from the page color and can keep the drawer's gray after
+    // the drawer closes; re-applying the color on the next frames forces it to re-sample.
+    let raf = 0;
+    if (!isOpen) {
+      raf = requestAnimationFrame(() => {
+        for (const el of targets) el.style.backgroundColor = "transparent";
+        raf = requestAnimationFrame(() => {
+          for (const el of targets) el.style.backgroundColor = "var(--color-brand-navy)";
+        });
+      });
+    }
     return () => {
+      cancelAnimationFrame(raf);
       targets.forEach((el, t) => props.forEach((p, k) => (el.style[p] = prevStyles[t][k])));
       html.style.overflow = prevLock.htmlOverflow;
       html.style.overscrollBehavior = prevLock.htmlOverscroll;
@@ -334,7 +346,7 @@ export function FindMyDataPage() {
 
   return (
     <Page
-      className="flex flex-col bg-brand-navy! font-body"
+      className={cx("flex flex-col bg-brand-navy! font-body", isOpen && "overflow-hidden!")}
       role="main"
       aria-label="Find my data"
       // iOS scrolls the layout viewport to reveal a focused input, which exposed the
