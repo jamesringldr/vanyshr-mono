@@ -173,7 +173,10 @@ export function LiveScan({ slides, autoAdvanceMs, matchingView, renderPickedView
   useEffect(() => {
     const raw = sessionStorage.getItem("pilotScanFields");
     const quickScanId = sessionStorage.getItem("pendingScanId");
-    if (!raw || !quickScanId) {
+    // The find-my-data drawer navigates here straight away and leaves the scan to be started
+    // here: fields plus a request id, no scan id yet.
+    const requestId = sessionStorage.getItem("pendingScanRequest");
+    if (!raw || (!quickScanId && !requestId)) {
       navigate(ENTRY_PATH, { replace: true });
       return;
     }
@@ -181,7 +184,24 @@ export function LiveScan({ slides, autoAdvanceMs, matchingView, renderPickedView
     fieldsRef.current = fields;
     setSearchName(`${fields.firstName} ${fields.lastName}`.trim());
     setRegion(fields.state || "");
-    beginSummaryScan(quickScanId);
+    if (quickScanId) {
+      beginSummaryScan(quickScanId);
+      return;
+    }
+
+    const run = scanRunRef.current;
+    invokeOnce(`intro-scan:${requestId}`, "intro-scan", fields).then(({ data, error }) => {
+      if (run !== scanRunRef.current) return;
+      if (error || !data?.id) {
+        setErrorMessage(error?.message || "Could not start scan");
+        go("error");
+        return;
+      }
+      // Stored so a reload resumes this scan instead of starting another.
+      sessionStorage.setItem("pendingScanId", String(data.id));
+      sessionStorage.removeItem("pendingScanRequest");
+      beginSummaryScan(String(data.id));
+    });
   }, []);
 
   function beginSummaryScan(quickScanId: string) {
