@@ -1,8 +1,18 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Page } from "konsta/react";
 import { useNavigate, useSearchParams } from "react-router";
-import { ChevronRight, EyeOff, MessageSquareOff, ScanSearch, ShieldAlert, type LucideIcon } from "lucide-react";
+import {
+  ArrowLeft,
+  ChevronRight,
+  EyeOff,
+  MessageSquareOff,
+  ScanSearch,
+  ShieldAlert,
+  ThumbsDown,
+  ThumbsUp,
+  type LucideIcon,
+} from "lucide-react";
 import {
   PulseDots,
   ScanProgressCard,
@@ -61,27 +71,68 @@ function MatchingProfileView() {
 // (same as ScanLoadingView).
 const COMPLETE_BEAT_MS = 800;
 
-interface ReasonOption {
+interface QuestionOption {
+  /** Stable id — this is what gets stored, so the label can be reworded freely. */
   id: string;
   label: string;
   icon: LucideIcon;
 }
 
-const REASONS: readonly ReasonOption[] = [
-  { id: "exposure", label: "See if my data is exposed", icon: ScanSearch },
-  { id: "identity", label: "Protect against hackers/Identity Thieves", icon: ShieldAlert },
-  { id: "spam", label: "Stop the Spam calls, texts & emails", icon: MessageSquareOff },
-  { id: "privacy", label: "Improve my general privacy", icon: EyeOff },
+interface QuestionStep {
+  /** Stable, versioned key (becomes question_key when answers are stored). */
+  key: string;
+  title: string;
+  subtitle?: string;
+  /** multi: toggle any number, advance with Next. single: one pick, auto-advances. */
+  type: "multi" | "single";
+  options: readonly QuestionOption[];
+}
+
+// Carousel steps, in order.
+const STEPS: readonly QuestionStep[] = [
+  {
+    key: "reasons_v1",
+    title: "What's your reason for trying Vanyshr?",
+    subtitle: "Select all that apply",
+    type: "multi",
+    options: [
+      { id: "exposure", label: "See if my data is exposed", icon: ScanSearch },
+      { id: "identity", label: "Protect against hackers/Identity Thieves", icon: ShieldAlert },
+      { id: "spam", label: "Stop the Spam calls, texts & emails", icon: MessageSquareOff },
+      { id: "privacy", label: "Improve my general privacy", icon: EyeOff },
+    ],
+  },
+  {
+    key: "tried_other_tools_v1",
+    title: "Have you tried other data removal tools?",
+    type: "single",
+    options: [
+      { id: "yes", label: "Yes", icon: ThumbsUp },
+      { id: "no", label: "No", icon: ThumbsDown },
+    ],
+  },
 ];
 
-// Carousel steps, in order. Each step's answers live in PickedView state for now.
-const STEPS = ["reasons"] as const;
+// Variants (not inline objects) so the exiting slide reads the current direction via `custom`.
+const STEP_VARIANTS = {
+  enter: (d: 1 | -1) => ({ opacity: 0, x: 32 * d }),
+  center: { opacity: 1, x: 0 },
+  exit: (d: 1 | -1) => ({ opacity: 0, x: -32 * d }),
+};
+const STEP_VARIANTS_REDUCED = { enter: { opacity: 0 }, center: { opacity: 1 }, exit: { opacity: 0 } };
+
+// Pause after a single-select pick so the selected state registers before the slide moves on.
+const AUTO_ADVANCE_MS = 350;
 
 function PickedView({ activeIndex, status }: { activeIndex: number; status: "scanning" | "complete" }) {
   const navigate = useNavigate();
   const reduceMotion = useReducedMotion();
-  const [step, setStep] = useState(0);
-  const [reasons, setReasons] = useState<string[]>([]);
+  const [stepIndex, setStepIndex] = useState(0);
+  // 1 = moving forward (slides in from the right), -1 = back (slides in from the left).
+  const [direction, setDirection] = useState<1 | -1>(1);
+  // Answers by step key: selected option ids.
+  const [answers, setAnswers] = useState<Record<string, string[]>>({});
+  const autoAdvanceRef = useRef<number | undefined>(undefined);
 
   useEffect(() => {
     if (status !== "complete") return;
@@ -89,11 +140,34 @@ function PickedView({ activeIndex, status }: { activeIndex: number; status: "sca
     return () => window.clearTimeout(id);
   }, [status, navigate]);
 
-  const hasAnswer = STEPS[step] === "reasons" ? reasons.length > 0 : false;
-  const advance = () => setStep((s) => Math.min(s + 1, STEPS.length - 1));
+  useEffect(() => () => window.clearTimeout(autoAdvanceRef.current), []);
 
-  const toggleReason = (id: string) =>
-    setReasons((prev) => (prev.includes(id) ? prev.filter((r) => r !== id) : [...prev, id]));
+  const step = STEPS[stepIndex];
+  const selectedIds = answers[step.key] ?? [];
+  const hasAnswer = selectedIds.length > 0;
+  const advance = () => {
+    setDirection(1);
+    setStepIndex((i) => Math.min(i + 1, STEPS.length - 1));
+  };
+  const goBack = () => {
+    // Cancel a pending single-select auto-advance so it can't fire after going back.
+    window.clearTimeout(autoAdvanceRef.current);
+    setDirection(-1);
+    setStepIndex((i) => Math.max(i - 1, 0));
+  };
+
+  const choose = (id: string) => {
+    if (step.type === "multi") {
+      setAnswers((prev) => {
+        const current = prev[step.key] ?? [];
+        return { ...prev, [step.key]: current.includes(id) ? current.filter((x) => x !== id) : [...current, id] };
+      });
+      return;
+    }
+    setAnswers((prev) => ({ ...prev, [step.key]: [id] }));
+    window.clearTimeout(autoAdvanceRef.current);
+    autoAdvanceRef.current = window.setTimeout(advance, AUTO_ADVANCE_MS);
+  };
 
   return (
     <Page className="flex h-dvh flex-col bg-bg-app font-body" role="main" aria-label="Scanning in progress">
@@ -101,31 +175,51 @@ function PickedView({ activeIndex, status }: { activeIndex: number; status: "sca
         <ScanProgressCard phases={PHASES} activeIndex={activeIndex} status={status} className="w-full" />
       </header>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-6 pt-8">
-        <AnimatePresence mode="wait" initial={false}>
+      <div className="min-h-0 flex-1 overflow-y-auto px-6 pt-6">
+        {/* Back to the previous question; holds its space on the first one so the title doesn't jump. */}
+        <button
+          type="button"
+          onClick={goBack}
+          aria-label="Previous question"
+          disabled={stepIndex === 0}
+          className={cx(
+            "mb-4 flex size-11 items-center justify-center rounded-full bg-bg-surface text-text-primary transition-colors duration-fast",
+            "outline-none hover:bg-state-hover active:bg-state-active focus-visible:outline-2 focus-visible:outline-border-focus focus-visible:ring-4 focus-visible:ring-ring-focus",
+            stepIndex === 0 && "invisible",
+          )}
+        >
+          <ArrowLeft className="size-5" aria-hidden />
+        </button>
+        <AnimatePresence mode="wait" initial={false} custom={direction}>
           <motion.section
-            key={step}
-            initial={reduceMotion ? false : { opacity: 0, x: 32 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={reduceMotion ? { opacity: 0 } : { opacity: 0, x: -32 }}
+            key={step.key}
+            custom={direction}
+            variants={reduceMotion ? STEP_VARIANTS_REDUCED : STEP_VARIANTS}
+            initial="enter"
+            animate="center"
+            exit="exit"
             transition={{ duration: reduceMotion ? 0 : 0.3, ease: [0.2, 0, 0, 1] }}
             aria-labelledby="fyd-step-title"
           >
             <h1 id="fyd-step-title" className="m-0 font-display text-display-xs font-bold leading-tight tracking-tight text-text-primary">
-              What&apos;s your reason for trying Vanyshr?
+              {step.title}
             </h1>
-            <p className="m-0 mt-2 text-md text-text-secondary">Select all that apply</p>
+            {step.subtitle && <p className="m-0 mt-2 text-md text-text-secondary">{step.subtitle}</p>}
 
-            <div role="group" aria-labelledby="fyd-step-title" className="mt-8 flex flex-col gap-3">
-              {REASONS.map(({ id, label, icon: Icon }) => {
-                const selected = reasons.includes(id);
+            <div
+              role={step.type === "multi" ? "group" : "radiogroup"}
+              aria-labelledby="fyd-step-title"
+              className="mt-8 flex flex-col gap-3"
+            >
+              {step.options.map(({ id, label, icon: Icon }) => {
+                const selected = selectedIds.includes(id);
                 return (
                   <button
                     key={id}
                     type="button"
-                    role="checkbox"
+                    role={step.type === "multi" ? "checkbox" : "radio"}
                     aria-checked={selected}
-                    onClick={() => toggleReason(id)}
+                    onClick={() => choose(id)}
                     className={cx(
                       "flex min-h-16 w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-lg font-semibold transition-colors duration-fast",
                       "outline-none focus-visible:outline-2 focus-visible:outline-border-focus focus-visible:ring-4 focus-visible:ring-ring-focus",
@@ -149,7 +243,6 @@ function PickedView({ activeIndex, status }: { activeIndex: number; status: "sca
           </motion.section>
         </AnimatePresence>
       </div>
-
       <footer className="flex shrink-0 justify-end px-6 pt-4 pb-[calc(env(safe-area-inset-bottom,0px)+1.5rem)]">
         {/* Secondary "Skip" until an answer is picked, then primary "Next" (DESIGN.md §11.1, md size). */}
         <button
