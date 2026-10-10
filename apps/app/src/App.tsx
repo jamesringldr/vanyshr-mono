@@ -224,7 +224,7 @@ export default function App() {
             <Route path="/self-scan/report" element={<SelfScanReportPage />} />
 
             <Route path="/loading" element={<FindMyDataLoadingPage />} />
-            <Route path="/finding-your-data" element={<FindingYourDataPage />} />
+            <Route path="/finding-your-data/:scanId?" element={<FindingYourDataPage />} />
             <Route path="/report" element={<SelfScanReportPage startOverPath="/" />} />
 
             {/* Settings */}
