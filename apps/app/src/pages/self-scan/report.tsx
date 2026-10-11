@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
-import { CreditCard, Menu, Zap } from "lucide-react";
+import { CreditCard, Share, Zap } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
 import PrimaryLogoDark from "@vanyshr/ui/assets/PrimaryLogo-DarkMode.png";
 import { cx } from "@/utils/cx";
@@ -129,8 +129,13 @@ export function SelfScanReportPage({ startOverPath = "/self-scan" }: { startOver
       <div className={cx(scanUi.column, "shrink-0 px-6 pt-5")}>
         <header className="flex items-center justify-between">
           <img src={PrimaryLogoDark} alt="Vanyshr" className="h-7 w-auto object-contain" />
-          <button type="button" aria-label="Open menu" className={scanUi.ghostBtn}>
-            <Menu className="h-5 w-5" />
+          {/* TODO: what Export Report does (PDF, share sheet…) is not decided yet. */}
+          <button
+            type="button"
+            className="inline-flex h-11 items-center gap-2 rounded-full border border-border px-4 text-md font-semibold text-text-primary outline-none transition-colors duration-fast hover:bg-state-hover active:bg-state-active focus-visible:outline-2 focus-visible:outline-border-focus focus-visible:ring-4 focus-visible:ring-ring-focus"
+          >
+            <Share className="size-4 shrink-0" aria-hidden />
+            Export Report
           </button>
         </header>
 
