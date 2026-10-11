@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
-import { Menu } from "lucide-react";
+import { CreditCard, Menu, Zap } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
 import PrimaryLogoDark from "@vanyshr/ui/assets/PrimaryLogo-DarkMode.png";
 import { cx } from "@/utils/cx";
@@ -205,13 +205,16 @@ export function SelfScanReportPage({ startOverPath = "/self-scan" }: { startOver
           animate={{ y: footerVisible ? 0 : "100%" }}
           transition={{ duration: prefersReducedMotion ? 0 : 0.44, ease: EASE_OUT }}
         >
-          <span className={scanUi.chip}>No credit card required</span>
-          <h2 className="mt-3 text-[20px] font-semibold leading-tight tracking-tight text-text-primary">
-            Time to Vanysh
-          </h2>
-          <p className="mt-1.5 text-[14px] leading-snug text-text-secondary">
-            Start removing your exposed data from every broker we found
-          </p>
+          <ul className="m-0 flex list-none flex-wrap items-center justify-center gap-x-5 gap-y-2 p-0 text-sm font-medium text-text-primary">
+            <li className="flex items-center gap-1.5">
+              <CreditCard className="size-4 shrink-0 text-primary-text" aria-hidden />
+              No Credit Card Required
+            </li>
+            <li className="flex items-center gap-1.5">
+              <Zap className="size-4 shrink-0 text-primary-text" aria-hidden />
+              ~4 min to Sign Up
+            </li>
+          </ul>
           <button
             type="button"
             onClick={() => navigate("/signup")}

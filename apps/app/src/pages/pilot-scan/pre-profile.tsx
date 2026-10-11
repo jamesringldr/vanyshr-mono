@@ -10,6 +10,9 @@ import {
     GraduationCap,
     House,
     Gavel,
+    Bell,
+    TriangleAlert,
+    User,
 } from "lucide-react";
 import { Navbar, Page } from "konsta/react";
 import PrimaryLogoDark from "@vanyshr/ui/assets/PrimaryLogo-DarkMode.png";
@@ -17,6 +20,8 @@ import PrimaryLogoLight from "@vanyshr/ui/assets/PrimaryLogo.png";
 import { Card } from "@vanyshr/ui/components/ui/card/card";
 import { Badge } from "@vanyshr/ui/components/ui/badge/badge";
 import { Button } from "@vanyshr/ui/components/ui/buttons/button";
+import { QSModalFrame, qsModal } from "@vanyshr/ui/components/application/qs-result-modals/qs-modal";
+import { cx } from "@/utils/cx";
 import {
     loadConsolidatedProfile,
     toProperCase,
@@ -123,10 +128,13 @@ function convertToPreProfileData(profile: ConsolidatedProfile): PreProfileData {
 function DataTypeCard({
     icon: Icon,
     title,
+    action,
     children,
 }: {
     icon: React.ElementType;
     title: string;
+    /** Shown at the top right of the card, beside the title. */
+    action?: React.ReactNode;
     children: React.ReactNode;
 }) {
     return (
@@ -134,9 +142,61 @@ function DataTypeCard({
             <div className="flex items-center gap-2">
                 <Icon className="size-4 shrink-0 text-text-tertiary" aria-hidden />
                 <h3 className="text-data font-medium uppercase tracking-widest text-text-tertiary">{title}</h3>
+                {action && <div className="ml-auto shrink-0">{action}</div>}
             </div>
             <div className="mt-2">{children}</div>
         </Card>
+    );
+}
+
+/** Solid red pill with bold white text, for exposure "Notify" actions. */
+const NOTIFY_BTN = cx(
+    "relative inline-flex items-center justify-center gap-1.5 rounded-full bg-status-danger px-3 py-1 text-sm font-bold text-status-danger-on",
+    "outline-none transition-colors duration-fast hover:bg-status-danger-hover focus-visible:ring-2 focus-visible:ring-border-focus",
+    // Pads the hit area to 44px around the small pill.
+    "after:absolute after:-inset-x-1 after:-inset-y-2.5 after:content-['']",
+);
+
+/** Lists the user's exposed relatives, each with its own Notify button. */
+function FamilyExposureModal({ people, onClose }: { people: { name: string }[]; onClose: () => void }) {
+    return (
+        <QSModalFrame showContent onClose={onClose}>
+            <div className={cx(qsModal.body, "pt-6 text-center")}>
+                <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-status-danger text-status-danger-on">
+                    <TriangleAlert className="size-7" aria-hidden />
+                </div>
+                <h2 className="mt-4 text-[26px] font-bold leading-tight text-status-danger">Exposed Family Members</h2>
+                <p className="mt-3 text-md leading-relaxed text-text-secondary">
+                    Some of your family members&apos; data are exposed too, putting them at risk of being targeted by
+                    cybercrimes.
+                </p>
+                <h3 className="mt-5 text-lg font-bold text-text-primary">Notify Family Members of Exposure</h3>
+                <ul className="mt-4 flex flex-col gap-3 text-left">
+                    {people.map((person, i) => (
+                        <li key={i} className="flex items-center gap-3">
+                            <span
+                                className="flex size-9 shrink-0 items-center justify-center rounded-full bg-bg-elevated text-text-secondary"
+                                aria-hidden
+                            >
+                                <User className="size-5" />
+                            </span>
+                            <span className="min-w-0 flex-1 truncate text-md font-semibold text-text-primary">
+                                {person.name}
+                            </span>
+                            {/* TODO: what notifying one person does is not decided yet. */}
+                            <button type="button" className={NOTIFY_BTN} aria-label={`Notify ${person.name}`}>
+                                Notify
+                            </button>
+                        </li>
+                    ))}
+                </ul>
+            </div>
+            <div className={qsModal.footer}>
+                <button type="button" onClick={onClose} className={cx(qsModal.secondaryBtn, "w-full")}>
+                    Do This Later
+                </button>
+            </div>
+        </QSModalFrame>
     );
 }
 
@@ -184,8 +244,12 @@ export function PreProfileBody({
     selfScan?: boolean;
 }) {
     const data = useMemo(() => convertToPreProfileData(profile), [profile]);
+    const [familyModalOpen, setFamilyModalOpen] = useState(false);
     return (
         <div>
+            {familyModalOpen && (
+                <FamilyExposureModal people={data.familyAndFriends} onClose={() => setFamilyModalOpen(false)} />
+            )}
             <h1 className="sr-only">Exposed Data</h1>
             {!selfScan && (
                 <p className="text-md leading-relaxed text-text-secondary">
@@ -252,7 +316,16 @@ export function PreProfileBody({
                 )}
 
                 {data.familyAndFriends.length > 0 && (
-                    <DataTypeCard icon={Users} title="Family & Friends">
+                    <DataTypeCard
+                        icon={Users}
+                        title="Family & Friends"
+                        action={
+                            <button type="button" onClick={() => setFamilyModalOpen(true)} className={NOTIFY_BTN}>
+                                <Bell className="size-3.5 shrink-0" aria-hidden />
+                                Notify
+                            </button>
+                        }
+                    >
                         <LimitedTwoColumnGrid
                             items={data.familyAndFriends}
                             renderItem={(item) => (
