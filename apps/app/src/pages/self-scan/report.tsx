@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
-import { Menu } from "lucide-react";
+import { CreditCard, Menu, Zap } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
 import PrimaryLogoDark from "@vanyshr/ui/assets/PrimaryLogo-DarkMode.png";
 import { cx } from "@/utils/cx";
@@ -205,10 +205,16 @@ export function SelfScanReportPage({ startOverPath = "/self-scan" }: { startOver
           animate={{ y: footerVisible ? 0 : "100%" }}
           transition={{ duration: prefersReducedMotion ? 0 : 0.44, ease: EASE_OUT }}
         >
-          {/* Green pill, centered: same shape as the find-my-data drawer pill, ~25% larger. */}
-          <span className="mx-auto flex w-fit items-center rounded-full border border-status-success-border bg-status-success-muted px-4 py-1.5 text-md font-medium text-status-success">
-            No credit card required
-          </span>
+          <ul className="m-0 flex list-none flex-wrap items-center justify-center gap-x-5 gap-y-2 p-0 text-sm font-medium text-text-primary">
+            <li className="flex items-center gap-1.5">
+              <CreditCard className="size-4 shrink-0 text-primary-text" aria-hidden />
+              No Credit Card Required
+            </li>
+            <li className="flex items-center gap-1.5">
+              <Zap className="size-4 shrink-0 text-primary-text" aria-hidden />
+              ~4 min to Sign Up
+            </li>
+          </ul>
           <button
             type="button"
             onClick={() => navigate("/signup")}

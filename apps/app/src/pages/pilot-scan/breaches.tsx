@@ -187,7 +187,7 @@ export function BreachesBody({ profile }: { profile: ConsolidatedProfile }) {
             <p className="mt-1 text-data text-text-tertiary">
                 {breachCards.length === 0
                     ? "No breaches found for any confirmed email"
-                    : `${breachCards.length} found across ${emailCount} email${emailCount === 1 ? "" : "s"}`}
+                    : `${emailCount} email${emailCount === 1 ? "" : "s"} | ${breachCards.length} account${breachCards.length === 1 ? "" : "s"}`}
             </p>
 
             <div className="mt-4">
