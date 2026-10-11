@@ -1,20 +1,23 @@
 import { useState } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Dialog, DialogButton } from "konsta/react";
-import { Info } from "lucide-react";
+import { ChevronDown, Info } from "lucide-react";
 import { Card } from "@vanyshr/ui/components/ui/card/card";
-import { buildRiskAreas, type ConsolidatedProfile } from "./consolidated-profile";
+import { cx } from "@/utils/cx";
+import { buildRiskAreas, type BreachCard, type ConsolidatedProfile } from "./consolidated-profile";
+import { FieldChips } from "./field-chips";
 
 const MONTHS = [
-    "January", "February", "March", "April", "May", "June",
-    "July", "August", "September", "October", "November", "December",
+    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
 ];
 
-/** "2019-05" / "2019-05-14" -> "May 2019". Falls back to year-only, then the raw value. */
+/** "2019-11" / "2019-11-14" -> "Nov, 2019". Falls back to year-only, then the raw value. */
 function formatBreachDate(date?: string | null, year?: string | null): string {
     const m = date ? /^(\d{4})-(\d{2})/.exec(date) : null;
     if (m) {
         const monthIndex = parseInt(m[2], 10) - 1;
-        if (monthIndex >= 0 && monthIndex < 12) return `${MONTHS[monthIndex]} ${m[1]}`;
+        if (monthIndex >= 0 && monthIndex < 12) return `${MONTHS[monthIndex]}, ${m[1]}`;
     }
     return year || date || "Date unknown";
 }
@@ -25,32 +28,107 @@ function breachDomain(name: string): string | null {
     return m ? m[1].toLowerCase() : null;
 }
 
+// Letter-badge tints, picked by a stable hash of the source name. Tokens rather than a computed
+// HSL hue (no raw color values in components, CLAUDE.md); each carries a white letter.
+const LETTER_TINTS = [
+    "bg-primary",
+    "bg-secondary",
+    "bg-accent",
+    "bg-status-success",
+    "bg-status-warn",
+    "bg-status-danger",
+] as const;
+
+function letterTint(name: string): string {
+    let hash = 0;
+    for (const ch of name) hash = (hash * 31 + ch.charCodeAt(0)) | 0;
+    return LETTER_TINTS[Math.abs(hash) % LETTER_TINTS.length];
+}
+
 /**
- * Logo badge for a breach source: the site's favicon via DuckDuckGo's icon service (no tracking;
- * no-referrer so the report URL isn't sent), else the source's first letter.
+ * Logo badge for a breach source: the site's favicon from Google's favicon service (128px, so it
+ * stays crisp), else a tinted letter badge. Google answers an unknown domain with a 16px default
+ * globe (HTTP 404), which some browsers render instead of firing onError, so a tiny image counts
+ * as a miss too. no-referrer keeps the report URL out of the request.
  */
 function BreachLogo({ name }: { name: string }) {
     const domain = breachDomain(name);
     const [failed, setFailed] = useState(false);
 
-    return (
-        <span
-            className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-md bg-bg-elevated"
-            aria-hidden
-        >
-            {domain && !failed ? (
+    if (domain && !failed) {
+        return (
+            <span
+                className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-md bg-bg-elevated"
+                aria-hidden
+            >
                 <img
-                    src={`https://icons.duckduckgo.com/ip3/${domain}.ico`}
+                    src={`https://www.google.com/s2/favicons?domain=${domain}&sz=128`}
                     alt=""
                     referrerPolicy="no-referrer"
                     loading="lazy"
                     onError={() => setFailed(true)}
+                    onLoad={(e) => {
+                        if (e.currentTarget.naturalWidth <= 16) setFailed(true);
+                    }}
                     className="size-6 object-contain"
                 />
-            ) : (
-                <span className="text-md font-bold text-text-secondary">{name.trim().charAt(0).toUpperCase()}</span>
+            </span>
+        );
+    }
+
+    return (
+        <span
+            className={cx(
+                "flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-md",
+                letterTint(name),
             )}
+            aria-hidden
+        >
+            <span className="text-md font-bold text-text-primary">{name.trim().charAt(0).toUpperCase()}</span>
         </span>
+    );
+}
+
+/** One breach: logo, name and date; tap to expand the exposed data types. */
+function BreachItem({ breach }: { breach: BreachCard }) {
+    const [open, setOpen] = useState(false);
+    const reduceMotion = useReducedMotion();
+
+    return (
+        <Card className="px-4 py-3">
+            <button
+                type="button"
+                onClick={() => setOpen((o) => !o)}
+                aria-expanded={open}
+                className="flex min-h-11 w-full items-center gap-3 text-left outline-none focus-visible:ring-2 focus-visible:ring-border-focus"
+            >
+                <BreachLogo name={breach.name} />
+                <span className="min-w-0 flex-1 truncate text-lg font-semibold text-text-primary">{breach.name}</span>
+                <span className="shrink-0 text-md font-bold tabular-nums text-text-primary">
+                    {formatBreachDate(breach.date, breach.year)}
+                </span>
+                <ChevronDown
+                    className={cx(
+                        "size-5 shrink-0 text-text-tertiary transition-transform duration-fast",
+                        open && "rotate-180",
+                    )}
+                    aria-hidden
+                />
+            </button>
+            <AnimatePresence initial={false}>
+                {open && (
+                    <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: reduceMotion ? 0 : 0.2, ease: [0.2, 0, 0, 1] }}
+                        className="overflow-hidden"
+                    >
+                        <FieldChips fields={breach.fieldsExposed} limit={Infinity} />
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </Card>
     );
 }
 
@@ -128,17 +206,7 @@ export function BreachesBody({ profile }: { profile: ConsolidatedProfile }) {
                                 <ul className="mt-2 flex flex-col gap-2">
                                     {cards.map((b, i) => (
                                         <li key={`${b.name}-${i}`}>
-                                            <Card className="px-4 py-3">
-                                                <div className="flex items-center gap-3">
-                                                    <BreachLogo name={b.name} />
-                                                    <p className="min-w-0 flex-1 truncate text-lg font-semibold text-text-primary">
-                                                        {b.name}
-                                                    </p>
-                                                    <p className="shrink-0 text-md font-bold tabular-nums text-text-primary">
-                                                        {formatBreachDate(b.date, b.year)}
-                                                    </p>
-                                                </div>
-                                            </Card>
+                                            <BreachItem breach={b} />
                                         </li>
                                     ))}
                                 </ul>
