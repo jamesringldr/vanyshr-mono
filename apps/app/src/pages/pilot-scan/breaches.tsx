@@ -73,7 +73,7 @@ function BreachLogo({ name }: { name: string }) {
                     onLoad={(e) => {
                         if (e.currentTarget.naturalWidth <= 16) setFailed(true);
                     }}
-                    className="size-7 object-contain"
+                    className="size-full object-contain"
                 />
             </span>
         );
