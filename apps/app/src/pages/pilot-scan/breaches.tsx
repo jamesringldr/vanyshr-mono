@@ -57,8 +57,11 @@ function BreachLogo({ name }: { name: string }) {
 
     if (domain && !failed) {
         return (
+            // White logo tile in both themes (iOS app-icon style). --color-brand-primary4 (#fafafa) is the
+            // one existing light token that doesn't flip in light mode; `bg-white` maps to
+            // --color-bg-inverse here, which goes dark in light mode.
             <span
-                className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-md bg-bg-elevated"
+                className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-[10px] bg-(--color-brand-primary4)"
                 aria-hidden
             >
                 <img
@@ -70,7 +73,7 @@ function BreachLogo({ name }: { name: string }) {
                     onLoad={(e) => {
                         if (e.currentTarget.naturalWidth <= 16) setFailed(true);
                     }}
-                    className="size-6 object-contain"
+                    className="size-7 object-contain"
                 />
             </span>
         );
