@@ -109,6 +109,7 @@
   --color-brand-orange: var(--color-brand-orange);
   --color-brand-navy: var(--color-brand-navy);
   --color-temp-blue-test: var(--color-temp-blue-test); /* TEMPORARY — see tokens.css */
+  --color-temp-root-test: var(--color-temp-root-test); /* TEMPORARY — see tokens.css */
   --color-brand-cyan-on-light: var(--color-brand-cyan-on-light);
   --color-brand-orange-on-light: var(--color-brand-orange-on-light);
   --color-brand-primary1: var(--color-brand-primary1);
