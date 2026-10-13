@@ -81,7 +81,7 @@ This block must match the token file. Edit values via spec from Igor, not by han
   /* ── Surfaces (true grey ladder) ── */
   --color-bg-app: #22242b;
   --color-bg-surface: #2b2d34;
-  --color-bg-elevated: #444444;
+  --color-bg-elevated: #383a42;
   --color-bg-overlay: #000000a6;
   --color-bg-inverse: #fafafa;
 
@@ -89,14 +89,14 @@ This block must match the token file. Edit values via spec from Igor, not by han
   --color-text-primary: #f5f5f5;
   --color-text-secondary: #9aa3ad;
   --color-text-tertiary: #6b7280;
-  --color-text-disabled: #5c5c5c;
+  --color-text-disabled: #5a5f6b;
   --color-text-inverse: #070f1c;
   --color-text-link: var(--color-primary-text);
   --color-text-on-primary: var(--color-primary-on);
   --color-text-on-accent: var(--color-accent-on);
 
   /* ── Borders / focus ── */
-  --color-border: #545454;
+  --color-border: #4a4d56;
   --color-border-subtle: #54545480;
   --color-border-strong: #757575;
   --color-border-focus: #14abfe;
@@ -106,8 +106,8 @@ This block must match the token file. Edit values via spec from Igor, not by han
   --color-state-hover: #ffffff0f;
   --color-state-active: #ffffff14;
   --color-state-selected: #14abfe22;
-  --color-state-disabled-bg: #343434;
-  --color-state-disabled-fg: #5c5c5c;
+  --color-state-disabled-bg: #2b2d34;
+  --color-state-disabled-fg: #5a5f6b;
 
   /* ── Semantic ── */
   --color-status-success: #3d9b6e;
@@ -285,15 +285,15 @@ This block must match the token file. Edit values via spec from Igor, not by han
 | `--color-accent-text` | #ff6924 | #b84300 |
 | `--color-bg-app` | #22242b | #f5f5f5 |
 | `--color-bg-surface` | #2b2d34 | #ffffff |
-| `--color-bg-elevated` | #444444 | #f0f0f0 |
+| `--color-bg-elevated` | #383a42 | #f0f0f0 |
 | `--color-bg-inverse` | #fafafa | #242424 |
 | `--color-black` | #000 | #000 |
 | `--color-text-primary` | #f5f5f5 | #0b1b2a |
 | `--color-text-secondary` | #9aa3ad | #5c6570 |
 | `--color-text-tertiary` | #6b7280 | #8a939e |
-| `--color-border` | #545454 | #e0e0e0 |
+| `--color-border` | #4a4d56 | #e0e0e0 |
 | `--color-border-strong` | #757575 | #c4c4c4 |
-| `--color-state-disabled-bg` | #343434 | #f0f0f0 |
+| `--color-state-disabled-bg` | #2b2d34 | #f0f0f0 |
 | `--color-status-success` | #3d9b6e | #2f7d58 |
 | `--color-status-success-border` | #3d9b6e66 | #2f7d584d |
 | `--color-status-warn` | #d97706 | #b45309 |

@@ -49,7 +49,7 @@
   /* ── Surfaces (true grey ladder) ── */
   --color-bg-app: #22242b;
   --color-bg-surface: #2b2d34;
-  --color-bg-elevated: #444444;
+  --color-bg-elevated: #383a42;
   --color-bg-overlay: #000000a6;
   --color-bg-inverse: #fafafa;
 
@@ -57,14 +57,14 @@
   --color-text-primary: #f5f5f5;
   --color-text-secondary: #9aa3ad;
   --color-text-tertiary: #6b7280;
-  --color-text-disabled: #5c5c5c;
+  --color-text-disabled: #5a5f6b;
   --color-text-inverse: #070f1c;
   --color-text-link: var(--color-primary-text);
   --color-text-on-primary: var(--color-primary-on);
   --color-text-on-accent: var(--color-accent-on);
 
   /* ── Borders / focus ── */
-  --color-border: #545454;
+  --color-border: #4a4d56;
   --color-border-subtle: #54545480;
   --color-border-strong: #757575;
   --color-border-focus: #14abfe;
@@ -74,8 +74,8 @@
   --color-state-hover: #ffffff0f;
   --color-state-active: #ffffff14;
   --color-state-selected: #14abfe22;
-  --color-state-disabled-bg: #343434;
-  --color-state-disabled-fg: #5c5c5c;
+  --color-state-disabled-bg: #2b2d34;
+  --color-state-disabled-fg: #5a5f6b;
 
   /* ── Semantic ── */
   --color-status-success: #3d9b6e;
