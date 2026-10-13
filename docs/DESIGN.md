@@ -283,8 +283,8 @@ This block must match the token file. Edit values via spec from Igor, not by han
 | `--color-accent-active` | #e55a18 | #b84300 |
 | `--color-accent-on` | #0b0d10 | #0b0d10 |
 | `--color-accent-text` | #ff6924 | #b84300 |
-| `--color-bg-app` | #242424 | #f5f5f5 |
-| `--color-bg-surface` | #343434 | #ffffff |
+| `--color-bg-app` | #22242b | #f5f5f5 |
+| `--color-bg-surface` | #2b2d34 | #ffffff |
 | `--color-bg-elevated` | #444444 | #f0f0f0 |
 | `--color-bg-inverse` | #fafafa | #242424 |
 | `--color-black` | #000 | #000 |
@@ -311,7 +311,7 @@ Raw brand colors. `--color-primary` and `--color-secondary` are picked from thes
 |---|---|---|---|
 | `--color-brand-cyan` | Hero cyan | #14abfe | #14abfe |
 | `--color-brand-orange` | Signal orange | #ff6924 | #ff6924 |
-| `--color-brand-navy` | Ink navy | #070f1c | #070f1c |
+| `--color-brand-navy` | Ink navy | #07090e | #07090e |
 | `--color-brand-cyan-on-light` | Cyan text on light | — | #0077cc |
 | `--color-brand-orange-on-light` | Orange text on light | — | #b84300 |
 | `--color-brand-alternate` | Peer brand (full-bleed) | #ff6924 | #ff6924 |
