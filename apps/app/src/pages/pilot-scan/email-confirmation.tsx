@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
-import { Plus, ThumbsUp } from "lucide-react";
+import { Sheet } from "konsta/react";
+import { Check, Plus, ThumbsUp } from "lucide-react";
+import { qsModal } from "@vanyshr/ui/components/application/qs-result-modals/qs-modal";
 import { cx } from "@/utils/cx";
 
 export type EmailConfirmationModalProps = {
@@ -72,8 +75,8 @@ function toItems(values: string[]): EmailItem[] {
 }
 
 /**
- * Email selection — mounted only while open, so the list is seeded once from a
- * unique-d set. Dupes cannot survive as two rows.
+ * Email selection — a bottom drawer (Konsta Sheet), mounted only while the
+ * step is active, so the list is seeded once from a unique-d set. Dupes cannot survive as two rows.
  *
  * Selection scopes the dark-web check, it does not say which addresses are the
  * user's. Everything the brokers surfaced stays on the profile and on the
@@ -94,6 +97,12 @@ export function EmailConfirmationModal({
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [newEmailInput, setNewEmailInput] = useState("");
   const [error, setError] = useState<string | null>(null);
+  // Konsta's Sheet only slides when `opened` flips, so it mounts closed and opens a frame later.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    const id = window.requestAnimationFrame(() => setMounted(true));
+    return () => window.cancelAnimationFrame(id);
+  }, []);
 
   // The limit notice is a reaction to a tap, not a persistent state — leaving
   // it up makes the next tap ambiguous about which one it answered.
@@ -102,8 +111,6 @@ export function EmailConfirmationModal({
     const t = window.setTimeout(() => setError(null), 6000);
     return () => window.clearTimeout(t);
   }, [error]);
-
-  if (!isOpen) return null;
 
   const atLimit = selectedIds.length >= MAX_SELECTED;
 
@@ -153,6 +160,9 @@ export function EmailConfirmationModal({
     onConfirm(uniqueEmailValues(selectedIds.map((id) => byId.get(id) ?? "")));
   };
 
+  // The add button stays off until the input is shaped like an email (same test handleAddEmail applies).
+  const canAdd = /\S+@\S+\.\S+/.test(canonicalizeEmail(newEmailInput));
+
   const selectedCount = selectedIds.length;
   const noneFound = foundCount === 0;
 
@@ -165,163 +175,154 @@ export function EmailConfirmationModal({
     ...emails.filter((e) => !selectedIds.includes(e.id)),
   ];
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-bg-page/80 p-4 backdrop-blur-sm">
-      <motion.div
-        initial={prefersReducedMotion ? false : { opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.22, ease: [0.2, 0, 0, 1] }}
-        className="relative w-full max-w-md rounded-lg border border-border-subtle bg-bg-surface"
-      >
-        <div className="border-b border-border-subtle p-4">
-          <h2 className="text-xl font-semibold tracking-tight text-text-primary">
-            Dark Web Scan
-          </h2>
-          <p className="mt-1 text-md text-text-secondary">
-            Scan billions of records from dark web breach databases for credential &amp; account leaks
-          </p>
+  return createPortal(
+    <Sheet
+      opened={isOpen && mounted}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Dark Web Scan"
+      aria-hidden={!isOpen}
+      inert={!isOpen}
+      // No backdrop dismiss: leaving is a choice (Skip breach scan), same as the modal this replaces.
+      className="flex max-h-9/10 flex-col rounded-t-lg! shadow-xl motion-reduce:transition-none"
+    >
+      <div className="min-h-0 flex-1 overflow-y-auto px-6 pt-6">
+        <h2 className="m-0 text-xl font-semibold tracking-tight text-text-primary">Dark Web Scan</h2>
+        <p className="m-0 mt-1 text-md text-text-secondary">
+          Select emails to scan billions of records from dark web breach databases for credential &amp; account leaks
+        </p>
+
+        <div className="mt-5 flex items-center justify-between">
+          <span className="text-xs font-medium uppercase tracking-widest text-text-primary">
+            {noneFound ? "Add" : "Include"} up to {MAX_SELECTED} emails
+          </span>
+          <span className="text-sm font-medium tabular-nums text-text-primary">
+            {selectedCount} of {MAX_SELECTED}
+          </span>
         </div>
 
-        <div className="max-h-[40vh] overflow-y-auto p-4">
-          <p className="mb-1 text-sm font-bold uppercase tracking-widest text-text-primary">
-            <span className={cx("text-lg", noneFound ? "text-status-success" : "text-accent-text")}>{foundCount}</span> {foundCount === 1 ? "email" : "emails"} found
-          </p>
-          <div className="mb-1 flex items-center justify-between">
-            <span className="text-xs font-medium uppercase tracking-widest text-text-primary">
-              {noneFound ? "Add" : "Select"} up to {MAX_SELECTED}
-            </span>
-            <span
-              className="text-sm font-medium tabular-nums text-text-primary"
-            >
-              {selectedCount} of {MAX_SELECTED}
-            </span>
-          </div>
-          <p className="mb-3 text-sm text-text-primary">All plans include Dark Web Monitoring for unlimited emails</p>
-
-          {emails.length > 0 ? (
-            <div className="flex flex-wrap gap-2" role="group" aria-label="Emails to include">
-              {orderedEmails.map((email) => {
-                const isSelected = selectedIds.includes(email.id);
-                return (
-                  <motion.button
-                    key={email.id}
-                    layout={!prefersReducedMotion}
-                    transition={{ duration: 0.22, ease: [0.2, 0, 0, 1] }}
+        {emails.length > 0 ? (
+          <ul className="m-0 mt-4 flex list-none flex-col gap-3 p-0" role="group" aria-label="Emails to include">
+            {orderedEmails.map((email) => {
+              const isSelected = selectedIds.includes(email.id);
+              return (
+                <motion.li
+                  key={email.id}
+                  layout={!prefersReducedMotion}
+                  transition={{ duration: 0.22, ease: [0.2, 0, 0, 1] }}
+                >
+                  <button
                     type="button"
                     role="checkbox"
                     aria-checked={isSelected}
                     onClick={() => toggleEmail(email.id)}
                     className={cx(
-                      // Chips size to their content and wrap naturally --
-                      // two short emails share a row, a long one takes its
-                      // own rather than being forced to fit and cut off.
-                      "min-h-11 max-w-full break-words rounded-full border px-4 py-2 text-left text-md font-medium transition-colors duration-fast",
+                      "flex min-h-14 w-full items-center gap-3 rounded-lg border-2 bg-bg-elevated px-4 py-3 text-left text-md font-medium transition-colors duration-fast",
                       "outline-none focus-visible:ring-2 focus-visible:ring-border-focus",
-                      isSelected
-                        ? "border-primary bg-primary text-primary-on"
-                        : "border-border bg-bg-elevated text-text-primary hover:bg-state-hover",
+                      isSelected ? "border-primary text-text-primary" : "border-border text-text-secondary",
                       !isSelected && atLimit && "opacity-60",
                     )}
                   >
-                    {email.value}
-                  </motion.button>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="flex flex-col items-center px-4 py-3 text-center">
-              <ThumbsUp className="size-8 text-status-success" aria-hidden="true" />
-              <p className="m-0 mt-2 text-md font-bold text-text-primary">
-                Great News! Our scan didn&apos;t find any of your emails
-              </p>
-              <p className="m-0 mt-1 text-sm text-text-secondary">Add emails for the dark web scan</p>
-            </div>
-          )}
-        </div>
-
-        {/* Always visible -- not part of the scrollable email list above. */}
-        <div className="border-t border-border-subtle p-4">
-          <label
-            htmlFor="add-email"
-            className="mb-2 block text-xs font-medium uppercase tracking-widest text-text-secondary"
-          >
-            {noneFound ? "Add Email" : "Add another email"}
-          </label>
-          <div className="flex gap-2">
-            <input
-              id="add-email"
-              type="email"
-              value={newEmailInput}
-              onChange={(e) => setNewEmailInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") handleAddEmail();
-              }}
-              placeholder="another@email.com"
-              className={cx(
-                // 16px like the find-my-data drawer inputs — iOS Safari zooms in on focus below 16px.
-                "h-11 min-w-0 flex-1 rounded-md border px-3 text-[16px]",
-                "border-border bg-bg-elevated text-text-primary placeholder:text-text-tertiary",
-                "outline-none transition-colors duration-fast",
-                "focus:border-border-focus focus-visible:ring-2 focus-visible:ring-border-focus",
-              )}
-            />
-            <button
-              type="button"
-              onClick={handleAddEmail}
-              disabled={!newEmailInput.trim()}
-              className={cx(
-                "flex size-11 shrink-0 items-center justify-center rounded-md transition-colors duration-fast",
-                "outline-none focus-visible:ring-2 focus-visible:ring-border-focus",
-                newEmailInput.trim()
-                  ? "bg-primary text-primary-on hover:bg-primary-hover"
-                  : "cursor-not-allowed bg-state-disabled-bg text-state-disabled-fg",
-              )}
-              aria-label="Add email"
-            >
-              <Plus className="size-5" aria-hidden />
-            </button>
+                    <span className="min-w-0 flex-1 break-all">{email.value}</span>
+                    <span
+                      className={cx(
+                        "flex size-6 shrink-0 items-center justify-center rounded-full",
+                        isSelected ? "bg-primary text-primary-on" : "border-2 border-border-strong",
+                      )}
+                      aria-hidden
+                    >
+                      {isSelected && <Check className="size-4" strokeWidth={3} />}
+                    </span>
+                  </button>
+                </motion.li>
+              );
+            })}
+          </ul>
+        ) : (
+          <div className="flex flex-col items-center px-4 py-3 text-center">
+            <ThumbsUp className="size-8 text-status-success" aria-hidden="true" />
+            <p className="m-0 mt-2 text-md font-bold text-text-primary">
+              Great News! Our scan didn&apos;t find any of your emails
+            </p>
+            <p className="m-0 mt-1 text-sm text-text-secondary">Add emails for the dark web scan</p>
           </div>
+        )}
 
-          <AnimatePresence>
-            {error ? (
-              <motion.div
-                initial={prefersReducedMotion ? false : { opacity: 0, y: -6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={prefersReducedMotion ? undefined : { opacity: 0, y: -6 }}
-                transition={{ duration: 0.18 }}
-                className="mt-3 rounded-md border border-status-warn-border bg-status-warn-muted p-3 text-sm text-status-warn"
-                role="alert"
-              >
-                {error}
-              </motion.div>
-            ) : null}
-          </AnimatePresence>
-        </div>
+      </div>
 
-        <div className="flex gap-3 border-t border-border-subtle p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+      {/* Pinned: the add-email field and the two actions stay in view while the list scrolls. */}
+      <div className="shrink-0 border-t border-border-subtle px-6 pb-[max(1rem,env(safe-area-inset-bottom))] pt-4">
+        <label
+          htmlFor="add-email"
+          className="mb-2 block text-xs font-medium uppercase tracking-widest text-text-secondary"
+        >
+          {noneFound ? "Add Email" : "Add another email"}
+        </label>
+        <div className="flex gap-2">
+          <input
+            id="add-email"
+            type="email"
+            value={newEmailInput}
+            onChange={(e) => setNewEmailInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleAddEmail();
+            }}
+            placeholder="another@email.com"
+            className={cx(
+              // 16px like the find-my-data drawer inputs — iOS Safari zooms in on focus below 16px.
+              "h-11 min-w-0 flex-1 rounded-md border px-3 text-[16px]",
+              "border-border bg-bg-elevated text-text-primary placeholder:text-text-tertiary",
+              "outline-none transition-colors duration-fast",
+              "focus:border-border-focus focus-visible:ring-2 focus-visible:ring-border-focus",
+            )}
+          />
           <button
             type="button"
-            onClick={onCancel}
-            className="inline-flex min-h-11 flex-1 items-center justify-center whitespace-nowrap rounded-md border border-border bg-bg-elevated px-3 text-md font-semibold text-text-primary outline-none transition-colors duration-fast hover:bg-state-hover focus-visible:ring-2 focus-visible:ring-border-focus"
+            onClick={handleAddEmail}
+            disabled={!canAdd}
+            className={cx(
+              "flex size-11 shrink-0 items-center justify-center rounded-md transition-colors duration-fast",
+              "outline-none focus-visible:ring-2 focus-visible:ring-border-focus",
+              canAdd
+                ? "bg-primary text-primary-on hover:bg-primary-hover"
+                : "cursor-not-allowed bg-state-disabled-bg text-state-disabled-fg",
+            )}
+            aria-label="Add email"
           >
+            <Plus className="size-5" aria-hidden />
+          </button>
+        </div>
+
+        <AnimatePresence>
+          {error ? (
+            <motion.div
+              initial={prefersReducedMotion ? false : { opacity: 0, y: -6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={prefersReducedMotion ? undefined : { opacity: 0, y: -6 }}
+              transition={{ duration: 0.18 }}
+              className="mt-3 rounded-md border border-status-danger-border bg-status-danger-muted p-3 text-sm text-status-danger"
+              role="alert"
+            >
+              {error}
+            </motion.div>
+          ) : null}
+        </AnimatePresence>
+
+        <div className="mt-4 flex gap-3">
+          <button type="button" onClick={onCancel} className={cx(qsModal.secondaryBtn, "flex-1 whitespace-nowrap px-3")}>
             Skip breach scan
           </button>
           <button
             type="button"
             onClick={handleConfirm}
             disabled={selectedCount === 0}
-            className={cx(
-              "inline-flex min-h-11 flex-1 items-center justify-center whitespace-nowrap rounded-md px-3 text-md font-semibold transition-colors duration-fast",
-              "outline-none focus-visible:ring-2 focus-visible:ring-border-focus",
-              selectedCount > 0
-                ? "bg-primary text-primary-on hover:bg-primary-hover"
-                : "cursor-not-allowed bg-state-disabled-bg text-state-disabled-fg",
-            )}
+            className={cx(qsModal.primaryBtn, "flex-1 whitespace-nowrap px-3")}
           >
             Scan dark web
           </button>
         </div>
-      </motion.div>
-    </div>
+      </div>
+    </Sheet>,
+    document.body,
   );
 }
