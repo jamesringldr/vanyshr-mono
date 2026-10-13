@@ -85,6 +85,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Report page header: the hamburger menu is replaced by an "Export Report" outline button with an export icon (not wired to an action yet).
 - Root homescreen background set to #22242b as a temporary test color (`/finding-your-data` stays #0b1b2b).
 - Dark theme retone synced from the design system (8c319a3): page background #242424 to #22242b, card surface #343434 to #2b2d34, navy ink #070f1c to #07090e. The root homescreen now uses the standard page background; /finding-your-data keeps its temporary #0b1b2b.
+- Design-system sync record bumped to designsys 5adb037; docs/DESIGN.md now matches the canonical file (no visual change).
 - `/pilot-scan/report` partially converted to the design system (work in progress)
 
 - `RollingThreatWord` is extracted out of the self-scan entry page and shared with `/referral`, taking its word list as a prop. Its slot is now sized to the widest *rendered* word rather than the longest by character count — equal-length words differ in width, so the slot was under-sized and the line shifted as the word cycled. The positioning pill moved to `scanUi.pill` for the same reason.
