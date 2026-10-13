@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="currentColor" aria-hidden="true">
+  <mask id="vi-ss-binoculars-k" maskUnits="userSpaceOnUse" x="0" y="0" width="64" height="64">
+    <rect width="64" height="64" fill="#fff"/>
+    <circle fill="#000" cx="17" cy="43" r="5"/>
+    <circle fill="#000" cx="47" cy="43" r="5"/>
+  </mask>
+  <g mask="url(#vi-ss-binoculars-k)">
+    <rect x="11" y="10" width="12" height="16" rx="5"/>
+    <rect x="41" y="10" width="12" height="16" rx="5"/>
+    <rect x="24" y="27" width="16" height="12" rx="4"/>
+    <rect x="6" y="20" width="22" height="36" rx="10"/>
+    <rect x="36" y="20" width="22" height="36" rx="10"/>
+  </g>
+</svg>

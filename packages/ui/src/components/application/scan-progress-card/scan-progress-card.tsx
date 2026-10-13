@@ -200,10 +200,12 @@ export function ScanProgressCard({ phases, activeIndex, status = "scanning", lar
             <div className="flex items-center gap-4">
             <ScanVinnie className="h-16 w-16" />
 
-            <ul className="flex min-w-0 flex-1 flex-col">
+            {/* Fixed height (the three default row heights): a long active label may wrap to a second
+                line, which the empty spacer row absorbs, so the card never changes height. */}
+            <ul className={cx("flex min-w-0 flex-1 flex-col", dense ? "h-20" : "h-26")}>
                 {slots.map((index) => {
                     const phase = phases[index];
-                    if (!phase) return <li key={`pad${index}`} aria-hidden className={dense ? "h-6" : "h-8"} />;
+                    if (!phase) return <li key={`pad${index}`} aria-hidden className="min-h-0 flex-1" />;
 
                     const isActive = index === active;
                     const large = largeActive && isActive;
@@ -219,8 +221,8 @@ export function ScanProgressCard({ phases, activeIndex, status = "scanning", lar
                             transition={{ duration: reduceMotion ? 0 : 0.2, ease: [0.2, 0, 0, 1] }}
                             aria-hidden={!isActive}
                             className={cx(
-                                "flex items-center gap-2",
-                                large ? (dense ? "h-8" : "h-10") : dense ? "h-6" : "h-8",
+                                "flex shrink-0 items-center gap-2",
+                                large ? (dense ? "min-h-8" : "min-h-10") : dense ? "h-6" : "h-8",
                                 large ? "text-[19.5px]" : "text-lg",
                             )}
                         >
@@ -239,7 +241,7 @@ export function ScanProgressCard({ phases, activeIndex, status = "scanning", lar
                             {isActive && !isDone ? (
                                 <ShimmerLabel animated={!reduceMotion}>{phase.label}</ShimmerLabel>
                             ) : (
-                                <span className="truncate text-text-primary/40">{phase.label}</span>
+                                <span className={cx(large ? "leading-tight" : "truncate", "text-text-primary/40")}>{phase.label}</span>
                             )}
                         </motion.li>
                     );
