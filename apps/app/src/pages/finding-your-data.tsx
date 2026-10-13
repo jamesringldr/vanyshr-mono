@@ -72,7 +72,7 @@ export function FindingYourDataPage() {
 // Who finds the data brokers publish (matching view).
 const DATA_SEEKERS: readonly { label: string; icon: LucideIcon }[] = [
   { label: "Identity Thieves", icon: Fingerprint },
-  { label: "Sales Spammers", icon: Megaphone },
+  { label: "Spammers", icon: Megaphone },
   { label: "Hackers", icon: Terminal },
   { label: "Stalkers", icon: Eye },
 ];
@@ -496,8 +496,9 @@ function PickedView({
               status={status}
               largeActive
               dense
-              // Card on the dark blue at 80% opacity; the tracer stays.
-              className="w-full bg-temp-blue-test/80!"
+              title="Scanning in progress"
+              // Card on bg-app at 80% opacity; the tracer stays.
+              className="w-full bg-bg-app/80!"
             />
           </header>
 
