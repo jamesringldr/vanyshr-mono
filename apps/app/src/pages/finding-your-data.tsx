@@ -82,11 +82,11 @@ const DATA_SEEKERS: readonly { label: string; icon: LucideIcon }[] = [
 
 function DataBrokersNote() {
   return (
-    <div className="rounded-lg bg-bg-surface p-4">
+    <div className="rounded-lg bg-bg-surface p-4 short:p-3">
       <h2 className="m-0 text-left text-(length:--fluid-12) font-bold text-text-primary">
         They put you at risk of:
       </h2>
-      <ul className="m-0 mt-4 grid list-none grid-cols-2 gap-x-6 gap-y-3 p-0">
+      <ul className="m-0 mt-4 grid list-none grid-cols-2 gap-x-6 gap-y-3 p-0 short:mt-3 short:gap-y-2">
         {DATA_SEEKERS.map(({ label, icon: Icon }) => (
           <li
             key={label}
@@ -134,11 +134,14 @@ function MatchingProfileView() {
 // The shared scan phases plus a final "ready" row that only this page shows, once the scan is done.
 const CARD_PHASES = [
   ...PHASES,
-  { label: "Your Exposure Report is Ready", icon: FileCheck },
+  {
+    label: "Exposure Scan Complete",
+    detail: "Your data is ready!",
+    icon: FileCheck,
+  },
 ] as const;
 
-// Beat between the card settling and leaving for the report, so the settled state is seen
-// (same as ScanLoadingView).
+// Beat between the card settling (the check animation) and the drawer sliding in.
 const COMPLETE_BEAT_MS = 800;
 
 interface QuestionOption {
@@ -322,7 +325,7 @@ function FeatureCarousel({ features }: { features: readonly Feature[] }) {
             <div
               className={cx(
                 // Transparent border on the rest so every card is the same size.
-                "flex h-full gap-3 rounded-lg border bg-bg-surface p-4",
+                "flex h-full gap-3 rounded-lg border bg-bg-surface p-4 short:p-3",
                 highlight ? "border-primary" : "border-transparent",
               )}
             >
@@ -344,7 +347,7 @@ function FeatureCarousel({ features }: { features: readonly Feature[] }) {
                     {plan}
                   </span>
                 </div>
-                <p className="m-0 mt-1 text-(length:--fluid-11) text-text-secondary">
+                <p className="m-0 mt-1 text-(length:--fluid-12) text-text-secondary">
                   {description}
                 </p>
               </div>
@@ -435,7 +438,7 @@ function FindingInfoBody() {
   return (
     <>
       <DataBrokersNote />
-      <h2 className="m-0 mt-6 text-(length:--fluid-14) font-bold leading-tight text-text-primary">
+      <h2 className="m-0 mt-6 text-(length:--fluid-14) short:mt-4 font-bold leading-tight text-text-primary">
         We do more than just delete your data
       </h2>
       <FeatureCarousel features={FEATURES} />
@@ -548,40 +551,10 @@ function PickedView({
         <div
           className={cx(
             "flex min-h-0 flex-1 flex-col overflow-y-auto",
-            "pb-[max(1rem,env(safe-area-inset-bottom))]",
+            "pt-[calc(env(safe-area-inset-top,0px)+1.5rem)] short:pt-[calc(env(safe-area-inset-top,0px)+0.75rem)]",
+            "pb-6",
           )}
         >
-          {/* Sticky inside the scroller so content passes behind the status card. */}
-          <header className="sticky top-0 z-10 shrink-0 px-4 pt-[calc(env(safe-area-inset-top,0px)+1rem)] pb-4">
-            {/* Same blur material as the footer, flipped: solid behind the card, fading out over
-                the gap below it so cards blur away as they scroll up with no hard edge. */}
-            <div
-              className={cx(
-                "absolute inset-0 backdrop-blur-xl",
-                "bg-[linear-gradient(to_top,transparent,color-mix(in_srgb,var(--color-bg-page)_55%,transparent)_45%,color-mix(in_srgb,var(--color-bg-page)_92%,transparent))]",
-                "[-webkit-mask-image:linear-gradient(to_top,transparent,black_45%)] [mask-image:linear-gradient(to_top,transparent,black_45%)]",
-              )}
-              aria-hidden
-            />
-            <ScanProgressCard
-              phases={CARD_PHASES}
-              // Done: land on the last row ("Your Exposure Report is Ready").
-              activeIndex={
-                status === "complete" ? CARD_PHASES.length - 1 : activeIndex
-              }
-              status={status}
-              largeActive
-              dense
-              title={
-                drawerOpen
-                  ? "Scan Complete - Your data is ready!"
-                  : "Scanning in progress"
-              }
-              // Card on bg-app at 80% opacity; the tracer stays.
-              className="w-full bg-bg-app/80!"
-            />
-          </header>
-
           <div
             className={cx(
               "px-6",
@@ -684,26 +657,63 @@ function PickedView({
         </div>
       </div>
 
-      {/* Same bottom drawer as the report page's CTA; slides up once the scan finishes. */}
-      <div className="fixed inset-x-0 bottom-0 z-30 px-4 pb-[env(safe-area-inset-bottom)]">
-        <motion.footer
-          className="mx-auto w-full max-w-md rounded-t-2xl border-t border-border-subtle bg-bg-surface px-5 pb-6 pt-5"
-          initial={reduceMotion ? false : { y: "100%" }}
-          animate={{ y: drawerOpen ? 0 : "100%" }}
+      {/* Status card at the bottom of the page layout (not floating over it), so the scrolling area
+          above ends where the card begins and nothing is hidden behind it. Once the scan is done
+          the See My Data drawer grows in beneath it and the card rides up. */}
+      <div className="relative z-30 flex shrink-0 flex-col">
+        {/* Blur that fades in from the top (HIG bar material): content softens as it nears the
+            card with no hard edge. Sits over the bottom 40px of the scroller, pointer-events-none
+            so it never eats scrolls. The gradient alone is the fallback where backdrop-filter is off. */}
+        <div
+          className={cx(
+            "pointer-events-none absolute inset-x-0 bottom-full h-10 backdrop-blur-xl",
+            "bg-[linear-gradient(to_bottom,transparent,color-mix(in_srgb,var(--color-bg-page)_55%,transparent)_45%,color-mix(in_srgb,var(--color-bg-page)_92%,transparent))]",
+            "[-webkit-mask-image:linear-gradient(to_bottom,transparent,black_45%)] [mask-image:linear-gradient(to_bottom,transparent,black_45%)]",
+          )}
+          aria-hidden
+        />
+        <div className="fluid-type relative px-4 pt-2 pb-3">
+          <ScanProgressCard
+            phases={CARD_PHASES}
+            // Done: land on the last row ("Your Exposure Report is Ready").
+            activeIndex={
+              status === "complete" ? CARD_PHASES.length - 1 : activeIndex
+            }
+            status={status}
+            largeActive
+            dense
+            title="Exposure Scan in progress"
+            successOnComplete
+            fluid
+            // Card on bg-app at 80% opacity; the tracer stays.
+            className="w-full bg-bg-app/80!"
+          />
+        </div>
+        {/* Same drawer as the report page's CTA (no title): just the button. */}
+        <motion.div
+          initial={false}
+          animate={{ height: drawerOpen ? "auto" : 0 }}
           transition={{ duration: reduceMotion ? 0 : 0.44, ease: EASE_OUT }}
           inert={!drawerOpen}
+          className="relative overflow-hidden px-4"
         >
-          <p className="m-0 mb-4 text-center text-lg font-bold text-text-primary">
-            Your Exposure Report is ready
-          </p>
-          <button
-            type="button"
-            onClick={() => navigate(REPORT_PATH, { replace: true })}
-            className={cx(scanUi.primaryBtn, "w-full text-white")}
-          >
-            See My Data
-          </button>
-        </motion.footer>
+          <div className="mx-auto w-full max-w-md rounded-t-2xl border-t border-border-subtle bg-bg-surface px-5 pb-[max(1rem,env(safe-area-inset-bottom))] pt-4 short:pb-[max(0.75rem,env(safe-area-inset-bottom))] short:pt-3">
+            <button
+              type="button"
+              onClick={() => navigate(REPORT_PATH, { replace: true })}
+              className={cx(scanUi.primaryBtn, "w-full text-white")}
+            >
+              See My Data
+            </button>
+          </div>
+        </motion.div>
+        {/* Safe-area gap under the card while the drawer (which has its own) is closed. */}
+        {!drawerOpen && (
+          <div
+            aria-hidden
+            className="relative h-[max(0.25rem,env(safe-area-inset-bottom))]"
+          />
+        )}
       </div>
     </Page>
   );
