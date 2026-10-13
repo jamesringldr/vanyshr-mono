@@ -108,8 +108,7 @@
   --color-brand-cyan: var(--color-brand-cyan);
   --color-brand-orange: var(--color-brand-orange);
   --color-brand-navy: var(--color-brand-navy);
-  --color-temp-blue-test: var(--color-temp-blue-test); /* TEMPORARY — see tokens.css */
-  --color-temp-root-test: var(--color-temp-root-test); /* TEMPORARY — see tokens.css */
+  --color-temp-blue-test: var(--color-temp-blue-test); /* TEMPORARY — defined in theme.css */
   --color-brand-cyan-on-light: var(--color-brand-cyan-on-light);
   --color-brand-orange-on-light: var(--color-brand-orange-on-light);
   --color-brand-primary1: var(--color-brand-primary1);
@@ -322,6 +321,12 @@
     0%, 50% { opacity: 1; }
     51%, 100% { opacity: 0; }
   }
+}
+
+/* TEMPORARY (2026-10-10): blue test on /finding-your-data. Not a brand color and not in the
+   canonical tokens.css (kept out so that file stays a byte-exact sync); remove once decided. */
+:root {
+  --color-temp-blue-test: #0b1b2b;
 }
 
 /* text-data's font-size/line-height come from the --text-data theme pair
