@@ -86,6 +86,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Root homescreen background set to #22242b as a temporary test color (`/finding-your-data` stays #0b1b2b).
 - Dark theme retone synced from the design system (8c319a3): page background #242424 to #22242b, card surface #343434 to #2b2d34, navy ink #070f1c to #07090e. The root homescreen now uses the standard page background; /finding-your-data keeps its temporary #0b1b2b.
 - Design-system sync record bumped to designsys 5adb037; docs/DESIGN.md now matches the canonical file (no visual change).
+- Dark theme ramp synced from designsys 515d212: inputs and raised surfaces #444444 to #383a42, borders #545454 to #4a4d56, disabled buttons #343434 to #2b2d34 with label #5a5f6b, so they match the blue-tinted page and cards. The 'Matching your profile' screen uses the standard page background, a 20% smaller Vinnie, and puts the data-brokers copy and the four threats (Identity Thieves, Sales Spammers, Hackers, Stalkers) in a card with white icons.
 - `/pilot-scan/report` partially converted to the design system (work in progress)
 
 - `RollingThreatWord` is extracted out of the self-scan entry page and shared with `/referral`, taking its word list as a prop. Its slot is now sized to the widest *rendered* word rather than the longest by character count — equal-length words differ in width, so the slot was under-sized and the line shifted as the word cycled. The positioning pill moved to `scanUi.pill` for the same reason.
