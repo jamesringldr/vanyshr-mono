@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { motion, useReducedMotion } from "framer-motion";
+import { animate, motion, useMotionValue, useReducedMotion, useTransform, type MotionValue } from "framer-motion";
 import { Check, type LucideIcon } from "lucide-react";
 import { cx } from "@/utils/cx";
 import { Vinnie } from "../../foundations/vinnie";
@@ -20,6 +20,8 @@ export interface ScanProgressCardProps {
     largeActive?: boolean;
     /** Tighter spacing: shorter phase rows and less space under the title. */
     dense?: boolean;
+    /** Heading above Vinnie and the phase rows. */
+    title?: string;
     className?: string;
 }
 
@@ -89,43 +91,60 @@ export function ScanVinnie({ className }: { className?: string }) {
 /**
  * Comet layers, tail to head: each is a dash ending at the same head point, longer ones thinner.
  * Stacked with round caps they read as one stroke that's thick at the head and tapers to a
- * point. Lengths are in pathLength units (100 = the full perimeter).
+ * point; enough layers that the width steps between neighbors are too small to see. Lengths are
+ * in pathLength units (100 = the full perimeter); width falls linearly with distance from the head.
  */
-const COMET_LAYERS = [
-    { length: 26, width: 0.5 },
-    { length: 21, width: 1 },
-    { length: 16, width: 1.5 },
-    { length: 11, width: 2 },
-    { length: 6, width: 2.5 },
-    { length: 2, width: 3 },
-] as const;
-const COMET_LENGTH = COMET_LAYERS[0].length;
+const COMET_STEPS = 24;
+const COMET_HEAD = { length: 2, width: 3 };
+const COMET_TAIL = { length: 26, width: 0.5 };
+const COMET_LAYERS = Array.from({ length: COMET_STEPS }, (_, i) => {
+    const t = i / (COMET_STEPS - 1); // 0 = tail, 1 = head
+    return {
+        length: COMET_TAIL.length + (COMET_HEAD.length - COMET_TAIL.length) * t,
+        width: COMET_TAIL.width + (COMET_HEAD.width - COMET_TAIL.width) * t,
+    };
+});
+const COMET_LENGTH = COMET_TAIL.length;
 
-/** Comet traveling the card border. pathLength=100 keeps the dashes relative to the perimeter. */
+/** One comet layer. Its dash offset is derived from the shared `progress`, never animated on its own. */
+function CometLayer({ length, width, progress }: { length: number; width: number; progress: MotionValue<number> }) {
+    // Shift each dash so its leading end lines up with the longest one's.
+    const start = length - COMET_LENGTH;
+    const strokeDashoffset = useTransform(progress, (v) => start - v);
+
+    return (
+        <motion.rect
+            width="100%"
+            height="100%"
+            style={{ rx: "var(--radius-lg)", strokeDashoffset }}
+            fill="none"
+            className="stroke-primary"
+            strokeWidth={width}
+            strokeLinecap="round"
+            pathLength={100}
+            strokeDasharray={`${length} ${100 - length}`}
+        />
+    );
+}
+
+/**
+ * Comet traveling the card border. pathLength=100 keeps the dashes relative to the perimeter.
+ * One animation drives every layer, so they can't drift apart (separate per-layer animations did,
+ * splitting the head from the tail on iOS Safari).
+ */
 function PerimeterTracer() {
+    const progress = useMotionValue(0);
+
+    useEffect(() => {
+        const controls = animate(progress, 100, { duration: 5, ease: "linear", repeat: Infinity });
+        return () => controls.stop();
+    }, [progress]);
+
     return (
         <svg className="pointer-events-none absolute inset-0 size-full overflow-visible" aria-hidden>
-            {COMET_LAYERS.map(({ length, width }) => {
-                // Shift each dash so its leading end lines up with the longest one's.
-                const start = length - COMET_LENGTH;
-                return (
-                    <motion.rect
-                        key={length}
-                        width="100%"
-                        height="100%"
-                        style={{ rx: "var(--radius-lg)" }}
-                        fill="none"
-                        className="stroke-primary"
-                        strokeWidth={width}
-                        strokeLinecap="round"
-                        pathLength={100}
-                        strokeDasharray={`${length} ${100 - length}`}
-                        initial={{ strokeDashoffset: start }}
-                        animate={{ strokeDashoffset: start - 100 }}
-                        transition={{ duration: 5, ease: "linear", repeat: Infinity }}
-                    />
-                );
-            })}
+            {COMET_LAYERS.map(({ length, width }) => (
+                <CometLayer key={length} length={length} width={width} progress={progress} />
+            ))}
         </svg>
     );
 }
@@ -151,7 +170,7 @@ function ShimmerLabel({ children, animated }: { children: ReactNode; animated: b
  * ScanProgressCard — a "Finding your data" title (with the pulsing loader while scanning) over
  * Vinnie on the left and a three-row phase ticker on the right. The active phase sits in the middle row.
  */
-export function ScanProgressCard({ phases, activeIndex, status = "scanning", largeActive = false, dense = false, className }: ScanProgressCardProps) {
+export function ScanProgressCard({ phases, activeIndex, status = "scanning", largeActive = false, dense = false, title = "Finding your data", className }: ScanProgressCardProps) {
     const reduceMotion = useReducedMotion();
     const scanning = status === "scanning";
     const animated = scanning && !reduceMotion;
@@ -172,18 +191,21 @@ export function ScanProgressCard({ phases, activeIndex, status = "scanning", lar
         >
             {animated && <PerimeterTracer />}
 
-            <p className="m-0 flex items-center text-lg font-bold text-text-primary">
-                Finding your data
+            {/* items-baseline: the loader dots sit on the text baseline, reading as a trailing ellipsis. */}
+            <p className="m-0 flex items-baseline text-lg font-bold text-text-primary">
+                {title}
                 {scanning && <PulseDots animated={!reduceMotion} />}
             </p>
 
             <div className="flex items-center gap-4">
             <ScanVinnie className="h-16 w-16" />
 
-            <ul className="flex min-w-0 flex-1 flex-col">
+            {/* Fixed height (the three default row heights): a long active label may wrap to a second
+                line, which the empty spacer row absorbs, so the card never changes height. */}
+            <ul className={cx("flex min-w-0 flex-1 flex-col", dense ? "h-20" : "h-26")}>
                 {slots.map((index) => {
                     const phase = phases[index];
-                    if (!phase) return <li key={`pad${index}`} aria-hidden className={dense ? "h-6" : "h-8"} />;
+                    if (!phase) return <li key={`pad${index}`} aria-hidden className="min-h-0 flex-1" />;
 
                     const isActive = index === active;
                     const large = largeActive && isActive;
@@ -199,8 +221,8 @@ export function ScanProgressCard({ phases, activeIndex, status = "scanning", lar
                             transition={{ duration: reduceMotion ? 0 : 0.2, ease: [0.2, 0, 0, 1] }}
                             aria-hidden={!isActive}
                             className={cx(
-                                "flex items-center gap-2",
-                                large ? (dense ? "h-8" : "h-10") : dense ? "h-6" : "h-8",
+                                "flex shrink-0 items-center gap-2",
+                                large ? (dense ? "min-h-8" : "min-h-10") : dense ? "h-6" : "h-8",
                                 large ? "text-[19.5px]" : "text-lg",
                             )}
                         >
@@ -219,7 +241,7 @@ export function ScanProgressCard({ phases, activeIndex, status = "scanning", lar
                             {isActive && !isDone ? (
                                 <ShimmerLabel animated={!reduceMotion}>{phase.label}</ShimmerLabel>
                             ) : (
-                                <span className="truncate text-text-primary/40">{phase.label}</span>
+                                <span className={cx(large ? "leading-tight" : "truncate", "text-text-primary/40")}>{phase.label}</span>
                             )}
                         </motion.li>
                     );

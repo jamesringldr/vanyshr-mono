@@ -4,7 +4,6 @@ import { Page } from "konsta/react";
 import { useNavigate, useParams, useSearchParams } from "react-router";
 import {
   Activity,
-  ArrowLeft,
   BookOpen,
   Bot,
   Eye,
@@ -14,8 +13,8 @@ import {
   Ghost,
   MapPinOff,
   UserX,
-  ChevronRight,
   EyeOff,
+  FileCheck,
   MessageSquareOff,
   ScanSearch,
   ShieldAlert,
@@ -28,9 +27,10 @@ import {
   ScanProgressCard,
   ScanVinnie,
 } from "@vanyshr/ui/components/application/scan-progress-card/scan-progress-card";
-import binocularsSvg from "@/assets/icons/styled/binoculars-outline.svg?raw";
+import binocularsSvg from "@/assets/icons/soft-solid/binoculars.svg?raw";
 import { supabase } from "@/lib/supabase";
 import { cx } from "@/utils/cx";
+import { EASE_OUT, scanUi } from "./self-scan/chrome";
 import {
   LiveScan,
   PHASES,
@@ -45,7 +45,8 @@ import {
  * - once a profile is picked ("Yes, this is me"): the URL gains the scan id, the scan status card
  *   sits on top and a carousel of questions fills the page while the rest of the scan runs.
  *
- * ?preview shows the matching view alone; ?preview=questions shows the picked view. Neither scans.
+ * ?preview shows the matching view alone; ?preview=questions shows the picked view; ?preview=complete
+ * shows it finished, with the See My Data drawer. None of them scan.
  */
 export function FindingYourDataPage() {
   const navigate = useNavigate();
@@ -54,6 +55,8 @@ export function FindingYourDataPage() {
 
   if (preview === "questions")
     return <PickedView activeIndex={1} status="scanning" />;
+  if (preview === "complete")
+    return <PickedView activeIndex={PHASES.length - 1} status="complete" />;
   if (preview !== null) return <MatchingProfileView />;
 
   return (
@@ -72,10 +75,31 @@ export function FindingYourDataPage() {
 // Who finds the data brokers publish (matching view).
 const DATA_SEEKERS: readonly { label: string; icon: LucideIcon }[] = [
   { label: "Identity Thieves", icon: Fingerprint },
-  { label: "Sales Spammers", icon: Megaphone },
+  { label: "Spammers", icon: Megaphone },
   { label: "Hackers", icon: Terminal },
   { label: "Stalkers", icon: Eye },
 ];
+
+function DataBrokersNote() {
+  return (
+    <div className="rounded-lg bg-bg-surface p-4">
+      <h2 className="m-0 text-left text-(length:--fluid-12) font-bold text-text-primary">
+        They put you at risk of:
+      </h2>
+      <ul className="m-0 mt-4 grid list-none grid-cols-2 gap-x-6 gap-y-3 p-0">
+        {DATA_SEEKERS.map(({ label, icon: Icon }) => (
+          <li
+            key={label}
+            className="flex items-center gap-3 text-(length:--fluid-14) font-semibold text-text-primary"
+          >
+            <Icon className="size-4 shrink-0" aria-hidden />
+            {label}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
 
 function MatchingProfileView() {
   const reduceMotion = useReducedMotion();
@@ -100,26 +124,18 @@ function MatchingProfileView() {
         <PulseDots animated={!reduceMotion} />
       </p>
 
-      <div className="mt-10 w-full rounded-lg bg-bg-surface p-4">
-        <h2 className="m-0 text-left text-lg font-bold text-text-primary">
-          Data brokers harvest your private data and share it publicly for
-          anyone to find like:
-        </h2>
-        <ul className="m-0 mt-4 grid list-none grid-cols-2 gap-x-6 gap-y-3 p-0">
-          {DATA_SEEKERS.map(({ label, icon: Icon }) => (
-            <li
-              key={label}
-              className="flex items-center gap-3 text-[18px] font-semibold text-text-primary"
-            >
-              <Icon className="size-5 shrink-0" aria-hidden />
-              {label}
-            </li>
-          ))}
-        </ul>
+      <div className="mt-10 w-full">
+        <PrivacyNote />
       </div>
     </Page>
   );
 }
+
+// The shared scan phases plus a final "ready" row that only this page shows, once the scan is done.
+const CARD_PHASES = [
+  ...PHASES,
+  { label: "Your Exposure Report is Ready", icon: FileCheck },
+] as const;
 
 // Beat between the card settling and leaving for the report, so the settled state is seen
 // (same as ScanLoadingView).
@@ -142,21 +158,16 @@ interface QuestionStep {
   options: readonly QuestionOption[];
 }
 
-/** A slide with no answer: ink-doodle art, title and copy. Nothing is stored for it. */
+/** A slide with no answer: title and copy, optionally an icon before the title. Nothing is stored for it. */
 interface InfoStep {
   key: string;
   type: "info";
   title: string;
   subtitle?: string;
-  artSvg?: string;
+  /** Soft-solid SVG (currentColor), shown in cyan before the title. */
+  iconSvg?: string;
   /** Extra content under the copy. */
   body?: ReactNode;
-  /** Pin `body` to the bottom of the sheet instead of right under the copy. */
-  pinBody?: boolean;
-  /** Move on by itself after INFO_ADVANCE_MS, with no Back/Next buttons. */
-  autoAdvance?: boolean;
-  /** Smaller title (18px, 60% of the usual 30px) so the body leads. */
-  smallTitle?: boolean;
 }
 
 // Carousel steps, in order.
@@ -164,69 +175,11 @@ const STEPS: readonly (QuestionStep | InfoStep)[] = [
   {
     key: "finding_info",
     type: "info",
-    title: "Finding your data",
+    title: "Hunting for your data",
     subtitle:
-      "Scanning thousands of public broker databases to see exactly which ones are sharing your personal information.",
-    artSvg: binocularsSvg,
-    body: <PrivacyNote />,
-    pinBody: true,
-    autoAdvance: true,
-  },
-  {
-    key: "more_than_delete_info",
-    type: "info",
-    title: "We do more than just delete your data",
-    smallTitle: true,
-    body: (
-      <FeatureList
-        features={[
-          {
-            icon: Activity,
-            title: "Real-Time Removal Progress",
-            description:
-              'Other platforms hand you sparse "trust us" summaries or only monthly reports. Vanyshr shows the receipts with live detailed statuses for all scans and removals.',
-            plan: "All Plans",
-          },
-          {
-            icon: Ghost,
-            title: "Data Camouflage",
-            highlight: true,
-            description:
-              "Deletion isn't the whole game. We seed realistic synthetic data into broker profiles so whatever's left about you can't be trusted — by scammers or anyone buying it.",
-            plan: "Premium Plans",
-          },
-          {
-            icon: Bot,
-            title: "Use Your Own Agent",
-            highlight: true,
-            description:
-              "Connect Vanyshr directly to your model of choice - access full features, create your own workflows, reports or dashboards without ever opening the Vanyshr app.",
-            plan: "Premium Plans",
-          },
-          {
-            icon: UserX,
-            title: "Account Janitor",
-            description:
-              "Connect your email and we'll surface every account you've ever made. You pick the stale ones — we find the privacy policy and file the deletion request for each.",
-            plan: "Premium Plans",
-          },
-          {
-            icon: BookOpen,
-            title: "Advanced Privacy Playbooks",
-            description:
-              "Easy to follow step-by-step guides for pro-level anonymity tactics in plain English, not security jargon.",
-            plan: "All Plans",
-          },
-          {
-            icon: MapPinOff,
-            title: "Street View Residence Blur",
-            description:
-              "We submit requests to Google to blur your residence from being visible on Google Street View.",
-            plan: "Pro & Premium Plans",
-          },
-        ]}
-      />
-    ),
+      "We are scanning millions of data broker records to show you exactly which ones are exposing your personal info.",
+    iconSvg: binocularsSvg,
+    body: <FindingInfoBody />,
   },
   {
     key: "reasons_v1",
@@ -259,7 +212,7 @@ const STEPS: readonly (QuestionStep | InfoStep)[] = [
   },
 ];
 
-const EMPHASIS = "font-bold italic text-accent-text";
+const EMPHASIS = "font-bold italic text-text-primary";
 
 function PrivacyNote() {
   return (
@@ -288,6 +241,17 @@ function PrivacyNote() {
             used for any marketing - <em>we hate spam too</em>
           </span>
         </li>
+        <li className="flex gap-2">
+          <span
+            className="mt-2 size-1.5 shrink-0 rounded-full bg-primary"
+            aria-hidden
+          />
+          <span>
+            Your results are completely{" "}
+            <strong className={EMPHASIS}>WIPED</strong> from our servers after 5
+            minutes
+          </span>
+        </li>
       </ul>
     </div>
   );
@@ -297,43 +261,185 @@ interface Feature {
   icon: LucideIcon;
   title: string;
   description: string;
-  /** Which plans include it. */
-  plan: string;
+  /** Free = on every plan; Premium = paid plans only. Drives the pill color. */
+  plan: "Free" | "Premium";
   /** Azure border to call it out. */
   highlight?: boolean;
 }
 
-/** One card per feature: icon on the left, title, description and plan level on the right. */
-function FeatureList({ features }: { features: readonly Feature[] }) {
+// Plan pill colors: green for Free, azure for Premium.
+const PLAN_PILL: Record<Feature["plan"], string> = {
+  Free: "border-status-success-border bg-status-success-muted text-status-success",
+  Premium: "border-primary-border bg-primary-muted text-primary-text",
+};
+
+/** Distance between the starts of two neighboring slides (card width plus gap). */
+function slideStep(track: HTMLElement) {
+  const first = track.children[0] as HTMLElement | undefined;
+  const second = track.children[1] as HTMLElement | undefined;
+  return first && second
+    ? second.offsetLeft - first.offsetLeft
+    : track.clientWidth;
+}
+
+/**
+ * Swipeable feature cards (native scroll-snap, the next card peeks in) with pagination dots below.
+ * The track runs to the screen edges so cards slide off the screen, not off the page margin, and
+ * has 4px of padding above and below: an overflow-x scroller also clips vertically, which was
+ * shaving the cards' 1px bottom borders (most visible on the cyan-outlined ones).
+ */
+function FeatureCarousel({ features }: { features: readonly Feature[] }) {
+  const trackRef = useRef<HTMLUListElement>(null);
+  const reduceMotion = useReducedMotion();
+  const [page, setPage] = useState(0);
+
+  function handleScroll(e: React.UIEvent<HTMLUListElement>) {
+    const el = e.currentTarget;
+    const atEnd = el.scrollLeft + el.clientWidth >= el.scrollWidth - 2;
+    setPage(
+      atEnd ? features.length - 1 : Math.round(el.scrollLeft / slideStep(el)),
+    );
+  }
+
+  function goTo(index: number) {
+    const el = trackRef.current;
+    if (!el) return;
+    el.scrollTo({
+      left: index * slideStep(el),
+      behavior: reduceMotion ? "auto" : "smooth",
+    });
+  }
+
   return (
-    <ul className="m-0 flex list-none flex-col gap-3 p-0">
-      {features.map(({ icon: Icon, title, description, plan, highlight }) => (
-        <li
-          key={title}
-          className={cx(
-            // Transparent border on the rest so every card is the same size.
-            "flex gap-3 rounded-lg border bg-bg-surface p-4",
-            highlight ? "border-primary" : "border-transparent",
-          )}
-        >
-          <Icon
-            className="mt-0.5 size-5 shrink-0 text-text-primary"
-            aria-hidden
-          />
-          <div className="min-w-0">
-            <p className="m-0 text-lg font-semibold text-text-primary">
-              {title}
-            </p>
-            <p className="m-0 mt-1 text-md text-text-secondary">
-              {description}
-            </p>
-            <p className="m-0 mt-2 text-sm font-semibold text-primary-text">
-              {plan}
-            </p>
-          </div>
-        </li>
-      ))}
-    </ul>
+    <>
+      <ul
+        ref={trackRef}
+        onScroll={handleScroll}
+        className="-mx-6 mt-2 flex list-none snap-x snap-mandatory scroll-px-6 gap-3 overflow-x-auto px-6 py-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      >
+        {features.map(({ icon: Icon, title, description, plan, highlight }) => (
+          <li key={title} className="w-11/12 shrink-0 snap-start">
+            <div
+              className={cx(
+                // Transparent border on the rest so every card is the same size.
+                "flex h-full gap-3 rounded-lg border bg-bg-surface p-4",
+                highlight ? "border-primary" : "border-transparent",
+              )}
+            >
+              <Icon
+                className="mt-0.5 size-4 shrink-0 text-text-primary"
+                aria-hidden
+              />
+              <div className="min-w-0 flex-1">
+                <div className="flex items-start justify-between gap-2">
+                  <p className="m-0 text-(length:--fluid-12) font-semibold text-text-primary">
+                    {title}
+                  </p>
+                  <span
+                    className={cx(
+                      "shrink-0 rounded-full border px-2 py-0.5 text-(length:--fluid-11) font-semibold leading-none",
+                      PLAN_PILL[plan],
+                    )}
+                  >
+                    {plan}
+                  </span>
+                </div>
+                <p className="m-0 mt-1 text-(length:--fluid-11) text-text-secondary">
+                  {description}
+                </p>
+              </div>
+            </div>
+          </li>
+        ))}
+      </ul>
+      {/* Pagination, right under the cards: 6px dots, the active one a 20px pill, on a tight pitch. */}
+      <div
+        className="flex justify-center"
+        role="group"
+        aria-label="Feature pages"
+      >
+        {features.map(({ title }, i) => (
+          <button
+            key={title}
+            type="button"
+            onClick={() => goTo(i)}
+            aria-label={`Show ${title}`}
+            aria-current={i === page}
+            className="flex h-10 items-center justify-center px-[3px] outline-none focus-visible:outline-2 focus-visible:outline-border-focus"
+          >
+            <span
+              className={cx(
+                "h-1.5 rounded-full transition-all duration-fast",
+                i === page ? "w-5 bg-primary" : "w-1.5 bg-border-strong",
+              )}
+            />
+          </button>
+        ))}
+      </div>
+    </>
+  );
+}
+
+const FEATURES: readonly Feature[] = [
+  {
+    icon: Activity,
+    title: "Real-Time Removal Progress",
+    description:
+      'Other platforms hand you sparse "trust us" summaries or only monthly reports. Vanyshr shows the receipts with live detailed statuses for all scans and removals.',
+    plan: "Free",
+  },
+  {
+    icon: Ghost,
+    title: "Data Camouflage",
+    highlight: true,
+    description:
+      "Deletion isn't the whole game. We seed realistic synthetic data into broker profiles so whatever's left about you can't be trusted — by scammers or anyone buying it.",
+    plan: "Premium",
+  },
+  {
+    icon: Bot,
+    title: "Use Your Own Agent",
+    highlight: true,
+    description:
+      "Connect Vanyshr directly to your model of choice - access full features, create your own workflows, reports or dashboards without ever opening the Vanyshr app.",
+    plan: "Premium",
+  },
+  {
+    icon: UserX,
+    title: "Account Janitor",
+    description:
+      "Connect your email and we'll surface every account you've ever made. You pick the stale ones — we find the privacy policy and file the deletion request for each.",
+    plan: "Premium",
+  },
+  {
+    icon: BookOpen,
+    title: "Advanced Privacy Playbooks",
+    description:
+      "Easy to follow step-by-step guides for pro-level anonymity tactics in plain English, not security jargon.",
+    plan: "Free",
+  },
+  {
+    icon: MapPinOff,
+    title: "Street View Residence Blur",
+    description:
+      "We submit requests to Google to blur your residence from being visible on Google Street View.",
+    plan: "Premium",
+  },
+];
+
+/**
+ * First info slide's body: the data-brokers card, then the "more than delete" pitch with the
+ * feature cards as a carousel.
+ */
+function FindingInfoBody() {
+  return (
+    <>
+      <DataBrokersNote />
+      <h2 className="m-0 mt-6 text-(length:--fluid-14) font-bold leading-tight text-text-primary">
+        We do more than just delete your data
+      </h2>
+      <FeatureCarousel features={FEATURES} />
+    </>
   );
 }
 
@@ -351,8 +457,6 @@ const STEP_VARIANTS_REDUCED = {
 
 // Pause after a single-select pick so the selected state registers before the slide moves on.
 const AUTO_ADVANCE_MS = 350;
-// How long an info slide stays up before moving to the next step.
-const INFO_ADVANCE_MS = 10_000;
 
 /**
  * Stores one answer in quick_scan_responses via the save-scan-response edge function.
@@ -393,45 +497,23 @@ function PickedView({
   const [answers, setAnswers] = useState<Record<string, string[]>>({});
   const autoAdvanceRef = useRef<number | undefined>(undefined);
 
+  // The finished scan waits for a tap (See My Data) rather than jumping to the report.
+  const [drawerOpen, setDrawerOpen] = useState(false);
   useEffect(() => {
     if (status !== "complete") return;
-    const id = window.setTimeout(
-      () => navigate(REPORT_PATH, { replace: true }),
-      COMPLETE_BEAT_MS,
-    );
+    const id = window.setTimeout(() => setDrawerOpen(true), COMPLETE_BEAT_MS);
     return () => window.clearTimeout(id);
-  }, [status, navigate]);
+  }, [status]);
 
   useEffect(() => () => window.clearTimeout(autoAdvanceRef.current), []);
 
   const step = STEPS[stepIndex];
   const selectedIds = answers[step.key] ?? [];
   const isInfo = step.type === "info";
-  const autoAdvances = step.type === "info" && !!step.autoAdvance;
-  // No going back to the first step, or into an auto-advancing info slide.
-  const prevStep = STEPS[stepIndex - 1];
-  const canGoBack =
-    !!prevStep && !(prevStep.type === "info" && prevStep.autoAdvance);
-  const hasAnswer = selectedIds.length > 0;
   const advance = () => {
     setDirection(1);
     setStepIndex((i) => Math.min(i + 1, STEPS.length - 1));
   };
-  // Auto-advancing info slides move on by themselves. Restarts if the user comes back to one.
-  useEffect(() => {
-    if (!autoAdvances) return;
-    const id = window.setTimeout(advance, INFO_ADVANCE_MS);
-    return () => window.clearTimeout(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoAdvances, stepIndex]);
-
-  const goBack = () => {
-    // Cancel a pending single-select auto-advance so it can't fire after going back.
-    window.clearTimeout(autoAdvanceRef.current);
-    setDirection(-1);
-    setStepIndex((i) => Math.max(i - 1, 0));
-  };
-
   const choose = (id: string) => {
     if (step.type === "info") return;
     if (step.type === "multi") {
@@ -456,12 +538,6 @@ function PickedView({
     }, AUTO_ADVANCE_MS);
   };
 
-  // Next saves the selection; Skip records an explicit skip. Info slides just move on.
-  const nextOrSkip = () => {
-    if (!isInfo) saveAnswer(scanId, step.key, selectedIds, !hasAnswer);
-    advance();
-  };
-
   return (
     <Page
       className="flex h-dvh flex-col bg-bg-app! font-body"
@@ -472,14 +548,11 @@ function PickedView({
         <div
           className={cx(
             "flex min-h-0 flex-1 flex-col overflow-y-auto",
-            // With no footer, a pinned info body sits 30px off the bottom edge.
-            autoAdvances && "pb-[calc(env(safe-area-inset-bottom,0px)+30px)]",
-            // Room for the last card to scroll clear of the floating footer.
-            !autoAdvances && "pb-36",
+            "pb-[max(1rem,env(safe-area-inset-bottom))]",
           )}
         >
           {/* Sticky inside the scroller so content passes behind the status card. */}
-          <header className="sticky top-0 z-10 shrink-0 px-4 pt-[calc(env(safe-area-inset-top,0px)+1rem)] pb-6">
+          <header className="sticky top-0 z-10 shrink-0 px-4 pt-[calc(env(safe-area-inset-top,0px)+1rem)] pb-4">
             {/* Same blur material as the footer, flipped: solid behind the card, fading out over
                 the gap below it so cards blur away as they scroll up with no hard edge. */}
             <div
@@ -491,21 +564,29 @@ function PickedView({
               aria-hidden
             />
             <ScanProgressCard
-              phases={PHASES}
-              activeIndex={activeIndex}
+              phases={CARD_PHASES}
+              // Done: land on the last row ("Your Exposure Report is Ready").
+              activeIndex={
+                status === "complete" ? CARD_PHASES.length - 1 : activeIndex
+              }
               status={status}
               largeActive
               dense
-              // Card on the dark blue at 80% opacity; the tracer stays.
-              className="w-full bg-temp-blue-test/80!"
+              title={
+                drawerOpen
+                  ? "Scan Complete - Your data is ready!"
+                  : "Scanning in progress"
+              }
+              // Card on bg-app at 80% opacity; the tracer stays.
+              className="w-full bg-bg-app/80!"
             />
           </header>
 
           <div
             className={cx(
-              "px-6 pt-2.5",
-              // Info slides fill the space so a pinned body can sit at the bottom.
-              isInfo && "flex flex-1 flex-col",
+              "px-6",
+              // Info slides fill the space so the body's own scroll box gets the remaining height.
+              isInfo && "flex min-h-0 flex-1 flex-col",
             )}
           >
             <AnimatePresence mode="wait" initial={false} custom={direction}>
@@ -521,36 +602,38 @@ function PickedView({
                   ease: [0.2, 0, 0, 1],
                 }}
                 aria-labelledby="fyd-step-title"
-                className={cx(isInfo && "flex flex-1 flex-col")}
-              >
-                {step.type === "info" && step.artSvg && (
-                  // No tile: white ink, page-colored paper (reads as clear), cyan shadow.
-                  <div
-                    className="mx-auto mb-4 size-40 [--icon-ink:var(--color-text-primary)] [--icon-paper:var(--color-bg-app)] [--icon-shadow:var(--color-primary)] [&>svg]:size-full"
-                    aria-hidden
-                    dangerouslySetInnerHTML={{ __html: step.artSvg }}
-                  />
+                className={cx(
+                  "fluid-type",
+                  isInfo && "flex min-h-0 flex-1 flex-col",
                 )}
-                <h1
-                  id="fyd-step-title"
-                  className={cx(
-                    "m-0 font-display font-bold leading-tight tracking-tight text-text-primary",
-                    step.type === "info" && step.smallTitle
-                      ? "text-[18px]"
-                      : "text-display-xs",
+              >
+                <div className="flex items-center gap-3">
+                  {step.type === "info" && step.iconSvg && (
+                    // Bare cyan glyph, no tile.
+                    <div
+                      className="size-6.5 shrink-0 text-primary [&>svg]:size-full"
+                      aria-hidden
+                      dangerouslySetInnerHTML={{ __html: step.iconSvg }}
+                    />
                   )}
-                >
-                  {step.title}
-                </h1>
+                  <h1
+                    id="fyd-step-title"
+                    className={cx(
+                      "m-0 font-display font-bold leading-tight tracking-tight text-text-primary",
+                      "text-(length:--fluid-24)",
+                    )}
+                  >
+                    {step.title}
+                  </h1>
+                </div>
                 {step.subtitle && (
-                  <p className="m-0 mt-2 text-md text-text-secondary">
+                  <p className="m-0 mt-2 text-(length:--fluid-11) text-text-secondary">
                     {step.subtitle}
                   </p>
                 )}
 
-                {/* Pinned bodies sit at the bottom of the sheet; pt-10 keeps a gap on short screens. */}
                 {step.type === "info" && step.body && (
-                  <div className={step.pinBody ? "mt-auto pt-10" : "mt-6"}>
+                  <div className="mt-4 flex min-h-0 flex-1 flex-col">
                     {step.body}
                   </div>
                 )}
@@ -599,61 +682,28 @@ function PickedView({
             </AnimatePresence>
           </div>
         </div>
-        {/* Auto-advancing info slides have no buttons; they move on by themselves. */}
-        {!autoAdvances && (
-          // Floats over the scrolling content. pointer-events-none so the faded top doesn't swallow
-          // scrolls and taps meant for the cards; only the buttons take input.
-          <footer className="pointer-events-none absolute inset-x-0 bottom-0 pt-12">
-            {/* Blur that fades in from the top (HIG bar material): cards soften as they pass under
-                with no hard edge. The gradient alone is the fallback where backdrop-filter is off. */}
-            <div
-              className={cx(
-                "absolute inset-0 backdrop-blur-xl",
-                "bg-[linear-gradient(to_bottom,transparent,color-mix(in_srgb,var(--color-bg-page)_55%,transparent)_45%,color-mix(in_srgb,var(--color-bg-page)_92%,transparent))]",
-                "[-webkit-mask-image:linear-gradient(to_bottom,transparent,black_45%)] [mask-image:linear-gradient(to_bottom,transparent,black_45%)]",
-              )}
-              aria-hidden
-            />
-            <div className="relative flex items-center justify-between px-6 pb-[max(1rem,env(safe-area-inset-bottom))]">
-              {/* Back to the previous step; hidden (but holding its space) when there's nowhere to go. */}
-              <button
-                type="button"
-                onClick={goBack}
-                aria-label="Previous question"
-                disabled={!canGoBack}
-                className={cx(
-                  "pointer-events-auto flex size-11 items-center justify-center rounded-full bg-bg-surface text-text-primary transition-colors duration-fast",
-                  "outline-none hover:bg-state-hover active:bg-state-active focus-visible:outline-2 focus-visible:outline-border-focus focus-visible:ring-4 focus-visible:ring-ring-focus",
-                  !canGoBack && "invisible",
-                )}
-              >
-                <ArrowLeft className="size-5" aria-hidden />
-              </button>
-              {/* Secondary "Skip" until an answer is picked, then primary "Next" (DESIGN.md §11.1, md size).
-                Info slides always show "Next". */}
-              <button
-                type="button"
-                onClick={nextOrSkip}
-                className={cx(
-                  "pointer-events-auto flex h-12 w-1/2 items-center justify-center gap-2 rounded-full px-5 text-md transition-colors duration-fast",
-                  "outline-none focus-visible:outline-2 focus-visible:outline-border-focus focus-visible:ring-4 focus-visible:ring-ring-focus",
-                  hasAnswer || isInfo
-                    ? "bg-primary font-bold text-primary-on hover:bg-primary-hover active:bg-primary-active"
-                    : "bg-bg-elevated font-semibold text-text-primary hover:bg-state-hover active:bg-state-active",
-                )}
-              >
-                {hasAnswer || isInfo ? (
-                  "Next"
-                ) : (
-                  <>
-                    Skip
-                    <ChevronRight className="size-4 shrink-0" aria-hidden />
-                  </>
-                )}
-              </button>
-            </div>
-          </footer>
-        )}
+      </div>
+
+      {/* Same bottom drawer as the report page's CTA; slides up once the scan finishes. */}
+      <div className="fixed inset-x-0 bottom-0 z-30 px-4 pb-[env(safe-area-inset-bottom)]">
+        <motion.footer
+          className="mx-auto w-full max-w-md rounded-t-2xl border-t border-border-subtle bg-bg-surface px-5 pb-6 pt-5"
+          initial={reduceMotion ? false : { y: "100%" }}
+          animate={{ y: drawerOpen ? 0 : "100%" }}
+          transition={{ duration: reduceMotion ? 0 : 0.44, ease: EASE_OUT }}
+          inert={!drawerOpen}
+        >
+          <p className="m-0 mb-4 text-center text-lg font-bold text-text-primary">
+            Your Exposure Report is ready
+          </p>
+          <button
+            type="button"
+            onClick={() => navigate(REPORT_PATH, { replace: true })}
+            className={cx(scanUi.primaryBtn, "w-full text-white")}
+          >
+            See My Data
+          </button>
+        </motion.footer>
       </div>
     </Page>
   );
