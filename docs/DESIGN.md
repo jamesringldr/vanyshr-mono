@@ -43,7 +43,7 @@ This block must match the token file. Edit values via spec from Igor, not by han
   /* ── Brand (raw) ── */
   --color-brand-cyan: #14abfe;
   --color-brand-orange: #ff6924;
-  --color-brand-navy: #070f1c;
+  --color-brand-navy: #07090e;
   --color-brand-cyan-on-light: #0077cc;
   --color-brand-orange-on-light: #b84300;
 
@@ -79,8 +79,8 @@ This block must match the token file. Edit values via spec from Igor, not by han
   --color-accent-text: #ff6924;
 
   /* ── Surfaces (true grey ladder) ── */
-  --color-bg-app: #242424;
-  --color-bg-surface: #343434;
+  --color-bg-app: #22242b;
+  --color-bg-surface: #2b2d34;
   --color-bg-elevated: #444444;
   --color-bg-overlay: #000000a6;
   --color-bg-inverse: #fafafa;
