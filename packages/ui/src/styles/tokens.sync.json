@@ -1,7 +1,7 @@
 {
   "source": "jamesringldr/vanyshrdesignsys",
-  "sha": "8c319a391a81b5c01b3e06198c4900f1a42c10d8",
-  "syncedAt": "2026-10-13T03:40:58.745Z",
+  "sha": "5adb0374d093cef06933de5711aa41ac679130d5",
+  "syncedAt": "2026-10-13T03:43:24.108Z",
   "files": [
     "packages/ui/src/styles/tokens.css",
     "docs/DESIGN.md",
