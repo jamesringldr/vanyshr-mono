@@ -83,12 +83,12 @@ function MatchingProfileView() {
   return (
     <Page
       // Top-aligned with Vinnie inside the top ~40% of the screen (18dvh + his 192px).
-      className="flex flex-col items-center bg-temp-blue-test! px-6 pt-[18dvh] font-body"
+      className="flex flex-col items-center bg-bg-app! px-6 pt-[18dvh] font-body"
       role="main"
       aria-label="Matching your profile"
     >
-      {/* Same Vinnie as the scan status card (h-16), 3x larger. */}
-      <ScanVinnie className="h-48 w-48" />
+      {/* Same Vinnie as the scan status card (h-16), ~2.4x larger. */}
+      <ScanVinnie className="h-38.5 w-38.5" />
       <h1
         role="status"
         className="m-0 mt-6 text-center text-xl font-bold text-text-primary"
@@ -100,21 +100,23 @@ function MatchingProfileView() {
         <PulseDots animated={!reduceMotion} />
       </p>
 
-      <h2 className="m-0 mt-10 self-stretch text-left text-lg font-bold text-text-primary">
-        Data brokers harvest your private data and share it publicly for anyone
-        to find like:
-      </h2>
-      <ul className="m-0 mt-4 grid list-none grid-cols-2 gap-x-6 gap-y-3 p-0">
-        {DATA_SEEKERS.map(({ label, icon: Icon }) => (
-          <li
-            key={label}
-            className="flex items-center gap-3 text-[18px] font-semibold text-text-primary"
-          >
-            <Icon className="size-5 shrink-0 text-accent-text" aria-hidden />
-            {label}
-          </li>
-        ))}
-      </ul>
+      <div className="mt-10 w-full rounded-lg bg-bg-surface p-4">
+        <h2 className="m-0 text-left text-lg font-bold text-text-primary">
+          Data brokers harvest your private data and share it publicly for
+          anyone to find like:
+        </h2>
+        <ul className="m-0 mt-4 grid list-none grid-cols-2 gap-x-6 gap-y-3 p-0">
+          {DATA_SEEKERS.map(({ label, icon: Icon }) => (
+            <li
+              key={label}
+              className="flex items-center gap-3 text-[18px] font-semibold text-text-primary"
+            >
+              <Icon className="size-5 shrink-0" aria-hidden />
+              {label}
+            </li>
+          ))}
+        </ul>
+      </div>
     </Page>
   );
 }
