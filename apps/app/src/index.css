@@ -61,7 +61,7 @@
 
 /* App-specific styles can be added here */
 
-/* TRIAL (2026-10-13): fluid type, scoped to the finding-your-data carousel slide only.
+/* TRIAL (2026-10-13): fluid type, scoped to the finding-your-data scan page only (the slide and its status card).
    Each size is its 390px-wide value, nudged by viewport width (+/-0.2% of the base per px away
    from 390) and clamped to +/-10%. Bases are in rem so the user's text-size setting still counts.
    If this holds up it becomes tokens in the design system (amendment); delete it if not. */
@@ -70,6 +70,11 @@
   --fluid-12: clamp(0.675rem, calc(0.75rem + (100vw - 390px) * 0.024), 0.825rem);
   --fluid-14: clamp(0.7875rem, calc(0.875rem + (100vw - 390px) * 0.028), 0.9625rem);
   --fluid-24: clamp(1.35rem, calc(1.5rem + (100vw - 390px) * 0.048), 1.65rem);
+  /* The status card's sizes (15px rows and title, 19.5px active row). These shrink about twice as
+     fast as the rest: its text column loses the full width difference (Vinnie and the gaps don't
+     shrink), so at the page's gentler slope the active line still overflowed on 360px phones. */
+  --fluid-15: clamp(0.797rem, calc(0.9375rem + (100vw - 390px) * 0.06), 1.03125rem);
+  --fluid-19p5: clamp(1.0375rem, calc(1.21875rem + (100vw - 390px) * 0.08), 1.340625rem);
   /* Unitless, so every size above keeps its own proportional line height. */
   line-height: 1.4;
 }
