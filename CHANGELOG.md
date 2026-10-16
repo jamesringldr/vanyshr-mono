@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Live `/find-my-data` flow: the entry form starts the real scan, `/find-my-data/loading` runs it behind the new scan-wait screen (education slides plus a progress card driven by the actual scan phases, with pick, email selection, no-results and error handling), and completion lands on `/find-my-data/report`. `?preview` on the loading page keeps the timer-driven mock.
+- Recommendations tab on the self-scan report, replacing the Risk Summary slide: a scan-driven list of next steps (secure breached accounts, remove broker listings, freeze credit, and so on). Each item cites what the scan found, the top five show first, and the rest sit behind a "More ways to protect yourself" toggle. Built from `recommendation-engine.ts` (pure, derived from breaches and broker records) and `recommendations.tsx`.
 - Design-system foundation: the design bible (`docs/DESIGN.md`, `docs/COMPONENTS.md`), `tokens.css` as the single token source with the Konsta/shadcn token bridge, scaffolded shadcn primitives (card, switch, table, tabs, separator, skeleton), and `scripts/audit.mjs` for bible compliance
 - Dev-only Connected/Disconnected mode and DevToolbar for local development
 
