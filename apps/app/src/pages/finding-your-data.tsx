@@ -438,7 +438,7 @@ function FindingInfoBody() {
   return (
     <>
       <DataBrokersNote />
-      <h2 className="m-0 mt-6 text-(length:--fluid-14) short:mt-4 font-bold leading-tight text-text-primary">
+      <h2 className="m-0 mt-8 text-(length:--fluid-14) short:mt-6 font-bold leading-tight text-text-primary">
         We do more than just delete your data
       </h2>
       <FeatureCarousel features={FEATURES} />
@@ -600,7 +600,7 @@ function PickedView({
                   </h1>
                 </div>
                 {step.subtitle && (
-                  <p className="m-0 mt-2 text-(length:--fluid-11) text-text-secondary">
+                  <p className="m-0 mt-2 text-(length:--fluid-14) text-text-secondary">
                     {step.subtitle}
                   </p>
                 )}
