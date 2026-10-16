@@ -54,6 +54,8 @@ const AUDITED_SOURCE_FILES = [
   rel("packages/ui/src/components/ui/input/input-group.tsx"),
   rel("packages/ui/src/components/ui/input/input-payment.tsx"),
   rel("apps/app/src/components/DevToolbar.tsx"),
+  rel("apps/app/src/pages/self-scan/recommendation-engine.ts"),
+  rel("apps/app/src/pages/self-scan/recommendations.tsx"),
 ].filter(existsSync);
 
 const COMPILED_CSS_GLOB_DIR = rel("apps/app/dist/assets");
