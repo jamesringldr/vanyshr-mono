@@ -71,7 +71,14 @@ export function LandingPage() {
                 Find my data
               </button>
             </div>
-            <p className="m-0 text-md text-text-secondary">No credit card or sign up required</p>
+            <ul className="m-0 flex list-none items-center justify-center gap-4 p-0 text-md italic text-text-secondary">
+              {["No Credit Card", "No Sign Up"].map((label) => (
+                <li key={label} className="flex items-center gap-1.5">
+                  <span className="size-1.5 shrink-0 rounded-full bg-primary" aria-hidden="true" />
+                  {label}
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
 
