@@ -120,7 +120,7 @@ export function LandingPage() {
             <RotatingThreat words={THREAT_WORDS} reducedMotion={reducedMotion} />
           </h1>
           <p className="m-0 mt-3 shrink-0 text-lg text-text-secondary">
-            Find where your private data is exposed to scammers &amp; spammers then make it{" "}
+            Find where your private data is being exposed across the web then make it{" "}
             <span className="font-bold italic text-text-primary">vanysh!</span>
           </p>
 
@@ -147,7 +147,7 @@ export function LandingPage() {
               className="flex h-12 items-center gap-1 rounded-full px-4 text-lg font-semibold text-text-primary outline-none transition-colors duration-fast hover:bg-state-hover active:bg-state-active focus-visible:outline-2 focus-visible:outline-border-focus focus-visible:ring-4 focus-visible:ring-ring-focus"
             >
               Learn More
-              <ChevronDown className="animate-nudge-down size-4 shrink-0" aria-hidden="true" />
+              <ChevronDown className="animate-nudge-down size-4 shrink-0" strokeWidth={3} aria-hidden="true" />
             </button>
           </div>
         </div>
