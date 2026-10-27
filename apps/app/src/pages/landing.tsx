@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { AnimatePresence, motion, useMotionValueEvent, useReducedMotion, useScroll } from "framer-motion";
 import { useNavigate } from "react-router";
 import { Navbar, Page } from "konsta/react";
-import { ChevronDown, ChevronRight, ShieldCheck } from "lucide-react";
+import { ChevronDown, ChevronRight, Menu, ShieldCheck } from "lucide-react";
 import { cx } from "@/utils/cx";
 import { BrandLockup } from "@/components/BrandLockup";
 import {
@@ -65,6 +65,13 @@ export function LandingPage() {
   const keyboardOpen = keyboard.inset > 0;
   const reducedMotion = Boolean(useReducedMotion());
   const scrollerRef = useRef<HTMLDivElement>(null);
+  // Navbar action: "Sign in" on the hero, hamburger once the snap stack is scrolled past halfway to section 2.
+  const [pastHero, setPastHero] = useState(false);
+  const { scrollY } = useScroll({ container: scrollerRef });
+  useMotionValueEvent(scrollY, "change", (y) => {
+    const stage = scrollerRef.current?.clientHeight ?? 0;
+    if (stage > 0) setPastHero(y / stage >= 0.5);
+  });
 
   useDrawerPageEffects(isOpen, fieldFocused, "var(--color-brand-navy)");
 
@@ -88,14 +95,36 @@ export function LandingPage() {
           innerClassName="pl-2.5!"
           leftClassName="ml-0! bg-transparent! shadow-none! backdrop-blur-none!"
           right={
-            <button
-              type="button"
-              onClick={() => navigate("/login")}
-              className="flex h-11 items-center gap-1 whitespace-nowrap text-md font-semibold text-text-primary outline-none focus-visible:outline-2 focus-visible:outline-border-focus"
-            >
-              Sign in
-              <ChevronRight className="size-4 shrink-0" aria-hidden="true" />
-            </button>
+            <AnimatePresence mode="wait" initial={false}>
+              {pastHero ? (
+                <motion.button
+                  key="menu"
+                  type="button"
+                  aria-label="Open menu"
+                  initial={reducedMotion ? false : { opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  transition={{ duration: reducedMotion ? 0 : 0.2, ease: [0.2, 0, 0, 1] }}
+                  className="flex size-11 items-center justify-center text-text-primary outline-none focus-visible:outline-2 focus-visible:outline-border-focus"
+                >
+                  <Menu className="size-6" aria-hidden="true" />
+                </motion.button>
+              ) : (
+                <motion.button
+                  key="signin"
+                  type="button"
+                  onClick={() => navigate("/login")}
+                  initial={reducedMotion ? false : { opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  transition={{ duration: reducedMotion ? 0 : 0.2, ease: [0.2, 0, 0, 1] }}
+                  className="flex h-11 items-center gap-1 whitespace-nowrap text-md font-semibold text-text-primary outline-none focus-visible:outline-2 focus-visible:outline-border-focus"
+                >
+                  Sign in
+                  <ChevronRight className="size-4 shrink-0" aria-hidden="true" />
+                </motion.button>
+              )}
+            </AnimatePresence>
           }
         />
 
