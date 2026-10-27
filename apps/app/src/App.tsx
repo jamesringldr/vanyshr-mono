@@ -41,10 +41,10 @@ import { SelfScanEntryPage } from "./pages/self-scan/entry";
 import { SelfScanSplashPage } from "./pages/self-scan/splash";
 import { SelfScanLoadingPage } from "./pages/self-scan/loading";
 import { SelfScanReportPage } from "./pages/self-scan/report";
-import { FindMyDataPage } from "./pages/find-my-data";
 import { FindMyDataLoadingPage } from "./pages/find-my-data-loading";
 import { FindingYourDataPage } from "./pages/finding-your-data";
 import { LearnMorePage } from "./pages/learn-more";
+import { FindMyDataPage } from "./pages/find-my-data";
 import { LandingPage } from "./pages/landing";
 
 // Dashboard pages
@@ -158,7 +158,7 @@ function VerticalPager() {
                     className="absolute inset-0"
                 >
                     <Routes location={location}>
-                        <Route path="/" element={<FindMyDataPage />} />
+                        <Route path="/" element={<LandingPage />} />
                         <Route path="/learn-more" element={<LearnMorePage />} />
                     </Routes>
                 </motion.div>
@@ -173,8 +173,8 @@ export default function App() {
     return (
         <Routes>
             {/* Dashboard — DevOnly until ready for users */}
-            <Route path="/" element={<FindMyDataPage />} />
-            <Route path="/landing" element={<LandingPage />} />
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/landing" element={<FindMyDataPage />} />
             <Route path="/dashboard" element={<DevOnly><RequireAuth productionOnly><DashboardHome /></RequireAuth></DevOnly>} />
             <Route path="/dashboard/home" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard/dark-web" element={<DevOnly><RequireAuth productionOnly><DarkWebPage /></RequireAuth></DevOnly>} />
