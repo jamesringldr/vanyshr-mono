@@ -78,3 +78,16 @@
   /* Unitless, so every size above keeps its own proportional line height. */
   line-height: 1.4;
 }
+
+/* Landing "Learn more" cue: a slow 4px nudge, not a bounce. One animated
+   property (DESIGN.md §7); dropped under reduced motion. */
+@keyframes nudge-down {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(4px); }
+}
+@utility animate-nudge-down {
+  animation: nudge-down 1.6s var(--ease-standard) infinite;
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}

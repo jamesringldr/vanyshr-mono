@@ -45,6 +45,7 @@ import { FindMyDataPage } from "./pages/find-my-data";
 import { FindMyDataLoadingPage } from "./pages/find-my-data-loading";
 import { FindingYourDataPage } from "./pages/finding-your-data";
 import { LearnMorePage } from "./pages/learn-more";
+import { LandingPage } from "./pages/landing";
 
 // Dashboard pages
 import { DashboardHome } from "./views/Dashboard/DashboardHome";
@@ -173,6 +174,7 @@ export default function App() {
         <Routes>
             {/* Dashboard — DevOnly until ready for users */}
             <Route path="/" element={<FindMyDataPage />} />
+            <Route path="/landing" element={<LandingPage />} />
             <Route path="/dashboard" element={<DevOnly><RequireAuth productionOnly><DashboardHome /></RequireAuth></DevOnly>} />
             <Route path="/dashboard/home" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard/dark-web" element={<DevOnly><RequireAuth productionOnly><DarkWebPage /></RequireAuth></DevOnly>} />
