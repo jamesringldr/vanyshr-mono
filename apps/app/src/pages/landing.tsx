@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useMotionValueEvent, useReducedMotion, useScroll } from "framer-motion";
 import { useNavigate } from "react-router";
-import { Navbar, Page } from "konsta/react";
+import { List, ListItem, Navbar, Page, Panel } from "konsta/react";
 import { ChevronDown, ChevronRight, Menu, ShieldCheck } from "lucide-react";
 import { cx } from "@/utils/cx";
 import { BrandLockup } from "@/components/BrandLockup";
@@ -67,6 +67,7 @@ export function LandingPage() {
   const scrollerRef = useRef<HTMLDivElement>(null);
   // Navbar action: "Sign in" on the hero, hamburger once the snap stack is scrolled past halfway to section 2.
   const [pastHero, setPastHero] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const { scrollY } = useScroll({ container: scrollerRef });
   useMotionValueEvent(scrollY, "change", (y) => {
     const stage = scrollerRef.current?.clientHeight ?? 0;
@@ -101,6 +102,7 @@ export function LandingPage() {
                   key="menu"
                   type="button"
                   aria-label="Open menu"
+                  onClick={() => setMenuOpen(true)}
                   initial={reducedMotion ? false : { opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.8 }}
@@ -216,6 +218,26 @@ export function LandingPage() {
             />
           </div>
         </div>
+
+        {/* Side menu: Konsta Panel from the right, half the screen width. */}
+        <Panel
+          side="right"
+          opened={menuOpen}
+          onBackdropClick={() => setMenuOpen(false)}
+          className="w-1/2! rounded-l-lg! bg-bg-surface!"
+        >
+          <List nested className="my-4! text-text-primary">
+            <ListItem
+              link
+              title={<span className="text-text-primary">Find my data</span>}
+              onClick={() => {
+                setMenuOpen(false);
+                setIsOpen(true);
+              }}
+            />
+            <ListItem link title={<span className="text-text-primary">Sign in</span>} onClick={() => navigate("/login")} />
+          </List>
+        </Panel>
 
         {isOpen && (
           <FindMyDataDrawer
