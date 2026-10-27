@@ -125,3 +125,21 @@
 @utility text-display-fluid {
   font-size: min(var(--size-display), calc(100cqw / 13.5));
 }
+
+/* Landing snap stack: the scroll container is a size container, so one "stage"
+   is exactly the space under the navbar (100cqh). Snap markers sit at 0-3 stages. */
+@utility cq-size {
+  container-type: size;
+}
+@utility h-stage {
+  height: 100cqh;
+}
+@utility top-stage {
+  top: 100cqh;
+}
+@utility top-stage-2 {
+  top: 200cqh;
+}
+@utility top-stage-3 {
+  top: 300cqh;
+}
