@@ -5,13 +5,13 @@ import { motion, useReducedMotion } from "framer-motion";
 import PrimaryLogoDark from "@vanyshr/ui/assets/PrimaryLogo-DarkMode.png";
 import { cx } from "@/utils/cx";
 import { loadConsolidatedProfile } from "../pilot-scan/consolidated-profile";
-import { RiskSummaryBody } from "../pilot-scan/risk-summary";
 import { PreProfileBody } from "../pilot-scan/pre-profile";
 import { BreachesBody } from "../pilot-scan/breaches";
 import { BrokersBody } from "../pilot-scan/brokers";
 import { EASE_OUT, scanUi } from "./chrome";
+import { RecommendationsBody } from "./recommendations";
 
-const SLIDES = ["Exposed Data", "Risk Summary", "Breaches", "Brokers"] as const;
+const SLIDES = ["Exposed Data", "Recommendations", "Breaches", "Brokers"] as const;
 const FOOTER_CLEARANCE = "pb-[260px]";
 
 function TabBar({ active, onSelect }: { active: number; onSelect: (index: number) => void }) {
@@ -63,14 +63,11 @@ function TabBar({ active, onSelect }: { active: number; onSelect: (index: number
 }
 
 /**
- * Post-scan report — risk-summary, pre-profile, breaches, and brokers as four
+ * Post-scan report — pre-profile, recommendations, breaches, and brokers as four
  * swipeable slides on one page, sharing a single header/tab bar rather than
  * each carrying its own. Native CSS scroll-snap rather than a framer-motion
  * drag track: no constraint-measuring or drag/animate-conflict tuning needed,
- * and it keeps the whole page free of CSS transforms — relevant because the
- * risk-summary slide's area-detail drawer is `position: fixed` (portaled to
- * document.body regardless, but a transform-free page is one less thing to
- * reason about).
+ * and it keeps the whole page free of CSS transforms.
  */
 export function SelfScanReportPage({ startOverPath = "/self-scan" }: { startOverPath?: string }) {
   const navigate = useNavigate();
@@ -169,7 +166,7 @@ export function SelfScanReportPage({ startOverPath = "/self-scan" }: { startOver
           className={cx("h-full w-full shrink-0 snap-start snap-always overflow-y-auto", FOOTER_CLEARANCE)}
           aria-hidden={slide !== 1}
         >
-          <RiskSummaryBody profile={stored.profile} />
+          <RecommendationsBody stored={stored} />
         </div>
         <div
           id="report-panel-2"

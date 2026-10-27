@@ -78,3 +78,50 @@
   /* Unitless, so every size above keeps its own proportional line height. */
   line-height: 1.4;
 }
+
+/* Landing "Learn more" cue: a slow 4px nudge, not a bounce. One animated
+   property (DESIGN.md §7); dropped under reduced motion. */
+@keyframes nudge-down {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(4px); }
+}
+@utility animate-nudge-down {
+  animation: nudge-down 1.6s var(--ease-standard) infinite;
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+/* Landing headline underline: a light-grey rule with a brand-orange band
+   sweeping across once per word. Reduced motion keeps the grey rule. */
+@keyframes underline-sweep {
+  from { background-position: 100% 0; }
+  to { background-position: 0 0; }
+}
+@utility animate-underline-sweep {
+  background-image: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--color-text-secondary) 50%, transparent) 0%,
+    color-mix(in srgb, var(--color-text-secondary) 50%, transparent) 35%,
+    var(--color-accent) 45%,
+    var(--color-accent-hover) 50%,
+    var(--color-accent) 55%,
+    color-mix(in srgb, var(--color-text-secondary) 50%, transparent) 65%,
+    color-mix(in srgb, var(--color-text-secondary) 50%, transparent) 100%
+  );
+  background-size: 400% 100%;
+  animation: underline-sweep 1.4s var(--ease-linear) 1 both;
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+/* Landing headline: scales with the width of its column so the longest rotating
+   word ("Identity Thieves", ~13.5 x font-size wide with "Vanysh from") always
+   fits inside the gutters; never larger than the display size. */
+@utility cq-inline {
+  container-type: inline-size;
+}
+@utility text-display-fluid {
+  font-size: min(var(--size-display), calc(100cqw / 13.5));
+}
