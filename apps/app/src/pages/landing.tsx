@@ -11,14 +11,18 @@ import {
   type MotionValue,
 } from "framer-motion";
 import { useNavigate } from "react-router";
-import { List, ListItem, Navbar, Page, Panel } from "konsta/react";
+import { Navbar, Page } from "konsta/react";
 import {
+  Ban,
+  BookOpen,
   Briefcase,
   Cake,
   Car,
+  Check,
   ChevronDown,
   ChevronRight,
   CreditCard,
+  Download,
   GraduationCap,
   House,
   IdCard,
@@ -26,7 +30,6 @@ import {
   Mail,
   MapPin,
   MessageCircle,
-  Menu,
   Phone,
   PhoneOff,
   ShieldAlert,
@@ -457,7 +460,7 @@ function PhoneFrame({ children }: { children: ReactNode }) {
   return (
     <div
       aria-hidden="true"
-      className="relative h-full w-2/3 overflow-hidden rounded-t-4xl border border-b-0 border-border-subtle bg-bg-surface"
+      className="relative size-full overflow-hidden rounded-t-4xl border border-b-0 border-border-subtle bg-bg-surface"
     >
       <span className="absolute left-1/2 top-2 z-10 h-4 w-14 -translate-x-1/2 rounded-full bg-black" />
       {children}
@@ -691,13 +694,48 @@ function EmailNotification({ shown, reducedMotion }: NotificationProps) {
   );
 }
 
-/** Section three: "Why you get..." phases, each with its own phone screen. */
+/** First phase of section three: a tilted phone whose screen shows a shield with a padlock. It fades in while the
+    phase is active, then gives way to the real phone for the scam phases. */
+function PrivacyIllustration({ shown, reducedMotion }: { shown: boolean; reducedMotion: boolean }) {
+  return (
+    <motion.svg
+      aria-hidden="true"
+      viewBox="40 16 160 240"
+      fill="none"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      initial={false}
+      animate={shown ? { opacity: 1, scale: 1 } : { opacity: 0, scale: reducedMotion ? 1 : 0.9 }}
+      transition={shown && !reducedMotion ? { duration: 0.5, ease: [0.2, 0, 0, 1] } : { duration: shown ? 0 : 0.15 }}
+      className="aspect-2/3 h-4/5 max-h-80"
+    >
+      <g transform="rotate(-10 120 160)" strokeWidth="3" className="stroke-text-primary">
+        <rect x="72" y="40" width="96" height="188" rx="16" className="fill-brand-navy" />
+        <rect x="108" y="48" width="24" height="5" rx="2.5" stroke="none" className="fill-text-primary" />
+        <g strokeWidth="2" transform="translate(98 72) scale(1.9)" className="stroke-accent">
+          <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" />
+          <g transform="translate(12 12.5) scale(.42) translate(-12 -12)">
+            <rect x="3" y="11" width="18" height="11" rx="2" />
+            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+          </g>
+        </g>
+        <path d="M92 150H148M92 166H136M92 182H144" strokeWidth="2.5" className="stroke-text-tertiary" />
+      </g>
+    </motion.svg>
+  );
+}
+
+/** Section three phases: the privacy pitch first, then one phone screen + notification per scam type. */
 const SPAM_PHASES: readonly {
   title: string;
   body: string;
-  screen: ReactNode;
-  notification: ComponentType<NotificationProps>;
+  screen?: ReactNode;
+  notification?: ComponentType<NotificationProps>;
 }[] = [
+  {
+    title: "Privacy built for everyone",
+    body: "We believe that everyone deserves privacy. Vanyshr provides a comprehensive suite of tools to fight against these brokers. Allowing you to keep your data safe from spammers and criminals.",
+  },
   {
     title: "Fight Spam Calls",
     body: "They publish your name and number for anyone to find. That's the robocall pipeline — no leak required, it's just listed.",
@@ -717,6 +755,297 @@ const SPAM_PHASES: readonly {
     notification: EmailNotification,
   },
 ];
+
+/** Privacy promises shown under section four's steps. `lead` is the bold opening phrase, when a row has one. */
+const PRIVACY_PROMISES: readonly { icon: (typeof BROKER_RECORDS)[number]["icon"]; lead?: string; text: string }[] = [
+  { icon: Ban, text: "We never share, sell or use your information to market you junk." },
+  {
+    icon: Download,
+    lead: "Take it back anytime.",
+    text: "Export your report whenever you want. Delete your account and your data goes with it.",
+  },
+];
+
+/** Section five ("Removal is just the start."): the containers in its list. `label` is the optional small tag above the headline. */
+const COVER_CARDS: readonly { label?: string; headline: string; body: string }[] = [
+  {
+    label: "Account Tracker",
+    headline: "Active accounts monitored, Old accounts closed",
+    body: "Connect your email and we find the accounts you use and even ones you've forgotten. Our bot reads each one's privacy policy and files the closure for you. Accounts you keep get monitored for breach alerts so you're notified immediately.",
+  },
+  {
+    headline: "Blur your house on the map.",
+    body: "We file requests to blur your home on street-view maps, so strangers can't study your house, cars, and routines from their couch.",
+  },
+  {
+    headline: "Cover the people you love.",
+    body: "Add your partner, parents, or kids. We scan and remove their info too — and flag it when it comes back, same as yours.",
+  },
+];
+
+/** Sample broker guides for the "do it yourself" preview: the first is the front card, the rest peek out behind it. */
+const GUIDE_PREVIEWS = [
+  { broker: "FindPeopleFast", steps: 6 },
+  { broker: "DataLookup", steps: 4 },
+  { broker: "PeopleScan", steps: 8 },
+] as const;
+
+/** Portal preview: one broker opt-out guide card with two more stacked behind it. The stack pops in (back cards
+    first) once the section is reached, and the cards behind are tucked lower, narrower and dimmer. */
+function GuideStack({ shown, reducedMotion }: { shown: boolean; reducedMotion: boolean }) {
+  return (
+    <div aria-hidden="true" className="relative pb-6">
+      {GUIDE_PREVIEWS.map(({ broker, steps }, depth) => (
+        <motion.div
+          key={broker}
+          initial={false}
+          animate={
+            shown
+              ? { opacity: 1 - depth * 0.3, y: depth * 10, scale: 1 - depth * 0.06 }
+              : { opacity: 0, y: reducedMotion ? depth * 10 : 24 + depth * 10, scale: reducedMotion ? 1 - depth * 0.06 : 0.9 }
+          }
+          transition={
+            shown && !reducedMotion
+              ? { type: "spring", stiffness: 240, damping: 22, delay: (GUIDE_PREVIEWS.length - 1 - depth) * 0.12 }
+              : { duration: shown ? 0 : 0.15 }
+          }
+          style={{ zIndex: GUIDE_PREVIEWS.length - depth }}
+          className={cx(
+            "flex items-center gap-3 rounded-lg border border-border-subtle bg-bg-surface p-4 text-left",
+            depth === 0 ? "relative" : "absolute inset-x-0 top-0",
+          )}
+        >
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-sm bg-primary-muted text-primary-text">
+            <BookOpen className="size-5" />
+          </span>
+          <div className="min-w-0">
+            <p className="m-0 text-md font-semibold text-text-primary">
+              {broker}: opt out in {steps} steps
+            </p>
+            <p className="m-0 text-sm text-text-secondary">Free guide · no signup</p>
+          </div>
+        </motion.div>
+      ))}
+    </div>
+  );
+}
+
+const FAQS: readonly { question: string; answer: string }[] = [
+  {
+    question: "Why should I trust you with my data?",
+    answer: "Fair question. We ask for the minimum, we never sell it, and you can export or delete everything anytime.",
+  },
+  {
+    question: "How do you make money?",
+    answer: "Subscriptions. No ads, no data sales, no broker kickbacks.",
+  },
+  {
+    question: "Can't I do this myself?",
+    answer:
+      "Yes — the guides are free, right above. It takes hours and the data comes back. We do the filing and the re-filing.",
+  },
+  {
+    question: "Is removal permanent?",
+    answer:
+      'No — and anyone promising "permanent" is selling something. Brokers take you down; we keep you down by re-filing when you reappear.',
+  },
+  {
+    question: "What happens when my data comes back?",
+    answer: "It will. We detect it and re-file automatically. That's the subscription working.",
+  },
+  {
+    question: "What is synthetic cover?",
+    answer: "We plant fake versions of your info so the real stuff gets lost in the noise.",
+  },
+  {
+    question: "What happens when I cancel?",
+    answer:
+      "Completed removals stay completed. Monitoring and re-filing stop. Export or delete your data on the way out — no games.",
+  },
+];
+
+/** Expand/collapse list: one answer open at a time, each question a full-width 48px button. */
+function FaqList({ reducedMotion }: { reducedMotion: boolean }) {
+  const [open, setOpen] = useState<number | null>(null);
+  return (
+    <ul className="m-0 mt-6 flex min-h-0 flex-1 list-none flex-col overflow-y-auto p-0 pb-6">
+      {FAQS.map(({ question, answer }, i) => {
+        const expanded = open === i;
+        return (
+          <li key={question} className="border-b border-border-subtle">
+            <button
+              type="button"
+              aria-expanded={expanded}
+              aria-controls={`faq-${i}`}
+              onClick={() => setOpen(expanded ? null : i)}
+              className="flex min-h-12 w-full items-center justify-between gap-3 py-3 text-left text-md font-semibold text-text-primary outline-none focus-visible:outline-2 focus-visible:outline-border-focus"
+            >
+              {question}
+              <ChevronDown
+                className={cx("size-4 shrink-0 text-text-secondary transition-transform duration-base", expanded && "rotate-180")}
+                aria-hidden="true"
+              />
+            </button>
+            <motion.div
+              id={`faq-${i}`}
+              initial={false}
+              animate={expanded ? { height: "auto", opacity: 1 } : { height: 0, opacity: 0 }}
+              transition={{ duration: reducedMotion ? 0 : 0.32, ease: [0.2, 0, 0, 1] }}
+              className="overflow-hidden"
+            >
+              <p className="m-0 pb-4 text-left text-md text-text-secondary">{answer}</p>
+            </motion.div>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+/** Headline + body shown inside an expanded step. */
+function StepCopy({ headline, body }: { headline: string; body: string }) {
+  return (
+    <>
+      <h3 className="m-0 text-lg font-semibold text-text-primary">{headline}</h3>
+      <p className="m-0 mt-2 text-md text-text-secondary">{body}</p>
+    </>
+  );
+}
+
+/** Section four's steps. `content` is what the expanded step shows. */
+const STEPS: readonly { title: string; content?: ReactNode }[] = [
+  {
+    title: "Start with a scan",
+    content: (
+      <StepCopy
+        headline="You give a name and ZIP."
+        body="That's the whole signup for a scan. You decide what else we look for — nothing extra is ever required."
+      />
+    ),
+  },
+  {
+    title: "Sweep away your data",
+    content: (
+      <StepCopy
+        headline="We file the removals."
+        body="Our agents file opt-outs with every broker that has you and track each one. You watch progress; you never chase a broker."
+      />
+    ),
+  },
+  {
+    title: "Scout for new listings",
+    content: (
+      <StepCopy
+        headline="It comes back. We re-file."
+        body="Brokers re-list. New ones appear. We catch it and file again — automatically. You get an alert, not a chore."
+      />
+    ),
+  },
+  {
+    title: "Stuff decoy data",
+    content: (
+      <StepCopy
+        headline="We plant decoys."
+        body="We plant fake versions of your info, so the real stuff gets lost in the noise. Brokers end up holding data that points nowhere."
+      />
+    ),
+  },
+];
+
+/** Every snap stop in the stack, one stage apart: hero, section two's phases, section three's phases, then
+    section four's steps. Literal class names so Tailwind can see them; extend with the stack. */
+const SNAP_STOPS = [
+  "top-0",
+  "top-stage",
+  "top-stage-2",
+  "top-stage-3",
+  "top-stage-4",
+  "top-stage-5",
+  "top-stage-6",
+  "top-stage-7",
+  "top-stage-8",
+  "top-stage-9",
+  "top-stage-10",
+  "top-stage-11",
+  "top-stage-12",
+  "top-stage-13",
+  "top-stage-14",
+] as const;
+
+/** One step of the vertical progress indicator. Done steps collapse to a green check, the active step is a filled
+    number that expands to show its content, upcoming steps are a muted number. The connector below turns green
+    once the step is done. */
+function ProgressStep({
+  number,
+  title,
+  status,
+  last,
+  reducedMotion,
+  children,
+}: {
+  number: number;
+  title: string;
+  status: "done" | "active" | "upcoming";
+  last: boolean;
+  reducedMotion: boolean;
+  children?: ReactNode;
+}) {
+  const duration = reducedMotion ? 0 : 0.32;
+  return (
+    <li aria-current={status === "active" ? "step" : undefined} className="flex gap-3">
+      <div className="flex flex-col items-center">
+        <span
+          className={cx(
+            "flex size-8 shrink-0 items-center justify-center rounded-full border text-md font-bold transition-colors duration-base",
+            status === "done" && "border-status-success bg-status-success text-text-primary",
+            status === "active" && "border-primary bg-primary text-primary-on",
+            status === "upcoming" && "border-border bg-bg-surface text-text-secondary",
+          )}
+        >
+          {status === "done" ? (
+            <motion.span
+              key="check"
+              initial={reducedMotion ? false : { scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ type: "spring", stiffness: 400, damping: 18 }}
+              className="flex"
+            >
+              <Check className="size-4" strokeWidth={3} aria-label="Done" />
+            </motion.span>
+          ) : (
+            number
+          )}
+        </span>
+        {!last && (
+          <span
+            className={cx(
+              "my-1 w-0.5 flex-1 rounded-full transition-colors duration-base",
+              status === "done" ? "bg-status-success" : "bg-border-subtle",
+            )}
+          />
+        )}
+      </div>
+      <div className="min-w-0 flex-1 pb-3 text-left">
+        <p
+          className={cx(
+            "m-0 flex h-8 items-center text-lg font-semibold transition-colors duration-base",
+            status === "active" ? "text-text-primary" : "text-text-secondary",
+          )}
+        >
+          {title}
+        </p>
+        <motion.div
+          initial={false}
+          animate={status === "active" ? { height: "auto", opacity: 1 } : { height: 0, opacity: 0 }}
+          transition={{ duration, ease: [0.2, 0, 0, 1] }}
+          className="overflow-hidden"
+        >
+          <div className="mt-2 rounded-lg border border-border-subtle bg-bg-surface p-4">{children}</div>
+        </motion.div>
+      </div>
+    </li>
+  );
+}
 
 /** One threat word at a time: letters blur/fade in left to right, an orange rule sweeps under it. */
 function RotatingThreat({ words, reducedMotion }: { words: readonly string[]; reducedMotion: boolean }) {
@@ -765,13 +1094,16 @@ export function LandingPage() {
   const keyboardOpen = keyboard.inset > 0;
   const reducedMotion = Boolean(useReducedMotion());
   const scrollerRef = useRef<HTMLDivElement>(null);
-  // Navbar action: "Sign in" on the hero, hamburger once the snap stack is scrolled past halfway to section 2.
+  // Navbar action: "Sign in" on the hero, "Get Started" once the snap stack is scrolled past halfway to section 2.
   const [pastHero, setPastHero] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
   // Section two's chip entrance plays once it is mostly in view and resets when the hero is back on screen.
   const [sectionTwoEntered, setSectionTwoEntered] = useState(false);
   // Which section-three phase is on screen (-1 until the section starts sliding in); drives the notifications.
   const [spamActive, setSpamActive] = useState(-1);
+  // Which section-four step is expanded (the first until the section is reached).
+  const [stepActive, setStepActive] = useState(0);
+  // Whether the do-it-yourself section is (nearly) on screen; plays its guide stack in.
+  const [diyShown, setDiyShown] = useState(false);
   const { scrollY } = useScroll({ container: scrollerRef });
   useMotionValueEvent(scrollY, "change", (y) => {
     const stage = scrollerRef.current?.clientHeight ?? 0;
@@ -780,6 +1112,10 @@ export function LandingPage() {
       setSectionTwoEntered((on) => (on ? y / stage > 0.25 : y / stage >= 0.6));
       const spamRaw = y / stage - (1 + PHASES.length);
       setSpamActive(spamRaw < -0.5 ? -1 : Math.min(Math.max(Math.round(spamRaw), 0), SPAM_PHASES.length - 1));
+      const stepRaw = spamRaw - SPAM_PHASES.length;
+      setStepActive(Math.min(Math.max(Math.round(stepRaw), 0), STEPS.length - 1));
+      // Sections four and five are one stage per step / one stage respectively, so the DIY section starts after both.
+      setDiyShown(stepRaw - STEPS.length - 1 >= -0.4);
     }
   });
   // 0 at the first phase, PHASES.length - 1 at the last; the hero is stage 0, phase 1 starts at one stage.
@@ -793,6 +1129,9 @@ export function LandingPage() {
     const stage = scrollerRef.current?.clientHeight ?? 0;
     return stage > 0 ? Math.min(Math.max(y / stage - (1 + PHASES.length), 0), SPAM_PHASES.length - 1) : 0;
   });
+
+  // The phone is absent during the first phase (the privacy tiles) and fades in as phase two arrives.
+  const phoneOpacity = useTransform(spamProgress, (p) => clamp01((p - 0.3) / 0.4));
 
   useDrawerPageEffects(isOpen, fieldFocused, "var(--color-brand-navy)");
 
@@ -819,17 +1158,17 @@ export function LandingPage() {
             <AnimatePresence mode="wait" initial={false}>
               {pastHero ? (
                 <motion.button
-                  key="menu"
+                  key="get-started"
                   type="button"
-                  aria-label="Open menu"
-                  onClick={() => setMenuOpen(true)}
+                  onClick={() => setIsOpen(true)}
                   initial={reducedMotion ? false : { opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.8 }}
                   transition={{ duration: reducedMotion ? 0 : 0.2, ease: [0.2, 0, 0, 1] }}
-                  className="flex size-11 items-center justify-center text-text-primary outline-none focus-visible:outline-2 focus-visible:outline-border-focus"
+                  className="relative flex h-9 items-center gap-1 whitespace-nowrap rounded-full bg-primary px-4 text-md font-bold text-primary-on before:absolute before:inset-x-0 before:-inset-y-1 outline-none transition-colors duration-fast hover:bg-primary-hover active:bg-primary-active focus-visible:outline-2 focus-visible:outline-border-focus focus-visible:ring-4 focus-visible:ring-ring-focus"
                 >
-                  <Menu className="size-6" aria-hidden="true" />
+                  Get Started
+                  <ChevronRight className="size-4 shrink-0" aria-hidden="true" />
                 </motion.button>
               ) : (
                 <motion.button
@@ -863,14 +1202,13 @@ export function LandingPage() {
           )}
         >
           <div className="relative">
-            <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-px snap-start snap-always" />
-            <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-stage h-px snap-start snap-always" />
-            <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-stage-2 h-px snap-start snap-always" />
-            <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-stage-3 h-px snap-start snap-always" />
-            <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-stage-4 h-px snap-start snap-always" />
-            <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-stage-5 h-px snap-start snap-always" />
-            <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-stage-6 h-px snap-start snap-always" />
-            <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-stage-7 h-px snap-start snap-always" />
+            {SNAP_STOPS.map((top) => (
+              <span
+                key={top}
+                aria-hidden="true"
+                className={cx("pointer-events-none absolute inset-x-0 h-px snap-start snap-always", top)}
+              />
+            ))}
 
             {/* Hero. The image is the only shrinkable child, so short screens scale it down instead of
                 colliding with "Learn More"; tall screens leave the slack above it (mt-auto). */}
@@ -957,31 +1295,39 @@ export function LandingPage() {
                 Column: title, phone (up to 70%, shrinks if the copy needs the room), then the stacked copy
                 layers (one grid cell, so the block is as tall as the longest phase). */}
             <section
-              aria-label="Take back your privacy"
+              aria-label="Privacy"
               className="sticky top-0 z-20 flex h-stage flex-col overflow-hidden rounded-t-lg bg-brand-navy px-6 text-center"
             >
-              <h2 className="m-0 shrink-0 pt-5 font-display text-xl font-bold leading-tight tracking-tight text-text-primary">
-                Take back your privacy
-              </h2>
-              <div className="relative flex max-h-7/10 min-h-0 flex-1 items-start justify-center pt-4">
-                <PhoneFrame>
-                  {SPAM_PHASES.map((phase, i) => (
-                    <PhaseLayer
-                      key={phase.title}
-                      index={i}
-                      progress={spamProgress}
-                      reducedMotion={reducedMotion}
-                      className={SCREEN_LAYER}
-                    >
-                      {phase.screen}
-                    </PhaseLayer>
-                  ))}
-                </PhoneFrame>
+              <div className="relative flex max-h-7/10 min-h-0 flex-1 items-start justify-center pt-6">
+                <div className="absolute inset-0 flex items-center justify-center pt-6">
+                  <PrivacyIllustration shown={spamActive === 0} reducedMotion={reducedMotion} />
+                </div>
+                <motion.div style={{ opacity: phoneOpacity }} className="h-full w-2/3">
+                  <PhoneFrame>
+                    {SPAM_PHASES.map(
+                      (phase, i) =>
+                        phase.screen && (
+                          <PhaseLayer
+                            key={phase.title}
+                            index={i}
+                            progress={spamProgress}
+                            reducedMotion={reducedMotion}
+                            className={SCREEN_LAYER}
+                          >
+                            {phase.screen}
+                          </PhaseLayer>
+                        ),
+                    )}
+                  </PhoneFrame>
+                </motion.div>
                 {/* Notifications sit outside the phone (which clips) and are wider than it, so they pop out. */}
                 <div className="pointer-events-none absolute inset-x-0 top-2/5 z-20">
-                  {SPAM_PHASES.map((phase, i) => (
-                    <phase.notification key={phase.title} shown={spamActive === i} reducedMotion={reducedMotion} />
-                  ))}
+                  {SPAM_PHASES.map(
+                    (phase, i) =>
+                      phase.notification && (
+                        <phase.notification key={phase.title} shown={spamActive === i} reducedMotion={reducedMotion} />
+                      ),
+                  )}
                 </div>
               </div>
               <div className="grid shrink-0 pb-4">
@@ -1004,32 +1350,108 @@ export function LandingPage() {
             {SPAM_PHASES.slice(1).map((phase) => (
               <div key={phase.title} aria-hidden="true" className="h-stage" />
             ))}
+            {/* Section four. Pinned like two and three: one stage of scroll per step, and the stepper on the left
+                advances with it (see `stepActive`). */}
             <section
-              aria-label="Section four"
-              className="sticky top-0 z-30 h-stage rounded-t-lg bg-brand-orange"
-            />
+              aria-label="How Vanyshr works"
+              className="sticky top-0 z-30 flex h-stage flex-col rounded-t-lg bg-bg-app px-6"
+            >
+              <h2 className="m-0 shrink-0 pt-5 text-left font-display text-xl font-bold leading-tight tracking-tight text-text-primary">
+                How Vanyshr Works
+              </h2>
+              <p className="m-0 mt-1 shrink-0 text-left text-lg text-text-secondary">We do the work. You're in control.</p>
+              <ol className="m-0 mt-6 flex min-h-0 list-none flex-col p-0">
+                {STEPS.map((step, i) => (
+                  <ProgressStep
+                    key={step.title}
+                    number={i + 1}
+                    title={step.title}
+                    status={i < stepActive ? "done" : i === stepActive ? "active" : "upcoming"}
+                    last={i === STEPS.length - 1}
+                    reducedMotion={reducedMotion}
+                  >
+                    {step.content}
+                  </ProgressStep>
+                ))}
+              </ol>
+              {/* Fills the space under the steps; sits at the bottom of the stage. */}
+              <div className="mt-auto pb-6 pt-4">
+                <div className="rounded-lg border border-border-subtle bg-bg-surface p-4 text-left">
+                  <h3 className="m-0 text-lg font-semibold text-text-primary">Your data stays yours.</h3>
+                  <ul className="m-0 mt-3 flex list-none flex-col gap-3 p-0">
+                    {PRIVACY_PROMISES.map(({ icon: Icon, lead, text }) => (
+                      <li key={text} className="flex items-start gap-3">
+                        <Icon className="mt-0.5 size-4 shrink-0 text-primary-text" aria-hidden="true" />
+                        <p className="m-0 text-sm text-text-secondary">
+                          {lead && <span className="font-semibold text-text-primary">{lead} </span>}
+                          {text}
+                        </p>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </section>
+            {STEPS.slice(1).map((step) => (
+              <div key={step.title} aria-hidden="true" className="h-stage" />
+            ))}
+            {/* Section five. One stage: the header is pinned and the list of containers scrolls beneath it. */}
+            <section
+              aria-label="Removal is just the start"
+              className="sticky top-0 z-40 flex h-stage flex-col overflow-hidden rounded-t-lg bg-brand-navy px-6"
+            >
+              <h2 className="m-0 shrink-0 pt-5 text-left font-display text-xl font-bold leading-tight tracking-tight text-text-primary">
+                Removal is just the start.
+              </h2>
+              <p className="m-0 mt-1 shrink-0 text-left text-lg text-text-secondary">
+                More layers of cover, for added protection
+              </p>
+              <ul className="m-0 mt-6 flex min-h-0 flex-1 list-none flex-col gap-3 overflow-y-auto p-0 pb-6">
+                {COVER_CARDS.map((card) => (
+                  <li key={card.headline} className="rounded-lg border border-border-subtle bg-bg-surface p-4 text-left">
+                    {card.label && <p className="m-0 mb-2 text-sm font-semibold text-primary-text">{card.label}</p>}
+                    <h3 className="m-0 text-lg font-semibold text-text-primary">{card.headline}</h3>
+                    <p className="m-0 mt-2 text-md text-text-secondary">{card.body}</p>
+                  </li>
+                ))}
+              </ul>
+            </section>
+            {/* Section six. One stage: copy on top, the guide preview stacked beneath it. */}
+            <section
+              aria-label="Do it yourself"
+              className="sticky top-0 z-50 flex h-stage flex-col overflow-hidden rounded-t-lg bg-bg-app px-6"
+            >
+              <h2 className="m-0 shrink-0 pt-5 text-left font-display text-xl font-bold leading-tight tracking-tight text-text-primary">
+                Don't pay us - Do it Yourself
+              </h2>
+              <p className="m-0 mt-3 shrink-0 text-left text-lg text-text-secondary">
+                Every broker has an opt-out page. Our public guides walk you through each one, step by step — no signup
+                to read them. It takes hours, and the data comes back. But it's your data; the instructions should be
+                free.
+              </p>
+              <div className="flex min-h-0 flex-1 flex-col justify-center gap-6 pb-6">
+                <GuideStack shown={diyShown} reducedMotion={reducedMotion} />
+                {/* Secondary button (DESIGN 11.1): elevated fill, wash overlays for hover/press. Destination TBD. */}
+                <button
+                  type="button"
+                  className="relative flex h-12 w-fit items-center justify-center overflow-hidden rounded-full bg-bg-elevated px-5 text-md font-semibold text-text-primary outline-none before:absolute before:inset-0 before:bg-state-hover before:opacity-0 hover:before:opacity-100 active:before:bg-state-active active:before:opacity-100 focus-visible:outline-2 focus-visible:outline-border-focus focus-visible:ring-4 focus-visible:ring-ring-focus"
+                >
+                  DIY Portal
+                </button>
+              </div>
+            </section>
+            {/* Section seven. One stage: pinned title, FAQ list scrolls beneath it. */}
+            <section
+              aria-label="FAQs"
+              className="sticky top-0 z-60 flex h-stage flex-col overflow-hidden rounded-t-lg bg-brand-navy px-6"
+            >
+              <h2 className="m-0 shrink-0 pt-5 text-left font-display text-xl font-bold leading-tight tracking-tight text-text-primary">
+                FAQs
+              </h2>
+              <FaqList reducedMotion={reducedMotion} />
+            </section>
           </div>
         </div>
-
-        {/* Side menu: Konsta Panel from the right, half the screen width. */}
-        <Panel
-          side="right"
-          opened={menuOpen}
-          onBackdropClick={() => setMenuOpen(false)}
-          className="w-1/2! rounded-l-lg! bg-bg-surface!"
-        >
-          <List nested className="my-4! text-text-primary">
-            <ListItem
-              link
-              title={<span className="text-text-primary">Find my data</span>}
-              onClick={() => {
-                setMenuOpen(false);
-                setIsOpen(true);
-              }}
-            />
-            <ListItem link title={<span className="text-text-primary">Sign in</span>} onClick={() => navigate("/login")} />
-          </List>
-        </Panel>
 
         {isOpen && (
           <FindMyDataDrawer
