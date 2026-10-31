@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ComponentType, type ReactNode } from "react";
 import {
   AnimatePresence,
   animate,
@@ -25,6 +25,7 @@ import {
   Image,
   Mail,
   MapPin,
+  MessageCircle,
   Menu,
   Phone,
   PhoneOff,
@@ -530,22 +531,190 @@ function EmailScreen() {
   );
 }
 
+type NotificationProps = { shown: boolean; reducedMotion: boolean };
+
+/** iOS-style banner. `stack` puts the app header on top (the call notifications); `row` puts the app icon at the
+    left of the text (messages and mail). Dark glass with a hairline border so it separates from the phone. */
+function NotificationCard({
+  layout,
+  icon: Icon,
+  tint,
+  app,
+  title,
+  subtitle,
+  body,
+  time = "now",
+}: {
+  layout: "stack" | "row";
+  icon: (typeof BROKER_RECORDS)[number]["icon"];
+  tint: string;
+  app?: string;
+  title: string;
+  subtitle?: string;
+  body: ReactNode;
+  time?: string;
+}) {
+  const card =
+    "rounded-lg border border-border-subtle bg-bg-elevated/90 p-3 text-left text-text-primary shadow-lg backdrop-blur-md";
+  if (layout === "stack") {
+    return (
+      <div className={cx(card, "flex flex-col gap-1")}>
+        <div className="flex items-center gap-2">
+          <span className={cx("flex size-6 shrink-0 items-center justify-center rounded-sm", tint)}>
+            <Icon className="size-4 fill-current text-text-primary" />
+          </span>
+          <span className="flex-1 text-sm text-text-secondary">{app}</span>
+          <span className="text-xs text-text-secondary">{time}</span>
+        </div>
+        <p className="m-0 text-md font-semibold">{title}</p>
+        <p className="m-0 text-sm text-text-secondary">{body}</p>
+      </div>
+    );
+  }
+  return (
+    <div className={cx(card, "flex gap-3")}>
+      <span className={cx("flex size-10 shrink-0 items-center justify-center rounded-sm", tint)}>
+        <Icon className="size-6 text-text-primary" />
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-baseline justify-between gap-2">
+          <p className="m-0 text-md font-semibold">{title}</p>
+          <span className="text-xs text-text-secondary">{time}</span>
+        </div>
+        {subtitle && <p className="m-0 text-sm font-medium">{subtitle}</p>}
+        <p className="m-0 text-sm text-text-secondary">{body}</p>
+      </div>
+    </div>
+  );
+}
+
+/** Banners are laid out 20% wider than the phone area, then scaled down, so they end up smaller but still wider than the phone. */
+const BANNER_SCALE = 0.7;
+
+/** Positions one banner at the notification anchor and pops it in (spring, rising out of the phone) or out.
+    `depth` > 0 tucks it behind the front banner of a stack: lower, narrower, dimmer, so only its edge shows. */
+function PopIn({
+  shown,
+  reducedMotion,
+  delay = 0,
+  depth = 0,
+  children,
+}: NotificationProps & { delay?: number; depth?: number; children: ReactNode }) {
+  return (
+    <motion.div
+      initial={false}
+      animate={
+        shown
+          ? { opacity: 1 - depth * 0.3, y: depth * 10, scale: BANNER_SCALE * (1 - depth * 0.06) }
+          : { opacity: 0, y: reducedMotion ? 0 : 24, scale: BANNER_SCALE * (reducedMotion ? 1 : 0.94) }
+      }
+      transition={
+        shown
+          ? reducedMotion
+            ? { duration: 0 }
+            : { type: "spring", stiffness: 260, damping: 22, delay }
+          : { duration: 0.15 }
+      }
+      style={{ zIndex: 3 - depth }}
+      className="absolute left-1/2 top-0 w-6/5 origin-top -translate-x-1/2"
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+const SPAM_CALLERS = ["(800) 555-0199", "(844) 555-0172", "(877) 555-0136"] as const;
+/** Milliseconds after the phase becomes active at which each stacked call notification arrives. */
+const CALL_ARRIVALS_MS = [250, 800, 1350] as const;
+
+/** Spam-call phase: three call notifications arrive one after another, each pushing the last one back. */
+function CallNotifications({ shown, reducedMotion }: NotificationProps) {
+  const [arrived, setArrived] = useState(0);
+  useEffect(() => {
+    if (!shown) {
+      setArrived(0);
+      return;
+    }
+    if (reducedMotion) {
+      setArrived(SPAM_CALLERS.length);
+      return;
+    }
+    const ids = CALL_ARRIVALS_MS.map((ms, i) => window.setTimeout(() => setArrived(i + 1), ms));
+    return () => ids.forEach((id) => window.clearTimeout(id));
+  }, [shown, reducedMotion]);
+
+  return (
+    <>
+      {SPAM_CALLERS.map((number, k) => (
+        <PopIn key={number} shown={shown && arrived > k} depth={Math.max(arrived - 1 - k, 0)} reducedMotion={reducedMotion}>
+          <NotificationCard layout="stack" icon={Phone} tint="bg-status-success" app="Phone" title="Scam Likely" body={number} />
+        </PopIn>
+      ))}
+    </>
+  );
+}
+
+/** Scam-text phase: one unsolicited text from a number, with a shortened link. */
+function TextNotification({ shown, reducedMotion }: NotificationProps) {
+  return (
+    <PopIn shown={shown} delay={0.25} reducedMotion={reducedMotion}>
+      <NotificationCard
+        layout="row"
+        icon={MessageCircle}
+        tint="bg-status-success"
+        title="(218)330-8004"
+        body={
+          <>
+            Resolve your tax debt
+            <br />
+            bit.ly/3Tx8rQ
+          </>
+        }
+      />
+    </PopIn>
+  );
+}
+
+/** Phishing-email phase: a fake bank alert. */
+function EmailNotification({ shown, reducedMotion }: NotificationProps) {
+  return (
+    <PopIn shown={shown} delay={0.25} reducedMotion={reducedMotion}>
+      <NotificationCard
+        layout="row"
+        icon={Mail}
+        tint="bg-primary"
+        title="Chase Bank"
+        subtitle="ALERT!-Suspicious Login Activity"
+        body="Login now to prevent your account from being suspended"
+      />
+    </PopIn>
+  );
+}
+
 /** Section three: "Why you get..." phases, each with its own phone screen. */
-const SPAM_PHASES: readonly { title: string; body: string; screen: ReactNode }[] = [
+const SPAM_PHASES: readonly {
+  title: string;
+  body: string;
+  screen: ReactNode;
+  notification: ComponentType<NotificationProps>;
+}[] = [
   {
-    title: "Spam Calls",
+    title: "Fight Spam Calls",
     body: "They publish your name and number for anyone to find. That's the robocall pipeline — no leak required, it's just listed.",
     screen: <CallScreen />,
+    notification: CallNotifications,
   },
   {
-    title: "Scam Texts",
+    title: "Stop Scam Texts",
     body: "A lot of these brokers list your info for free, where scammers can easily access millions of cell phone numbers at a time and send millions of scam texts at once - they only need a few to fall for it.",
     screen: <TextScreen />,
+    notification: TextNotification,
   },
   {
-    title: "Phishing Emails",
+    title: "Block Phishing Emails",
     body: "Knowing your email and accounts like banking or social media, they can send sophisticated realistic alerts prompting you to enter your credentials giving them your username and password so they can login and take over your account.",
     screen: <EmailScreen />,
+    notification: EmailNotification,
   },
 ];
 
@@ -601,12 +770,16 @@ export function LandingPage() {
   const [menuOpen, setMenuOpen] = useState(false);
   // Section two's chip entrance plays once it is mostly in view and resets when the hero is back on screen.
   const [sectionTwoEntered, setSectionTwoEntered] = useState(false);
+  // Which section-three phase is on screen (-1 until the section starts sliding in); drives the notifications.
+  const [spamActive, setSpamActive] = useState(-1);
   const { scrollY } = useScroll({ container: scrollerRef });
   useMotionValueEvent(scrollY, "change", (y) => {
     const stage = scrollerRef.current?.clientHeight ?? 0;
     if (stage > 0) {
       setPastHero(y / stage >= 0.5);
       setSectionTwoEntered((on) => (on ? y / stage > 0.25 : y / stage >= 0.6));
+      const spamRaw = y / stage - (1 + PHASES.length);
+      setSpamActive(spamRaw < -0.5 ? -1 : Math.min(Math.max(Math.round(spamRaw), 0), SPAM_PHASES.length - 1));
     }
   });
   // 0 at the first phase, PHASES.length - 1 at the last; the hero is stage 0, phase 1 starts at one stage.
@@ -784,13 +957,13 @@ export function LandingPage() {
                 Column: title, phone (up to 70%, shrinks if the copy needs the room), then the stacked copy
                 layers (one grid cell, so the block is as tall as the longest phase). */}
             <section
-              aria-label="Why you get"
+              aria-label="Take back your privacy"
               className="sticky top-0 z-20 flex h-stage flex-col overflow-hidden rounded-t-lg bg-brand-navy px-6 text-center"
             >
-              <h2 className="m-0 shrink-0 pt-5 font-display text-display-xs font-bold leading-tight tracking-tight text-text-primary">
-                Why you get...
+              <h2 className="m-0 shrink-0 pt-5 font-display text-xl font-bold leading-tight tracking-tight text-text-primary">
+                Take back your privacy
               </h2>
-              <div className="flex max-h-7/10 min-h-0 flex-1 items-start justify-center pt-4">
+              <div className="relative flex max-h-7/10 min-h-0 flex-1 items-start justify-center pt-4">
                 <PhoneFrame>
                   {SPAM_PHASES.map((phase, i) => (
                     <PhaseLayer
@@ -804,6 +977,12 @@ export function LandingPage() {
                     </PhaseLayer>
                   ))}
                 </PhoneFrame>
+                {/* Notifications sit outside the phone (which clips) and are wider than it, so they pop out. */}
+                <div className="pointer-events-none absolute inset-x-0 top-2/5 z-20">
+                  {SPAM_PHASES.map((phase, i) => (
+                    <phase.notification key={phase.title} shown={spamActive === i} reducedMotion={reducedMotion} />
+                  ))}
+                </div>
               </div>
               <div className="grid shrink-0 pb-4">
                 {SPAM_PHASES.map((phase, i) => (
