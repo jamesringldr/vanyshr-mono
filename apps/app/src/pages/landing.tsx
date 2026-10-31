@@ -30,6 +30,7 @@ import {
   PhoneOff,
   ShieldAlert,
   ShieldCheck,
+  UserRound,
   Users,
 } from "lucide-react";
 import { cx } from "@/utils/cx";
@@ -184,28 +185,121 @@ const PROFILE_ROWS = [
   { icon: Briefcase, label: "Job", value: "Quality Assurance - Dunder Mifflin" },
 ] as const;
 
-/** Phase 2 illustration: a minimalist mock of a data broker's people-search profile page. */
-function BrokerProfile() {
+const smooth = (v: number) => v * v * (3 - 2 * v);
+const easeOutBack = (v: number) => 1 + 2.70158 * (v - 1) ** 3 + 1.70158 * (v - 1) ** 2;
+
+/** Progress marks inside section two's illustration: the card appears over 0.4-0.8, then (phase 2 -> 3) the card
+    leaves and the avatar moves to centre over 1-1.5, and the connection chips pop over 1.5-1.9. */
+const CARD_LEAVE_START = 1;
+const CARD_LEAVE_SPAN = 0.5;
+const CONNECTIONS_START = 1.5;
+
+/** Phase 2 illustration: a minimalist mock of a data broker's people-search profile page. The avatar is a separate
+    layer from the card, so in phase 3 it can grow and travel to the centre while the card shrinks away. */
+function BrokerProfile({
+  progress,
+  avatarSlotRef,
+  avatarDelta,
+  reducedMotion,
+}: {
+  progress: MotionValue<number>;
+  avatarSlotRef: { current: HTMLSpanElement | null };
+  avatarDelta: { current: Vec };
+  reducedMotion: boolean;
+}) {
+  const appear = useTransform(progress, (p) => clamp01((p - 0.4) / 0.4));
+  const leave = useTransform(progress, (p) => smooth(clamp01((p - CARD_LEAVE_START) / CARD_LEAVE_SPAN)));
+  const shellOpacity = useTransform([appear, leave], ([a, l]: number[]) => a * (1 - l));
+  const shellScale = useTransform(leave, (l) => (reducedMotion ? 1 : 1 - 0.15 * l));
+  const shellY = useTransform(appear, (a) => (reducedMotion ? 0 : (1 - a) * 16));
+  const avatarX = useTransform(leave, (l) => (reducedMotion ? 0 : avatarDelta.current.x * l));
+  const avatarY = useTransform([appear, leave], ([a, l]: number[]) =>
+    reducedMotion ? 0 : (1 - a) * 16 + avatarDelta.current.y * l,
+  );
+  const avatarScale = useTransform(leave, (l) => (reducedMotion ? 1 : 1 + 0.7 * l));
+
   return (
-    <div aria-hidden="true" className="w-full rounded-lg border border-border-subtle bg-bg-surface p-4 text-left">
-      <div className="flex items-center gap-3">
-        <img src={creedAvatar} alt="" className="size-12 shrink-0 rounded-full object-cover object-top" />
-        <div className="min-w-0">
+    <div aria-hidden="true" className="relative w-full text-left">
+      <motion.div
+        style={{ opacity: shellOpacity, scale: shellScale, y: shellY }}
+        className="w-full rounded-lg border border-border-subtle bg-bg-surface p-4"
+      >
+        <div className="flex min-h-12 min-w-0 flex-col justify-center pl-15">
           <p className="m-0 text-lg font-semibold text-text-primary">Creed Bratton</p>
           <p className="m-0 text-sm text-text-secondary">Age 30 · Scranton, PA</p>
         </div>
-      </div>
-      <dl className="m-0 mt-4 flex flex-col gap-3 border-t border-border-subtle pt-4">
-        {PROFILE_ROWS.map(({ icon: Icon, label, value }) => (
-          <div key={label} className="flex items-start gap-3">
-            <Icon className="mt-0.5 size-4 shrink-0 text-text-tertiary" />
-            <div className="min-w-0">
-              <dt className="text-xs text-text-tertiary">{label}</dt>
-              <dd className="m-0 text-md text-text-primary">{value}</dd>
+        <dl className="m-0 mt-4 flex flex-col gap-3 border-t border-border-subtle pt-4">
+          {PROFILE_ROWS.map(({ icon: Icon, label, value }) => (
+            <div key={label} className="flex items-start gap-3">
+              <Icon className="mt-0.5 size-4 shrink-0 text-text-tertiary" />
+              <div className="min-w-0">
+                <dt className="text-xs text-text-tertiary">{label}</dt>
+                <dd className="m-0 text-md text-text-primary">{value}</dd>
+              </div>
             </div>
-          </div>
-        ))}
-      </dl>
+          ))}
+        </dl>
+      </motion.div>
+      {/* The slot never moves (it is what the travel distance is measured from); the image inside does. */}
+      <span ref={avatarSlotRef} className="absolute left-4 top-4 z-10 size-12">
+        <motion.img
+          src={creedAvatar}
+          alt=""
+          style={{ opacity: appear, x: avatarX, y: avatarY, scale: avatarScale }}
+          className="size-full rounded-full object-cover object-top"
+        />
+      </span>
+    </div>
+  );
+}
+
+const CONNECTIONS = ["Wife", "Mother", "Father", "Colleague", "Friend", "Grandma"] as const;
+
+/** Phase 3: the people around the avatar, popping in one after another (with a small overshoot) on a ring. */
+function ConnectionChips({
+  progress,
+  ring,
+  reducedMotion,
+}: {
+  progress: MotionValue<number>;
+  ring: { current: Vec[] };
+  reducedMotion: boolean;
+}) {
+  return (
+    <div className="absolute left-1/2 top-1/2 size-0">
+      {CONNECTIONS.map((label, i) => (
+        <ConnectionChip key={label} label={label} index={i} progress={progress} ring={ring} reducedMotion={reducedMotion} />
+      ))}
+    </div>
+  );
+}
+
+function ConnectionChip({
+  label,
+  index,
+  progress,
+  ring,
+  reducedMotion,
+}: {
+  label: string;
+  index: number;
+  progress: MotionValue<number>;
+  ring: { current: Vec[] };
+  reducedMotion: boolean;
+}) {
+  const pop = useTransform(progress, (p) => clamp01((p - (CONNECTIONS_START + index * 0.06)) / 0.22));
+  const x = useTransform(pop, () => ring.current[index]?.x ?? 0);
+  const y = useTransform(pop, () => ring.current[index]?.y ?? 0);
+  const scale = useTransform(pop, (v) => (reducedMotion ? 1 : easeOutBack(v)));
+  const opacity = useTransform(pop, (v) => clamp01(v * 3));
+  return (
+    <div className="absolute w-20 -translate-x-1/2 -translate-y-1/2">
+      <motion.div style={{ x, y, scale, opacity }} className="flex flex-col items-center gap-1.5">
+        <span className="flex size-14 items-center justify-center rounded-full border border-border-subtle bg-bg-surface">
+          <UserRound className="size-6 text-text-primary" aria-hidden="true" />
+        </span>
+        <span className="text-xs leading-tight text-text-secondary">{label}</span>
+      </motion.div>
     </div>
   );
 }
@@ -218,7 +312,11 @@ const PHASES: readonly { title: string; body: string }[] = [
   },
   {
     title: "They organize & package your data to share with anyone",
-    body: "These highly-detailed profiles are extremely valuable to those wanting to target you and your family",
+    body: "These highly-detailed profiles are extremely valuable to those wanting to target you",
+  },
+  {
+    title: "They also map your friends and family",
+    body: "This is particularly useful for identity thieves and scammers - allowing them to use your information to scam your connections.",
   },
 ];
 
@@ -239,6 +337,9 @@ function PhaseIllustration({
   const funnelRef = useRef<HTMLDivElement>(null);
   const chipRefs = useRef<(HTMLLIElement | null)[]>([]);
   const geo = useRef<ClusterGeo>({ toFunnel: [], toCenter: [], rank: [] });
+  const avatarSlotRef = useRef<HTMLSpanElement | null>(null);
+  const avatarDelta = useRef<Vec>({ x: 0, y: 0 });
+  const ring = useRef<Vec[]>([]);
   const [, setMeasured] = useState(false);
 
   useLayoutEffect(() => {
@@ -266,6 +367,19 @@ function PhaseIllustration({
         toCenter: pts.map((c) => ({ x: mid.x - c.x, y: mid.y - c.y })),
         rank,
       };
+      // Phase 3: the avatar travels from its slot to the stage centre; connections sit on an ellipse around it.
+      const stage = stageRef.current?.getBoundingClientRect();
+      const slot = avatarSlotRef.current?.getBoundingClientRect();
+      if (stage && slot) {
+        avatarDelta.current = {
+          x: stage.left + stage.width / 2 - (slot.left + slot.width / 2),
+          y: stage.top + stage.height / 2 - (slot.top + slot.height / 2),
+        };
+        ring.current = CONNECTIONS.map((_, i) => {
+          const angle = ((-90 + i * 60) * Math.PI) / 180;
+          return { x: Math.cos(angle) * stage.width * 0.36, y: Math.sin(angle) * stage.height * 0.3 };
+        });
+      }
       setMeasured(true);
     };
     measure();
@@ -274,17 +388,18 @@ function PhaseIllustration({
     return () => observer.disconnect();
   }, []);
 
-  const cardOpacity = useTransform(progress, (p) => clamp01((p - 0.4) / 0.4));
-  const cardY = useTransform(cardOpacity, (o) => (reducedMotion ? 0 : (1 - o) * 16));
-
   return (
     <div ref={stageRef} className="relative size-full">
       <div className="absolute inset-x-0 top-1/2 -translate-y-1/2">
         <div ref={funnelRef} aria-hidden="true" className="absolute left-1/2 top-0 size-px" />
-        <motion.div style={{ opacity: cardOpacity, y: cardY }}>
-          <BrokerProfile />
-        </motion.div>
+        <BrokerProfile
+          progress={progress}
+          avatarSlotRef={avatarSlotRef}
+          avatarDelta={avatarDelta}
+          reducedMotion={reducedMotion}
+        />
       </div>
+      <ConnectionChips progress={progress} ring={ring} reducedMotion={reducedMotion} />
       <div className="absolute inset-x-0 top-1/2 z-10 flex -translate-y-1/2 flex-col gap-y-2">
         {BROKER_ROWS.map((row, rowIndex) => {
           const start = BROKER_ROWS.slice(0, rowIndex).reduce((n, r) => n + r.count, 0);
@@ -582,6 +697,7 @@ export function LandingPage() {
             <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-stage-4 h-px snap-start snap-always" />
             <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-stage-5 h-px snap-start snap-always" />
             <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-stage-6 h-px snap-start snap-always" />
+            <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-stage-7 h-px snap-start snap-always" />
 
             {/* Hero. The image is the only shrinkable child, so short screens scale it down instead of
                 colliding with "Learn More"; tall screens leave the slack above it (mt-auto). */}
