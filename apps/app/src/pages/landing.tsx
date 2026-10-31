@@ -27,6 +27,8 @@ import {
   MapPin,
   Menu,
   Phone,
+  PhoneOff,
+  ShieldAlert,
   ShieldCheck,
   Users,
 } from "lucide-react";
@@ -316,21 +318,121 @@ function PhaseLayer({
   index,
   progress,
   reducedMotion,
+  className,
   children,
 }: {
   index: number;
   progress: MotionValue<number>;
   reducedMotion: boolean;
+  className?: string;
   children: ReactNode;
 }) {
   const opacity = useTransform(progress, (p) => clamp01((0.5 - Math.abs(p - index)) / 0.3));
   const y = useTransform(progress, (p) => (reducedMotion ? 0 : (index - p) * 24));
   return (
-    <motion.div style={{ opacity, y }} className="absolute inset-x-0 bottom-0 top-7/10 flex flex-col px-6 text-center">
+    <motion.div style={{ opacity, y }} className={className}>
       {children}
     </motion.div>
   );
 }
+
+/** Phone mock for section three: the top of an iPhone (bezel, island), cropped and faded into the page. */
+function PhoneFrame({ children }: { children: ReactNode }) {
+  return (
+    <div
+      aria-hidden="true"
+      className="relative h-full w-2/3 overflow-hidden rounded-t-4xl border border-b-0 border-border-subtle bg-bg-surface"
+    >
+      <span className="absolute left-1/2 top-2 z-10 h-4 w-14 -translate-x-1/2 rounded-full bg-black" />
+      {children}
+      <span className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-3/5 bg-linear-to-t from-brand-navy to-transparent" />
+    </div>
+  );
+}
+
+const SCREEN_LAYER = "absolute inset-0 flex flex-col gap-4 px-4 pt-12";
+
+/** Skeleton line used by every phone screen. */
+function Bar({ className }: { className?: string }) {
+  return <span className={cx("block h-2 rounded-full bg-bg-elevated", className)} />;
+}
+
+/** Avatar circle + two lines, the repeating row of the call and email screens. `flag` marks the scam entry. */
+function SkeletonRow({ icon: Icon, flag }: { icon: (typeof BROKER_RECORDS)[number]["icon"]; flag?: boolean }) {
+  return (
+    <div className="flex items-center gap-3">
+      <span
+        className={cx(
+          "flex size-9 shrink-0 items-center justify-center rounded-full",
+          flag ? "bg-status-danger-muted text-status-danger" : "bg-bg-elevated text-text-tertiary",
+        )}
+      >
+        <Icon className="size-4" />
+      </span>
+      <div className="flex flex-1 flex-col gap-2">
+        <Bar className={cx("w-3/4", flag && "bg-status-danger-muted")} />
+        <Bar className="w-1/2" />
+      </div>
+    </div>
+  );
+}
+
+/** Spam-call phase: a call log whose top entry is flagged. */
+function CallScreen() {
+  return (
+    <>
+      <SkeletonRow icon={PhoneOff} flag />
+      {[0, 1, 2, 3].map((i) => (
+        <SkeletonRow key={i} icon={Phone} />
+      ))}
+    </>
+  );
+}
+
+/** Scam-text phase: a thread of unsolicited incoming bubbles. */
+function TextScreen() {
+  return (
+    <>
+      {["w-5/6", "w-2/3", "w-5/6", "w-1/2"].map((width, i) => (
+        <div key={i} className={cx("flex flex-col gap-2 rounded-lg bg-bg-elevated p-3", width)}>
+          <Bar className="w-full bg-text-tertiary/40" />
+          <Bar className="w-2/3 bg-text-tertiary/40" />
+        </div>
+      ))}
+    </>
+  );
+}
+
+/** Phishing-email phase: an inbox whose top entry is flagged. */
+function EmailScreen() {
+  return (
+    <>
+      <SkeletonRow icon={ShieldAlert} flag />
+      {[0, 1, 2, 3].map((i) => (
+        <SkeletonRow key={i} icon={Mail} />
+      ))}
+    </>
+  );
+}
+
+/** Section three: "Why you get..." phases, each with its own phone screen. */
+const SPAM_PHASES: readonly { title: string; body: string; screen: ReactNode }[] = [
+  {
+    title: "Spam Calls",
+    body: "They publish your name and number for anyone to find. That's the robocall pipeline — no leak required, it's just listed.",
+    screen: <CallScreen />,
+  },
+  {
+    title: "Scam Texts",
+    body: "A lot of these brokers list your info for free, where scammers can easily access millions of cell phone numbers at a time and send millions of scam texts at once - they only need a few to fall for it.",
+    screen: <TextScreen />,
+  },
+  {
+    title: "Phishing Emails",
+    body: "Knowing your email and accounts like banking or social media, they can send sophisticated realistic alerts prompting you to enter your credentials giving them your username and password so they can login and take over your account.",
+    screen: <EmailScreen />,
+  },
+];
 
 /** One threat word at a time: letters blur/fade in left to right, an orange rule sweeps under it. */
 function RotatingThreat({ words, reducedMotion }: { words: readonly string[]; reducedMotion: boolean }) {
@@ -396,6 +498,12 @@ export function LandingPage() {
   const phaseProgress = useTransform(scrollY, (y) => {
     const stage = scrollerRef.current?.clientHeight ?? 0;
     return stage > 0 ? Math.min(Math.max(y / stage - 1, 0), PHASES.length - 1) : 0;
+  });
+
+  // Section three starts right after section two's phases (hero = stage 0, then one stage per phase).
+  const spamProgress = useTransform(scrollY, (y) => {
+    const stage = scrollerRef.current?.clientHeight ?? 0;
+    return stage > 0 ? Math.min(Math.max(y / stage - (1 + PHASES.length), 0), SPAM_PHASES.length - 1) : 0;
   });
 
   useDrawerPageEffects(isOpen, fieldFocused, "var(--color-brand-navy)");
@@ -472,6 +580,8 @@ export function LandingPage() {
             <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-stage-2 h-px snap-start snap-always" />
             <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-stage-3 h-px snap-start snap-always" />
             <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-stage-4 h-px snap-start snap-always" />
+            <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-stage-5 h-px snap-start snap-always" />
+            <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-stage-6 h-px snap-start snap-always" />
 
             {/* Hero. The image is the only shrinkable child, so short screens scale it down instead of
                 colliding with "Learn More"; tall screens leave the slack above it (mt-auto). */}
@@ -537,7 +647,13 @@ export function LandingPage() {
                 <PhaseIllustration progress={phaseProgress} entered={sectionTwoEntered} reducedMotion={reducedMotion} />
               </div>
               {PHASES.map((phase, i) => (
-                <PhaseLayer key={phase.title} index={i} progress={phaseProgress} reducedMotion={reducedMotion}>
+                <PhaseLayer
+                  key={phase.title}
+                  index={i}
+                  progress={phaseProgress}
+                  reducedMotion={reducedMotion}
+                  className="absolute inset-x-0 bottom-0 top-7/10 flex flex-col px-6 text-center"
+                >
                   <h2 className="m-0 font-display text-xl font-bold leading-tight tracking-tight text-text-primary">
                     {phase.title}
                   </h2>
@@ -548,10 +664,51 @@ export function LandingPage() {
             {PHASES.slice(1).map((phase) => (
               <div key={phase.title} aria-hidden="true" className="h-stage" />
             ))}
+            {/* Section three. Same pinning as section two: spacers supply one stage of scroll per extra phase.
+                Column: title, phone (up to 70%, shrinks if the copy needs the room), then the stacked copy
+                layers (one grid cell, so the block is as tall as the longest phase). */}
             <section
-              aria-label="Section three"
-              className="sticky top-0 z-20 h-stage rounded-t-lg bg-linear-[48deg] from-[color-mix(in_srgb,var(--color-secondary)_40%,var(--color-brand-navy))] to-brand-navy"
-            />
+              aria-label="Why you get"
+              className="sticky top-0 z-20 flex h-stage flex-col overflow-hidden rounded-t-lg bg-brand-navy px-6 text-center"
+            >
+              <h2 className="m-0 shrink-0 pt-5 font-display text-display-xs font-bold leading-tight tracking-tight text-text-primary">
+                Why you get...
+              </h2>
+              <div className="flex max-h-7/10 min-h-0 flex-1 items-start justify-center pt-4">
+                <PhoneFrame>
+                  {SPAM_PHASES.map((phase, i) => (
+                    <PhaseLayer
+                      key={phase.title}
+                      index={i}
+                      progress={spamProgress}
+                      reducedMotion={reducedMotion}
+                      className={SCREEN_LAYER}
+                    >
+                      {phase.screen}
+                    </PhaseLayer>
+                  ))}
+                </PhoneFrame>
+              </div>
+              <div className="grid shrink-0 pb-4">
+                {SPAM_PHASES.map((phase, i) => (
+                  <PhaseLayer
+                    key={phase.title}
+                    index={i}
+                    progress={spamProgress}
+                    reducedMotion={reducedMotion}
+                    className="col-start-1 row-start-1 flex flex-col"
+                  >
+                    <h3 className="m-0 font-display text-xl font-bold leading-tight tracking-tight text-text-primary">
+                      {phase.title}
+                    </h3>
+                    <p className="m-0 mt-3 text-lg text-text-secondary">{phase.body}</p>
+                  </PhaseLayer>
+                ))}
+              </div>
+            </section>
+            {SPAM_PHASES.slice(1).map((phase) => (
+              <div key={phase.title} aria-hidden="true" className="h-stage" />
+            ))}
             <section
               aria-label="Section four"
               className="sticky top-0 z-30 h-stage rounded-t-lg bg-brand-orange"
